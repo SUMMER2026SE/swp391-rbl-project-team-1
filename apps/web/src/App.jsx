@@ -1360,8 +1360,12 @@ export default function App() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => {
-                        // Save changes
+                      onClick={async () => {
+                        // Automatically update password first if any password fields are filled
+                        if (settingsOldPass || settingsNewPass || settingsConfirmNewPass) {
+                          await handleSettingsPasswordChange(settingsOldPass, settingsNewPass, settingsConfirmNewPass);
+                        }
+                        // Save profile configurations
                         const updatedUser = {
                           ...currentUser,
                           name: settingsName,
