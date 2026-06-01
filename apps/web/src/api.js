@@ -17,6 +17,9 @@ export const api = {
   login: (email, password) =>
     request('/login', { method: 'POST', body: { email, password } }),
 
+  register: (payload) =>
+    request('/register', { method: 'POST', body: payload }),
+
   sendOtp: (payload) =>
     request('/auth/send-otp', { method: 'POST', body: payload }),
 

@@ -56,13 +56,21 @@ export async function register(req: Request, res: Response) {
       return u;
     });
 
+    const tokens = signTokens({ id: user.id, email: user.email, fullName: user.fullName, role: user.role });
+
     return res.status(201).json({
       success: true,
       data: {
-        id: user.id,
-        email: user.email,
-        fullName: user.fullName,
-        role: user.role
+        ...tokens,
+        user: {
+          id: user.id,
+          email: user.email,
+          fullName: user.fullName,
+          avatarUrl: user.avatarUrl,
+          role: user.role,
+          isPro: user.isPro,
+          subjectGroup: user.role === 'STUDENT' ? (subjectGroup || 'A01') : null
+        }
       }
     });
   } catch (err: any) {

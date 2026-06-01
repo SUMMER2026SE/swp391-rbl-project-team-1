@@ -119,13 +119,16 @@ export default function AuthPage({ defaultMode = 'login', onAuthSuccess, usersLi
           subjectGroup: userRole === 'student' ? (combo.split(' ')[0] || 'A01') : undefined,
           phone
         };
-        const data = await api.sendOtp(payload);
-        setPendingSignupEmail(email);
-        setPendingSignupOtp(data.otp); // dev mode: backend returns OTP
-        setGeneratedOtp(data.otp);
-        setMode('signup_otp');
-        setShowInbox(true);
-        addLog(`Đã gửi OTP đăng ký cho ${email}`, 'sys');
+        const data = await api.register(payload);
+        saveAuthTokens(data);
+        const mappedUser = mapBackendUser(data.user, password);
+        addLog(`Đăng ký tài khoản mới thành công: "${mappedUser.name}" (${mappedUser.email}) — đã lưu vào Supabase`, 'sys');
+        if (mappedUser.role === 'teacher') {
+          setSuccessMessage('Đăng ký Giáo viên thành công! Tài khoản đang chờ Admin duyệt.');
+          setMode('login');
+        } else {
+          onAuthSuccess(mappedUser);
+        }
       } catch (err) {
         setErrorMessage(err.message);
       } finally {
