@@ -421,10 +421,19 @@ export default function LandingPage({
                         fontWeight: '800',
                         fontSize: '13px',
                         border: '2px solid rgba(255,255,255,0.2)',
-                        boxShadow: '0 2px 10px rgba(0,0,0,0.15)'
+                        boxShadow: '0 2px 10px rgba(0,0,0,0.15)',
+                        overflow: 'hidden'
                       }}
                     >
-                      {currentUser.avatar || currentUser.name.slice(0,2).toUpperCase()}
+                      {currentUser.avatar && (currentUser.avatar.startsWith('data:') || currentUser.avatar.startsWith('http') || currentUser.avatar.length > 10) ? (
+                        <img 
+                          src={currentUser.avatar.startsWith('data:') || currentUser.avatar.startsWith('http') ? currentUser.avatar : `data:image/png;base64,${currentUser.avatar}`} 
+                          alt="Avatar" 
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                        />
+                      ) : (
+                        (currentUser.avatar && currentUser.avatar.length <= 10) ? currentUser.avatar : currentUser.name.slice(0, 2).toUpperCase()
+                      )}
                     </div>
                   </button>
 
@@ -468,10 +477,19 @@ export default function LandingPage({
                               justifyContent: 'center',
                               fontWeight: 'bold',
                               fontSize: '14px',
-                              flexShrink: 0
+                              flexShrink: 0,
+                              overflow: 'hidden'
                             }}
                           >
-                            {currentUser.avatar || currentUser.name.slice(0,2).toUpperCase()}
+                            {currentUser.avatar && (currentUser.avatar.startsWith('data:') || currentUser.avatar.startsWith('http') || currentUser.avatar.length > 10) ? (
+                              <img 
+                                src={currentUser.avatar.startsWith('data:') || currentUser.avatar.startsWith('http') ? currentUser.avatar : `data:image/png;base64,${currentUser.avatar}`} 
+                                alt="Avatar" 
+                                style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                              />
+                            ) : (
+                              (currentUser.avatar && currentUser.avatar.length <= 10) ? currentUser.avatar : currentUser.name.slice(0, 2).toUpperCase()
+                            )}
                           </div>
                           <div style={{ minWidth: 0 }}>
                             <h4 style={{ margin: 0, fontSize: '13.5px', fontWeight: '700', color: 'var(--text-main, #1e293b)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
@@ -610,10 +628,19 @@ export default function LandingPage({
                       alignItems: 'center',
                       justifyContent: 'center',
                       fontWeight: 'bold',
-                      fontSize: '13px'
+                      fontSize: '13px',
+                      overflow: 'hidden'
                     }}
                   >
-                    {currentUser.avatar || currentUser.name.slice(0,2).toUpperCase()}
+                    {currentUser.avatar && (currentUser.avatar.startsWith('data:') || currentUser.avatar.startsWith('http') || currentUser.avatar.length > 10) ? (
+                      <img 
+                        src={currentUser.avatar.startsWith('data:') || currentUser.avatar.startsWith('http') ? currentUser.avatar : `data:image/png;base64,${currentUser.avatar}`} 
+                        alt="Avatar" 
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                      />
+                    ) : (
+                      (currentUser.avatar && currentUser.avatar.length <= 10) ? currentUser.avatar : currentUser.name.slice(0, 2).toUpperCase()
+                    )}
                   </div>
                   <div>
                     <h4 style={{ margin: 0, fontSize: '13.5px', fontWeight: '700', color: '#fff' }}>{currentUser.name}</h4>

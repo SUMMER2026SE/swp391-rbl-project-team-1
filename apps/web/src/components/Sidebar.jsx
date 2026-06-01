@@ -31,7 +31,7 @@ const navConfigs = {
   ]
 };
 
-export default function Sidebar({ role, active, setActive, userProfile, onLogout }) {
+export default function Sidebar({ role, active, setActive, userProfile, onLogout, onUpgradePRO }) {
   // If guest, we do not render a sidebar or render a minimal one
   if (role === 'guest') return null;
 
@@ -67,13 +67,13 @@ export default function Sidebar({ role, active, setActive, userProfile, onLogout
         ))}
       </nav>
 
-      {role === 'student' && (
+      {role === 'student' && !userProfile?.isPro && (
         <div className="sidebar-upgrade">
           <div className="upgrade-badge">
             <HiStar /> Nâng cấp PRO
           </div>
           <p>Trải nghiệm toàn bộ tính năng AI và lộ trình cá nhân hóa nâng cao.</p>
-          <button className="upgrade-btn">
+          <button className="upgrade-btn" onClick={onUpgradePRO}>
             <HiArrowUp style={{ marginRight: 4, verticalAlign: 'middle' }} />
             Nâng cấp ngay
           </button>
@@ -82,14 +82,43 @@ export default function Sidebar({ role, active, setActive, userProfile, onLogout
 
       <div className="sidebar-user" style={{ display: 'flex', flexDirection: 'column', alignItems: 'stretch', gap: '8px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <div className="user-avatar" style={{ background: role === 'admin' ? '#E74C3C' : (role === 'teacher' ? '#0984E3' : '#6C5CE7') }}>
-            {userProfile?.avatar || 'U'}
-          </div>
+          {userProfile?.avatar && (userProfile.avatar.startsWith('data:') || userProfile.avatar.startsWith('http') || userProfile.avatar.length > 10) ? (
+            <img 
+              src={userProfile.avatar.startsWith('data:') || userProfile.avatar.startsWith('http') ? userProfile.avatar : `data:image/png;base64,${userProfile.avatar}`} 
+              alt="Avatar" 
+              className="user-avatar"
+              style={{ 
+                width: '40px', height: '40px', borderRadius: '50%', 
+                objectFit: 'cover', border: userProfile?.isPro ? '2px solid #FFA751' : '1px solid var(--border)',
+                boxShadow: userProfile?.isPro ? '0 0 10px rgba(255, 226, 89, 0.5)' : 'none'
+              }} 
+            />
+          ) : (
+            <div 
+              className="user-avatar" 
+              style={{ 
+                background: userProfile?.isPro 
+                  ? 'linear-gradient(135deg, #FFE259, #FFA751)' 
+                  : (role === 'admin' ? '#E74C3C' : (role === 'teacher' ? '#0984E3' : '#6C5CE7')),
+                boxShadow: userProfile?.isPro ? '0 0 10px rgba(255, 226, 89, 0.5)' : 'none',
+                fontWeight: 'bold',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+            >
+              {userProfile?.avatar && userProfile.avatar.length <= 10 ? userProfile.avatar : (userProfile?.name ? userProfile.name.slice(0, 2).toUpperCase() : 'U')}
+            </div>
+          )}
           <div className="user-info">
-            <h4 style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', maxWidth: '140px' }}>
+            <h4 style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', maxWidth: '140px', color: userProfile?.isPro ? '#FFA751' : 'inherit' }}>
               {userProfile?.name || 'Tài khoản'}
             </h4>
-            <p>{role === 'student' ? `Lớp ${userProfile?.grade} – ${userProfile?.combo}` : role.toUpperCase()}</p>
+            <p style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', fontSize: '11px', fontWeight: userProfile?.isPro ? 'bold' : 'normal', color: userProfile?.isPro ? '#FFA751' : 'var(--text-secondary)' }}>
+              {role === 'student' 
+                ? (userProfile?.isPro ? '⭐ HỌC VIÊN PRO' : `Lớp ${userProfile?.grade} – ${userProfile?.combo}`) 
+                : role.toUpperCase()}
+            </p>
           </div>
         </div>
         <button

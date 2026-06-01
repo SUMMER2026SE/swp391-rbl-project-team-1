@@ -14,6 +14,7 @@ import LandingPage from './components/LandingPage';
 import AuthPage from './components/AuthPage';
 import AITutorChat from './components/AITutorChat';
 import CheckoutModal from './components/CheckoutModal';
+import UpgradeModal from './components/UpgradeModal';
 import CourseDetails from './components/CourseDetails';
 import TestSimulator from './components/TestSimulator';
 import TeacherDashboard from './components/TeacherDashboard';
@@ -21,6 +22,7 @@ import AdminDashboard from './components/AdminDashboard';
 import AISystemCenter from './components/AISystemCenter';
 import Forum from './components/Forum';
 import CourseMall from './components/CourseMall';
+import ChatbotWidget from './components/ChatbotWidget.jsx';
 
 import { HiPlay, HiDocumentDownload, HiBeaker, HiX } from 'react-icons/hi';
 
@@ -440,6 +442,7 @@ export default function App() {
   const [activeCourseDetails, setActiveCourseDetails] = useState(null);
   const [activeTestSimulator, setActiveTestSimulator] = useState(null);
   const [checkoutCourse, setCheckoutCourse] = useState(null);
+  const [showUpgradePRO, setShowUpgradePRO] = useState(false);
 
   // Settings-specific local states
   const [settingsName, setSettingsName] = useState('');
@@ -630,6 +633,27 @@ export default function App() {
     setCheckoutCourse(null);
   };
 
+  // Student upgrades to PRO membership success
+  const handleUpgradeSuccess = () => {
+    // 1. Update in the local users database list
+    const updatedUsers = usersList.map(u => {
+      if (u.email === currentUser.email) {
+        return { ...u, isPro: true };
+      }
+      return u;
+    });
+    setUsersList(updatedUsers);
+
+    // 2. Sync the active session currentUser object
+    setCurrentUser({
+      ...currentUser,
+      isPro: true
+    });
+
+    // 3. Clear/close the upgrade modal
+    setShowUpgradePRO(false);
+  };
+
   // Student completes exam
   const handleFinishedTest = (result) => {
     const newSubmission = {
@@ -782,6 +806,7 @@ export default function App() {
           }}
           userProfile={currentUser}
           onLogout={handleLogout}
+          onUpgradePRO={() => setShowUpgradePRO(true)}
         />
       )}
 
@@ -1029,31 +1054,102 @@ export default function App() {
                         👤 1. THÔNG TIN CÁ NHÂN & LIÊN HỆ
                       </h4>
 
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px', alignItems: 'center' }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                          <span style={{ fontSize: '11.5px', fontWeight: '600', color: 'var(--text-secondary)' }}>Ảnh đại diện (Avatar):</span>
-                          <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: role === 'admin' ? '#E74C3C' : (role === 'teacher' ? '#0984E3' : 'var(--primary)'), color: '#fff', fontSize: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '3px solid var(--primary-light)', boxShadow: 'var(--shadow-md)' }}>
-                            {settingsAvatar}
-                          </div>
+                      <div style={{ 
+                        display: 'flex', 
+                        flexWrap: 'wrap', 
+                        gap: '24px', 
+                        alignItems: 'center',
+                        background: 'var(--bg-main)',
+                        padding: '20px',
+                        borderRadius: 'var(--radius-lg)',
+                        border: '1px solid var(--border)'
+                      }}>
+                        {/* Avatar Image circle on the left (increased size to 76px for premium feel) */}
+                        <div style={{ position: 'relative', width: '76px', height: '76px', borderRadius: '50%', overflow: 'hidden', border: '3px solid var(--primary)', boxShadow: '0 8px 20px rgba(108,92,231,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          {settingsAvatar && settingsAvatar.startsWith('data:image/') ? (
+                            <img 
+                              src={settingsAvatar} 
+                              alt="Avatar Preview" 
+                              style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                            />
+                          ) : (
+                            <div style={{ 
+                              width: '100%', height: '100%', 
+                              background: 'linear-gradient(135deg, #6C5CE7, #a29bfe)', 
+                              color: '#fff', fontSize: '32px', fontWeight: 'bold', display: 'flex', 
+                              alignItems: 'center', justifyContent: 'center' 
+                            }}>
+                              {settingsAvatar ? String(settingsAvatar).slice(0, 2).toUpperCase() : 'U'}
+                            </div>
+                          )}
                         </div>
+
+                        {/* Modern uploader specs on the right */}
                         <div style={{ flex: 1, minWidth: '240px' }}>
-                          <span style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--text-muted)' }}>CHỌN AVATAR KHÁC:</span>
-                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '6px' }}>
-                            {['🎒', '🎓', '🌟', '🚀', '💡', '🐼', '🦁', '🦊', '⚽', '🎨', '🎵', 'MA', 'TA', 'AD'].map(emoji => (
-                              <button 
-                                key={emoji}
+                          <h4 style={{ fontSize: '15px', fontWeight: 'bold', color: 'var(--text-primary)', margin: '0 0 4px 0' }}>
+                            Ảnh đại diện tài khoản
+                          </h4>
+                          <p style={{ fontSize: '12.5px', color: 'var(--text-secondary)', margin: '0 0 16px 0', lineHeight: '1.4' }}>
+                            Tải lên ảnh chân dung thực tế của bạn để đồng bộ hiển thị trên toàn bộ hệ thống lớp học trực tuyến EduPath. Định dạng hỗ trợ: PNG, JPG, JPEG (Tối đa 2MB).
+                          </p>
+                          
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                            <label 
+                              style={{
+                                padding: '8px 18px', fontSize: '12.5px', background: 'var(--primary)',
+                                color: '#fff', borderRadius: 'var(--radius-md)', cursor: 'pointer',
+                                fontWeight: 'bold', boxShadow: '0 4px 12px rgba(108,92,231,0.25)',
+                                transition: 'all 0.2s', display: 'inline-flex', alignItems: 'center', gap: '6px'
+                              }}
+                            >
+                              📁 Tải ảnh mới lên
+                              <input 
+                                type="file" 
+                                accept="image/*" 
+                                onChange={(e) => {
+                                  const file = e.target.files[0];
+                                  if (file) {
+                                    if (file.size > 2 * 1024 * 1024) {
+                                      alert('Dung lượng ảnh tối đa là 2MB!');
+                                      return;
+                                    }
+                                    const reader = new FileReader();
+                                    reader.onload = (event) => {
+                                      setSettingsAvatar(event.target.result);
+                                    };
+                                    reader.readAsDataURL(file);
+                                  }
+                                }}
+                                style={{ display: 'none' }}
+                              />
+                            </label>
+
+                            {settingsAvatar && settingsAvatar.startsWith('data:image/') && (
+                              <button
                                 type="button"
-                                onClick={() => setSettingsAvatar(emoji)}
-                                style={{
-                                  padding: '4px 8px', fontSize: '13px', background: settingsAvatar === emoji ? 'var(--primary-bg)' : 'var(--bg-main)',
-                                  border: settingsAvatar === emoji ? '1px solid var(--primary)' : '1px solid var(--border)',
-                                  borderRadius: 'var(--radius-sm)', cursor: 'pointer', outline: 'none', transition: 'all 0.2s', fontWeight: 'bold',
-                                  color: settingsAvatar === emoji ? 'var(--primary)' : 'var(--text-secondary)'
+                                className="btn-outline"
+                                onClick={() => {
+                                  // Revert to student initials or a simple placeholder letter from fullname
+                                  const firstLetter = settingsName ? settingsName.charAt(0) : '🦊';
+                                  setSettingsAvatar(firstLetter);
+                                }}
+                                style={{ 
+                                  padding: '8px 18px', fontSize: '12.5px', 
+                                  color: 'var(--accent-red)', borderColor: 'var(--border)',
+                                  borderRadius: 'var(--radius-md)', fontWeight: 'bold' 
+                                }}
+                                onMouseEnter={e => {
+                                  e.currentTarget.style.borderColor = 'var(--accent-red)';
+                                  e.currentTarget.style.background = 'rgba(231, 76, 60, 0.05)';
+                                }}
+                                onMouseLeave={e => {
+                                  e.currentTarget.style.borderColor = 'var(--border)';
+                                  e.currentTarget.style.background = 'none';
                                 }}
                               >
-                                {emoji}
+                                🗑️ Xóa ảnh đại diện
                               </button>
-                            ))}
+                            )}
                           </div>
                         </div>
                       </div>
@@ -1402,6 +1498,18 @@ export default function App() {
           addLog={addLog}
         />
       )}
+
+      {/* Upgrade Premium Modal */}
+      {showUpgradePRO && (
+        <UpgradeModal
+          onClose={() => setShowUpgradePRO(false)}
+          onUpgradeSuccess={handleUpgradeSuccess}
+          addLog={addLog}
+        />
+      )}
+
+      {/* Public Chatbot AI floating button and chat dialog */}
+      <ChatbotWidget />
 
       {/* Demo quick-login panel (collapsible) */}
       {/* <DemoPanel onQuickLogin={handleQuickLogin} /> */}

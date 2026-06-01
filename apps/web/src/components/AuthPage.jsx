@@ -723,8 +723,7 @@ export default function AuthPage({ defaultMode = 'login', onAuthSuccess, usersLi
               </form>
             )}
 
-            {/* Demo Hint Collapsible inside body */}
-            {mode === 'login' && <DemoHint />}
+
 
             <div className="auth-footer-lock">
               <span>🛡️ THÔNG TIN ĐƯỢC BẢO MẬT TUYỆT ĐỐI</span>
@@ -917,20 +916,4 @@ export default function AuthPage({ defaultMode = 'login', onAuthSuccess, usersLi
   );
 }
 
-function DemoHint() {
-  const [open, setOpen] = useState(false);
-  return (
-    <div className="demo-hint-box">
-      <button className="demo-hint-toggle" onClick={() => setOpen(!open)}>
-        🔑 Tài khoản demo thử nghiệm {open ? '▲' : '▼'}
-      </button>
-      {open && (
-        <div className="demo-hint-content">
-          <div><strong>Học sinh:</strong> student@gmail.com / student123</div>
-          <div><strong>Giáo viên:</strong> teacher@gmail.com / teacher123</div>
-          <div><strong>Admin:</strong> admin@edupath.vn / admin123</div>
-        </div>
-      )}
-    </div>
-  );
-}
+

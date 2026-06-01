@@ -90,17 +90,44 @@ export default function Header({
           {unreadCount > 0 && <span className="badge">{unreadCount}</span>}
         </button>
 
-        {/* User initials triggering profile menu */}
-        <div
-          className="header-avatar"
-          style={{ background: role === 'admin' ? '#E74C3C' : (role === 'teacher' ? '#0984E3' : '#6C5CE7') }}
-          onClick={() => {
-            setShowProfileMenu(!showProfileMenu);
-            setShowNotif(false);
-          }}
-        >
-          {userProfile?.avatar || 'U'}
-        </div>
+        {/* User initials or uploaded image triggering profile menu */}
+        {userProfile?.avatar && (userProfile.avatar.startsWith('data:') || userProfile.avatar.startsWith('http') || userProfile.avatar.length > 10) ? (
+          <img
+            src={userProfile.avatar.startsWith('data:') || userProfile.avatar.startsWith('http') ? userProfile.avatar : `data:image/png;base64,${userProfile.avatar}`}
+            alt="Avatar"
+            className="header-avatar"
+            style={{
+              width: '36px', height: '36px', borderRadius: '50%',
+              objectFit: 'cover', cursor: 'pointer', border: userProfile?.isPro ? '2px solid #FFA751' : '1px solid var(--border)',
+              boxShadow: userProfile?.isPro ? '0 0 8px rgba(255, 226, 89, 0.4)' : 'none'
+            }}
+            onClick={() => {
+              setShowProfileMenu(!showProfileMenu);
+              setShowNotif(false);
+            }}
+          />
+        ) : (
+          <div
+            className="header-avatar"
+            style={{
+              background: userProfile?.isPro 
+                ? 'linear-gradient(135deg, #FFE259, #FFA751)' 
+                : (role === 'admin' ? '#E74C3C' : (role === 'teacher' ? '#0984E3' : '#6C5CE7')),
+              boxShadow: userProfile?.isPro ? '0 0 8px rgba(255, 226, 89, 0.4)' : 'none',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontWeight: 'bold'
+            }}
+            onClick={() => {
+              setShowProfileMenu(!showProfileMenu);
+              setShowNotif(false);
+            }}
+          >
+            {userProfile?.avatar && userProfile.avatar.length <= 10 ? userProfile.avatar : (userProfile?.name ? userProfile.name.slice(0, 2).toUpperCase() : 'U')}
+          </div>
+        )}
 
         {/* Notification Dropdown Drawer */}
         {showNotif && (

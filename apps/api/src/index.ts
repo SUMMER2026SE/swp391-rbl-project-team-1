@@ -5,11 +5,12 @@ import dotenv from 'dotenv';
 import { initSocket } from './lib/socket.js';
 
 // Controller imports
-import { register, login, logout, sendOtp, verifyOtpRegister, googleAuth } from './controllers/auth.js';
+import { login, logout, sendOtp, verifyOtpRegister, googleAuth } from './controllers/auth.js';
 import { getCourses, getCourseById, createCourse, getCourseStats } from './controllers/course.js';
 import { getExams, startAttempt, submitAttempt } from './controllers/exam.js';
 import { streamAIChat, refreshRoadmap, generateAIQuestions } from './controllers/ai.js';
-import { createVNPayPayment, vnpayWebhook } from './controllers/payment.js';
+import { chatbotConsult } from './controllers/chatbot.js';
+import { createVNPayPayment, vnpayWebhook, sepayWebhook, checkEnrollmentStatus, checkUserProStatus } from './controllers/payment.js';
 import { authenticateJWT, requireRole } from './middleware/auth.js';
 
 dotenv.config();
@@ -31,7 +32,6 @@ app.use((req, res, next) => {
 });
 
 // Auth Routes
-app.post('/register', register);
 app.post('/login', login);
 app.post('/logout', logout);
 app.post('/auth/send-otp', sendOtp);
@@ -52,11 +52,17 @@ app.post('/exams/:id/attempts/:attemptId/submit', authenticateJWT, requireRole([
 // Protected Payment Routes
 app.post('/enrollments', authenticateJWT, requireRole(['STUDENT']), createVNPayPayment);
 app.get('/enrollments/webhook', vnpayWebhook);
+app.get('/enrollments/status', authenticateJWT, requireRole(['STUDENT']), checkEnrollmentStatus);
+app.post('/enrollments/sepay-webhook', sepayWebhook);
+app.get('/users/pro-status', authenticateJWT, requireRole(['STUDENT']), checkUserProStatus);
 
 // Protected AI Routes
 app.post('/ai/chat', authenticateJWT, requireRole(['STUDENT']), streamAIChat);
 app.post('/ai/roadmap/refresh', authenticateJWT, requireRole(['STUDENT']), refreshRoadmap);
 app.post('/ai/generate-questions', authenticateJWT, requireRole(['TEACHER', 'ADMIN']), generateAIQuestions);
+
+// Public AI Chatbot Route (No Auth required so landing page guests can use it!)
+app.post('/chatbot', chatbotConsult);
 
 // Root Hello check
 app.get('/', (req, res) => {

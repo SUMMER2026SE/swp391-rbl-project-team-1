@@ -2,6 +2,7 @@ import type { Request, Response } from 'express';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { prisma } from '../lib/prisma.js';
+import { sendOTPEmail } from '../lib/mailer.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'edupath_jwt_secret_key_2026';
 const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'edupath_jwt_refresh_secret_key_2026';
@@ -117,6 +118,7 @@ export async function login(req: Request, res: Response) {
           email: user.email,
           fullName: user.fullName,
           role: user.role,
+          isPro: user.isPro,
           subjectGroup: user.student?.subjectGroup || null
         }
       }
@@ -164,11 +166,25 @@ export async function sendOtp(req: Request, res: Response) {
       payload: { email, fullName, password, role, subjectGroup, bio, phone }
     });
 
-    // In dev mode, return OTP. In production, send via email service.
-    return res.status(200).json({
-      success: true,
-      data: { message: 'Đã gửi mã OTP đến email.', otp, expiresInMinutes: 10 }
-    });
+    // Call real nodemailer SMTP helper
+    const emailSent = await sendOTPEmail(email, fullName, otp);
+
+    if (emailSent) {
+      return res.status(200).json({
+        success: true,
+        data: { message: 'Đã gửi mã OTP đến Gmail thực của em. Hãy kiểm tra hộp thư!', expiresInMinutes: 10 }
+      });
+    } else {
+      // Fallback in case of no .env variables or transport failure, keeps sandbox environment working
+      return res.status(200).json({
+        success: true,
+        data: { 
+          message: 'Hệ thống gửi thư đang dùng chế độ Sandbox. Dùng mã OTP dưới đây để hoàn tất đăng ký.',
+          otp, 
+          expiresInMinutes: 10 
+        }
+      });
+    }
   } catch (err: any) {
     return res.status(500).json({ success: false, error: err.message });
   }
@@ -232,6 +248,7 @@ export async function verifyOtpRegister(req: Request, res: Response) {
           fullName: user.fullName,
           avatarUrl: user.avatarUrl,
           role: user.role,
+          isPro: user.isPro,
           subjectGroup: user.student?.subjectGroup || null
         }
       }
@@ -311,6 +328,7 @@ export async function googleAuth(req: Request, res: Response) {
           fullName: user.fullName,
           avatarUrl: user.avatarUrl,
           role: user.role,
+          isPro: user.isPro,
           subjectGroup: user.student?.subjectGroup || null
         }
       }

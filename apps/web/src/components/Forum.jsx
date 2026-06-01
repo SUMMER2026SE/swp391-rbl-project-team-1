@@ -80,8 +80,16 @@ export default function Forum({ forumPosts, onAddPost, onLikePost, onAddComment,
           </button>
           
           <div className="post-header" style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
-            <div className="user-avatar" style={{ background: 'var(--primary)', width: '44px', height: '44px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 'bold' }}>
-              {selectedPost.authorAvatar || 'U'}
+            <div className="user-avatar" style={{ background: 'var(--primary)', width: '44px', height: '44px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 'bold', overflow: 'hidden' }}>
+              {selectedPost.authorAvatar && (selectedPost.authorAvatar.startsWith('data:') || selectedPost.authorAvatar.startsWith('http') || selectedPost.authorAvatar.length > 10) ? (
+                <img 
+                  src={selectedPost.authorAvatar.startsWith('data:') || selectedPost.authorAvatar.startsWith('http') ? selectedPost.authorAvatar : `data:image/png;base64,${selectedPost.authorAvatar}`} 
+                  alt="Avatar" 
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                />
+              ) : (
+                (selectedPost.authorAvatar && selectedPost.authorAvatar.length <= 10) ? selectedPost.authorAvatar : 'U'
+              )}
             </div>
             <div>
               <h4 style={{ fontWeight: 'bold', fontSize: '15px' }}>{selectedPost.author}</h4>
@@ -127,8 +135,16 @@ export default function Forum({ forumPosts, onAddPost, onLikePost, onAddComment,
               {selectedPost.comments && selectedPost.comments.length > 0 ? (
                 selectedPost.comments.map(c => (
                   <div key={c.id} style={{ display: 'flex', gap: '12px', paddingBottom: '12px', borderBottom: '1px solid var(--border)', lastChild: { border: 'none' } }}>
-                    <div className="user-avatar" style={{ background: 'var(--accent-blue)', width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '12px', fontWeight: 'bold' }}>
-                      {c.avatar || 'U'}
+                    <div className="user-avatar" style={{ background: 'var(--accent-blue)', width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '12px', fontWeight: 'bold', overflow: 'hidden' }}>
+                      {c.avatar && (c.avatar.startsWith('data:') || c.avatar.startsWith('http') || c.avatar.length > 10) ? (
+                        <img 
+                          src={c.avatar.startsWith('data:') || c.avatar.startsWith('http') ? c.avatar : `data:image/png;base64,${c.avatar}`} 
+                          alt="Avatar" 
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                        />
+                      ) : (
+                        (c.avatar && c.avatar.length <= 10) ? c.avatar : 'U'
+                      )}
                     </div>
                     <div>
                       <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
@@ -240,8 +256,16 @@ export default function Forum({ forumPosts, onAddPost, onLikePost, onAddComment,
 
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '10px', borderTop: '1px solid var(--border)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <div className="user-avatar" style={{ background: 'var(--accent-green)', width: '24px', height: '24px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '10px', fontWeight: 'bold' }}>
-                        {post.authorAvatar || 'U'}
+                      <div className="user-avatar" style={{ background: 'var(--accent-green)', width: '24px', height: '24px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '10px', fontWeight: 'bold', overflow: 'hidden' }}>
+                        {post.authorAvatar && (post.authorAvatar.startsWith('data:') || post.authorAvatar.startsWith('http') || post.authorAvatar.length > 10) ? (
+                          <img 
+                            src={post.authorAvatar.startsWith('data:') || post.authorAvatar.startsWith('http') ? post.authorAvatar : `data:image/png;base64,${post.authorAvatar}`} 
+                            alt="Avatar" 
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                          />
+                        ) : (
+                          (post.authorAvatar && post.authorAvatar.length <= 10) ? post.authorAvatar : 'U'
+                        )}
                       </div>
                       <span style={{ fontSize: '12px', fontWeight: '500', color: 'var(--text-secondary)' }}>{post.author}</span>
                     </div>

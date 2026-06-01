@@ -24,5 +24,8 @@ export const api = {
     request('/auth/verify-otp-register', { method: 'POST', body: { email, otp } }),
 
   googleAuth: (profile) =>
-    request('/auth/google', { method: 'POST', body: profile })
+    request('/auth/google', { method: 'POST', body: profile }),
+
+  chatbot: (message, history) =>
+    request('/chatbot', { method: 'POST', body: { message, history } })
 };
