@@ -520,9 +520,10 @@ export default function App() {
   };
 
 
-  const handleChangePassword = (oldPass, newPass) => {
-    const matched = usersList.find(u => u.email === currentUser.email);
-    if (matched && matched.password === oldPass) {
+  const handleChangePassword = async (oldPass, newPass) => {
+    try {
+      await api.changePassword(oldPass, newPass);
+      
       const updatedList = usersList.map(u => u.email === currentUser.email ? { ...u, password: newPass } : u);
       setUsersList(updatedList);
       
@@ -531,8 +532,8 @@ export default function App() {
       
       addLog(`Người dùng "${currentUser.name}" đổi mật khẩu tài khoản thành công (UC-04)`, 'sys');
       alert('Đổi mật khẩu thành công!');
-    } else {
-      alert('Mật khẩu cũ không chính xác!');
+    } catch (err) {
+      alert(err.message || 'Đổi mật khẩu thất bại!');
     }
   };
 
@@ -544,7 +545,7 @@ export default function App() {
     alert('Lưu thông tin cá nhân thành công!');
   };
 
-  const handleSettingsPasswordChange = (oldPass, newPass, confirmPass) => {
+  const handleSettingsPasswordChange = async (oldPass, newPass, confirmPass) => {
     if (!oldPass || !newPass || !confirmPass) {
       alert('Vui lòng nhập đầy đủ các trường đổi mật khẩu!');
       return;
@@ -558,8 +559,9 @@ export default function App() {
       return;
     }
 
-    const matched = usersList.find(u => u.email === currentUser.email);
-    if (matched && matched.password === oldPass) {
+    try {
+      await api.changePassword(oldPass, newPass);
+      
       const updatedList = usersList.map(u => u.email === currentUser.email ? { ...u, password: newPass } : u);
       setUsersList(updatedList);
       
@@ -571,8 +573,8 @@ export default function App() {
       setSettingsOldPass('');
       setSettingsNewPass('');
       setSettingsConfirmNewPass('');
-    } else {
-      alert('Mật khẩu cũ không chính xác!');
+    } catch (err) {
+      alert(err.message || 'Đổi mật khẩu thất bại!');
     }
   };
 

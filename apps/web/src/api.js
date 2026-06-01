@@ -1,8 +1,14 @@
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:4000';
 
 async function request(path, options = {}) {
+  const token = localStorage.getItem('access_token');
+  const headers = {
+    'Content-Type': 'application/json',
+    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+    ...(options.headers || {})
+  };
   const res = await fetch(`${API_BASE}${path}`, {
-    headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
+    headers,
     ...options,
     body: options.body ? JSON.stringify(options.body) : undefined
   });
@@ -30,5 +36,8 @@ export const api = {
     request('/auth/google', { method: 'POST', body: profile }),
 
   chatbot: (message, history) =>
-    request('/chatbot', { method: 'POST', body: { message, history } })
+    request('/chatbot', { method: 'POST', body: { message, history } }),
+
+  changePassword: (oldPassword, newPassword) =>
+    request('/auth/change-password', { method: 'POST', body: { oldPassword, newPassword } })
 };

@@ -345,3 +345,38 @@ export async function googleAuth(req: Request, res: Response) {
     return res.status(500).json({ success: false, error: err.message });
   }
 }
+
+export async function changePassword(req: Request, res: Response) {
+  const { oldPassword, newPassword } = req.body;
+  const userId = (req as any).user?.id;
+
+  if (!userId) {
+    return res.status(401).json({ success: false, error: 'Chưa được xác thực!' });
+  }
+
+  if (!oldPassword || !newPassword) {
+    return res.status(400).json({ success: false, error: 'Vui lòng nhập đầy đủ mật khẩu cũ và mới.' });
+  }
+
+  try {
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      return res.status(404).json({ success: false, error: 'Không tìm thấy người dùng.' });
+    }
+
+    const isMatch = await bcrypt.compare(oldPassword, user.passwordHash);
+    if (!isMatch) {
+      return res.status(400).json({ success: false, error: 'Mật khẩu cũ không chính xác!' });
+    }
+
+    const passwordHash = await bcrypt.hash(newPassword, 12);
+    await prisma.user.update({
+      where: { id: userId },
+      data: { passwordHash }
+    });
+
+    return res.status(200).json({ success: true, data: 'Đổi mật khẩu thành công!' });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+}
