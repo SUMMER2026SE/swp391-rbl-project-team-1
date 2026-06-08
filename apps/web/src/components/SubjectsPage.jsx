@@ -1,10 +1,58 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import {
   HiArrowLeft, HiArrowRight, HiBookOpen, HiClock, HiDocumentText,
   HiLightBulb, HiAcademicCap, HiChartBar, HiDownload, HiStar,
-  HiCheck, HiX, HiCalendar, HiSparkles, HiUsers, HiTrendingUp,
-  HiClipboardList, HiSearch
+  HiCheck, HiCalendar, HiSparkles, HiUsers,
+  HiClipboardList, HiSearch, HiBadgeCheck, HiShieldCheck,
+  HiPlay, HiTrendingUp
 } from 'react-icons/hi';
+
+import educatorsTeamImg from '../assets/educators_team.png';
+import studentSuccessImg from '../assets/student_success.png';
+import teacherMathImg from '../assets/teacher_math.png';
+import studentLearningImg from '../assets/student_learning.png';
+
+function useDebounce(value, delay = 250) {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const id = setTimeout(() => setDebounced(value), delay);
+    return () => clearTimeout(id);
+  }, [value, delay]);
+  return debounced;
+}
+
+function useInView(options = {}) {
+  const ref = useRef(null);
+  const [isInView, setIsInView] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) { setIsInView(true); obs.unobserve(el); } },
+      { threshold: 0.15, ...options }
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+  return [ref, isInView];
+}
+
+function AnimatedCounter({ end, suffix = '', duration = 1800 }) {
+  const [count, setCount] = useState(0);
+  const [ref, inView] = useInView();
+  useEffect(() => {
+    if (!inView) return;
+    let start = 0;
+    const step = Math.max(1, Math.floor(end / (duration / 16)));
+    const id = setInterval(() => {
+      start += step;
+      if (start >= end) { setCount(end); clearInterval(id); }
+      else setCount(start);
+    }, 16);
+    return () => clearInterval(id);
+  }, [inView, end, duration]);
+  return <span ref={ref}>{count.toLocaleString()}{suffix}</span>;
+}
 
 // ============================================================
 // SUBJECT DATA — 9 môn THPT Quốc Gia
@@ -567,18 +615,113 @@ const COMBO_INFO = {
   D01: { name: 'Toán - Văn - Anh', subjects: ['toan', 'van', 'anh'], industries: 'Kinh tế, Ngoại ngữ' }
 };
 
+const TEACHER_DATA = {
+  toan:  { name: 'Thầy Nguyễn Đức Anh',  cred: 'Thủ khoa Toán K60 ĐHQGHN · Chuyên gia Casio',      initials: 'NĐA', bg: '#5b75f3', rating: 4.9, reviews: 3240 },
+  van:   { name: 'Cô Trần Thị Hà',        cred: 'Thạc sĩ Ngôn ngữ học · 8 năm luyện thi THPTQG',   initials: 'TTH', bg: '#4598a7', rating: 4.8, reviews: 2890 },
+  anh:   { name: 'Thầy Quang Chung',      cred: 'IELTS 8.5 · Giảng viên ĐH Ngoại Thương HN',       initials: 'QC',  bg: '#db8142', rating: 4.9, reviews: 2654 },
+  ly:    { name: 'Thầy Bùi Hữu Nam',      cred: 'Thạc sĩ Vật lý ĐH Sư Phạm · 10 năm kinh nghiệm',initials: 'BHN', bg: '#52ad58', rating: 4.7, reviews: 1980 },
+  hoa:   { name: 'Cô Lê Thị Phương',      cred: 'Tiến sĩ Hóa học · Cựu GV THPT Chuyên',           initials: 'LTP', bg: '#cf6674', rating: 4.8, reviews: 2120 },
+  sinh:  { name: 'Thầy Đỗ Mạnh Hùng',    cred: 'Thạc sĩ Sinh học · Chuyên gia di truyền học',     initials: 'ĐMH', bg: '#6f4ab3', rating: 4.7, reviews: 1760 },
+  su:    { name: 'Cô Nguyễn Bích Ngọc',   cred: 'Thạc sĩ Sử học · 12 năm luyện thi THPTQG',       initials: 'NBN', bg: '#c44747', rating: 4.6, reviews: 3100 },
+  dia:   { name: 'Thầy Lê Mỹ Phong',      cred: 'Cử nhân Địa lý · Chuyên gia Atlat Địa lý VN',    initials: 'LMP', bg: '#2d8659', rating: 4.7, reviews: 2870 },
+  gdcd:  { name: 'Cô Phan Thị Thu Hà',    cred: 'Luật sư · Thạc sĩ GDCD · 6 năm giảng dạy',       initials: 'PTH', bg: '#d4a042', rating: 4.8, reviews: 2560 },
+};
+
+const REVIEWS = [
+  { name: 'Nguyễn Minh Khôi',   school: 'THPT Chuyên Hà Nội Amsterdam', score: '28.5 điểm', subject: 'Toán',     text: 'Nhờ thầy Đức Anh hướng dẫn kỹ thuật Casio, em từ 7.5 lên 9.0 chỉ sau 2 tháng. Phương pháp phân loại đề thực sự rất hiệu quả.' },
+  { name: 'Trần Thị Bảo Châu',  school: 'THPT Kim Liên, Hà Nội',         score: '27.8 điểm', subject: 'Tiếng Anh', text: 'Phương pháp đọc hiểu của thầy Quang Chung rất khác biệt. Điểm Tiếng Anh tăng từ 6.4 lên 8.6 sau 3 tháng học.' },
+  { name: 'Phạm Văn Tuấn',      school: 'THPT Lê Hồng Phong, TP.HCM',   score: '26.5 điểm', subject: 'Hóa Học',  text: 'Cô Phương giải thích bảo toàn electron cực kỳ dễ hiểu. Hóa từ môn sợ nhất trở thành điểm mạnh của em.' },
+  { name: 'Lê Hoàng Anh',       school: 'THPT Chuyên Lam Sơn, Thanh Hóa', score: '29.0 điểm', subject: 'Vật Lý',   text: 'Phương pháp giản đồ vector của thầy Nam giúp em giải bài mạch điện xoay chiều siêu nhanh. Từ 6.0 lên 8.8!' },
+  { name: 'Đặng Thị Thu Hương', school: 'THPT Chu Văn An, Hà Nội',       score: '27.2 điểm', subject: 'Ngữ Văn',  text: 'Cô Hà chữa bài rất tận tâm. Em học được cách dẫn dắt bài NLVH rất mượt, từ 6.5 lên 8.5 chỉ sau 4 tháng.' },
+  { name: 'Vũ Đức Minh',        school: 'THPT Chuyên Bắc Ninh',           score: '28.0 điểm', subject: 'Sinh Học', text: 'Sơ đồ tư duy di truyền của thầy Hùng giúp em nhớ rất lâu. Sinh từ 5.5 lên 9.0, vượt xa mong đợi!' },
+];
+
+// ============================================================
+// QUICK PRACTICE — 3 câu hỏi nhanh cho mỗi môn
+// ============================================================
+const QUICK_PRACTICE = {
+  toan: [
+    { q: 'Hàm số y = x³ - 3x + 2 có bao nhiêu cực trị?', opts: ['0', '1', '2', '3'], ans: 2, explain: 'y\' = 3x²-3 = 0 → x = ±1. y\'\' đổi dấu qua cả 2 nghiệm → 2 cực trị.' },
+    { q: 'Tích phân ∫₀¹ x·eˣ dx bằng?', opts: ['1', 'e-1', 'e', '2e-1'], ans: 0, explain: 'Tích phân từng phần: u=x, dv=eˣdx → kq = [xeˣ - eˣ]₀¹ = 1.' },
+    { q: 'Số phức z = 3 + 4i có mô-đun bằng?', opts: ['5', '7', '25', '√7'], ans: 0, explain: '|z| = √(3²+4²) = √25 = 5.' },
+  ],
+  van: [
+    { q: 'Bài thơ "Tây Tiến" của Quang Dũng sáng tác năm nào?', opts: ['1946', '1948', '1950', '1954'], ans: 1, explain: 'Quang Dũng viết Tây Tiến năm 1948 tại Phù Lưu Chanh.' },
+    { q: 'Tác phẩm nào KHÔNG nằm trong chương trình Ngữ Văn 12?', opts: ['Vợ nhặt', 'Chí Phèo', 'Sóng', 'Người lái đò Sông Đà'], ans: 1, explain: 'Chí Phèo là chương trình Ngữ Văn 11, không nằm trong trọng tâm lớp 12.' },
+    { q: '"Đất nước" của Nguyễn Khoa Điềm thuộc thể loại gì?', opts: ['Truyện ngắn', 'Thơ tự do', 'Trường ca', 'Tùy bút'], ans: 2, explain: '"Đất nước" trích từ trường ca "Mặt đường khát vọng" (1971).' },
+  ],
+  anh: [
+    { q: 'Choose the word with different stress: "economic", "education", "politic", "geography"', opts: ['economic', 'education', 'politic', 'geography'], ans: 2, explain: '"politic" has stress on 1st syllable (POL-i-tic), others on 3rd.' },
+    { q: 'If I _____ you, I would study harder.', opts: ['am', 'was', 'were', 'be'], ans: 2, explain: 'Câu điều kiện loại 2: If + S + were/V2...' },
+    { q: 'The word "endangered" is closest in meaning to:', opts: ['dangerous', 'threatened', 'extinct', 'protected'], ans: 1, explain: '"Endangered" = bị đe dọa (threatened), không phải "dangerous" (nguy hiểm).' },
+  ],
+  ly: [
+    { q: 'Dao động điều hòa có ω = 10 rad/s. Chu kỳ T bằng?', opts: ['0.2π s', 'π/5 s', '0.628 s', 'Cả A và C'], ans: 3, explain: 'T = 2π/ω = 2π/10 = π/5 ≈ 0.628s. Đáp án A và C đều đúng.' },
+    { q: 'Trong mạch RLC nối tiếp, cộng hưởng xảy ra khi:', opts: ['ZL = ZC', 'ZL > ZC', 'R = 0', 'U = 0'], ans: 0, explain: 'Cộng hưởng khi ZL = ZC, lúc đó Z = R (min), I max.' },
+    { q: 'Năng lượng liên kết riêng lớn nhất ở nhân nào?', opts: ['Heli-4', 'Sắt-56', 'Urani-238', 'Cacbon-12'], ans: 1, explain: 'Fe-56 có năng lượng liên kết riêng lớn nhất (~8.8 MeV/nucleon).' },
+  ],
+  hoa: [
+    { q: 'Este CH₃COOC₂H₅ có tên gọi là:', opts: ['Metyl axetat', 'Etyl axetat', 'Etyl fomat', 'Metyl propanoat'], ans: 1, explain: 'CH₃COO- là gốc axetat, C₂H₅- là etyl → Etyl axetat.' },
+    { q: 'Amino axit nào là amino axit thiết yếu?', opts: ['Glyxin', 'Alanin', 'Lysin', 'Glutamic'], ans: 2, explain: 'Lysin là amino axit thiết yếu — cơ thể không tự tổng hợp được.' },
+    { q: 'Kim loại nào phản ứng với nước ở nhiệt độ thường?', opts: ['Fe', 'Cu', 'Na', 'Al'], ans: 2, explain: 'Na (kim loại kiềm) phản ứng mãnh liệt với nước: 2Na + 2H₂O → 2NaOH + H₂↑' },
+  ],
+  sinh: [
+    { q: 'Trong phép lai AaBb × AaBb, tỷ lệ kiểu hình trội cả 2 tính trạng?', opts: ['1/16', '3/16', '9/16', '1/4'], ans: 2, explain: 'Phân li độc lập: 3/4 × 3/4 = 9/16.' },
+    { q: 'Đột biến gen xảy ra ở loại tế bào nào sẽ di truyền?', opts: ['Tế bào soma', 'Tế bào sinh dục', 'Cả hai', 'Không loại nào'], ans: 1, explain: 'Đột biến ở tế bào sinh dục truyền qua giao tử cho thế hệ sau.' },
+    { q: 'Chuỗi thức ăn bắt đầu bằng sinh vật nào?', opts: ['SV tiêu thụ bậc 1', 'SV sản xuất', 'SV phân giải', 'SV tiêu thụ bậc 2'], ans: 1, explain: 'Chuỗi thức ăn bắt đầu bằng sinh vật sản xuất (thực vật/tảo).' },
+  ],
+  su: [
+    { q: 'Đảng Cộng sản Việt Nam được thành lập vào ngày?', opts: ['3/2/1930', '19/5/1941', '2/9/1945', '22/12/1944'], ans: 0, explain: 'Đảng thành lập ngày 3/2/1930 tại Hương Cảng (Hong Kong).' },
+    { q: 'Chiến thắng Điện Biên Phủ diễn ra năm nào?', opts: ['1953', '1954', '1955', '1956'], ans: 1, explain: 'Chiến dịch ĐBP kết thúc 7/5/1954, buộc Pháp ký Hiệp định Genève.' },
+    { q: 'Chiến tranh lạnh kết thúc với sự kiện nào?', opts: ['Bức tường Berlin sụp đổ', 'Liên Xô tan rã', 'Chiến tranh Triều Tiên', 'Hiệp ước INF'], ans: 1, explain: 'Liên Xô tan rã (25/12/1991) đánh dấu chấm dứt Chiến tranh lạnh.' },
+  ],
+  dia: [
+    { q: 'Việt Nam có bao nhiêu vùng kinh tế?', opts: ['5', '6', '7', '8'], ans: 2, explain: 'VN có 7 vùng: TD&MNBB, ĐB sông Hồng, BTB, DHNTB, TN, ĐNB, ĐB sông Cửu Long.' },
+    { q: 'Tỉnh nào có diện tích lớn nhất Việt Nam?', opts: ['Nghệ An', 'Gia Lai', 'Đắk Lắk', 'Sơn La'], ans: 0, explain: 'Nghệ An có diện tích lớn nhất VN (~16,490 km²).' },
+    { q: 'Trong đề thi THPTQG, bao nhiêu câu sử dụng Atlat?', opts: ['10/40', '15/40', '20/40', '5/40'], ans: 1, explain: '15/40 câu (37.5%) có thể tra Atlat — nguồn điểm "chắc" nhất.' },
+  ],
+  gdcd: [
+    { q: 'Công dân đủ bao nhiêu tuổi có quyền bầu cử?', opts: ['16 tuổi', '18 tuổi', '20 tuổi', '21 tuổi'], ans: 1, explain: 'Theo Hiến pháp 2013, công dân đủ 18 tuổi có quyền bầu cử.' },
+    { q: 'Hình thức thực hiện pháp luật nào phổ biến nhất?', opts: ['Tuân thủ PL', 'Thi hành PL', 'Sử dụng PL', 'Áp dụng PL'], ans: 0, explain: 'Tuân thủ PL (không làm điều PL cấm) là hình thức phổ biến nhất.' },
+    { q: 'Quyền bất khả xâm phạm về thân thể thuộc nhóm quyền nào?', opts: ['Quyền chính trị', 'Quyền tự do cơ bản', 'Quyền kinh tế', 'Quyền văn hóa'], ans: 1, explain: 'Thuộc nhóm Quyền tự do cơ bản — được Hiến pháp 2013 bảo đảm.' },
+  ],
+};
+
+// ============================================================
+// POPULAR DOCUMENTS — Tài liệu nổi bật
+// ============================================================
+const POPULAR_DOCS = [
+  { title: 'Trọn bộ công thức Toán THPTQG 2025', subject: 'toan', type: 'PDF', size: '12 MB', downloads: 45200, rating: 4.9, pages: 95, tag: 'Hot 🔥' },
+  { title: '100 bài văn mẫu Nghị luận điểm cao', subject: 'van', type: 'PDF', size: '18 MB', downloads: 38100, rating: 4.8, pages: 380, tag: 'Mới' },
+  { title: '3000 từ vựng Tiếng Anh theo chủ đề', subject: 'anh', type: 'PDF', size: '8 MB', downloads: 52300, rating: 4.9, pages: 180, tag: 'Hot 🔥' },
+  { title: 'Sổ tay công thức Vật Lý 12', subject: 'ly', type: 'PDF', size: '5 MB', downloads: 29800, rating: 4.7, pages: 95, tag: 'Mới' },
+  { title: 'Phương pháp giải nhanh Hóa hữu cơ', subject: 'hoa', type: 'PDF', size: '12 MB', downloads: 31500, rating: 4.8, pages: 220, tag: '' },
+  { title: 'Atlat Địa lý VN — Hướng dẫn chi tiết', subject: 'dia', type: 'PDF', size: '45 MB', downloads: 41200, rating: 4.9, pages: 32, tag: 'Hot 🔥' },
+  { title: 'Bí kíp giải BT Di truyền Sinh 12', subject: 'sinh', type: 'PDF', size: '10 MB', downloads: 24600, rating: 4.7, pages: 200, tag: '' },
+  { title: 'Niên biểu Lịch Sử VN từ 1858-1975', subject: 'su', type: 'PDF', size: '8 MB', downloads: 27300, rating: 4.6, pages: 120, tag: 'Mới' },
+];
+
+const PLATFORM_STATS = [
+  { icon: '👨‍🏫', value: '100%', label: 'Giáo viên đạt 8.0+',    sub: 'Kiểm định chất lượng mỗi năm' },
+  { icon: '👩‍🎓', value: '42,500+', label: 'Học sinh đồng hành', sub: 'Trên toàn quốc 2020–2025' },
+  { icon: '🎯', value: '90%',     label: 'Đạt mục tiêu điểm',     sub: 'Trong 3 tháng ôn cuối' },
+  { icon: '📅', value: '5 năm',   label: 'Kinh nghiệm',           sub: 'Được học sinh tin tưởng' },
+];
+
 // ============================================================
 // MAIN COMPONENT
 // ============================================================
 export default function SubjectsPage({ onNavigateToCourses, onNavigateToLibrary, addLog }) {
   const [selectedId, setSelectedId] = useState(null);
   const [comboFilter, setComboFilter] = useState('all');
-  const [searchText, setSearchText] = useState('');
+  const [searchInput, setSearchInput] = useState('');
+  const searchText = useDebounce(searchInput);
 
   const filtered = useMemo(() => {
     return SUBJECTS_DATA.filter(s => {
       const matchCombo = comboFilter === 'all' || s.combos.includes(comboFilter);
-      const matchSearch = !searchText || s.name.toLowerCase().includes(searchText.toLowerCase()) || s.nameEn.toLowerCase().includes(searchText.toLowerCase());
+      const q = searchText.toLowerCase();
+      const matchSearch = !q || s.name.toLowerCase().includes(q) || s.nameEn.toLowerCase().includes(q);
       return matchCombo && matchSearch;
     });
   }, [comboFilter, searchText]);
@@ -602,114 +745,653 @@ export default function SubjectsPage({ onNavigateToCourses, onNavigateToLibrary,
       subjects={filtered}
       comboFilter={comboFilter}
       setComboFilter={setComboFilter}
-      searchText={searchText}
-      setSearchText={setSearchText}
+      searchText={searchInput}
+      setSearchText={setSearchInput}
       onSelect={(id) => { setSelectedId(id); addLog && addLog(`Xem chi tiết môn ${SUBJECTS_DATA.find(s => s.id === id)?.name}`, 'sys'); }}
+      onNavigateToCourses={onNavigateToCourses}
+      onNavigateToLibrary={onNavigateToLibrary}
+      addLog={addLog}
     />
+  );
+}
+
+// ============================================================
+// INTERACTIVE STATISTICS DASHBOARD
+// ============================================================
+function InteractiveStatsSection() {
+  const [ref, inView] = useInView();
+  const sortedSubjects = [...SUBJECTS_DATA].sort((a, b) => b.stats.yearAvg - a.stats.yearAvg);
+
+  return (
+    <section ref={ref} className={`subj-stats-section animate-on-scroll ${inView ? 'is-visible' : ''}`}>
+      <div className="subj-section-lbl">
+        <span className="subj-badge-lbl"><HiTrendingUp /> Báo cáo chất lượng</span>
+        <h2>Số Liệu Đào Tạo & Biểu Đồ So Sánh</h2>
+        <p>Báo cáo thống kê trung thực về kết quả học tập của học sinh đồng hành cùng EduPath qua kỳ thi THPT Quốc Gia.</p>
+      </div>
+
+      <div className="subj-stats-dashboard">
+        <div className="subj-stats-counter-grid">
+          <div className="subj-stat-counter-card">
+            <div className="counter-icon">🎓</div>
+            <h3>
+              <AnimatedCounter end={42500} suffix="+" />
+            </h3>
+            <p>Học sinh đồng hành</p>
+            <span>Học sinh trên toàn quốc đăng ký học tập trong niên khóa 2020 - 2025.</span>
+          </div>
+          <div className="subj-stat-counter-card">
+            <div className="counter-icon">🎯</div>
+            <h3>
+              <AnimatedCounter end={90} suffix="%" />
+            </h3>
+            <p>Đạt mục tiêu cam kết</p>
+            <span>Tỷ lệ học sinh đạt điểm số kỳ vọng hoặc đỗ nguyện vọng 1 Đại học.</span>
+          </div>
+          <div className="subj-stat-counter-card">
+            <div className="counter-icon">📚</div>
+            <h3>
+              <AnimatedCounter end={1500000} suffix="+" />
+            </h3>
+            <p>Lượt tải tài liệu</p>
+            <span>Kho tài liệu mở được học sinh khai thác ôn tập mỗi tháng.</span>
+          </div>
+          <div className="subj-stat-counter-card">
+            <div className="counter-icon">⭐</div>
+            <h3>
+              <AnimatedCounter end={98} suffix="%" />
+            </h3>
+            <p>Phản hồi tích cực</p>
+            <span>Tỷ lệ học sinh hài lòng với phương pháp giảng dạy và hỗ trợ từ thầy cô.</span>
+          </div>
+        </div>
+
+        {/* Comparison Chart */}
+        <div className="subj-stats-chart-card">
+          <div className="chart-header">
+            <h4>Biểu đồ so sánh điểm trung bình toàn quốc năm 2024</h4>
+            <p>So sánh điểm trung bình giữa các môn học. Môn Giáo dục Công dân đạt điểm TB cao nhất (8.16/10), trong khi các môn Lịch sử và Ngoại ngữ là thách thức lớn.</p>
+          </div>
+          <div className="chart-container">
+            <div className="chart-bars-horizontal">
+              {sortedSubjects.map(s => {
+                const percent = (s.stats.yearAvg / 10) * 100;
+                return (
+                  <div key={s.id} className="chart-row">
+                    <div className="chart-row-label">
+                      <span className="chart-row-emoji">{s.emoji}</span>
+                      <span className="chart-row-name">{s.name}</span>
+                    </div>
+                    <div className="chart-row-bar-wrap">
+                      <div
+                        className="chart-row-bar"
+                        style={{
+                          width: inView ? `${percent}%` : '0%',
+                          background: `linear-gradient(90deg, ${s.color}aa, ${s.color})`,
+                        }}
+                      >
+                        <span className="chart-row-value">{s.stats.yearAvg}</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+          <div className="chart-footer">
+            <div className="chart-legend">
+              <span className="legend-item"><span className="legend-dot" style={{ background: '#5b75f3' }} /> Môn Tự nhiên</span>
+              <span className="legend-item"><span className="legend-dot" style={{ background: '#d4a042' }} /> Môn Xã hội</span>
+            </div>
+            <p className="chart-note">* Nguồn: Phân tích dữ liệu từ kết quả thi tốt nghiệp THPT Quốc Gia của Bộ Giáo Dục & Đào Tạo.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ============================================================
+// QUICK PRACTICE SECTION
+// ============================================================
+function QuickPracticeSection({ addLog, onNavigateToLibrary }) {
+  const [activeSubj, setActiveSubj] = useState('toan');
+  const [answers, setAnswers] = useState({}); // { [questionId]: selectedOptionIndex }
+  const [ref, inView] = useInView();
+
+  const questions = QUICK_PRACTICE[activeSubj] || [];
+
+  const handleSelectOption = (qIdx, optIdx) => {
+    const key = `${activeSubj}-${qIdx}`;
+    if (answers[key] !== undefined) return;
+    setAnswers(prev => ({ ...prev, [key]: optIdx }));
+    addLog && addLog(`Trả lời câu hỏi trắc nghiệm nhanh môn ${SUBJECTS_DATA.find(s => s.id === activeSubj)?.name}`, 'info');
+  };
+
+  const handleReset = () => {
+    const prefix = `${activeSubj}-`;
+    setAnswers(prev => {
+      const next = { ...prev };
+      Object.keys(next).forEach(k => {
+        if (k.startsWith(prefix)) delete next[k];
+      });
+      return next;
+    });
+  };
+
+  return (
+    <section ref={ref} className={`subj-practice-section animate-on-scroll ${inView ? 'is-visible' : ''}`}>
+      <div className="subj-section-lbl">
+        <span className="subj-badge-lbl"><HiSparkles /> Tự học hiệu quả</span>
+        <h2>Luyện Tập Nhanh — Thử Thách Trắc Nghiệm</h2>
+        <p>Chọn môn học bên dưới để thử sức nhanh với 3 câu hỏi trắc nghiệm tiêu biểu có đáp án và lời giải chi tiết.</p>
+      </div>
+
+      <div className="subj-practice-tabs-scroll">
+        <div className="subj-practice-tabs">
+          {SUBJECTS_DATA.map(s => (
+            <button
+              key={s.id}
+              className={`subj-practice-tab ${activeSubj === s.id ? 'active' : ''}`}
+              style={{ '--active-color': s.color }}
+              onClick={() => setActiveSubj(s.id)}
+            >
+              <span className="tab-emoji">{s.emoji}</span>
+              <span className="tab-name">{s.name}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="subj-practice-content">
+        <div className="subj-practice-grid">
+          {questions.map((q, idx) => {
+            const key = `${activeSubj}-${idx}`;
+            const selectedOpt = answers[key];
+            const isCorrect = selectedOpt === q.ans;
+            const hasAnswered = selectedOpt !== undefined;
+
+            return (
+              <div key={idx} className={`subj-practice-card ${hasAnswered ? 'answered' : ''}`} style={{ '--subj-color': SUBJECTS_DATA.find(s => s.id === activeSubj)?.color }}>
+                <div className="card-q-header">
+                  <span className="card-q-num">Câu hỏi {idx + 1}</span>
+                  {hasAnswered && (
+                    <span className={`card-q-status ${isCorrect ? 'correct' : 'incorrect'}`}>
+                      {isCorrect ? <><HiCheck /> Chính xác</> : 'Chưa đúng'}
+                    </span>
+                  )}
+                </div>
+                <p className="card-q-text">{q.q}</p>
+                <div className="card-q-options">
+                  {q.opts.map((opt, optIdx) => {
+                    let btnClass = '';
+                    if (hasAnswered) {
+                      if (optIdx === q.ans) btnClass = 'correct-opt';
+                      else if (optIdx === selectedOpt) btnClass = 'incorrect-opt';
+                      else btnClass = 'disabled-opt';
+                    }
+                    return (
+                      <button
+                        key={optIdx}
+                        disabled={hasAnswered}
+                        className={`card-q-opt-btn ${btnClass}`}
+                        onClick={() => handleSelectOption(idx, optIdx)}
+                      >
+                        <span className="opt-letter">{String.fromCharCode(65 + optIdx)}</span>
+                        <span className="opt-text">{opt}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+                {hasAnswered && (
+                  <div className="card-q-explanation animate-fade-in">
+                    <h5><HiLightBulb /> Lời giải chi tiết:</h5>
+                    <p>{q.explain}</p>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="subj-practice-actions">
+          <button className="subj-practice-btn-reset" onClick={handleReset}>
+            Làm lại câu hỏi môn này
+          </button>
+          <button className="subj-practice-btn-more" onClick={onNavigateToLibrary}>
+            Thử sức đề thi đầy đủ <HiArrowRight />
+          </button>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ============================================================
+// POPULAR DOCUMENTS SECTION
+// ============================================================
+function PopularDocsSection({ onNavigateToLibrary, addLog }) {
+  const [filter, setFilter] = useState('all');
+  const [downloading, setDownloading] = useState({}); // { [docTitle]: progress }
+  const [ref, inView] = useInView();
+
+  const handleDownload = (doc) => {
+    if (downloading[doc.title] !== undefined) return;
+    
+    addLog && addLog(`Bắt đầu tải tài liệu: ${doc.title}`, 'info');
+    setDownloading(prev => ({ ...prev, [doc.title]: 0 }));
+    
+    let prog = 0;
+    const interval = setInterval(() => {
+      prog += 20;
+      if (prog >= 100) {
+        setDownloading(prev => ({ ...prev, [doc.title]: 100 }));
+        clearInterval(interval);
+        addLog && addLog(`Đã tải thành công tài liệu: ${doc.title}`, 'success');
+      } else {
+        setDownloading(prev => ({ ...prev, [doc.title]: prog }));
+      }
+    }, 200);
+  };
+
+  const filteredDocs = filter === 'all'
+    ? POPULAR_DOCS
+    : POPULAR_DOCS.filter(d => d.subject === filter);
+
+  return (
+    <section ref={ref} className={`subj-docs-section animate-on-scroll ${inView ? 'is-visible' : ''}`}>
+      <div className="subj-section-lbl">
+        <span className="subj-badge-lbl"><HiDocumentText /> Thư viện mở</span>
+        <h2>Tài Liệu Ôn Thi Tiêu Biểu</h2>
+        <p>Hệ thống tài liệu PDF tóm tắt công thức, đề thi thử có hướng dẫn giải chi tiết được tải nhiều nhất.</p>
+      </div>
+
+      <div className="subj-docs-filters">
+        <button
+          className={`subj-doc-filter-btn ${filter === 'all' ? 'active' : ''}`}
+          onClick={() => setFilter('all')}
+        >
+          Tất cả
+        </button>
+        {SUBJECTS_DATA.map(s => {
+          const hasDocs = POPULAR_DOCS.some(d => d.subject === s.id);
+          if (!hasDocs) return null;
+          return (
+            <button
+              key={s.id}
+              className={`subj-doc-filter-btn ${filter === s.id ? 'active' : ''}`}
+              style={{ '--subj-color': s.color }}
+              onClick={() => setFilter(s.id)}
+            >
+              {s.emoji} {s.name}
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="subj-docs-grid">
+        {filteredDocs.map((doc, idx) => {
+          const s = SUBJECTS_DATA.find(item => item.id === doc.subject);
+          const progress = downloading[doc.title];
+          const isDownloading = progress !== undefined && progress < 100;
+          const isDownloaded = progress === 100;
+
+          return (
+            <div key={idx} className="subj-doc-card" style={{ '--subj-color': s?.color || '#5b75f3' }}>
+              {doc.tag && <span className="subj-doc-tag">{doc.tag}</span>}
+              <div className="subj-doc-icon">
+                <HiDocumentText />
+                <span className="subj-doc-ext">{doc.type}</span>
+              </div>
+              <div className="subj-doc-info">
+                <span className="subj-doc-subj-badge" style={{ background: `${s?.color}15`, color: s?.color }}>
+                  {s?.name}
+                </span>
+                <h4>{doc.title}</h4>
+                <div className="subj-doc-stats">
+                  <span><HiDownload /> {(doc.downloads + (isDownloaded ? 1 : 0)).toLocaleString()} lượt tải</span>
+                  <span><HiStar style={{ color: '#f39c12' }} /> {doc.rating}</span>
+                  <span>{doc.pages} trang</span>
+                </div>
+              </div>
+
+              {isDownloading && (
+                <div className="subj-doc-progress-container">
+                  <div className="subj-doc-progress-bar" style={{ width: `${progress}%`, background: s?.color }} />
+                  <span className="subj-doc-progress-text">Đang tải... {progress}%</span>
+                </div>
+              )}
+
+              <button
+                className={`subj-doc-download-btn ${isDownloaded ? 'downloaded' : ''} ${isDownloading ? 'loading' : ''}`}
+                style={{ background: isDownloaded ? '#2ecc71' : s?.color }}
+                onClick={() => handleDownload(doc)}
+                disabled={isDownloading}
+              >
+                {isDownloaded ? (
+                  <><HiCheck /> Đã tải thành công</>
+                ) : isDownloading ? (
+                  'Đang xử lý...'
+                ) : (
+                  <><HiDownload /> Tải tài liệu miễn phí</>
+                )}
+              </button>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="subj-docs-more">
+        <button className="subj-docs-more-btn" onClick={onNavigateToLibrary}>
+          Khám phá thêm 1,500+ tài liệu khác <HiArrowRight />
+        </button>
+      </div>
+    </section>
   );
 }
 
 // ============================================================
 // LISTING VIEW
 // ============================================================
-function SubjectsListing({ subjects, comboFilter, setComboFilter, searchText, setSearchText, onSelect }) {
+function SubjectsListing({
+  subjects,
+  comboFilter,
+  setComboFilter,
+  searchText,
+  setSearchText,
+  onSelect,
+  onNavigateToCourses,
+  onNavigateToLibrary,
+  addLog
+}) {
+  const [whyRef, whyInView] = useInView();
+  const [testRef, testInView] = useInView();
+  const [teachRef, teachInView] = useInView();
+  const [comboRef, comboInView] = useInView();
+
   return (
     <div className="subj-page animate-in">
-      {/* Hero */}
-      <section className="subj-hero">
-        <div className="subj-hero-content">
-          <span className="subj-eyebrow">📚 Tài liệu chuyên sâu</span>
-          <h1 className="subj-hero-title">9 môn học THPT Quốc Gia</h1>
-          <p className="subj-hero-sub">Khám phá đầy đủ thông tin về cấu trúc đề thi, đề cương ôn tập, tài liệu chính thống và phương pháp học hiệu quả cho từng môn.</p>
-          <div className="subj-hero-stats">
-            <div><strong>9</strong><span>môn học</span></div>
-            <div><strong>5</strong><span>khối thi</span></div>
-            <div><strong>50+</strong><span>đề thi mẫu</span></div>
-            <div><strong>200+</strong><span>tài liệu PDF</span></div>
+
+      {/* ── HERO ── */}
+      <section className="subj-hero2">
+        <div className="subj-hero2-content">
+          <span className="subj-hero2-badge">
+            <HiBadgeCheck /> Đội ngũ Sư Phạm 8.0+ · Kiểm định nghiêm ngặt
+          </span>
+          <h1>
+            Học đúng trọng tâm —<br />
+            <span className="subj-hero2-highlight">chạm mốc điểm mơ</span>
+          </h1>
+          <p>
+            9 môn học THPT Quốc Gia với lộ trình cá nhân hóa, tài liệu chuẩn sư
+            phạm và đội ngũ thầy cô trực tiếp đồng hành mỗi ngày.
+          </p>
+          <div className="subj-hero2-stats">
+            {PLATFORM_STATS.map((st, i) => (
+              <div key={i} className="subj-hero2-stat">
+                <strong>{st.value}</strong>
+                <span>{st.label}</span>
+                <small>{st.sub}</small>
+              </div>
+            ))}
           </div>
         </div>
-        <div className="subj-hero-emoji">🎓</div>
+        <div className="subj-hero2-photo">
+          <img src={educatorsTeamImg} alt="Đội ngũ giáo viên EduPath" />
+          <div className="subj-hero2-photo-badge">
+            <HiShieldCheck />
+            <span>Kiểm định chất lượng 2024</span>
+          </div>
+        </div>
       </section>
 
-      {/* Filters */}
-      <section className="subj-filters">
-        <div className="subj-filter-search">
-          <HiSearch />
-          <input
-            type="text"
-            placeholder="Tìm kiếm môn học (VD: Toán, English)..."
-            value={searchText}
-            onChange={e => setSearchText(e.target.value)}
-          />
-        </div>
-        <div className="subj-filter-combos">
-          <button
-            className={`subj-combo-pill ${comboFilter === 'all' ? 'active' : ''}`}
-            onClick={() => setComboFilter('all')}
-          >Tất cả ({SUBJECTS_DATA.length})</button>
-          {Object.entries(COMBO_INFO).map(([code, info]) => {
-            const count = SUBJECTS_DATA.filter(s => s.combos.includes(code)).length;
-            return (
+      {/* ── SUBJECT CARDS ── */}
+      <section className="subj-cards-section">
+        <div className="subj-cards-header">
+          <div>
+            <h2>9 Môn Học THPT Quốc Gia</h2>
+            <p>Cấu trúc đề thi, đề cương ôn tập, tài liệu PDF và bí quyết học cho từng môn.</p>
+          </div>
+          <div className="subj-cards-controls">
+            <div className="subj-filter-search">
+              <HiSearch />
+              <input
+                type="text"
+                placeholder="Tìm môn học..."
+                value={searchText}
+                onChange={e => setSearchText(e.target.value)}
+              />
+            </div>
+            <div className="subj-filter-combos">
               <button
-                key={code}
-                className={`subj-combo-pill ${comboFilter === code ? 'active' : ''}`}
-                onClick={() => setComboFilter(code)}
-                title={info.industries}
-              >
-                {code} - {info.name} ({count})
-              </button>
+                className={`subj-combo-pill ${comboFilter === 'all' ? 'active' : ''}`}
+                onClick={() => setComboFilter('all')}
+              >Tất cả</button>
+              {Object.entries(COMBO_INFO).map(([code, info]) => (
+                <button
+                  key={code}
+                  title={`${info.name} — ${info.industries}`}
+                  className={`subj-combo-pill ${comboFilter === code ? 'active' : ''}`}
+                  onClick={() => setComboFilter(code)}
+                >{code}</button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {subjects.length === 0 ? (
+          <div className="subj-empty">
+            <div className="subj-empty-icon">🔍</div>
+            <h3>Không tìm thấy môn học nào</h3>
+            <p>Thử thay đổi bộ lọc khối thi hoặc xóa từ khóa tìm kiếm.</p>
+            <button
+              className="subj-empty-reset"
+              onClick={() => { setComboFilter('all'); setSearchText(''); }}
+            >
+              Xóa bộ lọc
+            </button>
+          </div>
+        ) : (
+          <div className="subj-grid2">
+            {subjects.map((s, idx) => {
+              const teacher = TEACHER_DATA[s.id];
+              return (
+                <article
+                  key={s.id}
+                  className="subj-card2"
+                  style={{ '--subj-color': s.color, animationDelay: `${idx * 0.05}s` }}
+                  onClick={() => onSelect(s.id)}
+                >
+                  <div className="subj-card2-accent" style={{ background: `linear-gradient(90deg, ${s.color}, ${s.color}88)` }} />
+
+                  <div className="subj-card2-top">
+                    <span className="subj-card2-emoji">{s.emoji}</span>
+                    <div className="subj-card2-combos">
+                      {s.combos.map(c => (
+                        <span key={c} className="subj-combo-tag" style={{ borderColor: s.color, color: s.color }}>{c}</span>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="subj-card2-body">
+                    <span className="subj-card2-tagline" style={{ color: s.color }}>{s.tagline}</span>
+                    <h3>{s.name} <small>{s.nameEn}</small></h3>
+                    <p className="subj-card2-desc">{s.short}</p>
+
+                    {teacher && (
+                      <div className="subj-card2-teacher">
+                        <div className="subj-teacher-ava" style={{ background: teacher.bg }}>
+                          {teacher.initials}
+                        </div>
+                        <div className="subj-teacher-info">
+                          <span className="subj-teacher-name">{teacher.name}</span>
+                          <span className="subj-teacher-cred">{teacher.cred}</span>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="subj-card2-rating">
+                      <span className="subj-stars">{'★'.repeat(5)}</span>
+                      <strong>{teacher?.rating ?? 4.7}</strong>
+                      <span className="subj-rating-count">({(teacher?.reviews ?? 1800).toLocaleString()} đánh giá)</span>
+                      <span className="subj-rating-sep">·</span>
+                      <span>{s.stats.candidates} thí sinh</span>
+                    </div>
+
+                    <div className="subj-card2-meta">
+                      <span><HiClock /> {s.examStructure.duration} phút</span>
+                      <span><HiClipboardList /> {s.examStructure.totalQuestions} câu</span>
+                      <span><HiDocumentText /> {s.materials.length} tài liệu</span>
+                      <span><HiUsers /> Tỷ lệ đạt {s.stats.passRate}</span>
+                    </div>
+
+                    <div className="subj-card2-score">
+                      <span>Điểm TB: <strong style={{ color: s.color }}>{s.stats.yearAvg}/10</strong></span>
+                      <div className="subj-score-bar">
+                        <div className="subj-score-fill" style={{ width: `${s.stats.yearAvg * 10}%`, background: s.color }} />
+                      </div>
+                    </div>
+                  </div>
+
+                  <button className="subj-card2-cta" style={{ '--c': s.color }}>
+                    Xem chi tiết môn học <HiArrowRight />
+                  </button>
+                </article>
+              );
+            })}
+          </div>
+        )}
+      </section>
+
+      {/* ── INTERACTIVE STATISTICS DASHBOARD ── */}
+      <InteractiveStatsSection />
+
+      {/* ── QUICK PRACTICE SECTION ── */}
+      <QuickPracticeSection addLog={addLog} onNavigateToLibrary={onNavigateToLibrary} />
+
+      {/* ── POPULAR DOCUMENTS SECTION ── */}
+      <PopularDocsSection onNavigateToLibrary={onNavigateToLibrary} addLog={addLog} />
+
+      {/* ── STUDENT PHOTO + WHY ── */}
+      <section ref={whyRef} className={`subj-why animate-on-scroll ${whyInView ? 'is-visible' : ''}`}>
+        <div className="subj-why-photo">
+          <img src={studentSuccessImg} alt="Học sinh EduPath đạt thành tích cao" />
+          <div className="subj-why-photo-badge">
+            <strong>28.5+</strong>
+            <span>Điểm THPTQG</span>
+          </div>
+        </div>
+        <div className="subj-why-content">
+          <span className="subj-why-eyebrow">Tại sao chọn EduPath?</span>
+          <h2>Học thông minh —<br />không chỉ học chăm</h2>
+          <ul className="subj-why-list">
+            <li><HiCheck />AI phân tích điểm yếu, gợi ý đúng chương cần ôn ngay</li>
+            <li><HiCheck />Đề thi bám sát cấu trúc Bộ GD&ĐT 2024–2025</li>
+            <li><HiCheck />Lộ trình ôn tập cá nhân hóa theo từng khối thi</li>
+            <li><HiCheck />Giáo viên trực tiếp chữa bài — không phải chatbot</li>
+            <li><HiCheck />Học mọi lúc mọi nơi: điện thoại, máy tính, tablet</li>
+          </ul>
+          <div className="subj-why-stats">
+            {PLATFORM_STATS.slice(0, 2).map((st, i) => (
+              <div key={i} className="subj-why-stat">
+                <strong>{st.value}</strong>
+                <span>{st.label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── TESTIMONIALS ── */}
+      <section ref={testRef} className={`subj-testimonials animate-on-scroll ${testInView ? 'is-visible' : ''}`}>
+        <div className="subj-section-lbl">
+          <h2>Học sinh nói gì về EduPath?</h2>
+          <p>Hơn 42,500 học sinh đã tin tưởng đồng hành cùng chúng tôi.</p>
+        </div>
+        <div className="subj-reviews-grid">
+          {REVIEWS.map((r, i) => {
+            const scoreNum = parseFloat(r.score);
+            let scoreTier = 'emerald';
+            if (scoreNum >= 28.5) scoreTier = 'gold';
+            else if (scoreNum >= 27.5) scoreTier = 'blue';
+            return (
+              <div key={i} className="subj-review-card">
+                <div className="subj-review-top">
+                  <div className="subj-review-ava">{r.name.split(' ').slice(-1)[0][0]}</div>
+                  <div className="subj-review-meta">
+                    <strong>{r.name}</strong>
+                    <span>{r.school}</span>
+                  </div>
+                  <div className={`subj-review-score score-tier-${scoreTier}`}>🏆 {r.score}</div>
+                </div>
+                <p className="subj-review-text">"{r.text}"</p>
+                <span className="subj-review-subject" style={{
+                  background: `${SUBJECTS_DATA.find(s => s.name === r.subject || s.name.startsWith(r.subject))?.color || '#5b75f3'}15`,
+                  color: SUBJECTS_DATA.find(s => s.name === r.subject || s.name.startsWith(r.subject))?.color || '#5b75f3'
+                }}>
+                  Môn {r.subject}
+                </span>
+              </div>
             );
           })}
         </div>
       </section>
 
-      {/* Grid */}
-      <section className="subj-grid">
-        {subjects.length === 0 ? (
-          <div className="subj-empty">
-            <h3>Không tìm thấy môn nào phù hợp</h3>
-            <p>Hãy thử thay đổi bộ lọc hoặc xóa từ khóa tìm kiếm.</p>
+      {/* ── TEACHER PHOTOS ── */}
+      <section ref={teachRef} className={`subj-teachers-section animate-on-scroll ${teachInView ? 'is-visible' : ''}`}>
+        <div className="subj-section-lbl">
+          <h2>Gặp Gỡ Đội Ngũ Giáo Viên</h2>
+          <p>Mỗi môn học đều có giáo viên chuyên sâu — kinh nghiệm thực chiến luyện thi THPTQG.</p>
+        </div>
+        <div className="subj-teachers-photos">
+          <div className="subj-teacher-photo-card">
+            <div className="subj-teacher-photo-wrap">
+              <img src={teacherMathImg} alt="Giáo viên EduPath" />
+            </div>
+            <div className="subj-teacher-photo-info">
+              <strong>Thầy Nguyễn Đức Anh</strong>
+              <span>Toán Học · Vật Lý</span>
+              <p>Thủ khoa Toán K60 ĐHQGHN, chuyên gia giải nhanh Casio, 5+ năm luyện thi chuyên sâu.</p>
+              <div className="subj-teacher-photo-rating">
+                <span className="subj-stars">★★★★★</span> 4.9 · 3,240 đánh giá
+              </div>
+            </div>
           </div>
-        ) : (
-          subjects.map(s => (
-            <article
-              key={s.id}
-              className="subj-card"
-              style={{ '--subj-color': s.color }}
-              onClick={() => onSelect(s.id)}
-            >
-              <div className="subj-card-top" style={{ background: s.color }}>
-                <span className="subj-card-mascot">{s.emoji}</span>
-                <span className="subj-card-symbol">{s.symbol}</span>
-                <div className="subj-card-stats-row">
-                  <span><HiUsers /> {s.stats.candidates}</span>
-                  <span><HiTrendingUp /> {s.stats.yearAvg}/10</span>
-                </div>
+          <div className="subj-teacher-photo-card">
+            <div className="subj-teacher-photo-wrap">
+              <img src={studentLearningImg} alt="Giáo viên EduPath" />
+            </div>
+            <div className="subj-teacher-photo-info">
+              <strong>Cô Lê Thị Phương</strong>
+              <span>Hóa Học · Sinh Học</span>
+              <p>Tiến sĩ Hóa học, cựu GV THPT Chuyên, tác giả sách luyện thi được 50,000+ học sinh sử dụng.</p>
+              <div className="subj-teacher-photo-rating">
+                <span className="subj-stars">★★★★★</span> 4.8 · 2,120 đánh giá
               </div>
-              <div className="subj-card-body">
-                <div className="subj-card-tagline">{s.tagline}</div>
-                <h3>{s.name}</h3>
-                <p className="subj-card-short">{s.short}</p>
-                <div className="subj-card-combos">
-                  {s.combos.map(c => <span key={c} className="subj-combo-tag" style={{ borderColor: s.color, color: s.color }}>{c}</span>)}
-                </div>
-                <div className="subj-card-meta">
-                  <span><HiClock /> {s.examStructure.duration} phút</span>
-                  <span><HiClipboardList /> {s.examStructure.totalQuestions} câu</span>
-                  <span><HiDocumentText /> {s.materials.length} tài liệu</span>
-                </div>
-                <button className="subj-card-cta">
-                  Xem chi tiết môn học <HiArrowRight />
-                </button>
+            </div>
+          </div>
+          <div className="subj-teacher-photo-card">
+            <div className="subj-teacher-photo-wrap">
+              <img src={educatorsTeamImg} alt="Đội ngũ giáo viên EduPath" />
+            </div>
+            <div className="subj-teacher-photo-info">
+              <strong>Đội Ngũ EduPath</strong>
+              <span>Tất cả 9 môn học</span>
+              <p>Hơn 20 giáo viên chuyên khoa, tất cả đều đạt 8.0+ THPTQG và có bằng thạc sĩ/tiến sĩ.</p>
+              <div className="subj-teacher-photo-rating">
+                <span className="subj-stars">★★★★★</span> 4.8 · 9,200+ đánh giá
               </div>
-            </article>
-          ))
-        )}
+            </div>
+          </div>
+        </div>
       </section>
 
-      {/* Khối thi info section */}
-      <section className="subj-combos-section">
-        <h2 className="subj-section-title">📋 5 khối thi phổ biến nhất</h2>
+      {/* ── COMBO INFO ── */}
+      <section ref={comboRef} className={`subj-combos-section animate-on-scroll ${comboInView ? 'is-visible' : ''}`}>
+        <div className="subj-section-lbl">
+          <h2>5 Khối Thi Phổ Biến Nhất</h2>
+          <p>Chọn đúng khối thi giúp bạn định hướng môn học và tăng điểm xét tuyển hiệu quả.</p>
+        </div>
         <div className="subj-combos-grid">
           {Object.entries(COMBO_INFO).map(([code, info]) => (
             <div key={code} className="subj-combo-card">
@@ -720,7 +1402,7 @@ function SubjectsListing({ subjects, comboFilter, setComboFilter, searchText, se
                 {info.subjects.map(sid => {
                   const sub = SUBJECTS_DATA.find(s => s.id === sid);
                   return sub ? (
-                    <span key={sid} style={{ background: sub.color }} onClick={() => onSelect(sid)}>
+                    <span key={sid} style={{ background: sub.color }} onClick={e => { e.stopPropagation(); onSelect(sid); }}>
                       {sub.emoji} {sub.name}
                     </span>
                   ) : null;
@@ -730,6 +1412,8 @@ function SubjectsListing({ subjects, comboFilter, setComboFilter, searchText, se
           ))}
         </div>
       </section>
+
+
     </div>
   );
 }
@@ -782,10 +1466,12 @@ function SubjectDetail({ subject, onBack, onNavigateToCourses, onNavigateToLibra
       </header>
 
       {/* Tab nav */}
-      <nav className="subj-tabs">
+      <nav className="subj-tabs" role="tablist" aria-label={`Thông tin môn ${s.name}`}>
         {tabs.map(t => (
           <button
             key={t.id}
+            role="tab"
+            aria-selected={activeTab === t.id}
             className={`subj-tab ${activeTab === t.id ? 'active' : ''}`}
             onClick={() => setActiveTab(t.id)}
             style={{ '--subj-color': s.color }}
@@ -796,7 +1482,7 @@ function SubjectDetail({ subject, onBack, onNavigateToCourses, onNavigateToLibra
       </nav>
 
       {/* Tab content */}
-      <div className="subj-tab-content">
+      <div className="subj-tab-content" role="tabpanel">
         {activeTab === 'overview' && <TabOverview s={s} />}
         {activeTab === 'exam' && <TabExam s={s} />}
         {activeTab === 'curriculum' && <TabCurriculum s={s} />}

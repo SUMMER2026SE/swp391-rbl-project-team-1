@@ -2,7 +2,7 @@ import type { Request, Response } from 'express';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { prisma } from '../lib/prisma.js';
-import { sendOTPEmail } from '../lib/mailer.js';
+import { sendOTPEmail, sendResetPasswordEmail } from '../lib/mailer.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'edupath_jwt_secret_key_2026';
 const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'edupath_jwt_refresh_secret_key_2026';
@@ -446,3 +446,88 @@ export async function changePassword(req: Request, res: Response) {
     return res.status(500).json({ success: false, error: err.message });
   }
 }
+
+export async function forgotPassword(req: Request, res: Response) {
+  const { email } = req.body;
+
+  if (!email) {
+    return res.status(400).json({ success: false, error: 'Vui lòng cung cấp địa chỉ Email.' });
+  }
+
+  try {
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user) {
+      return res.status(404).json({ success: false, error: 'Không tìm thấy tài khoản với Email này.' });
+    }
+
+    // Generate a secure reset token containing userId with 15 minutes expiration
+    const token = jwt.sign(
+      { id: user.id, purpose: 'reset-password' },
+      JWT_SECRET,
+      { expiresIn: '15m' }
+    );
+
+    // Build the reset link pointing to the local frontend
+    const clientUrl = process.env.CLIENT_URL || 'http://localhost:5174';
+    const resetLink = `${clientUrl}/reset-password?token=${token}`;
+
+    const sent = await sendResetPasswordEmail(email, user.fullName, resetLink);
+    if (!sent) {
+      // In local development, if SMTP is not configured, we also simulate and return the token so they can test easily!
+      console.warn(`[Forgot Password] SMTP not configured. Simulated reset link: ${resetLink}`);
+      return res.status(200).json({ 
+        success: true, 
+        data: {
+          simulated: true,
+          resetLink,
+          message: 'Hệ thống đang chạy local (không có cấu hình SMTP). Dưới đây là link khôi phục mật khẩu để bạn dễ dàng test thử:'
+        } 
+      });
+    }
+
+    return res.status(200).json({ success: true, data: 'Đường dẫn đặt lại mật khẩu đã được gửi vào Email của bạn!' });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+}
+
+export async function resetPassword(req: Request, res: Response) {
+  const { token, password } = req.body;
+
+  if (!token || !password) {
+    return res.status(400).json({ success: false, error: 'Thiếu thông tin mã xác nhận hoặc mật khẩu mới.' });
+  }
+
+  if (password.length < 6) {
+    return res.status(400).json({ success: false, error: 'Mật khẩu mới phải có tối thiểu 6 ký tự.' });
+  }
+
+  try {
+    // Verify token
+    const decoded = jwt.verify(token, JWT_SECRET) as any;
+    if (!decoded || decoded.purpose !== 'reset-password') {
+      return res.status(400).json({ success: false, error: 'Mã xác thực không hợp lệ!' });
+    }
+
+    const userId = decoded.id;
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      return res.status(404).json({ success: false, error: 'Người dùng không tồn tại.' });
+    }
+
+    // Hash and update the password
+    const passwordHash = await bcrypt.hash(password, 12);
+    await prisma.user.update({
+      where: { id: userId },
+      data: { passwordHash }
+    });
+
+    return res.status(200).json({ success: true, data: 'Đặt lại mật khẩu thành công! Vui lòng đăng nhập lại bằng mật khẩu mới.' });
+  } catch (err: any) {
+    if (err.name === 'TokenExpiredError') {
+      return res.status(400).json({ success: false, error: 'Đường dẫn đặt lại mật khẩu đã hết hạn (tối đa 15 phút)!' });
+    }
+    return res.status(400).json({ success: false, error: 'Mã token đặt lại mật khẩu không hợp lệ hoặc đã bị chỉnh sửa!' });
+  }
+}
+

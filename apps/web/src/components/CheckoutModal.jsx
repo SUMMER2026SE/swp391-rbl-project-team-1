@@ -1,12 +1,19 @@
-import { useState } from 'react';
-import { HiX, HiCheckCircle, HiLockOpen, HiSparkles, HiBeaker } from 'react-icons/hi';
+import { useState, useEffect } from 'react';
+import { HiX, HiCheckCircle, HiLockOpen, HiCheck, HiDuplicate, HiRefresh, HiSparkles } from 'react-icons/hi';
+import { API_BASE } from '../api';
 
 
 export default function CheckoutModal({ course, onClose, onPaymentSuccess, addLog }) {
-  const [step, setStep] = useState(1); // 1: Demo info, 2: Processing, 3: Success
-  const [isActivating, setIsActivating] = useState(false);
+  const [step, setStep] = useState(1); // 1: QR checkout, 2: Verification processing, 3: Success unlock
+  const [seconds, setSeconds] = useState(300); // 5 minutes timeout for better user experience
+  const [copiedField, setCopiedField] = useState(null); // tracking copy states
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [pollingError, setPollingError] = useState('');
 
   const currentUser = JSON.parse(localStorage.getItem('current_user')) || {};
+  const studentId = currentUser.id || 1;
+  const courseId = course.id;
+  const transferCode = `EP${studentId}C${courseId}`;
 
   // Helper function to parse course price to actual VND
   const parsePrice = (priceVal) => {
@@ -24,16 +31,119 @@ export default function CheckoutModal({ course, onClose, onPaymentSuccess, addLo
 
   const exactAmount = parsePrice(course.price);
 
-  const handleDemoActivate = () => {
-    setIsActivating(true);
+  // Bank accounts config
+  const BANK_ID = 'ACB'; // Ngân hàng TMCP Á Châu
+  const ACCOUNT_NO = '18657431';
+  const ACCOUNT_NAME = 'THUAN VAN TRAN';
+
+  // Live VietQR image endpoint with template compact/qr_only
+  const qrCodeUrl = `https://img.vietqr.io/image/${BANK_ID}-${ACCOUNT_NO}-compact.png?amount=${exactAmount}&addInfo=${transferCode}&accountName=${encodeURIComponent(ACCOUNT_NAME)}`;
+
+  // Polling for automated checkout status update
+  useEffect(() => {
+    let intervalId;
+
+    const checkPaymentStatus = async () => {
+      const token = localStorage.getItem('access_token');
+      if (!token) return;
+
+      try {
+        const res = await fetch(`${API_BASE}/enrollments/status?courseId=${courseId}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        const data = await res.json();
+        
+        if (data.success && data.data?.isEnrolled) {
+          addLog(`[SePay Webhook] Hệ thống đã ghi nhận khoản thanh toán tự động cho khóa "${course.title}".`, 'sys');
+          setStep(3);
+          onPaymentSuccess(course.id);
+        }
+      } catch (err) {
+        console.error('Lỗi khi thăm dò trạng thái giao dịch:', err);
+      }
+    };
+
+    if (step === 1) {
+      // Poll every 3 seconds
+      intervalId = setInterval(checkPaymentStatus, 3000);
+      
+      // Check immediately on mount
+      checkPaymentStatus();
+    }
+
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [step, courseId]);
+
+  // General countdown timer
+  useEffect(() => {
+    if (seconds > 0 && step === 1) {
+      const timer = setTimeout(() => setSeconds(seconds - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [seconds, step]);
+
+  const handleSimulatePayment = () => {
     addLog(`[Demo Mode] Tiến hành mô phỏng thanh toán khóa học "${course.title}"...`, 'sys');
     setStep(2);
     setTimeout(() => {
       addLog(`[Demo Mode] Xác nhận thành công! Đã kích hoạt quyền sở hữu khóa học "${course.title}".`, 'sys');
       setStep(3);
       onPaymentSuccess(course.id);
-      setIsActivating(false);
     }, 1500);
+  };
+
+  const handleManualCheck = async () => {
+    setIsVerifying(true);
+    setPollingError('');
+    addLog(`[SePay] Học sinh yêu cầu kiểm tra sao kê thủ công giao dịch: ${transferCode}`, 'sys');
+    
+    const token = localStorage.getItem('access_token');
+    if (!token) {
+      setPollingError('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!');
+      setIsVerifying(false);
+      return;
+    }
+
+    try {
+      // Wait 1.5 seconds to query the bank database
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      
+      const res = await fetch(`${API_BASE}/enrollments/status?courseId=${courseId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const data = await res.json();
+      
+      if (data.success && data.data?.isEnrolled) {
+        addLog(`[SePay] Chuyển khoản thành công! Đã mở khóa khóa học: "${course.title}"`, 'sys');
+        setStep(3);
+        onPaymentSuccess(course.id);
+      } else {
+        addLog(`[SePay] Giao dịch "${transferCode}" chưa xuất hiện trên hệ thống ngân hàng.`, 'sys');
+        setPollingError('Chưa nhận được giao dịch. Nếu bạn đã chuyển khoản thành công, vui lòng đợi 1-2 phút rồi nhấn lại.');
+      }
+    } catch (err) {
+      setPollingError('Lỗi kết nối máy chủ khi đối soát ngân hàng.');
+    } finally {
+      setIsVerifying(false);
+    }
+  };
+
+  const handleCopy = (text, field) => {
+    navigator.clipboard.writeText(text);
+    setCopiedField(field);
+    setTimeout(() => setCopiedField(null), 1500);
+  };
+
+  const formatTime = (secs) => {
+    const mins = Math.floor(secs / 60);
+    const rs = secs % 60;
+    return `${mins}:${rs < 10 ? '0' : ''}${rs}`;
   };
 
   return (
@@ -46,10 +156,10 @@ export default function CheckoutModal({ course, onClose, onPaymentSuccess, addLo
       <div className="checkout-modal animate-in" style={{
         background: 'var(--bg-card)', border: '1px solid var(--border)',
         borderRadius: 'var(--radius-lg)', boxShadow: '0 20px 45px rgba(0,0,0,0.15)',
-        width: '100%', maxWidth: '460px', position: 'relative', overflow: 'hidden',
-        padding: '28px'
+        width: '100%', maxWidth: '480px', position: 'relative', overflow: 'hidden',
+        padding: '24px'
       }}>
-
+        
         {/* Close Button */}
         <button
           onClick={onClose}
@@ -62,106 +172,221 @@ export default function CheckoutModal({ course, onClose, onPaymentSuccess, addLo
           <HiX />
         </button>
 
-        {/* STEP 1: Demo Checkout Info */}
+        {/* STEP 1: Bank Transfer details & VietQR */}
         {step === 1 && (
           <div>
-            {/* Demo Mode Badge */}
-            <div style={{
-              display: 'inline-flex', alignItems: 'center', gap: '6px',
-              background: 'linear-gradient(135deg, #6C5CE7, #a29bfe)',
-              color: '#fff', padding: '5px 14px', borderRadius: '20px',
-              fontSize: '11px', fontWeight: 'bold', letterSpacing: '1px',
-              textTransform: 'uppercase', marginBottom: '16px',
-              boxShadow: '0 4px 14px rgba(108, 92, 231, 0.35)'
-            }}>
-              <HiBeaker /> DEMO MODE
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+              <HiSparkles style={{ color: 'var(--accent-orange)', fontSize: '20px' }} />
+              <h3 style={{ fontSize: '18px', fontWeight: 'bold', color: 'var(--text-primary)', margin: 0 }}>
+                Thanh toán tự động SePay
+              </h3>
             </div>
-
-            <h3 style={{ fontSize: '19px', fontWeight: '800', color: 'var(--text-primary)', margin: '0 0 6px 0' }}>
-              Mô phỏng thanh toán khóa học
-            </h3>
-            <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '20px', lineHeight: 1.5 }}>
-              Đây là phiên bản <strong style={{ color: 'var(--primary)' }}>Demo</strong> — thanh toán thật sẽ được tích hợp trong phiên bản chính thức. Nhấn nút bên dưới để mô phỏng quá trình mua khóa học thành công.
+            
+            <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '14px', lineHeight: 1.4 }}>
+              Bạn đang mua khóa học: <strong style={{ color: 'var(--primary)' }}>{course.title}</strong>
             </p>
 
-            {/* Course Info Card */}
+            {/* Price section */}
             <div style={{
-              background: 'var(--bg-main)', borderRadius: 'var(--radius-md)',
-              border: '1px solid var(--border)', padding: '16px', marginBottom: '20px'
+              background: 'var(--bg-main)', padding: '12px 16px',
+              borderRadius: 'var(--radius-md)', marginBottom: '16px',
+              border: '1px solid var(--border)'
             }}>
-              <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '6px' }}>
-                Khóa học được chọn:
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12.5px', marginBottom: '4px' }}>
+                <span>Giá niêm yết:</span>
+                <span style={{ textDecoration: 'line-through', color: 'var(--text-muted)' }}>899.000đ</span>
               </div>
-              <div style={{ fontWeight: 'bold', fontSize: '15px', color: 'var(--text-primary)', marginBottom: '12px' }}>
-                {course.title}
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14.5px', fontWeight: 'bold' }}>
+                <span>Thành tiền:</span>
+                <span style={{ color: 'var(--accent-orange)' }}>{exactAmount.toLocaleString()}đ</span>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ fontSize: '12px', color: 'var(--text-muted)', textDecoration: 'line-through' }}>
-                  899.000đ
+            </div>
+
+            {/* Elegant CSS Banking Card Mockup */}
+            <div style={{
+              background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
+              borderRadius: '16px',
+              padding: '20px',
+              color: '#fff',
+              position: 'relative',
+              overflow: 'hidden',
+              boxShadow: '0 12px 24px rgba(0,0,0,0.15)',
+              marginBottom: '16px',
+              border: '1px solid rgba(255,255,255,0.08)',
+              fontFamily: '"SF Pro Display", -apple-system, sans-serif'
+            }}>
+              {/* Card glossy reflection overlay */}
+              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0) 50%)', pointerEvents: 'none' }} />
+              
+              {/* Header: Bank & Card Type */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                <span style={{ fontSize: '14px', fontWeight: '800', letterSpacing: '1px', color: '#ffa751', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  🏦 ACB BANK
+                </span>
+                <span style={{ fontSize: '9px', fontWeight: 'bold', background: 'rgba(255,255,255,0.15)', padding: '3px 8px', borderRadius: '4px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  Premium Debit
+                </span>
+              </div>
+
+              {/* EMV Chip Mockup */}
+              <div style={{
+                width: '32px', height: '24px',
+                background: 'linear-gradient(135deg, #ffe259 0%, #ffa751 100%)',
+                borderRadius: '4px',
+                position: 'relative',
+                marginBottom: '14px',
+                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.3)'
+              }}>
+                <div style={{ position: 'absolute', top: '4px', bottom: '4px', left: '10px', right: '10px', borderLeft: '1px solid rgba(0,0,0,0.15)', borderRight: '1px solid rgba(0,0,0,0.15)' }} />
+                <div style={{ position: 'absolute', left: '4px', right: '4px', top: '8px', bottom: '8px', borderTop: '1px solid rgba(0,0,0,0.15)', borderBottom: '1px solid rgba(0,0,0,0.15)' }} />
+              </div>
+
+              {/* Card Number */}
+              <div style={{ fontSize: '18px', fontWeight: 'bold', letterSpacing: '3px', fontFamily: 'monospace', marginBottom: '16px', textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>
+                {ACCOUNT_NO}
+              </div>
+
+              {/* Footer: Cardholder & Expiry */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+                <div>
+                  <div style={{ fontSize: '8px', color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', marginBottom: '2px' }}>Chủ tài khoản</div>
+                  <div style={{ fontSize: '13px', fontWeight: 'bold', letterSpacing: '0.5px' }}>{ACCOUNT_NAME}</div>
                 </div>
-                <div style={{ fontSize: '18px', fontWeight: '900', color: 'var(--accent-orange)' }}>
-                  {exactAmount.toLocaleString()}đ
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontSize: '8px', color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', marginBottom: '2px' }}>Trạng thái</div>
+                  <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#22c55e' }}>ĐANG LIÊN KẾT</div>
                 </div>
               </div>
             </div>
 
-            {/* Demo Notice */}
+            {/* Bank details panel */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>
+              {/* Account Number */}
+              <div style={{
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                background: 'var(--bg-card)', border: '1px solid var(--border)',
+                padding: '8px 12px', borderRadius: 'var(--radius-md)'
+              }}>
+                <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                  <div>Số tài khoản ({BANK_ID}):</div>
+                  <strong style={{ fontSize: '14.5px', color: 'var(--text-primary)' }}>{ACCOUNT_NO}</strong>
+                </div>
+                <button
+                  className="btn-outline"
+                  onClick={() => handleCopy(ACCOUNT_NO, 'no')}
+                  style={{ padding: '4px 8px', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '4px' }}
+                >
+                  {copiedField === 'no' ? <><HiCheck /> Đã lưu</> : <><HiDuplicate /> Sao chép</>}
+                </button>
+              </div>
+
+              {/* Transfer Code */}
+              <div style={{
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                background: 'var(--bg-card)', border: '1px solid var(--border)',
+                padding: '8px 12px', borderRadius: 'var(--radius-md)'
+              }}>
+                <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                  <div>Nội dung chuyển khoản (Bắt buộc):</div>
+                  <strong style={{ fontSize: '15px', color: 'var(--accent-red)', letterSpacing: '1px' }}>{transferCode}</strong>
+                </div>
+                <button
+                  className="btn-outline"
+                  onClick={() => handleCopy(transferCode, 'code')}
+                  style={{ padding: '4px 8px', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '4px' }}
+                >
+                  {copiedField === 'code' ? <><HiCheck /> Đã lưu</> : <><HiDuplicate /> Sao chép</>}
+                </button>
+              </div>
+
+              {/* Account Holder */}
+              <div style={{
+                display: 'flex', justifyContent: 'space-between',
+                fontSize: '12px', color: 'var(--text-secondary)',
+                padding: '4px 12px'
+              }}>
+                <span>Chủ tài khoản:</span>
+                <strong style={{ color: 'var(--text-primary)' }}>{ACCOUNT_NAME}</strong>
+              </div>
+            </div>
+
+            {/* Dynamic VietQR code */}
             <div style={{
-              background: 'rgba(108, 92, 231, 0.08)', border: '1px dashed rgba(108, 92, 231, 0.4)',
-              borderRadius: 'var(--radius-md)', padding: '12px 14px', marginBottom: '20px',
-              display: 'flex', gap: '10px', alignItems: 'flex-start'
+              background: '#fff', padding: '16px', borderRadius: 'var(--radius-lg)',
+              display: 'flex', flexDirection: 'column', alignItems: 'center',
+              justifyContent: 'center', border: '1px solid var(--border)',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.05)', marginBottom: '14px'
             }}>
-              <HiSparkles style={{ color: '#6C5CE7', flexShrink: 0, marginTop: '2px', fontSize: '16px' }} />
-              <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.6 }}>
-                Trong phiên bản demo, kích hoạt khóa học sẽ diễn ra <strong>ngay lập tức</strong> mà không cần thực hiện thanh toán thật. Chức năng thanh toán qua VietQR / SePay sẽ được tích hợp đầy đủ ở phiên bản release.
+              <img 
+                src={qrCodeUrl} 
+                alt="VietQR Code" 
+                style={{ width: '220px', height: '220px', objectFit: 'contain' }}
+              />
+              <p style={{ fontSize: '11.5px', color: '#636e72', fontWeight: 600, marginTop: '8px', textAlign: 'center', margin: '8px 0 0 0' }}>
+                Quét mã QR để tự động điền Số tiền & Nội dung chuyển khoản
               </p>
             </div>
 
-            {/* Action Buttons */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              <button
-                className="btn-primary"
-                style={{
-                  width: '100%', display: 'flex', alignItems: 'center',
-                  justifyContent: 'center', gap: '8px', padding: '12px',
-                  background: 'linear-gradient(135deg, #6C5CE7, #a29bfe)', border: 'none',
-                  fontWeight: 'bold', fontSize: '14px',
-                  boxShadow: '0 6px 20px rgba(108, 92, 231, 0.3)'
-                }}
-                onClick={handleDemoActivate}
-                disabled={isActivating}
-              >
-                <HiBeaker /> Kích hoạt Demo — Mở khóa ngay
-              </button>
+            {/* Timer countdown & Polling Status indicator */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', padding: '0 4px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <span className="pulse-green"></span>
+                <span style={{ fontSize: '11.5px', color: 'var(--accent-green)', fontWeight: 600 }}>
+                  Hệ thống đang chờ giao dịch...
+                </span>
+              </div>
+              <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                Thời gian còn lại: <span style={{ color: 'var(--accent-red)', fontWeight: 'bold' }}>{formatTime(seconds)}</span>
+              </div>
+            </div>
 
-              <button className="btn-outline" style={{ width: '100%' }} onClick={onClose}>
-                Hủy bỏ
+            {pollingError && (
+              <p style={{ color: 'var(--accent-red)', fontSize: '12px', fontWeight: 500, margin: '0 0 12px 0', textAlign: 'center' }}>
+                ⚠️ {pollingError}
+              </p>
+            )}
+
+            {/* Main Action Buttons */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <button 
+                className="btn-primary" 
+                style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }} 
+                onClick={handleManualCheck}
+                disabled={isVerifying}
+              >
+                <HiRefresh className={isVerifying ? 'spin' : ''} /> 
+                {isVerifying ? 'Đang đối soát ngân hàng...' : 'Tôi đã chuyển khoản (Kiểm tra ngay)'}
+              </button>
+              
+              <button className="btn-outline" style={{ width: '100%' }} onClick={onClose} disabled={isVerifying}>
+                Hủy giao dịch
               </button>
             </div>
+
           </div>
         )}
 
-        {/* STEP 2: Processing splash */}
+        {/* STEP 2: Verification processing splash screen */}
         {step === 2 && (
-          <div style={{ textAlign: 'center', padding: '36px 10px' }}>
+          <div style={{ textAlign: 'center', padding: '30px 10px' }}>
             <div style={{
-              width: '52px', height: '52px',
+              width: '50px', height: '50px',
               border: '4px solid var(--border)',
-              borderTopColor: '#6C5CE7',
+              borderTopColor: 'var(--primary)',
               borderRadius: '50%',
               margin: '0 auto 20px auto',
               animation: 'spin 1s linear infinite'
             }}></div>
             <h3 style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '8px', color: 'var(--text-primary)' }}>
-              Đang kích hoạt khóa học...
+              Đang xác thực thanh toán...
             </h3>
-            <p style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
-              Hệ thống đang xử lý yêu cầu của bạn. Vui lòng giữ nguyên màn hình trong giây lát.
+            <p style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
+              Hệ thống đang truy vấn sao kê tài khoản ngân hàng liên kết từ cổng SePay. Vui lòng giữ nguyên màn hình trong giây lát.
             </p>
           </div>
         )}
 
-        {/* STEP 3: Success */}
+        {/* STEP 3: Success unlock screen */}
         {step === 3 && (
           <div style={{ textAlign: 'center', padding: '24px 10px' }}>
             <div style={{ fontSize: '64px', color: 'var(--accent-green)', marginBottom: '14px' }}>
@@ -171,12 +396,12 @@ export default function CheckoutModal({ course, onClose, onPaymentSuccess, addLo
               Kích hoạt thành công! 🎉
             </h3>
             <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '20px', lineHeight: '1.5' }}>
-              Khóa học <strong style={{ color: 'var(--primary)' }}>{course.title}</strong> đã được kích hoạt trên hệ thống. Hãy bắt đầu chinh phục kiến thức và nhận lộ trình học tập cá nhân hóa ngay nào!
+              Cảm ơn em! Khóa học <strong style={{ color: 'var(--primary)' }}>{course.title}</strong> đã được kích hoạt trên hệ thống. Hãy bắt đầu chinh phục kiến thức và nhận lộ trình học tập cá nhân hóa ngay nào!
             </p>
             <div style={{ display: 'flex', justifyContent: 'center' }}>
-              <button
-                className="btn-primary"
-                style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+              <button 
+                className="btn-primary" 
+                style={{ display: 'flex', alignItems: 'center', gap: 6 }} 
                 onClick={onClose}
               >
                 <HiLockOpen /> Vào học ngay

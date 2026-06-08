@@ -143,6 +143,36 @@ const initialQuestions = [
 
 const initialForumPosts = [
   {
+    id: 100,
+    title: "📢 [THÔNG BÁO QUAN TRỌNG] Lịch thi thử THPT Quốc Gia 2026 & Tài liệu Ôn tập Độc quyền",
+    content: "Chào toàn thể các em học sinh trên hệ thống EduPath AI,\n\nBan Quản Trị xin gửi tới các em lịch thi thử trực tuyến các môn học trọng điểm (Toán, Lý, Hóa, Anh, Sinh) chuẩn cấu trúc của Bộ GD&ĐT. Các đề thi sẽ được mở vào tối thứ 7 hàng tuần lúc 20:00.\n\nSau khi làm bài, các em sẽ nhận được phân tích kết quả chi tiết từ hệ thống AI và lộ trình khắc phục lỗ hổng kiến thức tương ứng.\n\nChúc các em ôn tập đạt kết quả cao nhất!",
+    subject: "Khác",
+    author: "Trần Văn Thuận",
+    authorAvatar: "AD",
+    authorRole: "admin",
+    date: "Đã ghim",
+    likes: 128,
+    likedBy: [],
+    comments: [
+      {
+        id: 1001,
+        author: "Nguyễn Minh Anh",
+        avatar: "MA",
+        content: "Tuyệt vời quá ạ! Em đang mong có đề thi thử chuẩn cấu trúc để test năng lực.",
+        date: "2 giờ trước",
+        isAccepted: false
+      },
+      {
+        id: 1002,
+        author: "Lê Minh Tuấn",
+        avatar: "MT",
+        content: "Em sẽ đặt lịch thi đúng giờ. Cảm ơn thầy cô admin rất nhiều!",
+        date: "1 giờ trước",
+        isAccepted: false
+      }
+    ]
+  },
+  {
     id: 1,
     title: "Có bạn nào giải được bài toán cực trị Casio 12 câu 4 đề minh họa không?",
     content: "Chào mọi người, em đang ôn thi phần ứng dụng đạo hàm và gặp khó khăn trong việc tìm giá trị cực trị lớn nhất bằng Casio FX-880. Em đã thử lập bảng biến thiên nhưng mất nhiều thời gian quá. Bác nào có mẹo bấm máy nhanh chỉ em với!",
@@ -158,7 +188,8 @@ const initialForumPosts = [
         author: "Thầy Thế Anh",
         avatar: "TA",
         content: "Em có thể dùng tính năng Table (Vô cực đại) trên FX-880, quét từ -5 đến 5 với bước nhảy là 0.1 để định vị vùng cực trị trước, sau đó dùng công cụ Solver để tính đạo hàm bằng 0 cực kỳ chính xác nhé!",
-        date: "5 phút trước"
+        date: "5 phút trước",
+        isAccepted: false
       }
     ]
   },
@@ -376,9 +407,8 @@ export default function App() {
     }
     return list;
   });
-  const [courses, setCourses] = useState(initialCourses);
-  const [coursesLoading, setCoursesLoading] = useState(false);
-  const [coursesError, setCoursesError] = useState(null);
+  const [courses, setCourses] = useState(() => JSON.parse(localStorage.getItem('app_courses')) || initialCourses);
+  const [examsList, setExamsList] = useState([]);
   const [questionBank, setQuestionBank] = useState(() => JSON.parse(localStorage.getItem('app_questions')) || initialQuestions);
   const [submissions, setSubmissions] = useState(() => JSON.parse(localStorage.getItem('app_submissions')) || []);
   const [notifications, setNotifications] = useState(() => JSON.parse(localStorage.getItem('app_notifications')) || [
@@ -433,6 +463,19 @@ export default function App() {
   const [settingsConfirmNewPass, setSettingsConfirmNewPass] = useState('');
 
   // Sync settings states when current user changes or tab is settings
+  const [resetToken, setResetToken] = useState(null);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('token');
+    if (token) {
+      window.history.replaceState({}, document.title, window.location.pathname);
+      setResetToken(token);
+      setActiveTab('reset-password');
+      setRole('guest');
+    }
+  }, []);
+
   useEffect(() => {
     if (currentUser) {
       setSettingsName(currentUser.name || '');
@@ -451,46 +494,20 @@ export default function App() {
     }
   }, [currentUser, activeTab]);
 
-  // Fetch courses từ API (Supabase PostgreSQL)
-  useEffect(() => {
-    const fetchCourses = async () => {
-      setCoursesLoading(true);
-      setCoursesError(null);
-      try {
-        const data = await api.getCourses();
-        if (data && data.length > 0) {
-          // Map API fields sang format của app
-          const mapped = data.map(c => ({
-            ...c,
-            teacherName: c.teacher?.user?.fullName || 'Giáo viên EduPath',
-            lessons: c.lessons || []
-          }));
-          setCourses(mapped);
-        }
-      } catch (err) {
-        console.warn('[CourseMall] Không thể tải khóa học từ API, dùng dữ liệu mẫu:', err.message);
-        setCoursesError(err.message);
-        // Giữ initialCourses làm fallback
-      } finally {
-        setCoursesLoading(false);
-      }
-    };
-    fetchCourses();
-  }, []);
-
   // Sync state data to localStorage
   useEffect(() => {
     localStorage.setItem('current_user', JSON.stringify(currentUser));
     localStorage.setItem('user_role', role);
     localStorage.setItem('app_theme', theme);
     localStorage.setItem('users_list', JSON.stringify(usersList));
+    localStorage.setItem('app_courses', JSON.stringify(courses));
     localStorage.setItem('app_questions', JSON.stringify(questionBank));
     localStorage.setItem('app_submissions', JSON.stringify(submissions));
     localStorage.setItem('app_notifications', JSON.stringify(notifications));
     localStorage.setItem('app_logs', JSON.stringify(systemLogs));
     localStorage.setItem('app_approvals', JSON.stringify(courseApprovals));
     localStorage.setItem('app_forum_posts', JSON.stringify(forumPosts));
-  }, [currentUser, role, theme, usersList, questionBank, submissions, notifications, systemLogs, courseApprovals, forumPosts]);
+  }, [currentUser, role, theme, usersList, courses, questionBank, submissions, notifications, systemLogs, courseApprovals, forumPosts]);
 
   // Dark theme trigger
   useEffect(() => {
@@ -500,6 +517,53 @@ export default function App() {
       document.body.classList.remove('dark-theme');
     }
   }, [theme]);
+
+  // Sync live backend data if logged in
+  const fetchInitialData = async () => {
+    if (!currentUser) return;
+    try {
+      // 1. Fetch courses from backend
+      const backendCourses = await api.getCourses();
+      if (backendCourses && backendCourses.length > 0) {
+        const mapped = backendCourses.map(c => ({
+          id: c.id,
+          title: c.title,
+          subject: c.subject,
+          price: c.price.toLocaleString('vi-VN'),
+          teacherName: c.teacher?.user?.fullName || c.teacherName || 'Giảng viên',
+          isUnlocked: c.isUnlocked || currentUser?.unlockedCourses?.includes(c.id) || false,
+          lessons: c.lessons || []
+        }));
+        setCourses(mapped);
+      }
+    } catch (err) {
+      console.warn("Không thể tải danh sách khóa học từ backend API, sử dụng mock thay thế.");
+    }
+
+    try {
+      // 2. Fetch User PRO status
+      const proStatus = await api.checkProStatus();
+      if (proStatus && proStatus.isPro !== currentUser.isPro) {
+        setCurrentUser(prev => prev ? { ...prev, isPro: proStatus.isPro } : null);
+      }
+    } catch (err) {
+      // ignore
+    }
+
+    try {
+      // 3. Fetch exams from backend
+      const backendExams = await api.getExams();
+      if (backendExams && backendExams.length > 0) {
+        setExamsList(backendExams);
+      }
+    } catch (err) {
+      console.warn("Không thể tải danh sách đề thi từ backend API.");
+    }
+  };
+
+  useEffect(() => {
+    fetchInitialData();
+  }, [currentUser, activeTab]);
 
   const addLog = (text, tag = 'sys') => {
     const newLog = {
@@ -527,22 +591,9 @@ export default function App() {
       return;
     }
 
-    // Map API user fields → app's internal format, preserving enrollments from DB
-    const mappedUser = {
-      ...user,
-      name: user.fullName || user.name || '',
-      avatar: user.avatarUrl || user.avatar || (user.fullName ? user.fullName.slice(0, 2).toUpperCase() : 'U'),
-      combo: user.subjectGroup || user.combo || 'A01 (Toán – Lý – Anh)',
-      // enrollments from DB: [{courseId, paidAt, id}]
-      enrollments: user.enrollments || [],
-      // unlockedCourses: derived from enrollments for backward compat
-      unlockedCourses: (user.enrollments || []).map(e => e.courseId)
-    };
-
-    setCurrentUser(mappedUser);
-    setRole((user.role || 'student').toLowerCase());
+    setCurrentUser(user);
+    setRole(user.role);
     setActiveTab('landing');
-    addLog(`Đăng nhập thành công: ${mappedUser.name} (${mappedUser.enrollments?.length || 0} khóa học đã mua)`, 'sys');
   };
 
   const handleBackToDashboard = (targetTab) => {
@@ -579,24 +630,11 @@ export default function App() {
     }
   };
 
-  const handleSaveProfile = async (updatedProfile) => {
+  const handleSaveProfile = (updatedProfile) => {
     setCurrentUser(updatedProfile);
     const updatedList = usersList.map(u => u.email === updatedProfile.email ? updatedProfile : u);
     setUsersList(updatedList);
-
-    // Persist to DB: update fullName, avatarUrl, subjectGroup
-    try {
-      await api.updateProfile({
-        fullName: updatedProfile.name || updatedProfile.fullName,
-        avatarUrl: (updatedProfile.avatar && updatedProfile.avatar.startsWith('data:image/')) ? updatedProfile.avatar : undefined,
-        subjectGroup: updatedProfile.subjectGroup || (updatedProfile.combo || '').split(' ')[0] || 'A01'
-      });
-      addLog(`[DB] Đã lưu hồ sơ "${updatedProfile.name}" vào database thành công.`, 'sys');
-    } catch (err) {
-      console.warn('[Profile Update] Không thể lưu vào DB:', err.message);
-      addLog(`[DB Warning] Lưu hồ sơ thất bại: ${err.message}`, 'sys');
-    }
-
+    addLog(`Người dùng "${updatedProfile.name}" cập nhật thông tin cá nhân thành công`, 'sys');
     alert('Lưu thông tin cá nhân thành công!');
   };
 
@@ -633,44 +671,26 @@ export default function App() {
     }
   };
 
-  // Student purchases course (Demo mode — also persists to DB)
-  const handlePaymentSuccess = async (courseId) => {
-    // Create a fake enrollment record matching the structure CourseMall expects
-    const newEnrollment = { courseId: courseId, paidAt: new Date().toISOString() };
-
-    // Optimistically update UI first
+  // Student purchases course
+  const handlePaymentSuccess = (courseId) => {
+    // Add to student's list in users database
     const updatedUsers = usersList.map(u => {
       if (u.email === currentUser.email) {
         const unlocked = u.unlockedCourses || [];
-        const enrollments = u.enrollments || [];
-        return {
-          ...u,
-          unlockedCourses: [...unlocked, courseId],
-          enrollments: [...enrollments, newEnrollment]
-        };
+        return { ...u, unlockedCourses: [...unlocked, courseId] };
       }
       return u;
     });
     setUsersList(updatedUsers);
 
+    // Sync active session unlockedCourses
     const activeUnlocked = currentUser.unlockedCourses || [];
-    const activeEnrollments = currentUser.enrollments || [];
     setCurrentUser({
       ...currentUser,
-      unlockedCourses: [...activeUnlocked, courseId],
-      enrollments: [...activeEnrollments, newEnrollment]
+      unlockedCourses: [...activeUnlocked, courseId]
     });
 
     setCheckoutCourse(null);
-
-    // Persist to PostgreSQL DB in background
-    try {
-      await api.demoEnroll(courseId);
-      addLog(`[DB] Đã lưu enrollment khóa học ID=${courseId} vào database thành công.`, 'sys');
-    } catch (err) {
-      console.warn('[Demo Enrollment] Không thể lưu vào DB (sẽ dùng local state):', err.message);
-      addLog(`[DB Warning] Lưu enrollment thất bại: ${err.message}`, 'sys');
-    }
   };
 
   // Student upgrades to PRO membership success
@@ -751,6 +771,23 @@ export default function App() {
     });
     setForumPosts(updated);
     addLog(`Thêm phản hồi cho bài thảo luận`, 'sys');
+  };
+
+  const handleForumAcceptCommentSolution = (postId, commentId) => {
+    const updated = forumPosts.map(post => {
+      if (post.id === postId) {
+        const updatedComments = (post.comments || []).map(c => {
+          if (c.id === commentId) {
+            return { ...c, isAccepted: !c.isAccepted };
+          }
+          return { ...c, isAccepted: false };
+        });
+        return { ...post, comments: updatedComments };
+      }
+      return post;
+    });
+    setForumPosts(updated);
+    addLog(`Cập nhật trạng thái Lời giải đúng nhất cho phản hồi`, 'sys');
   };
 
   // Teacher Workspace Actions
@@ -859,7 +896,56 @@ export default function App() {
           {/* ================= PUBLIC OR PREVIEW LANDING PAGE ================= */}
           {(role === 'guest' || activeTab === 'landing') && (
             <div>
-              {role === 'guest' && (activeTab === 'login' || activeTab === 'signup') ? (
+              {role === 'guest' && activeTab === 'reset-password' ? (
+                <div className="auth-page-layout" style={{ position: 'relative', display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '80vh', padding: '20px' }}>
+                  <div className="auth-floating-container animate-in">
+                    <div className="auth-floating-card" style={{ maxWidth: '440px', width: '100%', margin: '40px auto', padding: '32px', background: 'var(--bg-card)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)', boxShadow: '0 12px 30px rgba(0,0,0,0.1)' }}>
+                      <div className="auth-card-header-bar" style={{ justifyContent: 'center', marginBottom: '24px', textAlign: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '16px' }}>
+                        <h3 style={{ fontSize: '18px', fontWeight: '800', color: 'var(--primary)', letterSpacing: '0.5px' }}>🛡️ ĐẶT LẠI MẬT KHẨU MỚI</h3>
+                        <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>Nhập mật khẩu mới cho tài khoản EduPath AI của em</p>
+                      </div>
+                      <form onSubmit={async (e) => {
+                        e.preventDefault();
+                        const password = e.target.password.value;
+                        const confirm = e.target.confirm.value;
+                        if (password.length < 6) {
+                          alert('Mật khẩu mới phải có tối thiểu 6 ký tự!');
+                          return;
+                        }
+                        if (password !== confirm) {
+                          alert('Mật khẩu xác nhận không khớp! Vui lòng nhập lại.');
+                          return;
+                        }
+                        try {
+                          await api.resetPassword(resetToken, password);
+                          alert('Đặt lại mật khẩu thành công! Em có thể đăng nhập bằng mật khẩu mới.');
+                          setResetToken(null);
+                          setActiveTab('login');
+                        } catch (err) {
+                          alert(err.message || 'Lỗi đặt lại mật khẩu.');
+                        }
+                      }}>
+                        <div className="form-group" style={{ marginBottom: '16px' }}>
+                          <label style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-main)', display: 'block', marginBottom: '6px' }}>Mật khẩu mới:</label>
+                          <input type="password" name="password" className="form-control" required minLength={6} placeholder="Tối thiểu 6 ký tự" style={{ width: '100%', padding: '10px', fontSize: '13.5px' }} />
+                        </div>
+                        <div className="form-group" style={{ marginBottom: '24px' }}>
+                          <label style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-main)', display: 'block', marginBottom: '6px' }}>Xác nhận mật khẩu mới:</label>
+                          <input type="password" name="confirm" className="form-control" required placeholder="Nhập lại mật khẩu mới" style={{ width: '100%', padding: '10px', fontSize: '13.5px' }} />
+                        </div>
+                        <button type="submit" className="btn-primary" style={{ width: '100%', padding: '12px', fontSize: '13.5px', fontWeight: 'bold', borderRadius: 'var(--radius-md)' }}>
+                          XÁC NHẬN ĐỔI MẬT KHẨU
+                        </button>
+                        <div style={{ textAlign: 'center', marginTop: '16px' }}>
+                          <button type="button" onClick={() => setActiveTab('login')} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', fontSize: '12px', cursor: 'pointer', textDecoration: 'underline' }}>
+                            Quay lại đăng nhập
+                          </button>
+                        </div>
+                      </form>
+                    </div>
+                  </div>
+                </div>
+              ) : role === 'guest' && (activeTab === 'login' || activeTab === 'signup') ? (
                 <AuthPage
                   defaultMode={activeTab === 'signup' ? 'signup' : 'login'}
                   onAuthSuccess={(user, newlyRegistered) => {
@@ -883,6 +969,7 @@ export default function App() {
                   onAddPost={handleForumAddPost}
                   onLikePost={handleForumLikePost}
                   onAddComment={handleForumAddComment}
+                  onAcceptCommentSolution={handleForumAcceptCommentSolution}
                 />
               )}
             </div>
@@ -1013,12 +1100,7 @@ export default function App() {
               {activeTab === 'courses' && (
                 <CourseMall
                   courses={courses}
-                  coursesLoading={coursesLoading}
-                  coursesError={coursesError}
-                  currentUser={{
-                    ...currentUser,
-                    enrollments: currentUser?.enrollments || []
-                  }}
+                  currentUser={currentUser}
                   onSelectCourse={setActiveCourseDetails}
                   onCheckoutCourse={setCheckoutCourse}
                 />
@@ -1031,6 +1113,7 @@ export default function App() {
                   onAddPost={handleForumAddPost}
                   onLikePost={handleForumLikePost}
                   onAddComment={handleForumAddComment}
+                  onAcceptCommentSolution={handleForumAcceptCommentSolution}
                   currentUser={currentUser}
                 />
               )}
@@ -1040,16 +1123,31 @@ export default function App() {
                 <div className="card">
                   <h3 style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '14px' }}>HỆ THỐNG KIỂM TRA & LUYỆN ĐỀ</h3>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    <div style={{ padding: '16px', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', background: 'var(--bg-main)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div>
-                        <span className="badge-pill" style={{ background: 'var(--primary-bg)', color: 'var(--primary)', fontSize: '10px' }}>Toán học</span>
-                        <h4 style={{ fontSize: '14px', fontWeight: 'bold', marginTop: '6px' }}>Đề khảo sát kiểm tra Khảo sát hàm số chương I</h4>
-                        <p style={{ fontSize: '11.5px', color: 'var(--text-secondary)', marginTop: '2px' }}>Thời lượng: 30 phút • Quy chuẩn đề thi THPTQG</p>
+                    {examsList && examsList.length > 0 ? (
+                      examsList.map(exam => (
+                        <div key={exam.id} style={{ padding: '16px', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', background: 'var(--bg-main)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <div>
+                            <span className="badge-pill" style={{ background: 'var(--primary-bg)', color: 'var(--primary)', fontSize: '10px' }}>{exam.subject}</span>
+                            <h4 style={{ fontSize: '14px', fontWeight: 'bold', marginTop: '6px' }}>{exam.title}</h4>
+                            <p style={{ fontSize: '11.5px', color: 'var(--text-secondary)', marginTop: '2px' }}>Thời lượng: {exam.duration} phút • Quy chuẩn đề thi THPTQG</p>
+                          </div>
+                          <button className="btn-primary" onClick={() => setActiveTestSimulator(exam)}>
+                            Bắt đầu làm bài
+                          </button>
+                        </div>
+                      ))
+                    ) : (
+                      <div style={{ padding: '16px', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', background: 'var(--bg-main)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div>
+                          <span className="badge-pill" style={{ background: 'var(--primary-bg)', color: 'var(--primary)', fontSize: '10px' }}>Toán học</span>
+                          <h4 style={{ fontSize: '14px', fontWeight: 'bold', marginTop: '6px' }}>Đề khảo sát kiểm tra Khảo sát hàm số chương I</h4>
+                          <p style={{ fontSize: '11.5px', color: 'var(--text-secondary)', marginTop: '2px' }}>Thời lượng: 30 phút • Quy chuẩn đề thi THPTQG</p>
+                        </div>
+                        <button className="btn-primary" onClick={() => setActiveTestSimulator("Đề Khảo sát Hàm số Chương I")}>
+                          Bắt đầu làm bài
+                        </button>
                       </div>
-                      <button className="btn-primary" onClick={() => setActiveTestSimulator("Đề Khảo sát Hàm số Chương I")}>
-                        Bắt đầu làm bài
-                      </button>
-                    </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -1484,7 +1582,8 @@ export default function App() {
           {/* Student active test simulator taking view */}
           {role === 'student' && activeTab !== 'landing' && activeTestSimulator && (
             <TestSimulator
-              testName={activeTestSimulator}
+              exam={typeof activeTestSimulator === 'object' ? activeTestSimulator : null}
+              testName={typeof activeTestSimulator === 'object' ? activeTestSimulator.title : activeTestSimulator}
               onFinished={handleFinishedTest}
               addLog={addLog}
             />
@@ -1492,29 +1591,55 @@ export default function App() {
 
           {/* ================= TEACHER WORKSPACE ================= */}
           {role === 'teacher' && activeTab !== 'landing' && (
-            <TeacherDashboard
-              courses={courses}
-              onCreateCourse={handleCreateCourse}
-              onDeleteCourse={handleDeleteCourse}
-              questionBank={questionBank}
-              onAddQuestion={handleAddQuestion}
-              addLog={addLog}
-            />
+            activeTab === 'forum' ? (
+              <Forum
+                forumPosts={forumPosts}
+                onAddPost={handleForumAddPost}
+                onLikePost={handleForumLikePost}
+                onAddComment={handleForumAddComment}
+                onAcceptCommentSolution={handleForumAcceptCommentSolution}
+                currentUser={currentUser}
+              />
+            ) : (
+              <TeacherDashboard
+                courses={courses}
+                onCreateCourse={handleCreateCourse}
+                onDeleteCourse={handleDeleteCourse}
+                questionBank={questionBank}
+                onAddQuestion={handleAddQuestion}
+                addLog={addLog}
+                activeTab={activeTab}
+                setActiveTab={setActiveTab}
+              />
+            )
           )}
 
           {/* ================= ADMIN WORKSPACE ================= */}
           {role === 'admin' && activeTab !== 'landing' && (
-            <AdminDashboard
-              users={usersList}
-              onToggleUserBan={handleToggleUserBan}
-              onApproveTeacher={handleApproveTeacher}
-              courseApprovals={courseApprovals}
-              onApproveCourse={handleApproveCourse}
-              onRejectCourse={handleRejectCourse}
-              onSendAnnouncement={handleSendAnnouncement}
-              systemLogs={systemLogs}
-              addLog={addLog}
-            />
+            activeTab === 'forum' ? (
+              <Forum
+                forumPosts={forumPosts}
+                onAddPost={handleForumAddPost}
+                onLikePost={handleForumLikePost}
+                onAddComment={handleForumAddComment}
+                onAcceptCommentSolution={handleForumAcceptCommentSolution}
+                currentUser={currentUser}
+              />
+            ) : (
+              <AdminDashboard
+                users={usersList}
+                onToggleUserBan={handleToggleUserBan}
+                onApproveTeacher={handleApproveTeacher}
+                courseApprovals={courseApprovals}
+                onApproveCourse={handleApproveCourse}
+                onRejectCourse={handleRejectCourse}
+                onSendAnnouncement={handleSendAnnouncement}
+                systemLogs={systemLogs}
+                addLog={addLog}
+                activeTab={activeTab}
+                setActiveTab={setActiveTab}
+              />
+            )
           )}
         </main>
       </div>

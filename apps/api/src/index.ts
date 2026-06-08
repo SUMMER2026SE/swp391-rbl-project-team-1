@@ -5,12 +5,12 @@ import dotenv from 'dotenv';
 import { initSocket } from './lib/socket.js';
 
 // Controller imports
-import { login, logout, register, sendOtp, verifyOtpRegister, googleAuth, changePassword, updateProfile } from './controllers/auth.js';
+import { login, logout, register, sendOtp, verifyOtpRegister, googleAuth, changePassword, forgotPassword, resetPassword } from './controllers/auth.js';
 import { getCourses, getCourseById, createCourse, getCourseStats } from './controllers/course.js';
 import { getExams, startAttempt, submitAttempt } from './controllers/exam.js';
 import { streamAIChat, refreshRoadmap, generateAIQuestions } from './controllers/ai.js';
 import { chatbotConsult } from './controllers/chatbot.js';
-import { createVNPayPayment, vnpayWebhook, sepayWebhook, checkEnrollmentStatus, checkUserProStatus, createDemoEnrollment } from './controllers/payment.js';
+import { createVNPayPayment, vnpayWebhook, sepayWebhook, checkEnrollmentStatus, checkUserProStatus } from './controllers/payment.js';
 import { authenticateJWT, requireRole } from './middleware/auth.js';
 
 dotenv.config();
@@ -46,8 +46,9 @@ app.post('/logout', logout);
 app.post('/auth/send-otp', sendOtp);
 app.post('/auth/verify-otp-register', verifyOtpRegister);
 app.post('/auth/google', googleAuth);
+app.post('/auth/forgot-password', forgotPassword);
+app.post('/auth/reset-password', resetPassword);
 app.post('/auth/change-password', authenticateJWT, changePassword);
-app.patch('/auth/profile', authenticateJWT, updateProfile);
 
 // Protected Course Routes
 app.get('/courses', getCourses);
@@ -64,7 +65,6 @@ app.post('/exams/:id/attempts/:attemptId/submit', authenticateJWT, requireRole([
 app.post('/enrollments', authenticateJWT, requireRole(['STUDENT']), createVNPayPayment);
 app.get('/enrollments/webhook', vnpayWebhook);
 app.get('/enrollments/status', authenticateJWT, requireRole(['STUDENT']), checkEnrollmentStatus);
-app.post('/enrollments/demo', authenticateJWT, requireRole(['STUDENT']), createDemoEnrollment);
 app.post('/enrollments/sepay-webhook', sepayWebhook);
 app.get('/users/pro-status', authenticateJWT, requireRole(['STUDENT']), checkUserProStatus);
 

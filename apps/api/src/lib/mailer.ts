@@ -77,3 +77,70 @@ export async function sendOTPEmail(toEmail: string, studentName: string, otp: st
     return false;
   }
 }
+
+export async function sendResetPasswordEmail(toEmail: string, studentName: string, resetLink: string): Promise<boolean> {
+  if (!transporter) {
+    console.error(`[Mailer Error] Cannot send reset password email to ${toEmail}. SMTP credentials missing.`);
+    return false;
+  }
+
+  const htmlContent = `
+    <div style="font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f4f6fa; padding: 30px 20px; color: #2d3436; line-height: 1.6;">
+      <div style="max-width: 540px; margin: 0 auto; background: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 30px rgba(108,92,231,0.08); border: 1px solid #e8ecf1;">
+        <!-- Header -->
+        <div style="background: linear-gradient(135deg, #e17055, #d63031); padding: 32px 24px; text-align: center; color: #ffffff;">
+          <div style="font-size: 24px; font-weight: 800; letter-spacing: 0.5px; margin-bottom: 6px;">EduPath AI</div>
+          <div style="font-size: 13px; opacity: 0.9; text-transform: uppercase; font-weight: 600; letter-spacing: 1px;">Khôi phục mật khẩu tài khoản</div>
+        </div>
+        
+        <!-- Content Body -->
+        <div style="padding: 30px 24px;">
+          <h2 style="font-size: 18px; font-weight: 700; margin: 0 0 16px 0; color: #1e293b;">YÊU CẦU ĐẶT LẠI MẬT KHẨU</h2>
+          <p style="font-size: 14px; color: #636e72; margin: 0 0 20px 0;">
+            Chào <strong>${studentName}</strong>,<br/>
+            Chúng tôi nhận được yêu cầu đặt lại mật khẩu cho tài khoản của em tại hệ thống học tập EduPath AI. Em vui lòng click vào nút bên dưới để tiến hành đổi mật khẩu mới:
+          </p>
+          
+          <!-- CTA Button -->
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${resetLink}" target="_blank" style="background: linear-gradient(135deg, #e17055, #d63031); color: #ffffff; text-decoration: none; padding: 14px 30px; font-size: 15px; font-weight: 700; border-radius: 10px; display: inline-block; box-shadow: 0 5px 15px rgba(214,48,49,0.3); transition: all 0.3s ease;">
+              ĐẶT LẠI MẬT KHẨU NGAY
+            </a>
+          </div>
+
+          <p style="font-size: 13.5px; color: #636e72; margin: 20px 0 0 0;">
+            Hoặc em có thể copy đường dẫn dưới đây và dán vào trình duyệt:
+            <br/>
+            <a href="${resetLink}" target="_blank" style="color: #d63031; word-break: break-all; font-size: 12.5px;">${resetLink}</a>
+          </p>
+          
+          <p style="font-size: 13px; color: #94a3b8; margin: 24px 0 0 0; line-height: 1.5; font-style: italic;">
+            Đường dẫn đặt lại mật khẩu này chỉ có hiệu lực trong vòng 15 phút. Nếu em không gửi yêu cầu này, em có thể bỏ qua email này một cách an sau.
+          </p>
+        </div>
+        
+        <!-- Footer -->
+        <div style="background: #f8fafc; padding: 20px 24px; text-align: center; border-top: 1px solid #e8ecf1; font-size: 11.5px; color: #94a3b8;">
+          <div>Đội ngũ hỗ trợ học tập EduPath AI</div>
+          <div style="margin-top: 4px; font-weight: 500; color: #e17055;">Học đúng hướng · Thi đúng đích</div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  try {
+    console.log(`[Mailer] Sending reset password email to: ${toEmail}...`);
+    await transporter.sendMail({
+      from: `"EduPath Support" <${smtpUser}>`,
+      to: toEmail,
+      subject: `[EduPath AI] Đường dẫn đặt lại mật khẩu tài khoản`,
+      html: htmlContent
+    });
+    console.log(`[Mailer] Reset password email successfully delivered to: ${toEmail}`);
+    return true;
+  } catch (err) {
+    console.error(`[Mailer Error] Failed to send reset password email to ${toEmail}:`, err);
+    return false;
+  }
+}
+

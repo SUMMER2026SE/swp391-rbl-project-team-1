@@ -167,23 +167,36 @@ export default function AuthPage({ defaultMode = 'login', onAuthSuccess, usersLi
       return;
     }
 
+    if (mode === 'forgot') {
+      if (!resetEmail.trim()) {
+        setErrorMessage('Vui lòng nhập Email khôi phục.');
+        return;
+      }
+      setLoading(true);
+      api.forgotPassword(resetEmail)
+        .then((resData) => {
+          setResetSuccess(true);
+          addLog(`Đã gửi yêu cầu khôi phục mật khẩu cho: ${resetEmail}`, 'sys');
+          if (resData && resData.simulated) {
+            setSuccessMessage(resData.message);
+            console.log('SIMULATED RESET LINK:', resData.resetLink);
+            alert(`[Chạy local - Không cần cấu hình SMTP]\n\nĐường dẫn đặt lại mật khẩu của bạn đã được tạo:\n${resData.resetLink}\n\nHãy nhấn OK, sao chép liên kết ở mục thông báo thành công hoặc trong Developer Console để dán vào tab mới đổi mật khẩu!`);
+          } else {
+            setSuccessMessage('Đường dẫn đặt lại mật khẩu đã được gửi vào Gmail của bạn! Vui lòng kiểm tra hộp thư.');
+          }
+        })
+        .catch((err) => {
+          setErrorMessage(err.message || 'Gửi liên kết khôi phục thất bại.');
+        })
+        .finally(() => {
+          setLoading(false);
+        });
+      return;
+    }
+
     setLoading(true);
     setTimeout(() => {
       setLoading(false);
-
-      if (mode === 'forgot') {
-        if (!resetEmail.trim()) return;
-        
-        // Generate random 6-digit OTP
-        const otp = Math.floor(100000 + Math.random() * 900000).toString();
-        setGeneratedOtp(otp);
-        setTypedOtp('');
-        
-        addLog(`Yêu cầu khôi phục mật khẩu (Simulated OTP): ${resetEmail}`, 'sys');
-        setResetSuccess(true);
-        setShowInbox(true); // Open mock inbox to show simulated mail
-
-      } else if (mode === 'reset_password') {
         if (typedOtp !== generatedOtp) {
           setErrorMessage('Mã xác thực OTP không chính xác. Vui lòng kiểm tra lại!');
           return;
@@ -231,7 +244,6 @@ export default function AuthPage({ defaultMode = 'login', onAuthSuccess, usersLi
           setConfirmPassword('');
           setMode('login');
         }
-      }
     }, 600);
   };
 

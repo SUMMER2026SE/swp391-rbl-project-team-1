@@ -44,25 +44,33 @@ export const api = {
   changePassword: (oldPassword, newPassword) =>
     request('/auth/change-password', { method: 'POST', body: { oldPassword, newPassword } }),
 
-  // ── Courses ──
-  getCourses: (params = {}) => {
-    const qs = new URLSearchParams(params).toString();
-    return request(`/courses${qs ? '?' + qs : ''}`);
+  forgotPassword: (email) =>
+    request('/auth/forgot-password', { method: 'POST', body: { email } }),
+
+  resetPassword: (token, password) =>
+    request('/auth/reset-password', { method: 'POST', body: { token, password } }),
+
+  getCourses: (filters = {}) => {
+    const params = new URLSearchParams(filters).toString();
+    return request(`/courses?${params}`);
   },
 
-  getCourseById: (id) =>
-    request(`/courses/${id}`),
+  getCourseById: (id) => request(`/courses/${id}`),
 
-  // ── Enrollments ──
-  checkEnrollment: (courseId) =>
-    request(`/enrollments/status?courseId=${courseId}`),
+  createCourse: (payload) => request('/courses', { method: 'POST', body: payload }),
 
-  // Demo enrollment — saves real enrollment to DB without payment
-  demoEnroll: (courseId) =>
-    request('/enrollments/demo', { method: 'POST', body: { courseId } }),
+  getExams: (subject) => request(`/exams${subject ? `?subject=${subject}` : ''}`),
 
-  // ── Profile ──
-  // Update user fullName, avatarUrl, subjectGroup in DB
-  updateProfile: (payload) =>
-    request('/auth/profile', { method: 'PATCH', body: payload }),
+  startAttempt: (examId) => request(`/exams/${examId}/attempts`, { method: 'POST' }),
+
+  submitAttempt: (examId, attemptId, answers) => 
+    request(`/exams/${examId}/attempts/${attemptId}/submit`, { method: 'POST', body: { answers } }),
+
+  refreshRoadmap: () => request('/ai/roadmap/refresh', { method: 'POST' }),
+
+  createVNPayPayment: (courseId) => request('/enrollments', { method: 'POST', body: { courseId } }),
+
+  checkEnrollmentStatus: (courseId) => request(`/enrollments/status?courseId=${courseId}`),
+
+  checkProStatus: () => request('/users/pro-status')
 };

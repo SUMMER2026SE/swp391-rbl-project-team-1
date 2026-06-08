@@ -35,7 +35,19 @@ export async function startAttempt(req: AuthRequest, res: Response) {
       }
     });
 
-    return res.status(201).json({ success: true, data: attempt });
+    const examQuestions = await prisma.examQuestion.findMany({
+      where: { examId: Number(id) },
+      include: { question: true },
+      orderBy: { order: 'asc' }
+    });
+
+    return res.status(201).json({
+      success: true,
+      data: {
+        attempt,
+        questions: examQuestions.map(eq => eq.question)
+      }
+    });
   } catch (err: any) {
     return res.status(500).json({ success: false, error: err.message });
   }

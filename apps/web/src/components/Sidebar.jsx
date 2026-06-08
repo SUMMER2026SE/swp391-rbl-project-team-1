@@ -25,6 +25,7 @@ const navConfigs = {
     { icon: HiTerminal, label: 'Nhật ký Live logs', id: 'home' },
     { icon: HiUsers, label: 'Quản lý tài khoản', id: 'users' },
     { icon: HiClipboardCheck, label: 'Phê duyệt khóa học', id: 'courses' },
+    { icon: HiChat, label: 'Diễn đàn học tập', id: 'forum' },
     { icon: HiCollection, label: 'Gửi thông báo', id: 'announcements' },
     { icon: HiTrendingUp, label: 'Thống kê tài chính', id: 'finance' },
     { icon: HiCog, label: 'Cấu hình tham số AI', id: 'ai-config' }
