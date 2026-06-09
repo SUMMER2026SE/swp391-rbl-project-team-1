@@ -1,11 +1,233 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
 datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
 }
 
-generator client {
-  provider = "prisma-client-js"
+model User {
+  id                 Int                 @id @default(autoincrement())
+  email              String              @unique
+  passwordHash       String
+  fullName           String
+  avatarUrl          String?
+  role               Role                @default(STUDENT)
+  isActive           Boolean             @default(true)
+  googleId           String?             @unique
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  isPro              Boolean             @default(false)
+  emailVerified      Boolean             @default(false)
+  onboardingComplete Boolean             @default(true)
+  admin              Admin?
+  notifications      Notification[]
+  RoleChangeRequest  RoleChangeRequest[]
+  student            Student?
+  teacher            Teacher?
+}
+
+model Student {
+  userId       Int           @id
+  subjectGroup String
+  chatMessages ChatMessage[]
+  enrollments  Enrollment[]
+  reviews      Review[]
+  roadmap      Roadmap?
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  testAttempts TestAttempt[]
+}
+
+model Teacher {
+  userId     Int      @id
+  isApproved Boolean  @default(false)
+  bio        String?
+  courses    Course[]
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Admin {
+  userId Int  @id
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Course {
+  id           Int          @id @default(autoincrement())
+  title        String
+  description  String
+  subject      String
+  subjectGroup String
+  price        Float
+  thumbnailUrl String?
+  isPublished  Boolean      @default(false)
+  isApproved   Boolean      @default(false)
+  teacherId    Int
+  teacher      Teacher      @relation(fields: [teacherId], references: [userId], onDelete: Cascade)
+  enrollments  Enrollment[]
+  lessons      Lesson[]
+  reviews      Review[]
+}
+
+model Lesson {
+  id        Int        @id @default(autoincrement())
+  courseId  Int
+  title     String
+  order     Int
+  videoUrl  String?
+  content   String?
+  duration  String
+  documents Document[]
+  course    Course     @relation(fields: [courseId], references: [id], onDelete: Cascade)
+}
+
+model Enrollment {
+  id            Int      @id @default(autoincrement())
+  studentId     Int
+  courseId      Int
+  paidAt        DateTime @default(now())
+  transactionId String   @unique
+  course        Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  student       Student  @relation(fields: [studentId], references: [userId], onDelete: Cascade)
+}
+
+model Question {
+  id             Int                 @id @default(autoincrement())
+  content        String
+  options        Json
+  correctAnswer  String
+  explanation    String?
+  subject        String
+  topic          String
+  difficulty     Difficulty          @default(MEDIUM)
+  createdBy      Int
+  examQuestions  ExamQuestion[]
+  attemptAnswers TestAttemptAnswer[]
+}
+
+model Exam {
+  id            Int            @id @default(autoincrement())
+  title         String
+  subject       String
+  subjectGroup  String
+  duration      Int
+  isPublic      Boolean        @default(false)
+  createdBy     Int
+  examQuestions ExamQuestion[]
+  attempts      TestAttempt[]
+}
+
+model ExamQuestion {
+  examId     Int
+  questionId Int
+  order      Int
+  exam       Exam     @relation(fields: [examId], references: [id], onDelete: Cascade)
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@id([examId, questionId])
+}
+
+model TestAttempt {
+  id             Int                 @id @default(autoincrement())
+  studentId      Int
+  examId         Int
+  score          Float
+  startedAt      DateTime            @default(now())
+  submittedAt    DateTime?
+  aiFeedback     Json?
+  exam           Exam                @relation(fields: [examId], references: [id], onDelete: Cascade)
+  student        Student             @relation(fields: [studentId], references: [userId], onDelete: Cascade)
+  attemptAnswers TestAttemptAnswer[]
+}
+
+model TestAttemptAnswer {
+  id             Int         @id @default(autoincrement())
+  attemptId      Int
+  questionId     Int
+  selectedAnswer String
+  isCorrect      Boolean
+  attempt        TestAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  question       Question    @relation(fields: [questionId], references: [id], onDelete: Cascade)
+}
+
+model Roadmap {
+  studentId   Int      @id
+  content     Json
+  generatedAt DateTime @default(now())
+  student     Student  @relation(fields: [studentId], references: [userId], onDelete: Cascade)
+}
+
+model ChatMessage {
+  id        Int      @id @default(autoincrement())
+  studentId Int
+  role      String
+  content   String
+  roomId    String
+  createdAt DateTime @default(now())
+  student   Student  @relation(fields: [studentId], references: [userId], onDelete: Cascade)
+}
+
+model Notification {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  title     String
+  message   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Review {
+  id        Int      @id @default(autoincrement())
+  courseId  Int
+  studentId Int
+  rating    Int
+  comment   String?
+  createdAt DateTime @default(now())
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  student   Student  @relation(fields: [studentId], references: [userId], onDelete: Cascade)
+}
+
+model Document {
+  id         Int      @id @default(autoincrement())
+  title      String
+  fileUrl    String
+  fileType   String
+  lessonId   Int
+  uploadedBy Int
+  createdAt  DateTime @default(now())
+  lesson     Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+}
+
+model OtpVerification {
+  id          Int        @id @default(autoincrement())
+  email       String
+  otpHash     String
+  purpose     OtpPurpose @default(REGISTRATION)
+  payload     Json?
+  attempts    Int        @default(0)
+  maxAttempts Int        @default(5)
+  expiresAt   DateTime
+  createdAt   DateTime   @default(now())
+  isUsed      Boolean    @default(false)
+
+  @@index([email, purpose])
+}
+
+model RoleChangeRequest {
+  id            Int           @id @default(autoincrement())
+  userId        Int
+  currentRole   Role
+  requestedRole Role
+  reason        String?
+  status        RequestStatus @default(PENDING)
+  reviewedBy    Int?
+  reviewedAt    DateTime?
+  createdAt     DateTime      @default(now())
+  User          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
 }
 
 enum Role {
@@ -21,191 +243,14 @@ enum Difficulty {
   HARD
 }
 
-model User {
-  id           Int            @id @default(autoincrement())
-  email        String         @unique
-  passwordHash String
-  fullName     String
-  avatarUrl    String?
-  role         Role           @default(STUDENT)
-  isActive     Boolean        @default(true)
-  isPro        Boolean        @default(false)
-  googleId     String?        @unique
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
-  student      Student?
-  teacher      Teacher?
-  admin        Admin?
-  notifications Notification[]
+enum OtpPurpose {
+  REGISTRATION
+  PASSWORD_RESET
+  EMAIL_CHANGE
 }
 
-model Student {
-  userId          Int                  @id
-  user            User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
-  subjectGroup    String               // A01, B00, D01
-  enrollments     Enrollment[]
-  testAttempts    TestAttempt[]
-  roadmap         Roadmap?
-  chatMessages    ChatMessage[]
-  reviews         Review[]
-}
-
-model Teacher {
-  userId          Int                  @id
-  user            User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
-  isApproved      Boolean              @default(false)
-  bio             String?
-  courses         Course[]
-}
-
-model Admin {
-  userId          Int                  @id
-  user            User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
-model Course {
-  id            Int            @id @default(autoincrement())
-  title         String
-  description   String
-  subject       String
-  subjectGroup  String         // A01, B00, D01
-  price         Float
-  thumbnailUrl  String?
-  isPublished   Boolean        @default(false)
-  isApproved    Boolean        @default(false)
-  teacherId     Int
-  teacher       Teacher        @relation(fields: [teacherId], references: [userId], onDelete: Cascade)
-  lessons       Lesson[]
-  enrollments   Enrollment[]
-  reviews       Review[]
-}
-
-model Lesson {
-  id          Int        @id @default(autoincrement())
-  courseId    Int
-  course      Course     @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  title       String
-  order       Int
-  videoUrl    String?
-  content     String?
-  duration    String
-  documents   Document[]
-}
-
-model Enrollment {
-  id            Int      @id @default(autoincrement())
-  studentId     Int
-  student       Student  @relation(fields: [studentId], references: [userId], onDelete: Cascade)
-  courseId      Int
-  course        Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  paidAt        DateTime @default(now())
-  transactionId String   @unique
-}
-
-model Question {
-  id             Int            @id @default(autoincrement())
-  content        String
-  options        Json           // Array of {label: "A", text: "..."}
-  correctAnswer  String
-  explanation    String?
-  subject        String
-  topic          String
-  difficulty     Difficulty     @default(MEDIUM)
-  createdBy      Int
-  examQuestions  ExamQuestion[]
-  attemptAnswers TestAttemptAnswer[]
-}
-
-model Exam {
-  id            Int            @id @default(autoincrement())
-  title         String
-  subject       String
-  subjectGroup  String         // A01, B00, D01
-  duration      Int            // in minutes
-  isPublic      Boolean        @default(false)
-  createdBy     Int
-  examQuestions ExamQuestion[]
-  attempts      TestAttempt[]
-}
-
-model ExamQuestion {
-  examId     Int
-  exam       Exam     @relation(fields: [examId], references: [id], onDelete: Cascade)
-  questionId Int
-  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
-  order      Int
-
-  @@id([examId, questionId])
-}
-
-model TestAttempt {
-  id             Int                 @id @default(autoincrement())
-  studentId      Int
-  student        Student             @relation(fields: [studentId], references: [userId], onDelete: Cascade)
-  examId         Int
-  exam           Exam                @relation(fields: [examId], references: [id], onDelete: Cascade)
-  score          Float
-  startedAt      DateTime            @default(now())
-  submittedAt    DateTime?
-  aiFeedback     Json?               // analysis feedback from Claude
-  attemptAnswers TestAttemptAnswer[]
-}
-
-model TestAttemptAnswer {
-  id             Int         @id @default(autoincrement())
-  attemptId      Int
-  attempt        TestAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
-  questionId     Int
-  question       Question    @relation(fields: [questionId], references: [id], onDelete: Cascade)
-  selectedAnswer String
-  isCorrect      Boolean
-}
-
-model Roadmap {
-  studentId   Int      @id
-  student     Student  @relation(fields: [studentId], references: [userId], onDelete: Cascade)
-  content     Json     // Dynamic weekly schedules generated by Claude
-  generatedAt DateTime @default(now())
-}
-
-model ChatMessage {
-  id          Int      @id @default(autoincrement())
-  studentId   Int
-  student     Student  @relation(fields: [studentId], references: [userId], onDelete: Cascade)
-  role        String   // user, assistant, teacher
-  content     String
-  roomId      String
-  createdAt   DateTime @default(now())
-}
-
-model Notification {
-  id        Int      @id @default(autoincrement())
-  userId    Int
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  title     String
-  message   String
-  isRead    Boolean  @default(false)
-  createdAt DateTime @default(now())
-}
-
-model Review {
-  id        Int      @id @default(autoincrement())
-  courseId  Int
-  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  studentId Int
-  student   Student  @relation(fields: [studentId], references: [userId], onDelete: Cascade)
-  rating    Int
-  comment   String?
-  createdAt DateTime @default(now())
-}
-
-model Document {
-  id          Int      @id @default(autoincrement())
-  title       String
-  fileUrl     String
-  fileType    String
-  lessonId    Int
-  lesson      Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
-  uploadedBy  Int
-  createdAt   DateTime @default(now())
+enum RequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }
