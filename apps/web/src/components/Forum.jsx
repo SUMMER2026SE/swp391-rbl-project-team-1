@@ -1,779 +1,1073 @@
-import { useState } from 'react';
-import { HiChat, HiHeart, HiSearch, HiPlus, HiArrowLeft, HiTag, HiStar, HiCheckCircle, HiChevronDown, HiDownload, HiFire, HiShieldCheck } from 'react-icons/hi';
+import { useState, useEffect, useRef } from 'react';
+import { 
+  HiChat, HiHeart, HiSearch, HiPlus, HiArrowLeft, HiUser, HiTag, 
+  HiCheckCircle, HiDownload, HiUserGroup, HiStar, HiTrendingUp, 
+  HiSparkles, HiShieldCheck, HiFlag, HiRefresh
+} from 'react-icons/hi';
+import { io } from 'socket.io-client';
+import { api, API_BASE } from '../api';
 
-export default function Forum({ forumPosts, onAddPost, onLikePost, onAddComment, onAcceptCommentSolution, currentUser }) {
+export default function Forum({ currentUser }) {
+  // Global View Controls
+  const [activeTab, setActiveTab] = useState('feed'); // feed, groups, drive, leaderboard
   const [selectedPost, setSelectedPost] = useState(null);
+  
+  // API State data
+  const [posts, setPosts] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [comments, setComments] = useState([]);
+  const [studyGroups, setStudyGroups] = useState([]);
+  const [leaderboard, setLeaderboard] = useState([]);
+  const [gamifyProfile, setGamifyProfile] = useState(null);
+  
+  // Loading & Filtering controls
+  const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedSubject, setSelectedSubject] = useState('All');
-  const [sortBy, setSortBy] = useState('newest'); // 'newest', 'popular', 'unanswered'
+  const [selectedCategory, setSelectedCategory] = useState('All');
+  const [selectedTag, setSelectedTag] = useState('');
+  const [selectedType, setSelectedType] = useState('All'); // All, GENERAL, QA, RESOURCE
+
+  // Modals & Inputs
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showGroupModal, setShowGroupModal] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [reportTarget, setReportTarget] = useState({ postId: null, commentId: null });
+  const [reportReason, setReportReason] = useState('');
 
-  // AI Assistant simulated state
-  const [aiResponse, setAiResponse] = useState(null);
-  const [isAiLoading, setIsAiLoading] = useState(false);
-
-  // Form states for new post
+  // Post Creator form states
   const [newTitle, setNewTitle] = useState('');
   const [newContent, setNewContent] = useState('');
-  const [newSubject, setNewSubject] = useState('Toán học');
-  const [newTags, setNewTags] = useState('Lớp 12');
-  const [newDifficulty, setNewDifficulty] = useState('Trung bình');
+  const [newCategoryId, setNewCategoryId] = useState('');
+  const [newPostType, setNewPostType] = useState('GENERAL');
+  const [newDifficulty, setNewDifficulty] = useState('MEDIUM');
+  const [newTagsString, setNewTagsString] = useState('');
+  
+  // Resource file attachment states
+  const [resourceFile, setResourceFile] = useState(null); // { fileUrl, fileType, fileSize }
 
-  // Comment input state
+  // New Comment / Reply state
   const [commentText, setCommentText] = useState('');
+  const [replyTargetId, setReplyTargetId] = useState(null); // Track which comment we are replying to
 
-  const subjects = ['All', 'Toán học', 'Vật lý', 'Hóa học', 'Tiếng Anh', 'Sinh học', 'Khác'];
-  const availableTags = ['Lớp 12', 'Lớp 11', 'Lớp 10', 'Casio nhanh', 'Mẹo giải đề', 'Đề minh họa', 'Học lý thuyết'];
+  // Socket setup
+  const socketRef = useRef(null);
 
-  // Handle post selection with AI state resetting
-  const handleSelectPost = (post) => {
-    setSelectedPost(post);
-    setAiResponse(post.aiExplanation || null);
-    setIsAiLoading(false);
+  useEffect(() => {
+    // Connect to WebSocket Server
+    socketRef.current = io(API_BASE);
+
+    socketRef.current.on('connect', () => {
+      console.log('[Socket] Connected to server from Forum view');
+    });
+
+    // Listen to real-time incoming comments on active thread
+    socketRef.current.on('comment_received', (newComment) => {
+      setComments(prev => {
+        // If parentId, append to replies nested node
+        if (newComment.parentId) {
+          return prev.map(c => {
+            if (c.id === newComment.parentId) {
+              return { ...c, replies: [...(c.replies || []), newComment] };
+            }
+            return c;
+          });
+        }
+        // Check for duplicates
+        if (prev.some(c => c.id === newComment.id)) return prev;
+        return [...prev, newComment];
+      });
+    });
+
+    // Fetch initial categories
+    fetchCategories();
+
+    return () => {
+      if (socketRef.current) {
+        socketRef.current.disconnect();
+      }
+    };
+  }, []);
+
+  // Fetch posts on filters change or tab change
+  useEffect(() => {
+    if (activeTab === 'feed') {
+      fetchPosts();
+    } else if (activeTab === 'groups') {
+      fetchStudyGroups();
+    } else if (activeTab === 'leaderboard') {
+      fetchLeaderboard();
+    }
+    fetchGamifyProfile();
+  }, [activeTab, selectedCategory, selectedType, selectedTag]);
+
+  // Monitor room join / leave on post selection
+  useEffect(() => {
+    if (socketRef.current) {
+      if (selectedPost) {
+        socketRef.current.emit('join_post', selectedPost.id);
+        fetchComments(selectedPost.id);
+      } else {
+        // Leave room
+        setComments([]);
+      }
+    }
+  }, [selectedPost]);
+
+  // =========================================================================
+  // API CLIENT CALLS
+  // =========================================================================
+
+  const fetchCategories = async () => {
+    try {
+      const data = await api.getForumCategories();
+      setCategories(data || []);
+      if (data && data.length > 0) {
+        setNewCategoryId(data[0].id);
+      }
+    } catch (err) {
+      console.error('Lỗi tải danh mục:', err);
+    }
   };
 
-  // Filter posts - Pinned Admin posts always bypass the subject filter
-  const filteredPosts = forumPosts.filter(post => {
-    const matchesSearch = post.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          post.content.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesSubject = selectedSubject === 'All' || post.subject === selectedSubject || post.authorRole === 'admin';
-    return matchesSearch && matchesSubject;
-  });
-
-  // Sort posts - Admin posts always go to the top, then sort by selected criteria
-  const sortedPosts = [...filteredPosts].sort((a, b) => {
-    const aIsAdmin = a.authorRole === 'admin';
-    const bIsAdmin = b.authorRole === 'admin';
-    if (aIsAdmin && !bIsAdmin) return -1;
-    if (!aIsAdmin && bIsAdmin) return 1;
-
-    if (sortBy === 'popular') {
-      return b.likes - a.likes;
-    } else if (sortBy === 'unanswered') {
-      return (a.comments?.length || 0) - (b.comments?.length || 0);
-    } else {
-      // newest
-      return b.id - a.id;
+  const fetchPosts = async () => {
+    setLoading(true);
+    try {
+      const params = {
+        categoryId: selectedCategory === 'All' ? '' : selectedCategory,
+        postType: selectedType === 'All' ? '' : selectedType,
+        tag: selectedTag,
+        search: searchQuery
+      };
+      const data = await api.getForumPosts(params);
+      setPosts(data || []);
+    } catch (err) {
+      console.error('Lỗi tải bài viết:', err);
+    } finally {
+      setLoading(false);
     }
-  });
+  };
 
-  const handleCreatePost = (e) => {
+  const fetchComments = async (postId) => {
+    try {
+      const data = await api.getForumComments(postId);
+      setComments(data || []);
+    } catch (err) {
+      console.error('Lỗi tải bình luận:', err);
+    }
+  };
+
+  const fetchStudyGroups = async () => {
+    setLoading(true);
+    try {
+      const data = await api.getStudyGroups();
+      setStudyGroups(data || []);
+    } catch (err) {
+      console.error('Lỗi tải nhóm học tập:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchLeaderboard = async () => {
+    setLoading(true);
+    try {
+      const data = await api.getForumLeaderboard();
+      setLeaderboard(data || []);
+    } catch (err) {
+      console.error('Lỗi tải bảng xếp hạng:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchGamifyProfile = async () => {
+    if (!currentUser) return;
+    try {
+      const data = await api.getUserGamificationProfile();
+      setGamifyProfile(data);
+    } catch (err) {
+      console.error('Lỗi tải gamification profile:', err);
+    }
+  };
+
+  const handleCreatePost = async (e) => {
     e.preventDefault();
     if (!newTitle.trim() || !newContent.trim()) return;
 
-    const newPost = {
-      id: Date.now(),
-      title: newTitle,
-      content: newContent,
-      subject: newSubject,
-      tags: newTags,
-      difficulty: newDifficulty,
-      author: currentUser?.name || 'Ẩn danh',
-      authorAvatar: currentUser?.avatar || 'AD',
-      authorRole: currentUser?.role || 'student',
-      date: 'Vừa xong',
-      likes: 0,
-      likedBy: [],
-      comments: [],
-      aiExplanation: null
-    };
+    try {
+      const parsedTags = newTagsString
+        .split(',')
+        .map(t => t.trim())
+        .filter(t => t.length > 0);
 
-    onAddPost(newPost);
-    setNewTitle('');
-    setNewContent('');
-    setShowCreateModal(false);
+      const postPayload = {
+        title: newTitle,
+        content: newContent,
+        categoryId: Number(newCategoryId),
+        postType: newPostType,
+        difficulty: newPostType === 'QA' ? newDifficulty : undefined,
+        tags: parsedTags,
+        resourceFile: newPostType === 'RESOURCE' ? resourceFile : undefined
+      };
+
+      await api.createForumPost(postPayload);
+      
+      // Reset form & close modal
+      setNewTitle('');
+      setNewContent('');
+      setNewTagsString('');
+      setResourceFile(null);
+      setShowCreateModal(false);
+      
+      // Reload stream
+      fetchPosts();
+      fetchGamifyProfile();
+      alert('Đăng bài thảo luận thành công!');
+    } catch (err) {
+      alert(err.message || 'Đăng bài viết thất bại!');
+    }
   };
 
-  const handleSendComment = (e) => {
+  const handleSendComment = async (e) => {
     e.preventDefault();
     if (!commentText.trim()) return;
 
-    const newComment = {
-      id: Date.now(),
-      author: currentUser?.name || 'Học sinh',
-      avatar: currentUser?.avatar || 'HS',
-      content: commentText,
-      date: 'Vừa xong',
-      isAccepted: false
-    };
-
-    onAddComment(selectedPost.id, newComment);
-    
-    // Update local detailed view state
-    setSelectedPost(prev => ({
-      ...prev,
-      comments: [...(prev.comments || []), newComment]
-    }));
-    setCommentText('');
-  };
-
-  const handleTriggerAI = () => {
-    setIsAiLoading(true);
-    setAiResponse(null);
-    setTimeout(() => {
-      setIsAiLoading(false);
-      let answer = "";
-      if (selectedPost.title.toLowerCase().includes("casio")) {
-        answer = `🤖 [HƯỚNG DẪN GIẢI NHANH CASIO - EDUBOT AI]\n\nChào bạn ${selectedPost.author},\n\nĐối với bài toán liên quan đến Casio khảo sát cực trị/đồ thị, EduBot xin đề xuất các bước bấm máy tính cầm tay cực nhanh như sau:\n\n1. Sử dụng ứng dụng Bảng Giá Trị (Table):\n   - Bấm HOME -> chọn Table (Bảng giá trị).\n   - Nhập hàm số f(x) từ biểu thức đề bài cung cấp.\n   - Nhập phạm vi quét (Range): Start = -5, End = 5, Step = 0.2 (hoặc 0.1 để tăng độ phân giải).\n\n2. Đánh giá tính chất cực trị:\n   - Nhìn vào cột kết quả f(x): Điểm cực đại là nơi f(x) đổi chiều từ tăng sang giảm. Điểm cực tiểu là nơi f(x) đổi chiều từ giảm sang tăng.\n\n3. Sử dụng công cụ Solver hoặc Đạo hàm để tinh chỉnh:\n   - Bấm tính đạo hàm d/dx tại x để kiểm tra f'(x) = 0 chính xác.\n\nChúc bạn đạt điểm tuyệt đối môn Toán!`;
-      } else if (selectedPost.title.toLowerCase().includes("dao động") || selectedPost.title.toLowerCase().includes("vật lý")) {
-        answer = `🤖 [TỔNG HỢP CÔNG THỨC DAO ĐỘNG CƠ - EDUBOT AI]\n\nChào bạn ${selectedPost.author},\n\nDưới đây là hệ thống công thức then chốt của chương Dao Động Cơ Học (Vật lý 12) giúp bạn ghi nhớ giải nhanh đề thi đại học:\n\n1. Phương trình li độ: x = A*cos(ωt + φ)\n2. Phương trình vận tốc: v = x' = -ωA*sin(ωt + φ)\n   - Vận tốc max ở vị trí cân bằng: v_max = ωA\n3. Phương trình gia tốc: a = v' = -ω²x\n   - Gia tốc max ở biên: a_max = ω²A\n4. Công thức độc lập thời gian:\n   A² = x² + (v/ω)² = (a/ω²)² + (v/ω)²\n5. Con lắc lò xo:\n   - Chu kỳ: T = 2π * √(m/k)\n   - Tần số góc: ω = √(k/m)\n\nLưu ý: Luôn đổi đơn vị m sang kg và x sang mét để tính cơ năng chuẩn xác!`;
+    try {
+      const newComment = await api.createForumComment(selectedPost.id, commentText, replyTargetId);
+      
+      // Update local comment nodes
+      if (replyTargetId) {
+        setComments(prev => prev.map(c => {
+          if (c.id === replyTargetId) {
+            return { ...c, replies: [...(c.replies || []), newComment] };
+          }
+          return c;
+        }));
       } else {
-        answer = `🤖 [HƯỚNG DẪN GIẢI QUYẾT CHỦ ĐỀ: ${selectedPost.subject} - EDUBOT AI]\n\nChào bạn,\n\nDưới đây là các gợi ý tư duy và giải pháp giáo dục cho câu hỏi thảo luận này:\n\n1. Xác định trọng tâm lý thuyết:\n   - Hệ thống lại định nghĩa, định lý cốt lõi của chủ đề "${selectedPost.subject}".\n   - Đọc kỹ yêu cầu đề thi để loại trừ các đáp án nhiễu thường gặp.\n\n2. Phương pháp giải chi tiết:\n   - Bước 1: Thiết lập điều kiện bài toán và biến đổi đại lượng.\n   - Bước 2: Sử dụng các sơ đồ, hình vẽ hoặc công cụ hỗ trợ giải toán để cụ thể hóa bài học.\n   - Bước 3: Giải toán từng bước rõ ràng, viết công thức gốc trước khi thế số.\n\nHy vọng hướng đi này giúp ích cho bạn trong thảo luận!`;
+        setComments(prev => [...prev, newComment]);
       }
-      setAiResponse(answer);
-      // Persist to local post object
-      selectedPost.aiExplanation = answer;
-    }, 2000);
+      
+      setCommentText('');
+      setReplyTargetId(null);
+      fetchGamifyProfile();
+    } catch (err) {
+      alert(err.message || 'Không thể gửi bình luận!');
+    }
   };
+
+  const handleLikePost = async (postId) => {
+    if (!currentUser) {
+      alert('Vui lòng đăng nhập để bình chọn!');
+      return;
+    }
+    try {
+      const result = await api.reactForumPost(postId, 'UPVOTE');
+      
+      // Update local UI state
+      setPosts(prev => prev.map(p => {
+        if (p.id === postId) {
+          const userHasLiked = p.likedBy?.includes(currentUser.id);
+          const nextLikedBy = userHasLiked
+            ? p.likedBy.filter(id => id !== currentUser.id)
+            : [...(p.likedBy || []), currentUser.id];
+          return {
+            ...p,
+            likes: result.likes,
+            likedBy: nextLikedBy
+          };
+        }
+        return p;
+      }));
+
+      if (selectedPost && selectedPost.id === postId) {
+        setSelectedPost(prev => {
+          const userHasLiked = prev.likedBy?.includes(currentUser.id);
+          const nextLikedBy = userHasLiked
+            ? prev.likedBy.filter(id => id !== currentUser.id)
+            : [...(prev.likedBy || []), currentUser.id];
+          return {
+            ...prev,
+            likes: result.likes,
+            likedBy: nextLikedBy
+          };
+        });
+      }
+    } catch (err) {
+      alert(err.message || 'Thao tác vote thất bại!');
+    }
+  };
+
+  const handleAcceptSolution = async (commentId) => {
+    try {
+      await api.acceptCommentSolution(commentId);
+      
+      // Redraw comment solution state check
+      setComments(prev => prev.map(c => {
+        if (c.id === commentId) {
+          return { ...c, isSolution: !c.isSolution };
+        }
+        return c;
+      }));
+      alert('Đã cập nhật trạng thái lời giải hay!');
+      fetchGamifyProfile();
+    } catch (err) {
+      alert(err.message || 'Không thể chọn câu trả lời này!');
+    }
+  };
+
+  const handleCreateStudyGroup = async (e) => {
+    e.preventDefault();
+    const name = e.target.groupName.value;
+    const description = e.target.groupDesc.value;
+    const isPrivate = e.target.groupPrivate.checked;
+
+    try {
+      await api.createStudyGroup({ name, description, isPrivate });
+      setShowGroupModal(false);
+      fetchStudyGroups();
+      alert('Tạo nhóm học tập thành công!');
+    } catch (err) {
+      alert(err.message || 'Tạo nhóm thất bại!');
+    }
+  };
+
+  const handleJoinStudyGroup = async (groupId) => {
+    try {
+      await api.joinStudyGroup(groupId);
+      fetchStudyGroups();
+      alert('Đã tham gia nhóm học tập thành công!');
+    } catch (err) {
+      alert(err.message || 'Không thể tham gia nhóm!');
+    }
+  };
+
+  const handleDownloadFile = async (resourceId, fileUrl) => {
+    try {
+      await api.downloadResource(resourceId);
+      // Open file in new tab to download
+      window.open(fileUrl, '_blank');
+      fetchGamifyProfile();
+    } catch (err) {
+      console.error(err);
+      window.open(fileUrl, '_blank');
+    }
+  };
+
+  const handleSendReport = async (e) => {
+    e.preventDefault();
+    if (!reportReason.trim()) return;
+
+    try {
+      await api.createForumReport(reportTarget.postId, reportTarget.commentId, reportReason);
+      setReportReason('');
+      setShowReportModal(false);
+      alert('Cảm ơn bạn! Báo cáo đã được gửi tới Ban quản trị kiểm duyệt.');
+    } catch (err) {
+      alert(err.message || 'Lỗi gửi báo cáo!');
+    }
+  };
+
+  // =========================================================================
+  // RENDER SUB-COMPONENTS & VIEW LAYOUTS
+  // =========================================================================
 
   return (
-    <div className="forum-container animate-in" style={{ padding: '4px' }}>
-      {selectedPost ? (
-        /* ── DETAILED POST VIEW ── */
-        <div className="card detailed-post-card" style={{ padding: '24px', border: '1px solid var(--border)' }}>
-          <button className="btn-outline" onClick={() => setSelectedPost(null)} style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <HiArrowLeft /> Quay lại diễn đàn
-          </button>
-          
-          <div className="post-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div className="user-avatar" style={{ background: selectedPost.authorRole === 'admin' ? '#f59e0b' : 'var(--primary)', width: '46px', height: '46px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 'bold', overflow: 'hidden' }}>
-                {selectedPost.authorAvatar && (selectedPost.authorAvatar.startsWith('data:') || selectedPost.authorAvatar.startsWith('http') || selectedPost.authorAvatar.length > 10) ? (
-                  <img 
-                    src={selectedPost.authorAvatar.startsWith('data:') || selectedPost.authorAvatar.startsWith('http') ? selectedPost.authorAvatar : `data:image/png;base64,${selectedPost.authorAvatar}`} 
-                    alt="Avatar" 
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
-                  />
-                ) : (
-                  (selectedPost.authorAvatar && selectedPost.authorAvatar.length <= 10) ? selectedPost.authorAvatar : 'U'
-                )}
-              </div>
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <h4 style={{ fontWeight: 'bold', fontSize: '15px', color: 'var(--text-primary)' }}>{selectedPost.author}</h4>
-                  {selectedPost.authorRole === 'admin' && <span className="admin-pill-tag">ADMIN</span>}
-                </div>
-                <p style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Đăng lúc {selectedPost.date} • <span className="badge-pill" style={{ background: 'var(--primary-bg)', color: 'var(--primary)', fontSize: '10px' }}>{selectedPost.subject}</span></p>
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', gap: '6px' }}>
-              {selectedPost.tags && (
-                <span className="badge-pill" style={{ background: '#e0f2fe', color: '#0369a1', fontSize: '10.5px', fontWeight: 'bold' }}>
-                  🏷️ {selectedPost.tags}
-                </span>
-              )}
-              {selectedPost.difficulty && (
-                <span className="badge-pill" style={{ 
-                  background: selectedPost.difficulty === 'Khó' ? '#fee2e2' : selectedPost.difficulty === 'Dễ' ? '#dcfce7' : '#ffedd5',
-                  color: selectedPost.difficulty === 'Khó' ? '#b91c1c' : selectedPost.difficulty === 'Dễ' ? '#15803d' : '#c2410c',
-                  fontSize: '10.5px', fontWeight: 'bold'
-                }}>
-                  ⚡ {selectedPost.difficulty}
-                </span>
-              )}
-            </div>
-          </div>
-
-          <h2 style={{ fontSize: '22px', fontWeight: '800', marginBottom: '14px', color: 'var(--text-primary)' }}>{selectedPost.title}</h2>
-          <div style={{ fontSize: '15px', lineHeight: '1.7', color: 'var(--text-secondary)', whiteSpace: 'pre-line', marginBottom: '24px', paddingBottom: '20px', borderBottom: '1px solid var(--border)' }}>
-            {selectedPost.content}
-          </div>
-
-          {/* ── EDUBOT AI AUTO-ANSWER WIDGET ── */}
-          <div className="ai-answer-box animate-in" style={{
-            background: 'linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%)',
-            border: '1.5px dashed #8b5cf6',
-            borderRadius: '16px',
-            padding: '20px',
-            marginBottom: '24px',
-            position: 'relative'
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '10px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#6d28d9', fontWeight: '800', fontSize: '14.5px' }}>
-                <span style={{ fontSize: '20px' }}>🤖</span>
-                <span>EduBot AI - Trợ lý học tập thông minh</span>
-                <span className="badge-pill" style={{ background: '#8b5cf6', color: '#fff', fontSize: '9px', padding: '2px 8px', fontWeight: 'bold' }}>TỰ ĐỘNG</span>
-              </div>
-              {!aiResponse && !isAiLoading && (
-                <button 
-                  type="button" 
-                  className="btn-primary" 
-                  onClick={handleTriggerAI}
-                  style={{ padding: '6px 14px', fontSize: '12px', background: '#7c3aed', border: 'none', borderRadius: '8px', color: '#fff', cursor: 'pointer', fontWeight: 'bold' }}
-                >
-                  Giải nhanh bằng AI
-                </button>
-              )}
-            </div>
-
-            {isAiLoading && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', margin: '12px 0' }}>
-                <div style={{ fontSize: '13px', color: '#5b21b6', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: '600' }}>
-                  <span className="spinner" style={{ display: 'inline-block', width: '14px', height: '14px', border: '2px solid #7c3aed', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }}></span>
-                  <span>EduBot đang đọc câu hỏi và soạn lời giải chi tiết...</span>
-                </div>
-                <div style={{ height: '4px', background: 'rgba(124, 58, 237, 0.1)', borderRadius: '2px', overflow: 'hidden' }}>
-                  <div style={{ height: '100%', background: '#7c3aed', width: '100%', borderRadius: '2px', animation: 'loadProgress 2.0s ease-out forwards' }}></div>
-                </div>
-              </div>
-            )}
-
-            {aiResponse && (
-              <div className="animate-in" style={{ fontSize: '13.5px', color: '#1e1b4b', lineHeight: '1.6', whiteSpace: 'pre-line', padding: '16px', background: '#ffffff', borderRadius: '12px', border: '1px solid #ddd6fe', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
-                {aiResponse}
-                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '12px', fontSize: '11px', color: '#7c3aed', fontWeight: 'bold', gap: '4px', alignItems: 'center' }}>
-                  <HiShieldCheck style={{ fontSize: '14px' }} /> Lời giải tự động từ hệ thống tri thức EduPath AI
-                </div>
-              </div>
-            )}
-          </div>
-
-          <div style={{ display: 'flex', gap: '16px', marginBottom: '24px' }}>
-            <button 
-              onClick={() => {
-                onLikePost(selectedPost.id);
-                setSelectedPost(prev => ({
-                  ...prev,
-                  likes: prev.likedBy?.includes(currentUser?.email || 'guest') ? prev.likes - 1 : prev.likes + 1,
-                  likedBy: prev.likedBy?.includes(currentUser?.email || 'guest') 
-                    ? prev.likedBy.filter(email => email !== (currentUser?.email || 'guest'))
-                    : [...(prev.likedBy || []), currentUser?.email || 'guest']
-                }));
-              }}
-              style={{
-                display: 'flex', alignItems: 'center', gap: '6px', border: 'none', background: 'none', 
-                color: selectedPost.likedBy?.includes(currentUser?.email || 'guest') ? 'var(--accent-red)' : 'var(--text-secondary)',
-                cursor: 'pointer', fontSize: '14px', fontWeight: '500'
-              }}
-            >
-              <HiHeart style={{ fontSize: '18px' }} /> {selectedPost.likes} Lượt thích
-            </button>
-            <span style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-secondary)', fontSize: '14px' }}>
-              <HiChat style={{ fontSize: '18px' }} /> {selectedPost.comments?.length || 0} Bình luận
-            </span>
-          </div>
-
-          {/* ── COMMENTS SECTION ── */}
-          <div style={{ background: 'var(--bg-main)', padding: '20px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)' }}>
-            <h3 style={{ fontSize: '15px', fontWeight: 'bold', marginBottom: '16px', color: 'var(--text-primary)' }}>Ý kiến thảo luận ({selectedPost.comments?.length || 0})</h3>
-            
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '20px' }}>
-              {selectedPost.comments && selectedPost.comments.length > 0 ? (
-                selectedPost.comments.map(c => (
-                  <div 
-                    key={c.id} 
-                    className={`comment-card ${c.isAccepted ? 'accepted-solution-comment' : ''}`}
-                    style={{ 
-                      display: 'flex', 
-                      flexDirection: 'column',
-                      gap: '8px', 
-                      padding: '16px', 
-                      borderRadius: '12px',
-                      border: c.isAccepted ? '2px solid var(--accent-green)' : '1px solid var(--border)',
-                      background: c.isAccepted ? 'rgba(0, 184, 148, 0.05)' : 'var(--bg-card)',
-                      transition: 'all 0.2s',
-                      position: 'relative'
-                    }}
-                  >
-                    {c.isAccepted && (
-                      <div style={{ position: 'absolute', right: '12px', top: '12px', background: 'var(--accent-green)', color: '#fff', fontSize: '9.5px', fontWeight: 'bold', padding: '4px 10px', borderRadius: '20px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <HiCheckCircle /> LỜI GIẢI ĐÚNG NHẤT
-                      </div>
-                    )}
-
-                    <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                      <div className="user-avatar" style={{ background: 'var(--accent-blue)', width: '34px', height: '34px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '12px', fontWeight: 'bold', overflow: 'hidden' }}>
-                        {c.avatar && (c.avatar.startsWith('data:') || c.avatar.startsWith('http') || c.avatar.length > 10) ? (
-                          <img 
-                            src={c.avatar.startsWith('data:') || c.avatar.startsWith('http') ? c.avatar : `data:image/png;base64,${c.avatar}`} 
-                            alt="Avatar" 
-                            style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
-                          />
-                        ) : (
-                          (c.avatar && c.avatar.length <= 10) ? c.avatar : 'U'
-                        )}
-                      </div>
-                      <div>
-                        <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
-                          <span style={{ fontSize: '13px', fontWeight: 'bold', color: 'var(--text-primary)' }}>{c.author}</span>
-                          <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>{c.date}</span>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <p style={{ fontSize: '13.5px', color: 'var(--text-secondary)', marginTop: '4px', paddingLeft: '2px', wordBreak: 'break-word', whiteSpace: 'pre-line' }}>{c.content}</p>
-                    
-                    {/* Mark best solution option */}
-                    {(currentUser?.name === selectedPost.author || currentUser?.role === 'admin') && (
-                      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '6px' }}>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const updatedComments = selectedPost.comments.map(comm => {
-                              if (comm.id === c.id) {
-                                return { ...comm, isAccepted: !comm.isAccepted };
-                              }
-                              return { ...comm, isAccepted: false };
-                            });
-
-                            if (onAcceptCommentSolution) {
-                              onAcceptCommentSolution(selectedPost.id, c.id);
-                            }
-
-                            setSelectedPost(prev => ({
-                              ...prev,
-                              comments: updatedComments
-                            }));
-                          }}
-                          style={{
-                            background: c.isAccepted ? '#e2e8f0' : 'rgba(0, 184, 148, 0.1)',
-                            color: c.isAccepted ? '#475569' : 'var(--accent-green)',
-                            border: 'none',
-                            borderRadius: '8px',
-                            padding: '6px 12px',
-                            fontSize: '11px',
-                            fontWeight: 'bold',
-                            cursor: 'pointer',
-                            transition: 'all 0.2s',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '4px'
-                          }}
-                          onMouseEnter={e => {
-                            e.currentTarget.style.transform = 'scale(1.02)';
-                          }}
-                          onMouseLeave={e => {
-                            e.currentTarget.style.transform = 'scale(1)';
-                          }}
-                        >
-                          {c.isAccepted ? '✕ Hủy xác nhận lời giải' : '✓ Chọn làm lời giải đúng'}
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                ))
-              ) : (
-                <p style={{ fontSize: '13px', color: 'var(--text-muted)', fontStyle: 'italic', padding: '12px 0' }}>Chưa có bình luận nào. Hãy là người đầu tiên thảo luận!</p>
-              )}
-            </div>
-
-            {/* Comment Form */}
-            <form onSubmit={handleSendComment} style={{ display: 'flex', gap: '10px' }}>
-              <input
-                type="text"
-                className="form-control"
-                placeholder="Viết phản hồi hoặc lời giải của bạn..."
-                value={commentText}
-                onChange={e => setCommentText(e.target.value)}
-                style={{ flex: 1 }}
-                required
-              />
-              <button type="submit" className="btn-primary" style={{ padding: '8px 16px' }}>Gửi bình luận</button>
-            </form>
-          </div>
-        </div>
-      ) : (
-        /* ── POSTS DIRECTORY VIEW ── */
+    <div className="forum-container animate-in" style={{ padding: '24px', background: 'var(--bg-main)', minHeight: '100vh', color: 'var(--text-main)' }}>
+      {/* Dynamic Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
         <div>
-          {/* 🏆 MODERN GRADIENT WELCOMING BANNER 🏆 */}
-          <div className="forum-banner" style={{
-            background: 'linear-gradient(135deg, #6c5ce7 0%, #8c7ae6 50%, #e056fd 100%)',
-            borderRadius: '20px',
-            padding: '30px',
-            color: '#ffffff',
-            marginBottom: '24px',
-            position: 'relative',
-            overflow: 'hidden',
-            boxShadow: '0 10px 25px rgba(108, 92, 231, 0.15)',
-            border: '1px solid rgba(255, 255, 255, 0.1)',
-            textAlign: 'left'
-          }}>
-            <div style={{ position: 'relative', zIndex: 2, maxWidth: '680px' }}>
-              <span className="badge-pill" style={{ 
-                background: 'rgba(255,255,255,0.2)', 
-                color: '#fff', 
-                fontSize: '11px', 
-                fontWeight: 'bold', 
-                padding: '5px 12px',
-                borderRadius: '20px',
-                backdropFilter: 'blur(4px)'
-              }}>
-                🎓 EDUPATH FORUM ACTIVE
-              </span>
-              <h1 style={{ fontSize: '26px', fontWeight: '850', color: '#fff', marginTop: '12px', textShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
-                Diễn đàn thảo luận và Trao đổi kiến thức
-              </h1>
-              <p style={{ fontSize: '13.5px', color: 'rgba(255,255,255,0.9)', marginTop: '8px', lineHeight: '1.5' }}>
-                Cộng đồng học sinh ôn thi THPT Quốc Gia tích cực. Đăng tải bài tập khó để nhận hướng dẫn giải nhanh bằng máy tính Casio từ thầy cô và phân tích lời giải chi tiết tức thì từ trợ lý ảo <strong>EduBot AI</strong>.
-              </p>
-            </div>
-            <div style={{ position: 'absolute', right: '40px', bottom: '-15px', fontSize: '130px', opacity: 0.12, userSelect: 'none', pointerEvents: 'none', fontFamily: 'system-ui' }}>
-              💬
-            </div>
+          <h1 style={{ fontSize: '24px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <HiSparkles style={{ color: 'var(--primary)' }} /> Diễn đàn EduPath Community
+          </h1>
+          <p style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>
+            Nơi kết nối tri thức, chia sẻ học liệu nâng cao và thi đua giải đề THPTQG
+          </p>
+        </div>
+        
+        <div style={{ display: 'flex', gap: '10px' }}>
+          {activeTab === 'feed' && (
+            <button className="btn-primary" onClick={() => setShowCreateModal(true)} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <HiPlus /> Đăng câu hỏi mới
+            </button>
+          )}
+          {activeTab === 'groups' && (
+            <button className="btn-primary" onClick={() => setShowGroupModal(true)} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <HiPlus /> Tạo nhóm học tập
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Main Grid Wrapper */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: '24px', alignItems: 'start' }}>
+        {/* Left Column (Main Feed & Details) */}
+        <div>
+          {/* Tabs bar */}
+          <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', marginBottom: '20px', gap: '8px' }}>
+            {[
+              { id: 'feed', label: 'Bài thảo luận', icon: <HiChat /> },
+              { id: 'groups', label: 'Nhóm học tập', icon: <HiUserGroup /> },
+              { id: 'drive', label: 'Thư viện tài liệu', icon: <HiDownload /> },
+              { id: 'leaderboard', label: 'Bảng xếp hạng', icon: <HiTrendingUp /> }
+            ].map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => {
+                  setActiveTab(tab.id);
+                  setSelectedPost(null);
+                }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '12px 18px',
+                  border: 'none',
+                  borderBottom: activeTab === tab.id ? '2px solid var(--primary)' : '2px solid transparent',
+                  background: 'none',
+                  color: activeTab === tab.id ? 'var(--primary)' : 'var(--text-secondary)',
+                  cursor: 'pointer',
+                  fontWeight: '600',
+                  fontSize: '14px',
+                  transition: 'all 0.2s'
+                }}
+              >
+                {tab.icon} {tab.label}
+              </button>
+            ))}
           </div>
 
-          <div className="forum-directory-layout" style={{ display: 'grid', gridTemplateColumns: '2.3fr 1fr', gap: '24px', alignItems: 'start', textAlign: 'left' }}>
-            {/* ── LEFT COLUMN: SEARCH, FILTERS, POSTS LIST ── */}
-            <div className="forum-main-col" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              
-              {/* Search, Subject and Sort filters */}
-              <div className="card" style={{ padding: '20px', display: 'flex', gap: '16px', flexDirection: 'column', border: '1px solid var(--border)' }}>
-                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                  <div className="search-bar" style={{ position: 'relative', flex: 1 }}>
-                    <HiSearch style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', fontSize: '18px' }} />
-                    <input
-                      type="text"
-                      className="form-control"
-                      placeholder="Tìm kiếm chủ đề, câu hỏi, bài thảo luận..."
-                      value={searchQuery}
-                      onChange={e => setSearchQuery(e.target.value)}
-                      style={{ paddingLeft: '38px', width: '100%', fontSize: '13.5px' }}
-                    />
-                  </div>
-                  
-                  {/* Sorting dropdown */}
-                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-                    <span style={{ fontSize: '12px', fontWeight: 'bold', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>Sắp xếp:</span>
-                    <select
-                      className="form-control"
-                      value={sortBy}
-                      onChange={e => setSortBy(e.target.value)}
-                      style={{
-                        padding: '8px 30px 8px 12px',
-                        fontSize: '13px',
-                        fontWeight: '600',
-                        border: '1px solid var(--border)',
-                        borderRadius: '10px',
-                        background: 'var(--bg-card)',
-                        cursor: 'pointer',
-                        color: 'var(--text-primary)',
-                        appearance: 'none',
-                        WebkitAppearance: 'none'
-                      }}
-                    >
-                      <option value="newest">📅 Mới nhất</option>
-                      <option value="popular">🔥 Quan tâm nhất</option>
-                      <option value="unanswered">💬 Chưa giải quyết</option>
-                    </select>
-                    <HiChevronDown style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)', pointerEvents: 'none' }} />
-                  </div>
+          {selectedPost ? (
+            /* DETAILED VIEW POST */
+            <div className="card detailed-post-card" style={{ padding: '24px', background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+              <button className="btn-outline" onClick={() => setSelectedPost(null)} style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <HiArrowLeft /> Quay lại danh sách
+              </button>
 
-                  <button className="btn-primary" onClick={() => setShowCreateModal(true)} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '10px 18px', fontSize: '13px', fontWeight: 'bold', borderRadius: '12px' }}>
-                    <HiPlus /> Đăng bài mới
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+                <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                  <div style={{ background: 'var(--primary)', width: '40px', height: '40px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 'bold' }}>
+                    {selectedPost.author?.fullName?.slice(0, 2).toUpperCase() || 'AD'}
+                  </div>
+                  <div>
+                    <h4 style={{ fontWeight: 'bold', fontSize: '15px' }}>{selectedPost.author?.fullName}</h4>
+                    <p style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                      Đăng vào: {new Date(selectedPost.createdAt).toLocaleString()} • 
+                      <span className="badge-pill" style={{ background: 'var(--primary-bg)', color: 'var(--primary)', marginLeft: '8px' }}>
+                        {selectedPost.category?.name}
+                      </span>
+                    </p>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button 
+                    onClick={() => {
+                      setReportTarget({ postId: selectedPost.id, commentId: null });
+                      setShowReportModal(true);
+                    }}
+                    style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
+                    title="Báo cáo vi phạm"
+                  >
+                    <HiFlag style={{ fontSize: '18px' }} />
                   </button>
                 </div>
-
-                {/* Subject Tabs Selector */}
-                <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '4px' }}>
-                  {subjects.map(subj => (
-                    <button
-                      key={subj}
-                      className={`badge-pill ${selectedSubject === subj ? 'active' : ''}`}
-                      onClick={() => setSelectedSubject(subj)}
-                      style={{
-                        border: '1px solid var(--border)',
-                        background: selectedSubject === subj ? 'var(--primary)' : 'var(--bg-main)',
-                        color: selectedSubject === subj ? '#fff' : 'var(--text-secondary)',
-                        padding: '7px 16px',
-                        borderRadius: '20px',
-                        fontSize: '12.5px',
-                        fontWeight: 'bold',
-                        cursor: 'pointer',
-                        whiteSpace: 'nowrap',
-                        transition: 'all 0.2s'
-                      }}
-                    >
-                      {subj === 'All' ? '🌐 Tất cả môn' : subj}
-                    </button>
-                  ))}
-                </div>
               </div>
 
-              {/* Info Header */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px', color: 'var(--text-secondary)', padding: '0 4px' }}>
-                <span>Tìm thấy <strong>{sortedPosts.length}</strong> bài thảo luận</span>
-                <span style={{ fontSize: '12px', color: '#b45309', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 'bold' }}>
-                  📌 BÀI GHIM CỦA ADMIN LUÔN HIỂN THỊ TRÊN ĐẦU
+              <h2 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '12px' }}>{selectedPost.title}</h2>
+              <div style={{ fontSize: '15px', color: 'var(--text-secondary)', lineHeight: '1.6', whiteSpace: 'pre-line', marginBottom: '20px' }}>
+                {selectedPost.content}
+              </div>
+
+              {/* Resource Download Attachment widget */}
+              {selectedPost.resource && (
+                <div className="card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', background: 'var(--bg-main)', border: '1px solid var(--border)', marginBottom: '20px' }}>
+                  <div>
+                    <h5 style={{ fontWeight: 'bold', fontSize: '13.5px' }}>📎 Tài liệu đính kèm: {selectedPost.title}</h5>
+                    <p style={{ fontSize: '11px', color: 'var(--text-secondary)', margin: 0 }}>
+                      Định dạng: {selectedPost.resource.fileType} • Tải xuống: {selectedPost.resource.downloadCount} lượt
+                    </p>
+                  </div>
+                  <button 
+                    className="btn-primary" 
+                    style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 14px', fontSize: '12px' }}
+                    onClick={() => handleDownloadFile(selectedPost.resource.id, selectedPost.resource.fileUrl)}
+                  >
+                    <HiDownload /> Tải ngay
+                  </button>
+                </div>
+              )}
+
+              {/* Action Buttons Row */}
+              <div style={{ display: 'flex', gap: '20px', borderTop: '1px solid var(--border)', paddingTop: '16px', marginBottom: '24px' }}>
+                <button 
+                  onClick={() => handleLikePost(selectedPost.id)}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '6px', border: 'none', background: 'none',
+                    color: selectedPost.likedBy?.includes(currentUser?.id) ? 'var(--accent-red)' : 'var(--text-secondary)',
+                    cursor: 'pointer', fontWeight: 'bold'
+                  }}
+                >
+                  <HiHeart style={{ fontSize: '18px' }} /> {selectedPost.likes || 0} Hữu ích
+                </button>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-secondary)' }}>
+                  <HiChat style={{ fontSize: '18px' }} /> {comments.length} Phản hồi
                 </span>
               </div>
 
-              {/* ── POSTS GRID ── */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                {sortedPosts.length > 0 ? (
-                  sortedPosts.map(post => {
-                    const isAdmin = post.authorRole === 'admin';
-                    return (
-                      <div 
-                        key={post.id} 
-                        className={`card post-card ${isAdmin ? 'pinned-post-card' : ''}`}
-                        style={{ 
-                          cursor: 'pointer', 
-                          transition: 'all 0.2s',
-                          position: 'relative',
-                          border: isAdmin ? '2.5px solid #f59e0b' : '1px solid var(--border)',
-                          boxShadow: isAdmin ? '0 4px 15px rgba(245, 158, 11, 0.15)' : 'var(--shadow-sm)',
-                          background: isAdmin ? 'linear-gradient(to right, #fffdf5, #ffffff)' : 'var(--bg-card)',
-                          borderRadius: '16px',
-                          overflow: 'hidden'
-                        }}
-                        onClick={() => handleSelectPost(post)}
-                      >
-                        {isAdmin && (
-                          <div className="pinned-post-badge" style={{
-                            position: 'absolute',
-                            right: '0',
-                            top: '0',
-                            background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-                            color: '#ffffff',
-                            fontSize: '9.5px',
-                            fontWeight: 'bold',
-                            padding: '4px 12px',
-                            borderBottomLeftRadius: '12px',
-                            letterSpacing: '0.5px'
-                          }}>
-                            📌 THÔNG BÁO GHIM
+              {/* Comments Section */}
+              <div style={{ background: 'var(--bg-main)', padding: '20px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)' }}>
+                <h3 style={{ fontSize: '15px', fontWeight: 'bold', marginBottom: '16px' }}>Ý kiến thảo luận ({comments.length})</h3>
+                
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '20px' }}>
+                  {comments.length > 0 ? (
+                    comments.map(c => (
+                      <div key={c.id} style={{ borderBottom: '1px solid var(--border)', paddingBottom: '16px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                            <div style={{ background: 'var(--accent-blue)', width: '28px', height: '28px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '11px', fontWeight: 'bold' }}>
+                              {c.author?.slice(0, 2).toUpperCase() || 'AD'}
+                            </div>
+                            <div>
+                              <span style={{ fontSize: '13px', fontWeight: 'bold' }}>{c.author}</span>
+                              <span style={{ fontSize: '10px', color: 'var(--text-muted)', marginLeft: '8px' }}>
+                                {new Date(c.createdAt).toLocaleTimeString()}
+                              </span>
+                            </div>
                           </div>
-                        )}
 
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                          <div style={{ display: 'flex', gap: '6px' }}>
-                            <span className="badge-pill" style={{ background: isAdmin ? '#fef3c7' : 'var(--primary-bg)', color: isAdmin ? '#b45309' : 'var(--primary)', fontSize: '11px', fontWeight: '800' }}>
-                              {post.subject}
-                            </span>
-                            {post.tags && (
-                              <span className="badge-pill" style={{ background: '#e0f2fe', color: '#0369a1', fontSize: '11px' }}>
-                                🏷️ {post.tags}
+                          <div style={{ display: 'flex', gap: '8px' }}>
+                            {/* Checkmark to verify solution */}
+                            {c.isSolution && (
+                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--accent-green)', fontSize: '11px', fontWeight: 'bold' }}>
+                                <HiCheckCircle style={{ fontSize: '16px' }} /> Lời giải hay
                               </span>
                             )}
-                            {post.difficulty && (
-                              <span className="badge-pill" style={{ 
-                                background: post.difficulty === 'Khó' ? '#fee2e2' : post.difficulty === 'Dễ' ? '#dcfce7' : '#ffedd5',
-                                color: post.difficulty === 'Khó' ? '#b91c1c' : post.difficulty === 'Dễ' ? '#15803d' : '#c2410c',
-                                fontSize: '11px'
-                              }}>
-                                ⚡ {post.difficulty}
-                              </span>
+                            
+                            {/* Option to mark solution for post author or teacher */}
+                            {(currentUser?.role === 'TEACHER' || currentUser?.role === 'ADMIN' || selectedPost.authorId === currentUser?.id) && (
+                              <button 
+                                onClick={() => handleAcceptSolution(c.id)}
+                                style={{
+                                  background: 'none', border: '1px solid var(--border)', borderRadius: '4px',
+                                  padding: '2px 8px', fontSize: '11px', cursor: 'pointer',
+                                  borderColor: c.isSolution ? 'var(--accent-green)' : 'var(--border)',
+                                  color: c.isSolution ? 'var(--accent-green)' : 'var(--text-secondary)'
+                                }}
+                              >
+                                {c.isSolution ? 'Hủy duyệt' : 'Duyệt lời giải'}
+                              </button>
                             )}
+
+                            <button
+                              onClick={() => {
+                                setReportTarget({ postId: null, commentId: c.id });
+                                setShowReportModal(true);
+                              }}
+                              style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
+                              title="Báo cáo bình luận"
+                            >
+                              <HiFlag />
+                            </button>
                           </div>
-                          <span style={{ fontSize: '11.5px', color: 'var(--text-muted)', marginRight: isAdmin ? '135px' : '0' }}>{post.date}</span>
                         </div>
 
-                        <h3 style={{ fontSize: '16.5px', fontWeight: '800', marginBottom: '8px', color: 'var(--text-primary)', lineHeight: '1.4' }}>{post.title}</h3>
-                        <p style={{ fontSize: '13px', color: 'var(--text-secondary)', display: '-webkit-box', WebkitLineClamp: '2', WebkitBoxOrient: 'vertical', overflow: 'hidden', marginBottom: '14px', lineHeight: '1.5' }}>
-                          {post.content}
+                        <p style={{ fontSize: '13px', color: 'var(--text-secondary)', paddingLeft: '36px', margin: 0 }}>
+                          {c.content}
                         </p>
 
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '10px', borderTop: '1px solid var(--border)' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <div className="user-avatar" style={{ background: isAdmin ? '#f59e0b' : 'var(--accent-green)', width: '26px', height: '26px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '10.5px', fontWeight: 'bold', overflow: 'hidden' }}>
-                              {post.authorAvatar && (post.authorAvatar.startsWith('data:') || post.authorAvatar.startsWith('http') || post.authorAvatar.length > 10) ? (
-                                <img 
-                                  src={post.authorAvatar.startsWith('data:') || post.authorAvatar.startsWith('http') ? post.authorAvatar : `data:image/png;base64,${post.authorAvatar}`} 
-                                  alt="Avatar" 
-                                  style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
-                                />
-                              ) : (
-                                (post.authorAvatar && post.authorAvatar.length <= 10) ? post.authorAvatar : 'U'
-                              )}
+                        {/* Nesting replies handler */}
+                        <div style={{ paddingLeft: '36px', marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                          {c.replies && c.replies.map(reply => (
+                            <div key={reply.id} style={{ padding: '8px 12px', background: 'var(--bg-card)', borderRadius: '6px', border: '1px solid var(--border)' }}>
+                              <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '4px' }}>
+                                <span style={{ fontSize: '11.5px', fontWeight: 'bold' }}>{reply.author}</span>
+                                <span style={{ fontSize: '9px', color: 'var(--text-muted)' }}>{new Date(reply.createdAt).toLocaleTimeString()}</span>
+                              </div>
+                              <p style={{ fontSize: '12.5px', color: 'var(--text-secondary)', margin: 0 }}>{reply.content}</p>
                             </div>
-                            <span style={{ fontSize: '12.5px', fontWeight: 'bold', color: isAdmin ? '#b45309' : 'var(--text-secondary)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                              {post.author}
-                              {isAdmin && <span className="admin-pill-tag">ADMIN</span>}
-                            </span>
-                          </div>
+                          ))}
 
-                          <div style={{ display: 'flex', gap: '14px' }}>
-                            <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12.5px', color: post.likedBy?.includes(currentUser?.email || 'guest') ? 'var(--accent-red)' : 'var(--text-secondary)' }}>
-                              <HiHeart /> {post.likes}
-                            </span>
-                            <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12.5px', color: 'var(--text-secondary)' }}>
-                              <HiChat /> {post.comments?.length || 0}
-                            </span>
-                          </div>
+                          <button 
+                            onClick={() => {
+                              setReplyTargetId(c.id);
+                              setCommentText(`@${c.author} `);
+                            }}
+                            style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', fontSize: '11.5px', alignSelf: 'flex-start', padding: 0 }}
+                          >
+                            Phản hồi
+                          </button>
                         </div>
                       </div>
-                    );
-                  })
-                ) : (
-                  <div className="card" style={{ textAlign: 'center', padding: '50px 20px', border: '1px solid var(--border)' }}>
-                    <p style={{ color: 'var(--text-muted)', fontSize: '14px' }}>Không tìm thấy câu hỏi hoặc bài thảo luận nào phù hợp.</p>
-                  </div>
-                )}
+                    ))
+                  ) : (
+                    <p style={{ fontStyle: 'italic', fontSize: '13px', color: 'var(--text-muted)' }}>Chưa có phản hồi nào. Hãy viết giải đáp đầu tiên!</p>
+                  )}
+                </div>
+
+                {/* Reply form */}
+                <form onSubmit={handleSendComment} style={{ display: 'flex', gap: '10px' }}>
+                  <input
+                    type="text"
+                    className="form-control"
+                    placeholder={replyTargetId ? "Viết phản hồi của bạn..." : "Giải pháp hoặc ý kiến thảo luận của bạn..."}
+                    value={commentText}
+                    onChange={e => setCommentText(e.target.value)}
+                    style={{ flex: 1 }}
+                    required
+                  />
+                  <button type="submit" className="btn-primary" style={{ padding: '8px 16px' }}>Gửi</button>
+                </form>
               </div>
             </div>
+          ) : (
+            /* LISTINGS OR TABS */
+            <div>
+              {activeTab === 'feed' && (
+                <div>
+                  {/* Filters Bar */}
+                  <div className="card" style={{ padding: '16px', marginBottom: '20px', display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center', background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+                    <div style={{ position: 'relative', flex: 1, minWidth: '200px' }}>
+                      <HiSearch style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                      <input 
+                        type="text" 
+                        className="form-control"
+                        placeholder="Tìm bài viết..."
+                        value={searchQuery}
+                        onChange={e => setSearchQuery(e.target.value)}
+                        style={{ paddingLeft: '32px', width: '100%' }}
+                      />
+                    </div>
 
-            {/* ── RIGHT COLUMN: SIDEBAR WIDGETS ── */}
-            <div className="forum-sidebar-col" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              
-              {/* Forum stats */}
-              <div className="card" style={{ padding: '20px', border: '1px solid var(--border)', borderRadius: '16px' }}>
-                <h4 style={{ fontSize: '13.5px', fontWeight: '800', borderBottom: '2px dashed var(--border)', paddingBottom: '8px', marginBottom: '14px', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  📊 Số liệu diễn đàn
-                </h4>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '12.5px', color: 'var(--text-secondary)' }}>
-                  <div style={{ display: 'flex', justifyBetween: 'space-between', justifyContent: 'space-between' }}>
-                    <span>Thành viên trực tuyến:</span>
-                    <strong style={{ color: 'var(--primary)' }}>342 học sinh</strong>
+                    <select 
+                      className="form-control"
+                      value={selectedCategory}
+                      onChange={e => setSelectedCategory(e.target.value)}
+                      style={{ minWidth: '150px' }}
+                    >
+                      <option value="All">Tất cả môn học</option>
+                      {categories.map(cat => (
+                        <option key={cat.id} value={cat.id}>{cat.name}</option>
+                      ))}
+                    </select>
+
+                    <select 
+                      className="form-control"
+                      value={selectedType}
+                      onChange={e => setSelectedType(e.target.value)}
+                      style={{ minWidth: '150px' }}
+                    >
+                      <option value="All">Loại chủ đề</option>
+                      <option value="GENERAL">Thảo luận chung</option>
+                      <option value="QA">Hỏi & Đáp (Q&A)</option>
+                      <option value="RESOURCE">Học liệu & Đề thi</option>
+                    </select>
+
+                    {(searchQuery || selectedCategory !== 'All' || selectedType !== 'All' || selectedTag) && (
+                      <button 
+                        className="btn-outline" 
+                        onClick={() => {
+                          setSearchQuery('');
+                          setSelectedCategory('All');
+                          setSelectedType('All');
+                          setSelectedTag('');
+                        }}
+                        style={{ padding: '8px 16px' }}
+                      >
+                        Đặt lại
+                      </button>
+                    )}
                   </div>
-                  <div style={{ display: 'flex', justifyBetween: 'space-between', justifyContent: 'space-between' }}>
-                    <span>Tổng bài thảo luận:</span>
-                    <strong>{forumPosts.length + 1800}</strong>
-                  </div>
-                  <div style={{ display: 'flex', justifyBetween: 'space-between', justifyContent: 'space-between' }}>
-                    <span>Tỷ lệ giải quyết bằng AI:</span>
-                    <strong style={{ color: 'var(--accent-green)' }}>100% (Tức thì)</strong>
-                  </div>
+
+                  {/* Feed listings */}
+                  {loading ? (
+                    <div style={{ textAlign: 'center', padding: '40px' }}><HiRefresh className="animate-spin" style={{ fontSize: '24px' }} /> Đang tải dữ liệu...</div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      {posts.length > 0 ? (
+                        posts.map(post => (
+                          <div 
+                            key={post.id} 
+                            className="card post-card" 
+                            style={{ 
+                              cursor: 'pointer', padding: '16px', background: 'var(--bg-card)', 
+                              border: post.isPinned ? '1.5px solid var(--primary)' : '1px solid var(--border)',
+                              transition: 'transform 0.2s', hover: { transform: 'translateY(-2px)' }
+                            }}
+                            onClick={() => setSelectedPost(post)}
+                          >
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                <span className="badge-pill" style={{ background: 'var(--primary-bg)', color: 'var(--primary)', fontSize: '11px', fontWeight: 'bold' }}>
+                                  {post.category?.name}
+                                </span>
+                                {post.postType === 'QA' && (
+                                  <span className="badge-pill" style={{ background: 'rgba(255, 168, 0, 0.15)', color: 'rgb(255, 168, 0)', fontSize: '11px', fontWeight: 'bold' }}>
+                                    Q&A ({post.difficulty})
+                                  </span>
+                                )}
+                                {post.postType === 'RESOURCE' && (
+                                  <span className="badge-pill" style={{ background: 'rgba(0, 184, 148, 0.15)', color: 'var(--accent-green)', fontSize: '11px', fontWeight: 'bold' }}>
+                                    Học liệu
+                                  </span>
+                                )}
+                                {post.isPinned && (
+                                  <span className="badge-pill" style={{ background: 'var(--primary)', color: '#fff', fontSize: '10px' }}>Ghim</span>
+                                )}
+                              </div>
+                              <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                                {new Date(post.createdAt).toLocaleDateString()}
+                              </span>
+                            </div>
+
+                            <h3 style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '8px' }}>{post.title}</h3>
+                            <p style={{ fontSize: '13px', color: 'var(--text-secondary)', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', margin: '0 0 12px 0' }}>
+                              {post.content}
+                            </p>
+
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border)', paddingTop: '10px', fontSize: '12px', color: 'var(--text-secondary)' }}>
+                              <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <HiUser /> {post.author?.fullName}
+                              </span>
+                              <div style={{ display: 'flex', gap: '14px' }}>
+                                <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: post.likedBy?.includes(currentUser?.id) ? 'var(--accent-red)' : 'var(--text-secondary)' }}>
+                                  <HiHeart /> {post.likes || 0}
+                                </span>
+                                <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                  <HiChat /> {post.comments?.length || 0}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="card" style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
+                          Chưa có câu hỏi thảo luận nào phù hợp bộ lọc!
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
-              </div>
+              )}
 
-              {/* 👑 BẢNG VÀNG THÀNH VIÊN TÍCH CỰC 👑 */}
-              <div className="card" style={{ padding: '20px', border: '1px solid var(--border)', borderRadius: '16px' }}>
-                <h4 style={{ fontSize: '13.5px', fontWeight: '800', borderBottom: '2px dashed var(--border)', paddingBottom: '8px', marginBottom: '14px', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  👑 Bảng vàng Tích cực
-                </h4>
+              {activeTab === 'groups' && (
+                <div>
+                  {loading ? (
+                    <div style={{ textAlign: 'center', padding: '40px' }}><HiRefresh className="animate-spin" style={{ fontSize: '24px' }} /> Đang tải...</div>
+                  ) : (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
+                      {studyGroups.map(group => (
+                        <div key={group.id} className="card" style={{ padding: '20px', background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+                          <h4 style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '8px' }}>👥 {group.name}</h4>
+                          <p style={{ fontSize: '12.5px', color: 'var(--text-secondary)', minHeight: '40px', marginBottom: '14px' }}>{group.description}</p>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px', color: 'var(--text-muted)', borderTop: '1px solid var(--border)', paddingTop: '10px' }}>
+                            <span>Thành viên: {group.memberCount}</span>
+                            {group.isMember ? (
+                              <span style={{ color: 'var(--accent-green)', fontWeight: 'bold' }}>✓ Đã tham gia</span>
+                            ) : (
+                              <button className="btn-primary" onClick={() => handleJoinStudyGroup(group.id)} style={{ padding: '4px 10px', fontSize: '11px' }}>
+                                Tham gia
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {activeTab === 'drive' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: '#f59e0b', color: '#fff', fontSize: '11px', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>1</div>
-                    <span style={{ fontSize: '12.5px', fontWeight: 'bold', flex: 1 }}>Nguyễn Minh Anh</span>
-                    <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>45 lời giải</span>
+                  {/* Reuse resource filters */}
+                  <div style={{ display: 'flex', gap: '10px', overflowX: 'auto', marginBottom: '10px' }}>
+                    {categories.map(cat => (
+                      <button 
+                        key={cat.id} 
+                        onClick={() => setSelectedCategory(cat.id)}
+                        className={`badge-pill ${selectedCategory === cat.id ? 'active' : ''}`}
+                        style={{
+                          border: '1px solid var(--border)',
+                          background: selectedCategory === cat.id ? 'var(--primary)' : 'var(--bg-main)',
+                          color: selectedCategory === cat.id ? '#fff' : 'var(--text-secondary)',
+                          padding: '6px 12px', fontSize: '12px', borderRadius: '16px', cursor: 'pointer', whiteSpace: 'nowrap'
+                        }}
+                      >
+                        {cat.name}
+                      </button>
+                    ))}
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: '#cbd5e1', color: '#334155', fontSize: '11px', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>2</div>
-                    <span style={{ fontSize: '12.5px', fontWeight: 'bold', flex: 1 }}>Lê Minh Tuấn</span>
-                    <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>32 lời giải</span>
+
+                  {posts.filter(p => p.postType === 'RESOURCE').map(post => (
+                    <div key={post.id} className="card" style={{ padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+                      <div>
+                        <span className="badge-pill" style={{ background: 'var(--primary-bg)', color: 'var(--primary)', fontSize: '10px' }}>{post.category?.name}</span>
+                        <h4 style={{ fontWeight: 'bold', fontSize: '14.5px', marginTop: '6px', margin: '4px 0' }}>📘 {post.title}</h4>
+                        <p style={{ fontSize: '11px', color: 'var(--text-secondary)', margin: 0 }}>Đóng góp bởi {post.author?.fullName}</p>
+                      </div>
+                      <button 
+                        className="btn-primary" 
+                        onClick={() => post.resource && handleDownloadFile(post.resource.id, post.resource.fileUrl)}
+                        style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 14px', fontSize: '12px' }}
+                      >
+                        <HiDownload /> Tải ngay
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {activeTab === 'leaderboard' && (
+                <div className="card" style={{ padding: '20px', background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+                  <h3 style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    🏆 Bảng xếp hạng thi đua tuần này
+                  </h3>
+                  
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    {leaderboard.map(u => (
+                      <div key={u.userId} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', borderBottom: '1px solid var(--border)' }}>
+                        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                          <span style={{ fontWeight: 'bold', width: '20px', color: u.rank <= 3 ? 'var(--primary)' : 'var(--text-secondary)' }}>
+                            #{u.rank}
+                          </span>
+                          <div style={{ background: 'var(--accent-blue)', width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '12px', fontWeight: 'bold' }}>
+                            {u.name?.slice(0,2).toUpperCase()}
+                          </div>
+                          <div>
+                            <span style={{ fontSize: '13.5px', fontWeight: 'bold' }}>{u.name}</span>
+                            {u.role === 'TEACHER' && <span className="badge-pill" style={{ background: 'var(--primary-bg)', color: 'var(--primary)', fontSize: '9px', marginLeft: '6px' }}>Giáo viên</span>}
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', gap: '16px', fontSize: '13px', fontWeight: 'bold' }}>
+                          <span>Cấp độ {u.level}</span>
+                          <span style={{ color: 'var(--primary)' }}>{u.xp} XP</span>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: '#b45309', color: '#fff', fontSize: '11px', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>3</div>
-                    <span style={{ fontSize: '12.5px', fontWeight: 'bold', flex: 1 }}>Trần Thị Lan</span>
-                    <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>28 lời giải</span>
-                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Right Sidebar Column (Gamification Profile Widget & Info) */}
+        <div>
+          {gamifyProfile && (
+            <div className="card gamify-card" style={{ padding: '20px', background: 'var(--bg-card)', border: '1px solid var(--border)', marginBottom: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                <div style={{ width: '48px', height: '48px', background: 'var(--primary-bg)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px' }}>
+                  ⚡
+                </div>
+                <div>
+                  <h4 style={{ fontWeight: 'bold', fontSize: '15px' }}>{currentUser?.fullName}</h4>
+                  <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: 0 }}>Cấp độ hiện tại: {gamifyProfile.level}</p>
                 </div>
               </div>
 
-              {/* 📑 LIÊN KẾT TÀI LIỆU ÔN THI HOT 📑 */}
-              <div className="card" style={{ padding: '20px', border: '1px solid var(--border)', borderRadius: '16px' }}>
-                <h4 style={{ fontSize: '13.5px', fontWeight: '800', borderBottom: '2px dashed var(--border)', paddingBottom: '8px', marginBottom: '14px', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  📑 Tài liệu Ôn thi tiêu biểu
-                </h4>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  <a href="#/library" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary)', fontSize: '12px', padding: '6px', borderRadius: '6px', border: '1px solid transparent', transition: 'all 0.2s' }} onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--border)'} onMouseLeave={e => e.currentTarget.style.borderColor = 'transparent'}>
-                    <HiDownload style={{ color: 'var(--primary)' }} />
-                    <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', flex: 1 }}>Sổ tay Casio cực trị hàm số lớp 12</span>
-                  </a>
-                  <a href="#/library" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary)', fontSize: '12px', padding: '6px', borderRadius: '6px', border: '1px solid transparent', transition: 'all 0.2s' }} onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--border)'} onMouseLeave={e => e.currentTarget.style.borderColor = 'transparent'}>
-                    <HiDownload style={{ color: 'var(--primary)' }} />
-                    <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', flex: 1 }}>100 Đề thi thử Toán học Đợt 1</span>
-                  </a>
+              {/* Progress bar */}
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '6px' }}>
+                  <span>Tiến trình cấp độ</span>
+                  <span>{gamifyProfile.xp} XP / {gamifyProfile.nextLevelXP} XP</span>
+                </div>
+                <div style={{ width: '100%', height: '8px', background: 'var(--bg-main)', borderRadius: '4px', overflow: 'hidden' }}>
+                  <div style={{ width: `${gamifyProfile.progress}%`, height: '100%', background: 'var(--primary)', transition: 'width 0.4s ease' }} />
                 </div>
               </div>
 
-              {/* Forum Guidelines */}
-              <div className="card" style={{ padding: '20px', border: '1px solid var(--border)', borderRadius: '16px' }}>
-                <h4 style={{ fontSize: '13.5px', fontWeight: '800', borderBottom: '2px dashed var(--border)', paddingBottom: '8px', marginBottom: '14px', color: 'var(--text-primary)' }}>📜 Quy chế Diễn đàn</h4>
-                <ul style={{ paddingLeft: '16px', fontSize: '11.5px', color: 'var(--text-secondary)', lineHeight: '1.6', margin: 0 }}>
-                  <li>Tôn trọng người dùng khác, không dùng từ ngữ thô tục.</li>
-                  <li>Đăng câu hỏi đúng chủ đề / danh mục môn học.</li>
-                  <li>Khuyến khích chia sẻ lời giải chi tiết và mẹo Casio nhanh.</li>
-                  <li>Các bài đăng vi phạm quy chế sẽ bị Admin kiểm duyệt xóa.</li>
-                </ul>
+              {/* Daily Streak widget */}
+              <div style={{ background: 'var(--bg-main)', padding: '12px', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid var(--border)' }}>
+                <div>
+                  <span style={{ fontSize: '11px', color: 'var(--text-secondary)', display: 'block' }}>Chuỗi hoạt động</span>
+                  <span style={{ fontSize: '15px', fontWeight: 'bold', color: 'var(--primary)' }}>🔥 {gamifyProfile.streakDays || 0} Ngày liên tục</span>
+                </div>
+              </div>
+
+              {/* Badges Grid */}
+              <div>
+                <h5 style={{ fontSize: '12.5px', fontWeight: 'bold', marginBottom: '8px' }}>🎖️ Huy hiệu của bạn ({gamifyProfile.badges?.length || 0})</h5>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                  {gamifyProfile.badges && gamifyProfile.badges.length > 0 ? (
+                    gamifyProfile.badges.map(b => (
+                      <span 
+                        key={b.id} 
+                        className="badge-pill" 
+                        style={{ background: 'rgba(255,168,0,0.12)', color: 'rgb(255,168,0)', border: '1px solid rgba(255,168,0,0.3)', fontSize: '11px' }}
+                        title={b.description}
+                      >
+                        🏅 {b.name}
+                      </span>
+                    ))
+                  ) : (
+                    <span style={{ fontSize: '11.5px', color: 'var(--text-muted)', fontStyle: 'italic' }}>Chưa mở khóa huy hiệu nào. Hãy tham gia tích cực để nhận thưởng!</span>
+                  )}
+                </div>
               </div>
             </div>
+          )}
 
+          {/* Quick Guidance Card */}
+          <div className="card" style={{ padding: '16px', background: 'var(--bg-card)', border: '1px solid var(--border)', fontSize: '12.5px', color: 'var(--text-secondary)' }}>
+            <h5 style={{ fontWeight: 'bold', color: 'var(--text-main)', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              💡 Thể lệ tính điểm XP:
+            </h5>
+            <ul style={{ paddingLeft: '18px', display: 'flex', flexDirection: 'column', gap: '4px', margin: 0 }}>
+              <li>Câu hỏi hữu ích: +5 XP</li>
+              <li>Lời giải được chọn: +15 XP</li>
+              <li>Đóng góp bình luận: +2 XP</li>
+              <li>Tải xuống tài liệu hữu ích: +5 XP</li>
+            </ul>
           </div>
         </div>
-      )}
+      </div>
 
-      {/* ── CREATE NEW POST MODAL ── */}
+      {/* ================= MODALS ================= */}
+
+      {/* Create New Post Modal */}
       {showCreateModal && (
-        <div className="modal-backdrop animate-in" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 999 }}>
-          <div className="modal-card card" style={{ maxWidth: '600px', width: '90%', padding: '24px', border: '1px solid var(--border)' }}>
+        <div className="modal-backdrop" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 999 }}>
+          <div className="modal-card card" style={{ maxWidth: '600px', width: '90%', padding: '24px', background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-              <h3 style={{ fontSize: '17px', fontWeight: 'bold', color: 'var(--text-primary)' }}>Tạo bài viết thảo luận mới</h3>
-              <button 
-                onClick={() => setShowCreateModal(false)}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '18px', color: 'var(--text-muted)' }}
-              >
-                ✕
-              </button>
+              <h3 style={{ fontSize: '17px', fontWeight: 'bold' }}>Tạo bài viết thảo luận mới</h3>
+              <button onClick={() => setShowCreateModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '18px', color: 'var(--text-muted)' }}>✕</button>
             </div>
 
-            <form onSubmit={handleCreatePost} style={{ display: 'flex', flexDirection: 'column', gap: '14px', textAlign: 'left' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
-                <div className="form-group">
-                  <label style={{ fontSize: '12px', fontWeight: '600', marginBottom: '6px', display: 'block' }}>Chủ đề / Môn học:</label>
-                  <select 
-                    className="form-control"
-                    value={newSubject}
-                    onChange={e => setNewSubject(e.target.value)}
-                    style={{ width: '100%', fontSize: '13px' }}
-                  >
-                    <option value="Toán học">Toán học</option>
-                    <option value="Vật lý">Vật lý</option>
-                    <option value="Hóa học">Hóa học</option>
-                    <option value="Tiếng Anh">Tiếng Anh</option>
-                    <option value="Sinh học">Sinh học</option>
-                    <option value="Khác">Chủ đề khác</option>
-                  </select>
-                </div>
+            <form onSubmit={handleCreatePost} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div className="form-group">
+                <label style={{ fontSize: '12px', fontWeight: '600', marginBottom: '6px', display: 'block' }}>Chủ đề / Môn học:</label>
+                <select className="form-control" value={newCategoryId} onChange={e => setNewCategoryId(e.target.value)} style={{ width: '100%' }}>
+                  {categories.map(cat => (
+                    <option key={cat.id} value={cat.id}>{cat.name}</option>
+                  ))}
+                </select>
+              </div>
 
-                <div className="form-group">
-                  <label style={{ fontSize: '12px', fontWeight: '600', marginBottom: '6px', display: 'block' }}>Phân loại Tag:</label>
-                  <select
-                    className="form-control"
-                    value={newTags}
-                    onChange={e => setNewTags(e.target.value)}
-                    style={{ width: '100%', fontSize: '13px' }}
-                  >
-                    {availableTags.map(tag => (
-                      <option key={tag} value={tag}>{tag}</option>
-                    ))}
-                  </select>
-                </div>
+              <div className="form-group">
+                <label style={{ fontSize: '12px', fontWeight: '600', marginBottom: '6px', display: 'block' }}>Dạng bài đăng:</label>
+                <select className="form-control" value={newPostType} onChange={e => setNewPostType(e.target.value)} style={{ width: '100%' }}>
+                  <option value="GENERAL">Thảo luận chung</option>
+                  <option value="QA">Hỏi & Đáp (Q&A)</option>
+                  <option value="RESOURCE">Chia sẻ tài liệu / Đề thi</option>
+                </select>
+              </div>
 
+              {newPostType === 'QA' && (
                 <div className="form-group">
                   <label style={{ fontSize: '12px', fontWeight: '600', marginBottom: '6px', display: 'block' }}>Độ khó:</label>
-                  <select
-                    className="form-control"
-                    value={newDifficulty}
-                    onChange={e => setNewDifficulty(e.target.value)}
-                    style={{ width: '100%', fontSize: '13px' }}
-                  >
-                    <option value="Dễ">Dễ</option>
-                    <option value="Trung bình">Trung bình</option>
-                    <option value="Khó">Khó</option>
+                  <select className="form-control" value={newDifficulty} onChange={e => setNewDifficulty(e.target.value)} style={{ width: '100%' }}>
+                    <option value="EASY">Dễ</option>
+                    <option value="MEDIUM">Trung bình</option>
+                    <option value="HARD">Khó</option>
                   </select>
                 </div>
-              </div>
+              )}
+
+              {newPostType === 'RESOURCE' && (
+                <div className="form-group" style={{ background: 'var(--bg-main)', padding: '12px', borderRadius: '6px', border: '1px dashed var(--border)' }}>
+                  <label style={{ fontSize: '12px', fontWeight: '600', marginBottom: '6px', display: 'block' }}>Đính kèm tệp học liệu (Mô phỏng):</label>
+                  <input 
+                    type="text" 
+                    className="form-control" 
+                    placeholder="URL tài liệu (ví dụ: https://edupath.cdn/files/math12.pdf)" 
+                    onChange={e => setResourceFile({ fileUrl: e.target.value, fileType: 'PDF', fileSize: 2048000 })}
+                    style={{ width: '100%', fontSize: '12px' }}
+                    required
+                  />
+                </div>
+              )}
 
               <div className="form-group">
                 <label style={{ fontSize: '12px', fontWeight: '600', marginBottom: '6px', display: 'block' }}>Tiêu đề câu hỏi / bài thảo luận:</label>
                 <input 
-                  type="text" 
-                  className="form-control"
-                  placeholder="Ví dụ: Giúp em giải bài toán đạo hàm bậc 3 cực trị này với ạ!"
-                  value={newTitle}
-                  onChange={e => setNewTitle(e.target.value)}
-                  style={{ width: '100%' }}
-                  required
+                  type="text" className="form-control" placeholder="Ví dụ: Cách bấm máy Casio nghiệm nguyên đạo hàm?"
+                  value={newTitle} onChange={e => setNewTitle(e.target.value)} style={{ width: '100%' }} required
                 />
               </div>
 
               <div className="form-group">
                 <label style={{ fontSize: '12px', fontWeight: '600', marginBottom: '6px', display: 'block' }}>Nội dung chi tiết câu hỏi:</label>
                 <textarea 
-                  className="form-control"
-                  placeholder="Nhập nội dung câu hỏi, công thức hoặc các bước bạn đã giải được để mọi người cùng thảo luận..."
-                  value={newContent}
-                  onChange={e => setNewContent(e.target.value)}
-                  style={{ width: '100%', minHeight: '150px', resize: 'vertical' }}
-                  required
+                  className="form-control" placeholder="Nhập nội dung chi tiết bài toán, bạn đã thử cách nào..."
+                  value={newContent} onChange={e => setNewContent(e.target.value)} style={{ width: '100%', minHeight: '120px', resize: 'vertical' }} required
+                />
+              </div>
+
+              <div className="form-group">
+                <label style={{ fontSize: '12px', fontWeight: '600', marginBottom: '6px', display: 'block' }}>Thẻ phân loại (ngăn cách bởi dấu phẩy):</label>
+                <input 
+                  type="text" className="form-control" placeholder="Ví dụ: casio, daoham, toan12"
+                  value={newTagsString} onChange={e => setNewTagsString(e.target.value)} style={{ width: '100%' }}
                 />
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>
                 <button type="button" className="btn-outline" onClick={() => setShowCreateModal(false)}>Hủy bỏ</button>
                 <button type="submit" className="btn-primary">Đăng lên diễn đàn</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Create New Group Modal */}
+      {showGroupModal && (
+        <div className="modal-backdrop" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 999 }}>
+          <div className="modal-card card" style={{ maxWidth: '500px', width: '90%', padding: '24px', background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h3 style={{ fontSize: '17px', fontWeight: 'bold' }}>Tạo nhóm học tập mới</h3>
+              <button onClick={() => setShowGroupModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '18px', color: 'var(--text-muted)' }}>✕</button>
+            </div>
+
+            <form onSubmit={handleCreateStudyGroup} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div className="form-group">
+                <label style={{ fontSize: '12px', fontWeight: '600', marginBottom: '6px', display: 'block' }}>Tên nhóm học tập:</label>
+                <input type="text" name="groupName" className="form-control" placeholder="Ví dụ: Ôn thi khối A1 chuyên sâu" style={{ width: '100%' }} required />
+              </div>
+
+              <div className="form-group">
+                <label style={{ fontSize: '12px', fontWeight: '600', marginBottom: '6px', display: 'block' }}>Mô tả mục tiêu nhóm:</label>
+                <textarea name="groupDesc" className="form-control" placeholder="Mô tả lịch học, tài liệu trao đổi..." style={{ width: '100%', minHeight: '80px' }} required />
+              </div>
+
+              <div className="form-group" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <input type="checkbox" name="groupPrivate" id="groupPrivate" />
+                <label htmlFor="groupPrivate" style={{ fontSize: '13px' }}>Đặt nhóm ở chế độ riêng tư (Yêu cầu lời mời)</label>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>
+                <button type="button" className="btn-outline" onClick={() => setShowGroupModal(false)}>Hủy bỏ</button>
+                <button type="submit" className="btn-primary">Tạo nhóm</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Safety Report Modal */}
+      {showReportModal && (
+        <div className="modal-backdrop" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 999 }}>
+          <div className="modal-card card" style={{ maxWidth: '400px', width: '90%', padding: '24px', background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h3 style={{ fontSize: '16px', fontWeight: 'bold' }}>Báo cáo nội dung không lành mạnh</h3>
+              <button onClick={() => setShowReportModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '18px', color: 'var(--text-muted)' }}>✕</button>
+            </div>
+
+            <form onSubmit={handleSendReport} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div className="form-group">
+                <label style={{ fontSize: '12.5px', marginBottom: '6px', display: 'block' }}>Lý do báo cáo:</label>
+                <textarea 
+                  className="form-control" 
+                  placeholder="Vui lòng cung cấp lý do chi tiết (Spam, ngôn từ kích động, xúc phạm giáo viên/học sinh...)" 
+                  value={reportReason} 
+                  onChange={e => setReportReason(e.target.value)} 
+                  style={{ width: '100%', minHeight: '100px' }} 
+                  required 
+                />
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>
+                <button type="button" className="btn-outline" onClick={() => setShowReportModal(false)}>Hủy</button>
+                <button type="submit" className="btn-primary">Gửi báo cáo</button>
               </div>
             </form>
           </div>

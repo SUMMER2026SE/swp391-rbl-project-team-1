@@ -24,9 +24,25 @@ model User {
   onboardingComplete Boolean             @default(true)
   admin              Admin?
   notifications      Notification[]
-  RoleChangeRequest  RoleChangeRequest[]
+  roleChangeRequests RoleChangeRequest[]
   student            Student?
   teacher            Teacher?
+
+  // Forum Relations
+  forumPosts         ForumPost[]
+  forumComments      ForumComment[]
+  forumReactions     ForumReaction[]
+  moderatedCategories ForumCategory[]     @relation("CategoryModerators")
+  createdGroups      StudyGroup[]        @relation("GroupCreator")
+  groupMemberships   StudyGroupMember[]
+  announcements      GroupAnnouncement[]
+  reviewedResources  ResourceShare[]     @relation("ReviewedResources")
+  reputations        ReputationHistory[]
+  badges             UserBadge[]
+  gamification       UserGamification?
+  reportsSubmitted   ForumReport[]       @relation("Reporter")
+  reportsResolved    ForumReport[]       @relation("Resolver")
+  auditLogs          ForumAuditLog[]
 }
 
 model Student {
@@ -254,3 +270,321 @@ enum RequestStatus {
   APPROVED
   REJECTED
 }
+
+model OtpVerification {
+  id          Int        @id @default(autoincrement())
+  email       String
+  otpHash     String
+  purpose     OtpPurpose @default(REGISTRATION)
+  payload     Json?
+  attempts    Int        @default(0)
+  maxAttempts Int        @default(5)
+  expiresAt   DateTime
+  createdAt   DateTime   @default(now())
+  isUsed      Boolean    @default(false)
+
+  @@index([email, purpose])
+}
+
+model RoleChangeRequest {
+  id            Int           @id @default(autoincrement())
+  userId        Int
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  currentRole   Role
+  requestedRole Role
+  reason        String?
+  status        RequestStatus @default(PENDING)
+  reviewedBy    Int?
+  reviewedAt    DateTime?
+  createdAt     DateTime      @default(now())
+
+  @@index([userId, status])
+}
+
+// =========================================================================
+// FORUM SYSTEM MODEL EXTENSIONS
+// =========================================================================
+
+enum PostType {
+  GENERAL
+  QA
+  RESOURCE
+}
+
+enum GroupRole {
+  CREATOR
+  ADMIN
+  MEMBER
+}
+
+enum ResourceStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum ReputationAction {
+  POST_CREATED
+  COMMENT_CREATED
+  UPVOTE_RECEIVED
+  DOWNVOTE_RECEIVED
+  ACCEPTED_ANSWER
+  DAILY_STREAK
+  RESOURCE_DOWNLOADED
+}
+
+enum BadgeCategory {
+  POSTING
+  ANSWERS
+  RESOURCE_SHARING
+  REPUTATION
+  SPECIAL
+}
+
+enum ReportStatus {
+  PENDING
+  RESOLVED
+  DISMISSED
+}
+
+model ForumCategory {
+  id             Int             @id @default(autoincrement())
+  name           String
+  slug           String          @unique
+  description    String?
+  parentId       Int?
+  parent         ForumCategory?  @relation("CategoryNesting", fields: [parentId], references: [id], onDelete: Cascade)
+  subCategories  ForumCategory[] @relation("CategoryNesting")
+  allowedRoles   Role[]          @default([STUDENT, TEACHER, ADMIN])
+  posts          ForumPost[]
+  moderators     User[]          @relation("CategoryModerators")
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  @@index([parentId])
+}
+
+model ForumPost {
+  id             Int             @id @default(autoincrement())
+  title          String
+  content        String          @db.Text
+  slug           String          @unique
+  postType       PostType        @default(GENERAL)
+  categoryId     Int
+  category       ForumCategory   @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  authorId       Int
+  author         User            @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  
+  isPinned       Boolean         @default(false)
+  isArchived     Boolean         @default(false)
+  isDraft        Boolean         @default(false)
+  scheduledAt    DateTime?
+  
+  difficulty     Difficulty?
+  viewsCount     Int             @default(0)
+  
+  comments       ForumComment[]
+  reactions      ForumReaction[]
+  tags           ForumTag[]      @relation("PostTags")
+  resource       ResourceShare?
+  studyGroupId   Int?
+  studyGroup     StudyGroup?     @relation(fields: [studyGroupId], references: [id], onDelete: SetNull)
+  reports        ForumReport[]
+  
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  @@index([categoryId])
+  @@index([authorId])
+  @@index([postType])
+}
+
+model ForumComment {
+  id             Int             @id @default(autoincrement())
+  postId         Int
+  post           ForumPost       @relation(fields: [postId], references: [id], onDelete: Cascade)
+  parentId       Int?
+  parent         ForumComment?   @relation("CommentNesting", fields: [parentId], references: [id], onDelete: Cascade)
+  replies        ForumComment[]  @relation("CommentNesting")
+  authorId       Int
+  author         User            @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  content        String          @db.Text
+  
+  isSolution     Boolean         @default(false)
+  
+  reactions      ForumReaction[]
+  reports        ForumReport[]
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  @@index([postId])
+  @@index([parentId])
+  @@index([authorId])
+}
+
+model ForumReaction {
+  id             Int             @id @default(autoincrement())
+  userId         Int
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  postId         Int?
+  post           ForumPost?      @relation(fields: [postId], references: [id], onDelete: Cascade)
+  commentId      Int?
+  comment        ForumComment?   @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  
+  type           String
+  createdAt      DateTime        @default(now())
+
+  @@unique([userId, postId, type])
+  @@unique([userId, commentId, type])
+  @@index([postId])
+  @@index([commentId])
+}
+
+model ForumTag {
+  id             Int             @id @default(autoincrement())
+  name           String          @unique
+  slug           String          @unique
+  posts          ForumPost[]     @relation("PostTags")
+}
+
+model StudyGroup {
+  id             Int                @id @default(autoincrement())
+  name           String
+  description    String?            @db.Text
+  avatarUrl      String?
+  isPrivate      Boolean            @default(false)
+  creatorId      Int
+  creator        User               @relation("GroupCreator", fields: [creatorId], references: [id])
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  
+  members        StudyGroupMember[]
+  posts          ForumPost[]
+  announcements  GroupAnnouncement[]
+}
+
+model StudyGroupMember {
+  id             Int             @id @default(autoincrement())
+  groupId        Int
+  group          StudyGroup      @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  userId         Int
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role           GroupRole       @default(MEMBER)
+  joinedAt       DateTime        @default(now())
+
+  @@unique([groupId, userId])
+  @@index([userId])
+}
+
+model GroupAnnouncement {
+  id             Int             @id @default(autoincrement())
+  groupId        Int
+  group          StudyGroup      @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  title          String
+  content        String          @db.Text
+  authorId       Int
+  author         User            @relation(fields: [authorId], references: [id])
+  createdAt      DateTime        @default(now())
+}
+
+model ResourceShare {
+  id             Int             @id @default(autoincrement())
+  postId         Int             @unique
+  post           ForumPost       @relation(fields: [postId], references: [id], onDelete: Cascade)
+  fileUrl        String
+  fileType       String
+  fileSize       Int
+  downloadCount  Int             @default(0)
+  
+  ratingSum      Int             @default(0)
+  ratingCount    Int             @default(0)
+  version        Int             @default(1)
+  status         ResourceStatus  @default(PENDING)
+  
+  reviewedById   Int?
+  reviewedBy     User?           @relation("ReviewedResources", fields: [reviewedById], references: [id])
+  reviewedAt     DateTime?
+  
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  @@index([status])
+}
+
+model ReputationHistory {
+  id             Int              @id @default(autoincrement())
+  userId         Int
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  points         Int
+  action         ReputationAction
+  referenceId    String?
+  createdAt      DateTime         @default(now())
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model Badge {
+  id             Int             @id @default(autoincrement())
+  name           String          @unique
+  description    String
+  iconUrl        String
+  category       BadgeCategory   @default(POSTING)
+  criteria       Json
+  users          UserBadge[]
+}
+
+model UserBadge {
+  userId         Int
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  badgeId        Int
+  badge          Badge           @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+  unlockedAt     DateTime        @default(now())
+
+  @@id([userId, badgeId])
+}
+
+model UserGamification {
+  userId            Int             @id
+  user              User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  level             Int             @default(1)
+  xp                Int             @default(0)
+  streakDays        Int             @default(0)
+  lastActiveDate    DateTime?
+  milestonesReached Json?
+  
+  updatedAt         DateTime        @updatedAt
+}
+
+model ForumReport {
+  id             Int             @id @default(autoincrement())
+  reporterId     Int
+  reporter       User            @relation("Reporter", fields: [reporterId], references: [id], onDelete: Cascade)
+  postId         Int?
+  post           ForumPost?      @relation(fields: [postId], references: [id], onDelete: Cascade)
+  commentId      Int?
+  comment        ForumComment?   @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  reason         String
+  status         ReportStatus    @default(PENDING)
+  
+  resolvedById   Int?
+  resolvedBy     User?           @relation("Resolver", fields: [resolvedById], references: [id])
+  resolvedAt     DateTime?
+  resolutionNotes String?
+  
+  createdAt      DateTime        @default(now())
+
+  @@index([status])
+}
+
+model ForumAuditLog {
+  id             Int             @id @default(autoincrement())
+  actorId        Int
+  actor          User            @relation(fields: [actorId], references: [id])
+  action         String
+  targetId       String
+  details        String?
+  ipAddress      String?
+  createdAt      DateTime        @default(now())
+}
+

@@ -5,13 +5,21 @@ import dotenv from 'dotenv';
 import { initSocket } from './lib/socket.js';
 
 // Controller imports
-import { login, logout, register, sendOtp, verifyOtpRegister, googleAuth, changePassword, forgotPassword, resetPassword } from './controllers/auth.js';
+import { login, logout, register, sendOtp, resendOtp, verifyOtpRegister, googleAuth, googleCompleteOnboarding, changePassword, forgotPassword, resetPassword, requestRoleChange, getRoleChangeRequests, reviewRoleChange } from './controllers/auth.js';
 import { getCourses, getCourseById, createCourse, getCourseStats } from './controllers/course.js';
 import { getExams, startAttempt, submitAttempt } from './controllers/exam.js';
 import { streamAIChat, refreshRoadmap, generateAIQuestions } from './controllers/ai.js';
 import { chatbotConsult } from './controllers/chatbot.js';
 import { createVNPayPayment, vnpayWebhook, sepayWebhook, checkEnrollmentStatus, checkUserProStatus } from './controllers/payment.js';
 import { authenticateJWT, requireRole } from './middleware/auth.js';
+import { 
+  getCategories, createCategory, deleteCategory,
+  getPosts, getPostById, createPost, deletePost, togglePinPost, reactPost,
+  getComments, createComment, acceptCommentSolution,
+  getStudyGroups, createStudyGroup, joinStudyGroup, leaveStudyGroup,
+  getLeaderboard, getUserGamificationProfile,
+  downloadResource, createReport, getReports, resolveReport
+} from './controllers/forum.js';
 
 dotenv.config();
 
@@ -41,14 +49,20 @@ app.use((req, res, next) => {
 
 // Auth Routes
 app.post('/login', login);
-app.post('/register', register);
 app.post('/logout', logout);
 app.post('/auth/send-otp', sendOtp);
+app.post('/auth/resend-otp', resendOtp);
 app.post('/auth/verify-otp-register', verifyOtpRegister);
 app.post('/auth/google', googleAuth);
 app.post('/auth/forgot-password', forgotPassword);
 app.post('/auth/reset-password', resetPassword);
+app.post('/auth/google/complete-onboarding', googleCompleteOnboarding);
 app.post('/auth/change-password', authenticateJWT, changePassword);
+
+// Role Change Routes
+app.post('/auth/role-change-request', authenticateJWT, requestRoleChange);
+app.get('/admin/role-change-requests', authenticateJWT, requireRole(['ADMIN']), getRoleChangeRequests);
+app.post('/admin/role-change-requests/:id/review', authenticateJWT, requireRole(['ADMIN']), reviewRoleChange);
 
 // Protected Course Routes
 app.get('/courses', getCourses);
@@ -75,6 +89,37 @@ app.post('/ai/generate-questions', authenticateJWT, requireRole(['TEACHER', 'ADM
 
 // Public AI Chatbot Route (No Auth required so landing page guests can use it!)
 app.post('/chatbot', chatbotConsult);
+
+// =========================================================================
+// FORUM FEATURES ROUTING
+// =========================================================================
+app.get('/forum/categories', getCategories);
+app.post('/forum/categories', authenticateJWT, requireRole(['ADMIN']), createCategory);
+app.delete('/forum/categories/:id', authenticateJWT, requireRole(['ADMIN']), deleteCategory);
+
+app.get('/forum/posts', getPosts);
+app.get('/forum/posts/:id', getPostById);
+app.post('/forum/posts', authenticateJWT, createPost);
+app.delete('/forum/posts/:id', authenticateJWT, deletePost);
+app.put('/forum/posts/:id/pin', authenticateJWT, requireRole(['TEACHER', 'ADMIN']), togglePinPost);
+app.post('/forum/posts/:id/react', authenticateJWT, reactPost);
+
+app.get('/forum/posts/:postId/comments', getComments);
+app.post('/forum/posts/:postId/comments', authenticateJWT, createComment);
+app.put('/forum/comments/:id/accept', authenticateJWT, acceptCommentSolution);
+
+app.get('/forum/study-groups', authenticateJWT, getStudyGroups);
+app.post('/forum/study-groups', authenticateJWT, createStudyGroup);
+app.post('/forum/study-groups/:id/join', authenticateJWT, joinStudyGroup);
+app.post('/forum/study-groups/:id/leave', authenticateJWT, leaveStudyGroup);
+
+app.get('/forum/leaderboard', getLeaderboard);
+app.get('/forum/gamification/profile', authenticateJWT, getUserGamificationProfile);
+
+app.post('/forum/resources/:id/download', downloadResource);
+app.post('/forum/moderation/reports', authenticateJWT, createReport);
+app.get('/forum/moderation/reports', authenticateJWT, requireRole(['ADMIN']), getReports);
+app.put('/forum/moderation/reports/:id/resolve', authenticateJWT, requireRole(['ADMIN']), resolveReport);
 
 // Root Hello check
 app.get('/', (req, res) => {
