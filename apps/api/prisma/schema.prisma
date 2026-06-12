@@ -48,6 +48,7 @@ model Student {
   roadmap         Roadmap?
   chatMessages    ChatMessage[]
   reviews         Review[]
+  streak          LearningStreak?
 }
 
 model Teacher {
@@ -208,4 +209,14 @@ model Document {
   lesson      Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
   uploadedBy  Int
   createdAt   DateTime @default(now())
+}
+
+model LearningStreak {
+  id              Int      @id @default(autoincrement())
+  studentId       Int      @unique
+  student         Student  @relation(fields: [studentId], references: [userId], onDelete: Cascade)
+  currentStreak   Int      @default(0)
+  longestStreak   Int      @default(0)
+  lastActiveDate  DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 }

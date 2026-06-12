@@ -72,5 +72,13 @@ export const api = {
 
   checkEnrollmentStatus: (courseId) => request(`/enrollments/status?courseId=${courseId}`),
 
-  checkProStatus: () => request('/users/pro-status')
+  checkProStatus: () => request('/users/pro-status'),
+
+  // Leaderboard
+  getScoreLeaderboard: (subjectGroup) =>
+    request(`/leaderboard/scores${subjectGroup && subjectGroup !== 'ALL' ? `?subjectGroup=${subjectGroup}` : ''}`),
+
+  getStreakLeaderboard: () => request('/leaderboard/streaks'),
+
+  getCourseLeaderboard: () => request('/leaderboard/courses'),
 };

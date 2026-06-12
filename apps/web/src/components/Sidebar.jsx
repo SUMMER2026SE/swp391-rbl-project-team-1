@@ -12,6 +12,7 @@ const navConfigs = {
     { icon: HiClipboardCheck, label: 'Kiểm tra trực tuyến', id: 'tests' },
     { icon: HiChat, label: 'Diễn đàn học tập', id: 'forum' },
     { icon: HiChat, label: 'Hỏi đáp AI / Giáo viên', id: 'ai-qa' },
+    { icon: HiTrendingUp, label: 'Bảng xếp hạng', id: 'leaderboard' },
     { icon: HiCollection, label: 'Thư viện tài liệu', id: 'library' },
     { icon: HiCog, label: 'Thiết lập profile', id: 'settings' }
   ],

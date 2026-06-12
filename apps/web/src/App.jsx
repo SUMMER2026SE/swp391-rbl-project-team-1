@@ -23,6 +23,7 @@ import AISystemCenter from './components/AISystemCenter';
 import Forum from './components/Forum';
 import CourseMall from './components/CourseMall';
 import ChatbotWidget from './components/ChatbotWidget.jsx';
+import Leaderboard from './components/Leaderboard';
 
 import { HiPlay, HiDocumentDownload, HiBeaker, HiX } from 'react-icons/hi';
 import { api } from './api';
@@ -1160,6 +1161,11 @@ export default function App() {
               {/* Library docs downloads tab */}
               {activeTab === 'library' && (
                 <LibraryCabinet addLog={addLog} />
+              )}
+
+              {/* Leaderboard tab */}
+              {activeTab === 'leaderboard' && (
+                <Leaderboard currentUser={currentUser} addLog={addLog} />
               )}
 
               {/* Settings Profile tab */}

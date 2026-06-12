@@ -11,6 +11,7 @@ import { getExams, startAttempt, submitAttempt } from './controllers/exam.js';
 import { streamAIChat, refreshRoadmap, generateAIQuestions } from './controllers/ai.js';
 import { chatbotConsult } from './controllers/chatbot.js';
 import { createVNPayPayment, vnpayWebhook, sepayWebhook, checkEnrollmentStatus, checkUserProStatus } from './controllers/payment.js';
+import { getScoreLeaderboard, getStreakLeaderboard, getCourseLeaderboard } from './controllers/leaderboard.js';
 import { authenticateJWT, requireRole } from './middleware/auth.js';
 
 dotenv.config();
@@ -75,6 +76,11 @@ app.post('/ai/generate-questions', authenticateJWT, requireRole(['TEACHER', 'ADM
 
 // Public AI Chatbot Route (No Auth required so landing page guests can use it!)
 app.post('/chatbot', chatbotConsult);
+
+// Leaderboard Routes (requires authentication)
+app.get('/leaderboard/scores', authenticateJWT, getScoreLeaderboard);
+app.get('/leaderboard/streaks', authenticateJWT, getStreakLeaderboard);
+app.get('/leaderboard/courses', authenticateJWT, getCourseLeaderboard);
 
 // Root Hello check
 app.get('/', (req, res) => {
