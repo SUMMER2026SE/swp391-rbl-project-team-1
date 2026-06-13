@@ -69,6 +69,10 @@ export const api = {
 
   getExams: (subject) => request(`/exams${subject ? `?subject=${subject}` : ''}`),
 
+  getExamQuestionsPublic: (examId) => request(`/exams/${examId}/questions`),
+
+  getAttempts: () => request('/exams/attempts'),
+
   startAttempt: (examId) => request(`/exams/${examId}/attempts`, { method: 'POST' }),
 
   submitAttempt: (examId, attemptId, answers) => 
