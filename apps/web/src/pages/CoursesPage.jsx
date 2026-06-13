@@ -3,6 +3,27 @@ import CourseCard from '../components/courses/CourseCard';
 import CourseFilter from '../components/courses/CourseFilter';
 import { courseService } from '../services/courseService';
 
+const STATS = [
+  { value: '50,000+', label: 'Học sinh', icon: '👨‍🎓' },
+  { value: '500+',    label: 'Khóa học',  icon: '📚' },
+  { value: '200+',    label: 'Giáo viên', icon: '👩‍🏫' },
+  { value: '95%',     label: 'Đạt mục tiêu', icon: '🎯' },
+];
+
+function SkeletonCard() {
+  return (
+    <div className="cc-skeleton">
+      <div className="cc-skeleton__thumb" />
+      <div className="cc-skeleton__body">
+        <div className="cc-skeleton__line cc-skeleton__line--short" />
+        <div className="cc-skeleton__line" />
+        <div className="cc-skeleton__line cc-skeleton__line--mid" />
+        <div className="cc-skeleton__line cc-skeleton__line--short" />
+      </div>
+    </div>
+  );
+}
+
 export default function CoursesPage({ currentUser, onSelectCourse, onCheckoutCourse }) {
   const [courses, setCourses] = useState([]);
   const [filteredCourses, setFilteredCourses] = useState([]);
@@ -12,149 +33,155 @@ export default function CoursesPage({ currentUser, onSelectCourse, onCheckoutCou
     subject: 'All',
     priceRange: 'All',
     level: 'All',
-    sortBy: 'popular'
+    sortBy: 'popular',
   });
 
-  const loadCourses = async () => {
-    setLoading(true);
-    try {
-      const data = await courseService.getCourses();
-      setCourses(data || []);
-      setFilteredCourses(data || []);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    loadCourses();
+    (async () => {
+      setLoading(true);
+      try {
+        const data = await courseService.getCourses();
+        setCourses(data || []);
+        setFilteredCourses(data || []);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    })();
   }, []);
 
   useEffect(() => {
     let result = [...courses];
+    const q = filters.search.trim().toLowerCase();
 
-    // Search filter
-    if (filters.search.trim()) {
-      const query = filters.search.toLowerCase();
-      result = result.filter(c => 
-        c.title.toLowerCase().includes(query) || 
-        c.teacher_name.toLowerCase().includes(query) ||
-        c.description.toLowerCase().includes(query)
+    if (q) {
+      result = result.filter(c =>
+        c.title?.toLowerCase().includes(q) ||
+        c.teacher_name?.toLowerCase().includes(q) ||
+        c.description?.toLowerCase().includes(q)
       );
     }
 
-    // Subject filter
-    if (filters.subject !== 'All') {
-      result = result.filter(c => c.subject === filters.subject);
-    }
+    if (filters.subject !== 'All') result = result.filter(c => c.subject === filters.subject);
 
-    // Level filter
     if (filters.level !== 'All') {
-      // Map level selections to subject groups or course badges as an approximation
-      if (filters.level === 'Beginner') {
-        result = result.filter(c => c.price < 400000 || c.badge === 'New');
-      } else if (filters.level === 'Intermediate') {
-        result = result.filter(c => c.badge === 'Recommended' || c.rating >= 4.8);
-      } else if (filters.level === 'Advanced') {
-        result = result.filter(c => c.badge === 'Best seller' || c.price >= 490000);
-      } else if (filters.level === 'Sprint') {
-        result = result.filter(c => c.badge === 'Hot' || c.title.includes('tốc') || c.title.includes('đề'));
-      }
+      if (filters.level === 'Beginner')     result = result.filter(c => c.price < 400000 || c.badge === 'New');
+      if (filters.level === 'Intermediate') result = result.filter(c => c.badge === 'Recommended' || c.rating >= 4.8);
+      if (filters.level === 'Advanced')     result = result.filter(c => c.badge === 'Best seller' || c.price >= 490000);
+      if (filters.level === 'Sprint')       result = result.filter(c => c.badge === 'Hot' || c.title?.includes('tốc') || c.title?.includes('đề'));
     }
 
-    // Price range filter
     if (filters.priceRange !== 'All') {
-      if (filters.priceRange === 'Free') {
-        result = result.filter(c => c.price === 0);
-      } else if (filters.priceRange === 'Paid') {
-        result = result.filter(c => c.price > 0);
-      } else if (filters.priceRange === 'Under500') {
-        result = result.filter(c => c.price < 500000);
-      } else if (filters.priceRange === '500to1M') {
-        result = result.filter(c => c.price >= 500000 && c.price <= 1000000);
-      } else if (filters.priceRange === 'Above1M') {
-        result = result.filter(c => c.price > 1000000);
-      }
+      if (filters.priceRange === 'Free')     result = result.filter(c => c.price === 0);
+      if (filters.priceRange === 'Paid')     result = result.filter(c => c.price > 0);
+      if (filters.priceRange === 'Under500') result = result.filter(c => c.price < 500000);
+      if (filters.priceRange === '500to1M')  result = result.filter(c => c.price >= 500000 && c.price <= 1000000);
+      if (filters.priceRange === 'Above1M')  result = result.filter(c => c.price > 1000000);
     }
 
-    // Sorting logic
-    if (filters.sortBy === 'popular') {
-      result.sort((a, b) => b.student_count - a.student_count);
-    } else if (filters.sortBy === 'newest') {
-      result.sort((a, b) => b.id - a.id);
-    } else if (filters.sortBy === 'rating') {
-      result.sort((a, b) => b.rating - a.rating);
-    } else if (filters.sortBy === 'price_asc') {
-      result.sort((a, b) => a.price - b.price);
-    } else if (filters.sortBy === 'price_desc') {
-      result.sort((a, b) => b.price - a.price);
-    }
+    if (filters.sortBy === 'popular')   result.sort((a, b) => b.student_count - a.student_count);
+    if (filters.sortBy === 'newest')    result.sort((a, b) => b.id - a.id);
+    if (filters.sortBy === 'rating')    result.sort((a, b) => b.rating - a.rating);
+    if (filters.sortBy === 'price_asc') result.sort((a, b) => a.price - b.price);
+    if (filters.sortBy === 'price_desc') result.sort((a, b) => b.price - a.price);
 
     setFilteredCourses(result);
   }, [filters, courses]);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', maxWidth: '1100px', margin: '0 auto', padding: '0 16px' }} className="animate-in">
-      {/* Header Banner Section */}
-      <div 
-        style={{
-          background: 'linear-gradient(135deg, #6C5CE7 0%, #a29bfe 100%)',
-          borderRadius: '20px',
-          padding: '36px 40px',
-          color: '#fff',
-          boxShadow: '0 8px 20px rgba(108,92,231,0.15)'
-        }}
-      >
-        <span style={{ fontSize: '12px', fontWeight: 'bold', background: 'rgba(255, 255, 255, 0.2)', padding: '4px 12px', borderRadius: '20px', display: 'inline-block', marginBottom: '12px' }}>
-          Hệ thống đào tạo trực tuyến chuẩn THPT Quốc Gia
-        </span>
-        <h2 style={{ fontSize: '26px', fontWeight: '950', margin: '0 0 8px 0', color: '#fff' }}>
-          KHO KHÓA HỌC CHUYÊN ĐỀ 12
-        </h2>
-        <p style={{ fontSize: '13.5px', color: '#f3e8ff', margin: 0, maxWidth: '600px', lineHeight: '1.5' }}>
-          Được biên soạn bởi đội ngũ giảng viên giàu kinh nghiệm từ FPT và các trường đại học lớn. Học kết hợp Gia sư AI EduBot 24/7 để tối ưu điểm số của bạn.
-        </p>
-      </div>
+    <div className="cp-page">
 
-      {/* Filter Section */}
-      <CourseFilter onFilterChange={setFilters} />
+      {/* ── HERO ── */}
+      <div className="cp-hero">
+        <div className="cp-hero__left">
+          <span className="cp-hero__eyebrow">Nền tảng học trực tuyến hàng đầu Việt Nam</span>
+          <h1 className="cp-hero__title">
+            Khóa học luyện thi<br />
+            <span className="cp-hero__title-accent">THPT Quốc Gia</span>
+          </h1>
+          <p className="cp-hero__desc">
+            Học cùng đội ngũ giáo viên chuyên môn cao, hệ thống bài tập chuẩn cấu trúc Bộ GD&ĐT và AI Gia sư 24/7.
+          </p>
 
-      {/* Course Cards Grid */}
-      {loading ? (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '24px' }}>
-          {[1, 2, 3, 4].map(idx => (
-            <div key={idx} style={{ height: '380px', borderRadius: '16px', background: 'var(--bg-card)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <div style={{ textAlign: 'center', color: 'var(--text-secondary)' }}>
-                <div style={{ fontSize: '24px', animation: 'spin 2s linear infinite' }}>⏳</div>
-                <div style={{ fontSize: '12px', marginTop: '8px' }}>Đang tải khóa học...</div>
+          {/* Stats */}
+          <div className="cp-stats">
+            {STATS.map((s) => (
+              <div key={s.label} className="cp-stat">
+                <div className="cp-stat__value">{s.value}</div>
+                <div className="cp-stat__label">{s.label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="cp-hero__right">
+          <div className="cp-hero__img-wrap">
+            <img
+              src="/course_hero_students.png"
+              alt="Học sinh học cùng EduPath AI"
+              className="cp-hero__img"
+              onError={e => { e.target.style.display = 'none'; }}
+            />
+            {/* Floating trust badge */}
+            <div className="cp-hero__trust-badge">
+              <span className="cp-hero__trust-stars">★★★★★</span>
+              <div>
+                <strong>4.9/5</strong>
+                <span>từ 12,400+ đánh giá</span>
               </div>
             </div>
-          ))}
+          </div>
         </div>
-      ) : filteredCourses.length > 0 ? (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '24px', marginBottom: '40px' }}>
-          {filteredCourses.map(course => {
-            const isOwned = currentUser?.unlockedCourses?.includes(course.id);
-            return (
+      </div>
+
+      {/* ── FILTER ── */}
+      <div className="cp-section">
+        <CourseFilter onFilterChange={setFilters} />
+      </div>
+
+      {/* ── RESULTS HEADER ── */}
+      {!loading && (
+        <div className="cp-results-header">
+          <span className="cp-results-count">
+            {filteredCourses.length} khóa học
+            {filters.subject !== 'All' ? ` · ${filters.subject}` : ''}
+          </span>
+        </div>
+      )}
+
+      {/* ── COURSE GRID ── */}
+      <div className="cp-section">
+        {loading ? (
+          <div className="cp-grid">
+            {[1, 2, 3, 4, 5, 6].map(i => <SkeletonCard key={i} />)}
+          </div>
+        ) : filteredCourses.length > 0 ? (
+          <div className="cp-grid">
+            {filteredCourses.map(course => (
               <CourseCard
                 key={course.id}
                 course={course}
-                isOwned={isOwned}
+                isOwned={currentUser?.unlockedCourses?.includes(course.id)}
                 onSelect={onSelectCourse}
                 onPurchase={onCheckoutCourse}
               />
-            );
-          })}
-        </div>
-      ) : (
-        <div style={{ textAlign: 'center', padding: '60px 20px', background: 'var(--bg-card)', borderRadius: '16px', border: '1px solid var(--border)' }}>
-          <span style={{ fontSize: '48px' }}>📂</span>
-          <h3 style={{ fontSize: '16px', fontWeight: 'bold', color: 'var(--text-primary)', margin: '14px 0 6px 0' }}>Không tìm thấy khóa học nào</h3>
-          <p style={{ fontSize: '12.5px', color: 'var(--text-secondary)', margin: 0 }}>Vui lòng thay đổi từ khóa tìm kiếm hoặc bỏ bớt các bộ lọc để hiển thị nhiều kết quả hơn.</p>
-        </div>
-      )}
+            ))}
+          </div>
+        ) : (
+          <div className="cp-empty">
+            <div className="cp-empty__icon">
+              <svg viewBox="0 0 64 64" fill="none">
+                <circle cx="32" cy="28" r="18" stroke="#D1D5DB" strokeWidth="3" />
+                <path d="M44 44l12 12" stroke="#D1D5DB" strokeWidth="3" strokeLinecap="round" />
+              </svg>
+            </div>
+            <h3 className="cp-empty__title">Không tìm thấy khóa học</h3>
+            <p className="cp-empty__desc">Hãy thử thay đổi bộ lọc hoặc từ khóa tìm kiếm</p>
+          </div>
+        )}
+      </div>
+
     </div>
   );
 }

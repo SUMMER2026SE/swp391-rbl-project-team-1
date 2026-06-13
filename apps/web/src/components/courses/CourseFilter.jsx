@@ -1,5 +1,41 @@
 import { useState } from 'react';
-import { HiSearch, HiFilter } from 'react-icons/hi';
+
+const SUBJECTS = [
+  { value: 'All', label: 'Tất cả môn' },
+  { value: 'Toán học', label: 'Toán học' },
+  { value: 'Ngữ văn', label: 'Ngữ văn' },
+  { value: 'Tiếng Anh', label: 'Tiếng Anh' },
+  { value: 'Vật lý', label: 'Vật lý' },
+  { value: 'Hóa học', label: 'Hóa học' },
+  { value: 'Sinh học', label: 'Sinh học' },
+  { value: 'Lịch sử', label: 'Lịch sử' },
+  { value: 'Địa lý', label: 'Địa lý' },
+  { value: 'GDCD', label: 'GDCD' },
+];
+
+const LEVELS = [
+  { value: 'All', label: 'Tất cả' },
+  { value: 'Beginner', label: 'Cơ bản' },
+  { value: 'Intermediate', label: 'Nâng cao' },
+  { value: 'Advanced', label: 'Luyện đề' },
+  { value: 'Sprint', label: 'Cấp tốc' },
+];
+
+const PRICE_OPTIONS = [
+  { value: 'All', label: 'Tất cả' },
+  { value: 'Free', label: 'Miễn phí' },
+  { value: 'Under500', label: 'Dưới 500K' },
+  { value: '500to1M', label: '500K – 1 triệu' },
+  { value: 'Above1M', label: 'Trên 1 triệu' },
+];
+
+const SORT_OPTIONS = [
+  { value: 'popular', label: 'Phổ biến nhất' },
+  { value: 'newest', label: 'Mới nhất' },
+  { value: 'rating', label: 'Đánh giá cao' },
+  { value: 'price_asc', label: 'Giá tăng dần' },
+  { value: 'price_desc', label: 'Giá giảm dần' },
+];
 
 export default function CourseFilter({ onFilterChange }) {
   const [search, setSearch] = useState('');
@@ -8,183 +44,86 @@ export default function CourseFilter({ onFilterChange }) {
   const [level, setLevel] = useState('All');
   const [sortBy, setSortBy] = useState('popular');
 
-  const updateFilters = (changes) => {
-    const updated = {
-      search,
-      subject,
-      priceRange,
-      level,
-      sortBy,
-      ...changes
-    };
-    onFilterChange(updated);
+  const emit = (patch) => {
+    onFilterChange({ search, subject, priceRange, level, sortBy, ...patch });
   };
-
-  const handleSearchChange = (e) => {
-    setSearch(e.target.value);
-    updateFilters({ search: e.target.value });
-  };
-
-  const handleSubjectChange = (subj) => {
-    setSubject(subj);
-    updateFilters({ subject: subj });
-  };
-
-  const handlePriceChange = (e) => {
-    setPriceRange(e.target.value);
-    updateFilters({ priceRange: e.target.value });
-  };
-
-  const handleLevelChange = (lvl) => {
-    setLevel(lvl);
-    updateFilters({ level: lvl });
-  };
-
-  const handleSortChange = (e) => {
-    setSortBy(e.target.value);
-    updateFilters({ sortBy: e.target.value });
-  };
-
-  const subjects = [
-    { value: 'All', label: 'Tất cả' },
-    { value: 'Toán học', label: 'Toán' },
-    { value: 'Ngữ văn', label: 'Văn' },
-    { value: 'Tiếng Anh', label: 'Anh' },
-    { value: 'Vật lý', label: 'Lý' },
-    { value: 'Hóa học', label: 'Hóa' },
-    { value: 'Sinh học', label: 'Sinh' },
-    { value: 'Lịch sử', label: 'Sử' },
-    { value: 'Địa lý', label: 'Địa' },
-    { value: 'GDCD', label: 'GDCD' }
-  ];
-
-  const levels = [
-    { value: 'All', label: 'Tất cả cấp độ' },
-    { value: 'Beginner', label: 'Cơ bản (Chống liệt)' },
-    { value: 'Intermediate', label: 'Khá (Khóa 8+)' },
-    { value: 'Advanced', label: 'Giỏi (Khóa 9+)' },
-    { value: 'Sprint', label: 'Thực chiến luyện đề cấp tốc' }
-  ];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', background: 'var(--bg-card)', padding: '20px', borderRadius: '16px', border: '1px solid var(--border)', boxShadow: '0 4px 12px rgba(0,0,0,0.02)' }} className="animate-in">
-      {/* Row 1: Search & Sort */}
-      <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-        <div style={{ flex: 1, minWidth: '280px', position: 'relative' }}>
-          <HiSearch style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)', fontSize: '18px' }} />
-          <input 
-            type="text" 
-            placeholder="Tìm kiếm tên khóa học, giáo viên, chuyên đề ôn thi..." 
+    <div className="cf-bar">
+      {/* Row 1: Search + Sort */}
+      <div className="cf-row cf-row--top">
+        <div className="cf-search-wrap">
+          <svg className="cf-search-icon" viewBox="0 0 20 20" fill="currentColor">
+            <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
+          </svg>
+          <input
+            type="text"
+            className="cf-search-input"
+            placeholder="Tìm kiếm khóa học, giáo viên, chủ đề..."
             value={search}
-            onChange={handleSearchChange}
-            style={{
-              width: '100%',
-              padding: '10px 16px 10px 38px',
-              fontSize: '13px',
-              borderRadius: '10px',
-              border: '1px solid var(--border)',
-              outline: 'none',
-              background: 'var(--bg-main)',
-              color: 'var(--text-primary)'
-            }}
+            onChange={e => { setSearch(e.target.value); emit({ search: e.target.value }); }}
           />
         </div>
 
-        {/* Sort selector */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{ fontSize: '12px', fontWeight: 'bold', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>Sắp xếp:</span>
-          <select 
-            value={sortBy} 
-            onChange={handleSortChange}
-            className="form-control"
-            style={{ fontSize: '13px', padding: '8px 12px', borderRadius: '10px', minWidth: '160px' }}
+        <div className="cf-sort-wrap">
+          <label className="cf-label">Sắp xếp:</label>
+          <select
+            className="cf-select"
+            value={sortBy}
+            onChange={e => { setSortBy(e.target.value); emit({ sortBy: e.target.value }); }}
           >
-            <option value="popular">Phổ biến nhất</option>
-            <option value="newest">Mới nhất</option>
-            <option value="rating">Đánh giá cao</option>
-            <option value="price_asc">Giá từ thấp đến cao</option>
-            <option value="price_desc">Giá từ cao đến thấp</option>
+            {SORT_OPTIONS.map(o => (
+              <option key={o.value} value={o.value}>{o.label}</option>
+            ))}
           </select>
         </div>
       </div>
 
-      {/* Row 2: Subject pills select */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-        <span style={{ fontSize: '12px', fontWeight: 'bold', color: 'var(--text-secondary)' }}>Môn học:</span>
-        <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '4px' }}>
-          {subjects.map(subj => {
-            const isSelected = subject === subj.value;
-            return (
+      {/* Row 2: Subject pills */}
+      <div className="cf-section">
+        <span className="cf-label">Môn học</span>
+        <div className="cf-pills">
+          {SUBJECTS.map(s => (
+            <button
+              key={s.value}
+              className={`cf-pill ${subject === s.value ? 'cf-pill--active' : ''}`}
+              onClick={() => { setSubject(s.value); emit({ subject: s.value }); }}
+            >
+              {s.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Row 3: Level + Price */}
+      <div className="cf-row cf-row--filters">
+        <div className="cf-section">
+          <span className="cf-label">Cấp độ</span>
+          <div className="cf-pills">
+            {LEVELS.map(l => (
               <button
-                key={subj.value}
-                onClick={() => handleSubjectChange(subj.value)}
-                style={{
-                  border: '1px solid var(--border)',
-                  background: isSelected ? 'var(--primary)' : 'var(--bg-main)',
-                  color: isSelected ? '#fff' : 'var(--text-secondary)',
-                  padding: '6px 14px',
-                  borderRadius: '20px',
-                  fontSize: '12px',
-                  fontWeight: isSelected ? 'bold' : 'normal',
-                  cursor: 'pointer',
-                  whiteSpace: 'nowrap',
-                  transition: 'all 0.2s'
-                }}
+                key={l.value}
+                className={`cf-pill ${level === l.value ? 'cf-pill--active' : ''}`}
+                onClick={() => { setLevel(l.value); emit({ level: l.value }); }}
               >
-                {subj.label}
+                {l.label}
               </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Row 3: Price and Level Filters */}
-      <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', borderTop: '1px solid var(--border)', paddingTop: '16px' }}>
-        {/* Price filter dropdown */}
-        <div style={{ flex: '1', minWidth: '200px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-          <span style={{ fontSize: '12px', fontWeight: 'bold', color: 'var(--text-secondary)' }}>Mức học phí:</span>
-          <select 
-            value={priceRange} 
-            onChange={handlePriceChange}
-            className="form-control"
-            style={{ fontSize: '13px', padding: '8px 12px', borderRadius: '10px' }}
-          >
-            <option value="All">Tất cả mức giá</option>
-            <option value="Free">Miễn phí</option>
-            <option value="Paid">Có phí</option>
-            <option value="Under500">Dưới 500k</option>
-            <option value="500to1M">Từ 500k - 1 triệu</option>
-            <option value="Above1M">Trên 1 triệu</option>
-          </select>
+            ))}
+          </div>
         </div>
 
-        {/* Level filter quick select */}
-        <div style={{ flex: '1', minWidth: '200px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-          <span style={{ fontSize: '12px', fontWeight: 'bold', color: 'var(--text-secondary)' }}>Mục tiêu học tập:</span>
-          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-            {levels.map(lvl => {
-              const isSelected = level === lvl.value;
-              return (
-                <button
-                  key={lvl.value}
-                  onClick={() => handleLevelChange(lvl.value)}
-                  style={{
-                    border: '1px solid var(--border)',
-                    background: isSelected ? 'var(--primary-bg)' : 'var(--bg-main)',
-                    color: isSelected ? 'var(--primary)' : 'var(--text-secondary)',
-                    borderColor: isSelected ? 'var(--primary)' : 'var(--border)',
-                    padding: '6px 12px',
-                    borderRadius: '8px',
-                    fontSize: '11.5px',
-                    fontWeight: isSelected ? 'bold' : 'normal',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s'
-                  }}
-                >
-                  {lvl.label}
-                </button>
-              );
-            })}
+        <div className="cf-section">
+          <span className="cf-label">Học phí</span>
+          <div className="cf-pills">
+            {PRICE_OPTIONS.map(p => (
+              <button
+                key={p.value}
+                className={`cf-pill ${priceRange === p.value ? 'cf-pill--active' : ''}`}
+                onClick={() => { setPriceRange(p.value); emit({ priceRange: p.value }); }}
+              >
+                {p.label}
+              </button>
+            ))}
           </div>
         </div>
       </div>

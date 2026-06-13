@@ -9,7 +9,140 @@ import lyDemo from '../data/mockExams/vatly-2024-demo.json';
 import hoaDemo from '../data/mockExams/hoahoc-2024-demo.json';
 
 // ── Local Storage Database Initialization ──
+function mutateQuestionForYear(question, slug, year) {
+  const q = JSON.parse(JSON.stringify(question));
+  if (year === 2024) return q;
+
+  const offset = year % 10; // e.g., 0 for 2020, 1 for 2021, etc.
+  
+  if (slug === 'toan') {
+    if (q.question_number === 2) {
+      const B = (3 * (offset + 1));
+      const h = (offset + 2);
+      const vol = (B * h) / 3;
+      q.question_text = `Cho khối chóp có diện tích đáy $B = ${B}a^2$ và chiều cao $h = ${h}a$. Thể tích của khối chóp đã cho bằng:`;
+      q.options[0].option_text = `${vol}a^3`;
+      q.options[1].option_text = `${vol * 2}a^3`;
+      q.options[2].option_text = `${vol / 2}a^3`;
+      q.options[3].option_text = `${vol * 1.5}a^3`;
+      q.options[0].is_correct = true;
+      q.options[1].is_correct = false;
+      q.options[2].is_correct = false;
+      q.options[3].is_correct = false;
+      q.explanation = `Công thức thể tích khối chóp: $V = \\frac{1}{3}Bh = \\frac{1}{3} \\cdot ${B}a^2 \\cdot ${h}a = ${vol}a^3$.`;
+    } else if (q.question_number === 3) {
+      const base = 2 + (offset % 2); 
+      const rhs = base === 2 ? 16 : 27; 
+      const exp = base === 2 ? 4 : 3;
+      const dec = offset + 1;
+      q.question_text = `Tập nghiệm của bất phương trình $${base}^{x-${dec}} < ${rhs}$ là:`;
+      const ansVal = exp + dec;
+      q.options[0].option_text = `(-\\infty; ${ansVal})`;
+      q.options[1].option_text = `(${ansVal}; +\\infty)`;
+      q.options[2].option_text = `(-\\infty; ${ansVal - 1})`;
+      q.options[3].option_text = `(${ansVal - 1}; +\\infty)`;
+      q.explanation = `Ta có: $${base}^{x-${dec}} < ${base}^${exp} \\Leftrightarrow x-${dec} < ${exp} \\Leftrightarrow x < ${ansVal}$. Vậy tập nghiệm là $(-\\infty; ${ansVal})$.`;
+    } else if (q.question_number === 4) {
+      const a = 2 + offset;
+      const b = -3 - offset;
+      const c = 1 + (offset % 2);
+      q.question_text = `Trong không gian $Oxyz$, cho mặt phẳng $(P): ${a}x ${b >= 0 ? '+' : ''}${b}y + ${c}z - 5 = 0$. Vectơ nào dưới đây là một vectơ pháp tuyến của $(P)$?`;
+      q.options[0].option_text = `\\vec{n} = (${a}; ${-b}; ${c})`;
+      q.options[1].option_text = `\\vec{n} = (${a}; ${b}; ${c})`;
+      q.options[2].option_text = `\\vec{n} = (${a}; ${b}; ${-c})`;
+      q.options[3].option_text = `\\vec{n} = (${-a}; ${-b}; ${c})`;
+      q.options[0].is_correct = false;
+      q.options[1].is_correct = true;
+      q.options[2].is_correct = false;
+      q.options[3].is_correct = false;
+      q.explanation = `Vectơ pháp tuyến của mặt phẳng $Ax + By + Cz + D = 0$ là $\\vec{n} = (A; B; C)$. Ở đây $\\vec{n} = (${a}; ${b}; ${c})$.`;
+    } else if (q.question_number === 8) {
+      const u1 = 2 + offset;
+      const d = 3 + (offset % 3);
+      const u5 = u1 + 4 * d;
+      q.question_text = `Cho cấp số cộng $(u_n)$ có $u_1 = ${u1}$ và công sai $d = ${d}$. Giá trị của $u_5$ bằng:`;
+      q.options[0].option_text = `${u5 - 2}`;
+      q.options[1].option_text = `${u5}`;
+      q.options[2].option_text = `${u5 + 2}`;
+      q.options[3].option_text = `${u5 + 4}`;
+      q.explanation = `Theo công thức: $u_5 = u_1 + 4d = ${u1} + 4 \\cdot ${d} = ${u5}$.`;
+    }
+  } else if (slug === 'ly') {
+    if (q.question_number === 1) {
+      const U0 = 100 + offset * 20;
+      const f = 50 + (offset % 2) * 10;
+      const omega = 2 * f;
+      q.question_text = `Đặt điện áp xoay chiều $u = ${U0}\\sqrt{2}\\cos(${omega}\\pi t)$ (V) vào hai đầu một điện trở. Điện áp hiệu dụng giữa hai đầu điện trở bằng:`;
+      q.options[0].option_text = `${U0} V`;
+      q.options[1].option_text = `${U0}\\sqrt{2} V`;
+      q.options[2].option_text = `${U0 / 2} V`;
+      q.options[3].option_text = `${U0 * 2} V`;
+      q.options[0].is_correct = true;
+      q.options[1].is_correct = false;
+      q.options[2].is_correct = false;
+      q.options[3].is_correct = false;
+      q.explanation = `Điện áp cực đại là $U_0 = ${U0}\\sqrt{2}$ V. Điện áp hiệu dụng: $U = \\frac{U_0}{\\sqrt{2}} = ${U0}$ V.`;
+    }
+  } else if (slug === 'hoa') {
+    if (q.question_number === 1) {
+      const esters = [
+        { name: "Metyl axetat", formula: "CH3COOCH3", weight: 74, correctIdx: 2 },
+        { name: "Etyl axetat", formula: "CH3COOC2H5", weight: 88, correctIdx: 1 },
+        { name: "Metyl fomat", formula: "HCOOCH3", weight: 60, correctIdx: 0 }
+      ];
+      const selected = esters[offset % esters.length];
+      q.question_text = `Công thức cấu tạo thu gọn của ${selected.name} là:`;
+      q.options[0].option_text = "HCOOCH3";
+      q.options[1].option_text = "CH3COOC2H5";
+      q.options[2].option_text = "CH3COOCH3";
+      q.options[3].option_text = "C2H5COOCH3";
+      
+      q.options.forEach((opt, idx) => {
+        opt.is_correct = (idx === selected.correctIdx);
+      });
+      q.explanation = `${selected.name} có công thức cấu tạo là ${selected.formula}.`;
+    }
+  } else if (slug === 'anh') {
+    if (q.question_number === 2) {
+      const subjs = ["She", "He", "My mother", "The teacher"];
+      const selectedSubj = subjs[offset % subjs.length];
+      q.question_text = `Mark the letter A, B, C, or D to indicate the correct answer to the following question:\n\n${selectedSubj} ________ to the cinema yesterday to watch the new movie.`;
+      q.options[0].option_text = "go";
+      q.options[1].option_text = "goes";
+      q.options[2].option_text = "went";
+      q.options[3].option_text = "has gone";
+      q.options[0].is_correct = false;
+      q.options[1].is_correct = false;
+      q.options[2].is_correct = true;
+      q.options[3].is_correct = false;
+      q.explanation = `Trạng từ chỉ thời gian 'yesterday' chỉ hành động xảy ra trong quá khứ. Động từ chia ở quá khứ đơn: 'went'.`;
+    }
+  }
+  
+  return q;
+}
+
 const initMockExamDb = () => {
+  const existingExams = localStorage.getItem('supabase_mock_exams');
+  let needsReset = false;
+  if (existingExams) {
+    try {
+      const parsed = JSON.parse(existingExams);
+      if (parsed.length < 15) {
+        needsReset = true;
+      }
+    } catch (e) {
+      needsReset = true;
+    }
+  }
+
+  if (needsReset) {
+    localStorage.removeItem('supabase_mock_exams');
+    localStorage.removeItem('supabase_mock_exam_questions');
+    localStorage.removeItem('supabase_mock_exam_options');
+    localStorage.removeItem('supabase_mock_exam_subjects');
+  }
+
   if (!localStorage.getItem('supabase_mock_exam_subjects')) {
     const subjects = [
       { id: 1, name: 'Toán học', slug: 'toan', icon: '📐', description: 'Môn Toán học ôn thi THPT Quốc Gia' },
@@ -27,52 +160,57 @@ const initMockExamDb = () => {
 
     const demos = [toanDemo, anhDemo, lyDemo, hoaDemo];
     const subjIdMap = { toan: 1, anh: 2, ly: 3, hoa: 4 };
+    const years = [2020, 2021, 2022, 2023, 2024];
 
-    demos.forEach((demo, dIdx) => {
-      const examId = `exam-uuid-000${dIdx + 1}`;
-      exams.push({
-        id: examId,
-        subject_id: subjIdMap[demo.subject_slug],
-        title: demo.title,
-        year: demo.year,
-        exam_code: demo.exam_code,
-        exam_type: demo.exam_type,
-        source: demo.source,
-        duration_minutes: demo.duration_minutes,
-        total_questions: demo.total_questions,
-        description: demo.description,
-        pdf_url: demo.pdf_url,
-        official_answer_key_url: demo.official_answer_key_url,
-        status: 'published',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      });
-
-      demo.questions.forEach((q, qIdx) => {
-        const questionId = `q-uuid-000${dIdx + 1}-${qIdx + 1}`;
-        questions.push({
-          id: questionId,
-          exam_id: examId,
-          question_number: q.question_number,
-          question_text: q.question_text,
-          question_image_url: q.question_image_url || null,
-          question_type: q.question_type || 'multiple_choice_single',
-          difficulty: q.difficulty || 'Trung bình',
-          explanation: q.explanation || '',
-          topic: q.topic || (demo.subject_name === 'Toán học' ? 'Khảo sát hàm số' : (demo.subject_name === 'Vật lý' ? 'Dao động cơ học' : (demo.subject_name === 'Tiếng Anh' ? 'Ngữ pháp' : 'Hóa hữu cơ'))),
-          created_at: new Date().toISOString()
+    years.forEach((year) => {
+      demos.forEach((demo, dIdx) => {
+        const examId = `exam-uuid-${year}-000${dIdx + 1}`;
+        exams.push({
+          id: examId,
+          subject_id: subjIdMap[demo.subject_slug],
+          title: `Đề thi chính thức THPT Quốc Gia ${year} - Môn ${demo.subject_name}`,
+          year: year,
+          exam_code: String(101 + (year % 10) + dIdx),
+          exam_type: 'official',
+          source: 'Bộ GD&ĐT',
+          duration_minutes: demo.duration_minutes,
+          total_questions: demo.total_questions,
+          description: `Đề thi chính thức môn ${demo.subject_name} kỳ thi tốt nghiệp THPT Quốc Gia năm ${year} từ Bộ Giáo dục và Đào tạo.`,
+          pdf_url: demo.pdf_url,
+          official_answer_key_url: demo.official_answer_key_url,
+          status: 'published',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
         });
 
-        q.options.forEach((opt, oIdx) => {
-          const optionId = `opt-uuid-000${dIdx + 1}-${qIdx + 1}-${oIdx + 1}`;
-          options.push({
-            id: optionId,
-            question_id: questionId,
-            option_label: opt.option_label,
-            option_text: opt.option_text,
-            option_image_url: opt.option_image_url || null,
-            is_correct: opt.is_correct || false,
+        demo.questions.forEach((question, qIdx) => {
+          const questionId = `q-uuid-${year}-000${dIdx + 1}-${qIdx + 1}`;
+          const mutatedQ = mutateQuestionForYear(question, demo.subject_slug, year);
+          
+          questions.push({
+            id: questionId,
+            exam_id: examId,
+            question_number: mutatedQ.question_number,
+            question_text: mutatedQ.question_text,
+            question_image_url: mutatedQ.question_image_url || null,
+            question_type: mutatedQ.question_type || 'multiple_choice_single',
+            difficulty: mutatedQ.difficulty || 'Trung bình',
+            explanation: mutatedQ.explanation || '',
+            topic: mutatedQ.topic || (demo.subject_name === 'Toán học' ? 'Khảo sát hàm số' : (demo.subject_name === 'Vật lý' ? 'Dao động cơ học' : (demo.subject_name === 'Tiếng Anh' ? 'Ngữ pháp' : 'Hóa hữu cơ'))),
             created_at: new Date().toISOString()
+          });
+
+          mutatedQ.options.forEach((opt, oIdx) => {
+            const optionId = `opt-uuid-${year}-000${dIdx + 1}-${qIdx + 1}-${oIdx + 1}`;
+            options.push({
+              id: optionId,
+              question_id: questionId,
+              option_label: opt.option_label,
+              option_text: opt.option_text,
+              option_image_url: opt.option_image_url || null,
+              is_correct: opt.is_correct || false,
+              created_at: new Date().toISOString()
+            });
           });
         });
       });

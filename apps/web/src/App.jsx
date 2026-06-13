@@ -36,6 +36,8 @@ import MockExamResultPage from './pages/MockExamResultPage';
 import { enrollmentService } from './services/enrollmentService';
 import './styles/mockExams.css';
 import './styles/dashboard.css';
+import './styles/courses.css';
+
 
 import { HiPlay, HiDocumentDownload, HiBeaker, HiX } from 'react-icons/hi';
 import { api } from './api';

@@ -401,3 +401,38 @@
   0% { transform: scale(1); }
   100% { transform: scale(1.03); }
 }
+
+/* ── Scientific Calculator casio panel ── */
+.casio-calculator-panel {
+  position: absolute;
+  top: 60px;
+  left: 20px;
+  z-index: 1000;
+  width: 320px;
+  transition: box-shadow 0.2s;
+}
+
+.casio-calculator-panel button {
+  transition: background-color 0.15s, transform 0.05s;
+}
+
+.casio-calculator-panel button:hover {
+  filter: brightness(1.15);
+}
+
+.casio-calculator-panel button:active {
+  transform: scale(0.95);
+}
+
+/* ── Scratchpad Panel ── */
+.scratchpad-panel {
+  margin-bottom: 14px;
+  box-shadow: 0 4px 12px rgba(0, 184, 148, 0.08);
+  transition: border-color 0.2s;
+}
+
+.scratchpad-panel textarea:focus {
+  border-color: var(--accent-green) !important;
+  box-shadow: 0 0 0 3px rgba(0, 184, 148, 0.1) !important;
+}
+

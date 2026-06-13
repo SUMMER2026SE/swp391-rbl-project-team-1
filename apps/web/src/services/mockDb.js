@@ -355,7 +355,38 @@ export const initMockDb = () => {
 // Database operation helpers for local fallback
 export const getLocalData = (key) => {
   initMockDb();
-  return JSON.parse(localStorage.getItem(key));
+  let data = null;
+  try {
+    data = JSON.parse(localStorage.getItem(key));
+  } catch (e) {
+    data = null;
+  }
+  
+  const pluralKeys = [
+    'supabase_mock_subjects',
+    'supabase_mock_teacher_profiles',
+    'supabase_mock_courses',
+    'supabase_mock_chapters',
+    'supabase_mock_lessons',
+    'supabase_mock_materials',
+    'supabase_mock_payments',
+    'supabase_mock_course_enrollments',
+    'supabase_mock_lesson_progress',
+    'supabase_mock_reviews',
+    'supabase_mock_teacher_messages',
+    'supabase_mock_ai_messages'
+  ];
+
+  if (!data || (pluralKeys.includes(key) && !Array.isArray(data))) {
+    localStorage.removeItem(key);
+    initMockDb();
+    try {
+      data = JSON.parse(localStorage.getItem(key));
+    } catch (e) {
+      data = [];
+    }
+  }
+  return data;
 };
 
 export const setLocalData = (key, data) => {
