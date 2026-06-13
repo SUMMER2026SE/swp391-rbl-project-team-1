@@ -7,7 +7,7 @@ import { initSocket } from './lib/socket.js';
 // Controller imports
 import { login, logout, register, sendOtp, resendOtp, verifyOtpRegister, googleAuth, googleCompleteOnboarding, changePassword, forgotPassword, resetPassword, requestRoleChange, getRoleChangeRequests, reviewRoleChange } from './controllers/auth.js';
 import { getCourses, getCourseById, createCourse, getCourseStats } from './controllers/course.js';
-import { getExams, startAttempt, submitAttempt } from './controllers/exam.js';
+import { getExams, startAttempt, submitAttempt, getAttempts, getExamQuestionsPublic } from './controllers/exam.js';
 import { streamAIChat, refreshRoadmap, generateAIQuestions } from './controllers/ai.js';
 import { chatbotConsult } from './controllers/chatbot.js';
 import { createVNPayPayment, vnpayWebhook, sepayWebhook, checkEnrollmentStatus, checkUserProStatus } from './controllers/payment.js';
@@ -72,6 +72,8 @@ app.post('/courses', authenticateJWT, requireRole(['TEACHER', 'ADMIN']), createC
 
 // Protected Exam Routes
 app.get('/exams', getExams);
+app.get('/exams/:id/questions', getExamQuestionsPublic);
+app.get('/exams/attempts', authenticateJWT, requireRole(['STUDENT']), getAttempts);
 app.post('/exams/:id/attempts', authenticateJWT, requireRole(['STUDENT']), startAttempt);
 app.post('/exams/:id/attempts/:attemptId/submit', authenticateJWT, requireRole(['STUDENT']), submitAttempt);
 

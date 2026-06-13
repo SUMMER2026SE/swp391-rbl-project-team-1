@@ -6,14 +6,14 @@ import {
 
 const navConfigs = {
   student: [
-    { icon: HiHome, label: 'Trang chủ', id: 'home' },
-    { icon: HiAcademicCap, label: 'Lộ trình học AI', id: 'path' },
-    { icon: HiBookOpen, label: 'Kho khóa học', id: 'courses' },
-    { icon: HiClipboardCheck, label: 'Kiểm tra trực tuyến', id: 'tests' },
-    { icon: HiChat, label: 'Diễn đàn học tập', id: 'forum' },
-    { icon: HiChat, label: 'Hỏi đáp AI / Giáo viên', id: 'ai-qa' },
-    { icon: HiCollection, label: 'Thư viện tài liệu', id: 'library' },
-    { icon: HiCog, label: 'Thiết lập profile', id: 'settings' }
+    { label: '🏠 Trang chủ', id: 'home' },
+    { label: '📚 Khóa học', id: 'courses' },
+    { label: '📝 Thi thử', id: 'tests' },
+    { label: '📈 Lộ trình học', id: 'path' },
+    { label: '🤖 AI Gia sư', id: 'ai-qa' },
+    { label: '📖 Ngân hàng đề', id: 'library' },
+    { label: '🏆 Bảng xếp hạng', id: 'leaderboard' },
+    { label: '💬 Cộng đồng', id: 'forum' }
   ],
   teacher: [
     { icon: HiHome, label: 'Quản lý khóa học', id: 'home' },
@@ -61,12 +61,39 @@ export default function Sidebar({ role, active, setActive, userProfile, onLogout
             key={item.id}
             className={`nav-item ${active === item.id ? 'active' : ''}`}
             onClick={() => setActive(item.id)}
+            style={role === 'student' ? { paddingLeft: '20px' } : {}}
           >
-            <span className="nav-icon"><item.icon /></span>
+            {item.icon && <span className="nav-icon"><item.icon /></span>}
             {item.label}
           </button>
         ))}
       </nav>
+
+      {role === 'student' && (
+        <div style={{ padding: '0 16px 12px 16px' }}>
+          <button
+            onClick={() => setActive('path')}
+            style={{
+              width: '100%',
+              padding: '11px',
+              background: 'linear-gradient(135deg, #6C5CE7, #8e7cf8)',
+              color: '#fff',
+              border: '2px solid #000',
+              borderRadius: '12px',
+              fontWeight: '900',
+              cursor: 'pointer',
+              boxShadow: '3px 3px 0px #000',
+              textAlign: 'center',
+              fontSize: '12.5px',
+              transition: 'all 0.15s'
+            }}
+            onMouseEnter={e => { e.currentTarget.style.transform = 'translate(-1px, -1px)'; e.currentTarget.style.boxShadow = '4px 4px 0px #000'; }}
+            onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '3px 3px 0px #000'; }}
+          >
+            [ Bắt đầu học ]
+          </button>
+        </div>
+      )}
 
       {role === 'student' && !userProfile?.isPro && (
         <div className="sidebar-upgrade">
