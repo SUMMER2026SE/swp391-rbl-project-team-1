@@ -37,6 +37,10 @@ import { enrollmentService } from './services/enrollmentService';
 import './styles/mockExams.css';
 import './styles/dashboard.css';
 import './styles/courses.css';
+import AITutorPage from './pages/AITutorPage';
+import './styles/aitutor.css';
+import ExamBankPage from './pages/ExamBankPage';
+import './styles/exambank.css';
 
 
 import { HiPlay, HiDocumentDownload, HiBeaker, HiX } from 'react-icons/hi';
@@ -525,8 +529,15 @@ export default function App() {
     const handlePopState = () => {
       setCurrentPath(window.location.pathname);
     };
+    const handleAuthRedirect = (e) => {
+      setActiveTab(e.detail.mode);
+    };
     window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
+    window.addEventListener('edupath-auth-redirect', handleAuthRedirect);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+      window.removeEventListener('edupath-auth-redirect', handleAuthRedirect);
+    };
   }, []);
 
   const navigateTo = (path) => {
@@ -560,6 +571,14 @@ export default function App() {
     const mockExamResultMatch = currentPath.match(/^\/mock-exams\/([^/]+)\/result\/([^/]+)$/);
     if (mockExamResultMatch) {
       return { route: 'mock-exam-result', examId: mockExamResultMatch[1], attemptId: mockExamResultMatch[2] };
+    }
+
+    if (currentPath.startsWith('/ai-tutor')) {
+      return { route: 'ai-tutor' };
+    }
+
+    if (currentPath === '/exam-bank') {
+      return { route: 'exam-bank' };
     }
 
     return { route: 'legacy' };
@@ -1093,12 +1112,16 @@ export default function App() {
       {role !== 'guest' && activeTab !== 'landing' && (
         <Sidebar
           role={role}
-          active={parsedRoute.route !== 'legacy' ? (parsedRoute.route.startsWith('mock-') ? 'tests' : 'courses') : activeTab}
+          active={parsedRoute.route !== 'legacy' ? (parsedRoute.route.startsWith('mock-') ? 'tests' : (parsedRoute.route === 'ai-tutor' ? 'ai-qa' : (parsedRoute.route === 'exam-bank' ? 'library' : 'courses'))) : activeTab}
           setActive={(tab) => {
             if (tab === 'courses') {
               navigateTo('/courses');
             } else if (tab === 'tests') {
               navigateTo('/mock-exams');
+            } else if (tab === 'ai-qa') {
+              navigateTo('/ai-tutor');
+            } else if (tab === 'library') {
+              navigateTo('/exam-bank');
             } else {
               navigateTo('/');
               setActiveTab(tab);
@@ -1139,7 +1162,7 @@ export default function App() {
           )}
 
           {/* ================= PUBLIC OR PREVIEW LANDING PAGE ================= */}
-          {(role === 'guest' || activeTab === 'landing') && !parsedRoute.route.startsWith('mock-') && (
+          {(role === 'guest' || activeTab === 'landing') && !parsedRoute.route.startsWith('mock-') && parsedRoute.route !== 'ai-tutor' && parsedRoute.route !== 'exam-bank' && (
             <div>
               {role === 'guest' && activeTab === 'reset-password' ? (
                 <div className="auth-page-layout" style={{ position: 'relative', display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '80vh', padding: '20px' }}>
@@ -1300,6 +1323,27 @@ export default function App() {
                   navigateTo={navigateTo}
                 />
               )}
+            </div>
+          )}
+
+          {/* ================= AI TUTOR WORKSPACE ================= */}
+          {parsedRoute.route === 'ai-tutor' && (
+            <div style={{ padding: '20px 0' }}>
+              <AITutorPage
+                currentUser={currentUser}
+                navigateTo={navigateTo}
+                addLog={addLog}
+              />
+            </div>
+          )}
+
+          {/* ================= EXAM BANK PAGE ================= */}
+          {parsedRoute.route === 'exam-bank' && (
+            <div style={{ padding: '0' }}>
+              <ExamBankPage
+                currentUser={currentUser}
+                navigateTo={navigateTo}
+              />
             </div>
           )}
 

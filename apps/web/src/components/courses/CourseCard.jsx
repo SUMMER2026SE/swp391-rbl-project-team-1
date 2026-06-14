@@ -1,8 +1,7 @@
-import { HiStar, HiUserGroup, HiBookOpen, HiClock, HiPlay, HiLockClosed } from 'react-icons/hi';
+import { HiStar, HiUserGroup, HiBookOpen, HiClock, HiPlay, HiCheckCircle } from 'react-icons/hi';
 
-// Subject-to-thumbnail mapping using real generated images
-const SUBJECT_THUMBS = {
-  'Toán học': '/course_thumb_math.png',
+const SUBJECT_THUMBNAILS = {
+  'Toán': '/course_thumb_math.png',
   'Vật lý': '/course_thumb_physics.png',
   'Tiếng Anh': '/course_thumb_english.png',
   'Hóa học': '/course_thumb_chemistry.png',
@@ -13,23 +12,30 @@ const SUBJECT_THUMBS = {
   'GDCD': '/course_thumb_literature.png',
 };
 
-const SUBJECT_COLORS = {
-  'Toán học':   { accent: '#4F46E5', light: '#EEF2FF', label: 'Toán học' },
-  'Vật lý':     { accent: '#0891B2', light: '#ECFEFF', label: 'Vật lý' },
-  'Tiếng Anh':  { accent: '#D97706', light: '#FFFBEB', label: 'Tiếng Anh' },
-  'Hóa học':    { accent: '#0D9488', light: '#F0FDFA', label: 'Hóa học' },
-  'Ngữ văn':    { accent: '#BE185D', light: '#FDF2F8', label: 'Ngữ văn' },
-  'Sinh học':   { accent: '#16A34A', light: '#F0FDF4', label: 'Sinh học' },
-  'Lịch sử':    { accent: '#92400E', light: '#FFFBEB', label: 'Lịch sử' },
-  'Địa lý':     { accent: '#0369A1', light: '#F0F9FF', label: 'Địa lý' },
-  'GDCD':       { accent: '#6D28D9', light: '#F5F3FF', label: 'GDCD' },
+// Return accent color variable name based on subject
+const getSubjectColorVar = (subject) => {
+  switch (subject) {
+    case 'Toán': return 'var(--subject-toan)';
+    case 'Vật lý': return 'var(--subject-ly)';
+    case 'Hóa học': return 'var(--subject-hoa)';
+    case 'Ngữ văn': return 'var(--subject-van)';
+    case 'Tiếng Anh': return 'var(--subject-anh)';
+    case 'Sinh học': return 'var(--subject-sinh)';
+    case 'Lịch sử': return 'var(--subject-su)';
+    case 'Địa lý': return 'var(--subject-dia)';
+    case 'GDCD': return 'var(--subject-gdcd)';
+    default: return 'var(--emerald-primary)';
+  }
 };
 
-const BADGE_STYLES = {
-  'Best seller': { bg: '#F59E0B', label: 'Bán chạy' },
-  'Hot':         { bg: '#EF4444', label: 'Hot' },
-  'New':         { bg: '#10B981', label: 'Mới' },
-  'Recommended': { bg: '#6366F1', label: 'Đề xuất' },
+const getBadgeClass = (badge) => {
+  switch (badge) {
+    case 'ĐỀ XUẤT': return 'cc-badge--de-xuat';
+    case 'BÁN CHẠY': return 'cc-badge--ban-chay';
+    case 'MỚI': return 'cc-badge--moi';
+    case 'HOT': return 'cc-badge--hot';
+    default: return '';
+  }
 };
 
 function StarRating({ rating }) {
@@ -54,74 +60,91 @@ function StarRating({ rating }) {
 
 export default function CourseCard({ course, onSelect, onPurchase, isOwned }) {
   const {
+    id,
     title,
     subject,
-    subject_group,
-    description,
-    price,
-    original_price,
-    discount_percent,
-    rating,
-    student_count,
-    lesson_count,
-    duration,
+    block,
+    thumbnail,
     badge,
-    teacher_name,
-    thumbnail_url,
+    description,
+    rating,
+    reviewCount,
+    lessonCount,
+    durationHours,
+    studentCount,
+    instructor,
+    priceOriginal,
+    priceSale,
+    discountPercent,
   } = course;
 
-  const thumb = thumbnail_url || SUBJECT_THUMBS[subject] || '/course_thumb_math.png';
-  const subjectStyle = SUBJECT_COLORS[subject] || { accent: '#4F46E5', light: '#EEF2FF', label: subject };
-  const badgeStyle = badge ? BADGE_STYLES[badge] : null;
+  const thumbUrl = thumbnail || SUBJECT_THUMBNAILS[subject] || '/course_thumb_math.png';
+  const subjectColor = getSubjectColorVar(subject);
+  const badgeClass = getBadgeClass(badge);
 
-  const ratingNum = typeof rating === 'number' ? rating : parseFloat(rating) || 4.7;
-  const studentsFormatted = student_count >= 1000
-    ? `${(student_count / 1000).toFixed(1)}k`
-    : student_count?.toString() || '0';
+  const studentsFormatted = studentCount >= 1000
+    ? `${(studentCount / 1000).toFixed(1)}k`
+    : studentCount?.toString() || '0';
+
+  const handleCardClick = () => {
+    if (onSelect) onSelect(course);
+  };
+
+  const handleButtonClick = (e) => {
+    e.stopPropagation(); // prevent card click triggers
+    if (isOwned) {
+      if (onSelect) onSelect(course);
+    } else {
+      if (onPurchase) onPurchase(course);
+    }
+  };
 
   return (
     <div
       className="cc-card"
-      onClick={() => onSelect(course)}
+      onClick={handleCardClick}
       role="button"
       tabIndex={0}
-      onKeyDown={e => e.key === 'Enter' && onSelect(course)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          handleCardClick();
+        }
+      }}
+      aria-label={`Khóa học ${title} giảng dạy bởi ${instructor.name}`}
     >
       {/* ── THUMBNAIL ── */}
       <div className="cc-thumb">
         <img
-          src={thumb}
+          src={thumbUrl}
           alt={title}
           className="cc-thumb__img"
-          onError={e => {
+          loading="lazy"
+          onError={(e) => {
             e.target.onerror = null;
             e.target.src = '/course_thumb_math.png';
           }}
         />
-        {/* Gradient overlay for text legibility */}
         <div className="cc-thumb__overlay" />
 
         {/* Badge */}
-        {badgeStyle && (
-          <span
-            className="cc-badge"
-            style={{ background: badgeStyle.bg }}
-          >
-            {badgeStyle.label}
+        {badge && (
+          <span className={`cc-badge ${badgeClass}`}>
+            {badge}
           </span>
         )}
 
         {/* Subject chip */}
         <span
           className="cc-subject-chip"
-          style={{ background: subjectStyle.accent }}
+          style={{ backgroundColor: subjectColor }}
         >
-          {subjectStyle.label}
+          {subject}
         </span>
 
         {/* Play overlay on hover */}
         <div className="cc-play-overlay">
-          <span className="cc-play-btn">
+          <span className="cc-play-btn" style={{ color: subjectColor }}>
             <HiPlay />
           </span>
         </div>
@@ -129,39 +152,41 @@ export default function CourseCard({ course, onSelect, onPurchase, isOwned }) {
 
       {/* ── BODY ── */}
       <div className="cc-body">
-        {/* Grade tag */}
-        {subject_group && (
-          <span className="cc-grade-tag">Khối {subject_group} · Luyện thi THPTQG</span>
-        )}
+        {/* Block info */}
+        <span className="cc-grade-tag">
+          {block} · Luyện thi THPTQG
+        </span>
 
         {/* Title */}
-        <h3 className="cc-title">{title}</h3>
+        <h3 className="cc-title" title={title}>
+          {title}
+        </h3>
 
         {/* Description */}
-        {description && (
-          <p className="cc-desc">{description}</p>
-        )}
+        <p className="cc-desc">
+          {description}
+        </p>
 
         {/* Rating row */}
         <div className="cc-rating-row">
-          <span className="cc-rating-num">{ratingNum.toFixed(1)}</span>
-          <StarRating rating={ratingNum} />
-          <span className="cc-rating-count">({student_count?.toLocaleString('vi-VN') || 0})</span>
+          <span className="cc-rating-num">{rating.toFixed(1)}</span>
+          <StarRating rating={rating} />
+          <span className="cc-rating-count">({reviewCount.toLocaleString('vi-VN')})</span>
         </div>
 
         {/* Metrics */}
         <div className="cc-metrics">
           <span className="cc-metric">
             <HiBookOpen className="cc-metric__icon" />
-            {lesson_count} bài
+            {lessonCount} bài giảng
           </span>
           <span className="cc-metric">
             <HiClock className="cc-metric__icon" />
-            {duration}
+            {durationHours} giờ
           </span>
           <span className="cc-metric">
             <HiUserGroup className="cc-metric__icon" />
-            {studentsFormatted} học sinh
+            {studentsFormatted} học viên
           </span>
         </div>
 
@@ -169,13 +194,13 @@ export default function CourseCard({ course, onSelect, onPurchase, isOwned }) {
         <div className="cc-teacher">
           <div
             className="cc-teacher__avatar"
-            style={{ background: subjectStyle.accent }}
+            style={{ backgroundColor: subjectColor }}
           >
-            {teacher_name?.charAt(0).toUpperCase() || 'G'}
+            {instructor.avatar || instructor.name.charAt(0).toUpperCase()}
           </div>
           <div className="cc-teacher__info">
-            <span className="cc-teacher__name">{teacher_name}</span>
-            <span className="cc-teacher__role">Giảng viên chuyên môn</span>
+            <span className="cc-teacher__name">{instructor.name}</span>
+            <span className="cc-teacher__role">{instructor.title}</span>
           </div>
         </div>
       </div>
@@ -183,30 +208,33 @@ export default function CourseCard({ course, onSelect, onPurchase, isOwned }) {
       {/* ── FOOTER ── */}
       <div className="cc-footer">
         <div className="cc-price-group">
-          {discount_percent > 0 && original_price > 0 && (
+          {discountPercent > 0 && priceOriginal > 0 && (
             <span className="cc-price-original">
-              {original_price.toLocaleString('vi-VN')}đ
+              {priceOriginal.toLocaleString('vi-VN')}đ
             </span>
           )}
-          <span className="cc-price-current">
-            {price === 0 ? 'Miễn phí' : `${price.toLocaleString('vi-VN')}đ`}
+          <span className="cc-price-current" style={{ color: subjectColor }}>
+            {priceSale === 0 ? 'Miễn phí' : `${priceSale.toLocaleString('vi-VN')}đ`}
           </span>
-          {discount_percent > 0 && (
-            <span className="cc-discount">-{discount_percent}%</span>
+          {discountPercent > 0 && (
+            <span className="cc-discount">-{discountPercent}%</span>
           )}
         </div>
 
         {isOwned ? (
           <button
             className="cc-btn cc-btn--owned"
-            onClick={e => { e.stopPropagation(); onSelect(course); }}
+            onClick={handleButtonClick}
+            aria-label="Tiếp tục học khóa này"
           >
-            <HiPlay style={{ marginRight: 4 }} /> Tiếp tục học
+            <HiCheckCircle style={{ marginRight: 4, fontSize: '16px' }} /> Vào học
           </button>
         ) : (
           <button
             className="cc-btn cc-btn--enroll"
-            onClick={e => { e.stopPropagation(); onPurchase(course); }}
+            onClick={handleButtonClick}
+            aria-label={`Đăng ký khóa học ${title}`}
+            style={{ backgroundColor: subjectColor }}
           >
             Đăng ký ngay
           </button>
