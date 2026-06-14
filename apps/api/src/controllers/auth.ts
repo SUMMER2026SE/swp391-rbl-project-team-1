@@ -2,7 +2,7 @@ import type { Request, Response } from 'express';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { prisma } from '../lib/prisma.js';
-import { sendOTPEmail, sendRoleChangeNotification, isRealSmtpActive } from '../lib/mailer.js';
+import { sendOTPEmail, sendResetPasswordEmail, sendRoleChangeNotification, isRealSmtpActive } from '../lib/mailer.js';
 import { isDisposableEmail, isValidEmailFormat } from '../lib/disposable-domains.js';
 import { checkOtpSendRateLimit, recordOtpSend, checkResendCooldown, recordResendCooldown } from '../lib/rate-limiter.js';
 
@@ -54,7 +54,13 @@ export async function login(req: Request, res: Response) {
     const user = await prisma.user.findUnique({
       where: { email },
       include: {
-        student: true,
+        student: {
+          include: {
+            enrollments: {
+              select: { courseId: true, paidAt: true, id: true }
+            }
+          }
+        },
         teacher: true
       }
     });
@@ -78,10 +84,71 @@ export async function login(req: Request, res: Response) {
       success: true,
       data: {
         ...tokens,
-        user: buildUserPayload(user)
+        user: {
+          ...buildUserPayload(user),
+          enrollments: user.student?.enrollments || []
+        }
       }
     });
   } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+}
+
+// Update user profile (PATCH /auth/profile)
+export async function updateProfile(req: Request, res: Response) {
+  const userId = (req as any).user?.id;
+
+  if (!userId) {
+    return res.status(401).json({ success: false, error: 'Chưa xác thực!' });
+  }
+
+  const { fullName, avatarUrl, subjectGroup, phone, city, school, targetScore, targetUniversity, combo } = req.body;
+
+  try {
+    // Update base user info
+    const updatedUser = await prisma.user.update({
+      where: { id: userId },
+      data: {
+        ...(fullName ? { fullName } : {}),
+        ...(avatarUrl !== undefined ? { avatarUrl } : {}),
+      },
+      include: {
+        student: {
+          include: {
+            enrollments: {
+              select: { courseId: true, paidAt: true, id: true }
+            }
+          }
+        }
+      }
+    });
+
+    // Update student subjectGroup if provided (stored as extra fields in Student table)
+    if (updatedUser.student && subjectGroup) {
+      await prisma.student.update({
+        where: { userId },
+        data: { subjectGroup }
+      });
+    }
+
+    console.log(`[Profile Update] Cập nhật hồ sơ thành công cho người dùng ID: ${userId}`);
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        id: updatedUser.id,
+        email: updatedUser.email,
+        fullName: updatedUser.fullName,
+        avatarUrl: updatedUser.avatarUrl,
+        role: updatedUser.role,
+        isPro: updatedUser.isPro,
+        subjectGroup: subjectGroup || updatedUser.student?.subjectGroup || null,
+        enrollments: updatedUser.student?.enrollments || []
+      }
+    });
+  } catch (err: any) {
+    console.error('[Profile Update Error]', err);
     return res.status(500).json({ success: false, error: err.message });
   }
 }
@@ -613,9 +680,50 @@ export async function changePassword(req: Request, res: Response) {
   }
 }
 
-// ═════════════════════════════════════════════════════════
-// REQUEST ROLE CHANGE (user submits request)
-// ═════════════════════════════════════════════════════════
+export async function forgotPassword(req: Request, res: Response) {
+  const { email } = req.body;
+
+  if (!email) {
+    return res.status(400).json({ success: false, error: 'Vui lòng cung cấp địa chỉ Email.' });
+  }
+
+  try {
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user) {
+      return res.status(404).json({ success: false, error: 'Không tìm thấy tài khoản với Email này.' });
+    }
+
+    // Generate a secure reset token containing userId with 15 minutes expiration
+    const token = jwt.sign(
+      { id: user.id, purpose: 'reset-password' },
+      JWT_SECRET,
+      { expiresIn: '15m' }
+    );
+
+    // Build the reset link pointing to the local frontend
+    const clientUrl = process.env.CLIENT_URL || 'http://localhost:5174';
+    const resetLink = `${clientUrl}/reset-password?token=${token}`;
+
+    const sent = await sendResetPasswordEmail(email, user.fullName, resetLink);
+    if (!sent) {
+      // In local development, if SMTP is not configured, we also simulate and return the token so they can test easily!
+      console.warn(`[Forgot Password] SMTP not configured. Simulated reset link: ${resetLink}`);
+      return res.status(200).json({ 
+        success: true, 
+        data: {
+          simulated: true,
+          resetLink,
+          message: 'Hệ thống đang chạy local (không có cấu hình SMTP). Dưới đây là link khôi phục mật khẩu để bạn dễ dàng test thử:'
+        } 
+      });
+    }
+
+    return res.status(200).json({ success: true, data: 'Đường dẫn đặt lại mật khẩu đã được gửi vào Email của bạn!' });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+}
+
 export async function requestRoleChange(req: Request, res: Response) {
   const { requestedRole, reason } = req.body;
   const userId = (req as any).user?.id;
@@ -667,9 +775,46 @@ export async function requestRoleChange(req: Request, res: Response) {
   }
 }
 
-// ═════════════════════════════════════════════════════════
-// GET ROLE CHANGE REQUESTS (admin only)
-// ═════════════════════════════════════════════════════════
+export async function resetPassword(req: Request, res: Response) {
+  const { token, password } = req.body;
+
+  if (!token || !password) {
+    return res.status(400).json({ success: false, error: 'Thiếu thông tin mã xác nhận hoặc mật khẩu mới.' });
+  }
+
+  if (password.length < 6) {
+    return res.status(400).json({ success: false, error: 'Mật khẩu mới phải có tối thiểu 6 ký tự.' });
+  }
+
+  try {
+    // Verify token
+    const decoded = jwt.verify(token, JWT_SECRET) as any;
+    if (!decoded || decoded.purpose !== 'reset-password') {
+      return res.status(400).json({ success: false, error: 'Mã xác thực không hợp lệ!' });
+    }
+
+    const userId = decoded.id;
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      return res.status(404).json({ success: false, error: 'Người dùng không tồn tại.' });
+    }
+
+    // Hash and update the password
+    const passwordHash = await bcrypt.hash(password, 12);
+    await prisma.user.update({
+      where: { id: userId },
+      data: { passwordHash }
+    });
+
+    return res.status(200).json({ success: true, data: 'Đặt lại mật khẩu thành công! Vui lòng đăng nhập lại bằng mật khẩu mới.' });
+  } catch (err: any) {
+    if (err.name === 'TokenExpiredError') {
+      return res.status(400).json({ success: false, error: 'Đường dẫn đặt lại mật khẩu đã hết hạn (tối đa 15 phút)!' });
+    }
+    return res.status(400).json({ success: false, error: 'Mã token đặt lại mật khẩu không hợp lệ hoặc đã bị chỉnh sửa!' });
+  }
+}
+
 export async function getRoleChangeRequests(req: Request, res: Response) {
   try {
     const requests = await prisma.roleChangeRequest.findMany({
@@ -686,9 +831,6 @@ export async function getRoleChangeRequests(req: Request, res: Response) {
   }
 }
 
-// ═════════════════════════════════════════════════════════
-// REVIEW ROLE CHANGE (admin approves/rejects)
-// ═════════════════════════════════════════════════════════
 export async function reviewRoleChange(req: Request, res: Response) {
   const requestId = parseInt(req.params.id);
   const { action } = req.body; // 'approve' or 'reject'

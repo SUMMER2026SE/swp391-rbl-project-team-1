@@ -386,6 +386,63 @@ export default function UpgradeModal({ onClose, onUpgradeSuccess, addLog }) {
               <strong style={{ fontSize: '17px', color: 'var(--accent-orange)' }}>{exactAmount.toLocaleString()}đ</strong>
             </div>
 
+            {/* Elegant CSS Premium Gold Card Mockup */}
+            <div style={{
+              background: 'linear-gradient(135deg, #1f1c2c 0%, #928dab 100%)',
+              borderRadius: '16px',
+              padding: '20px',
+              color: '#fff',
+              position: 'relative',
+              overflow: 'hidden',
+              boxShadow: '0 12px 24px rgba(0,0,0,0.2)',
+              marginBottom: '16px',
+              border: '1.5px solid #ffa751',
+              fontFamily: '"SF Pro Display", -apple-system, sans-serif'
+            }}>
+              {/* Card glossy reflection overlay */}
+              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'linear-gradient(135deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0) 50%)', pointerEvents: 'none' }} />
+              
+              {/* Header: Bank & Card Type */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                <span style={{ fontSize: '14px', fontWeight: '800', letterSpacing: '1px', color: '#ffe259', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  👑 ACB PREMIUM PRO
+                </span>
+                <span style={{ fontSize: '9px', fontWeight: 'bold', background: 'linear-gradient(135deg, #ffa751, #ffe259)', color: '#000', padding: '3px 8px', borderRadius: '4px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  PRO MEMBER
+                </span>
+              </div>
+
+              {/* EMV Chip Mockup */}
+              <div style={{
+                width: '32px', height: '24px',
+                background: 'linear-gradient(135deg, #ffe259 0%, #ffa751 100%)',
+                borderRadius: '4px',
+                position: 'relative',
+                marginBottom: '14px',
+                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.3)'
+              }}>
+                <div style={{ position: 'absolute', top: '4px', bottom: '4px', left: '10px', right: '10px', borderLeft: '1px solid rgba(0,0,0,0.15)', borderRight: '1px solid rgba(0,0,0,0.15)' }} />
+                <div style={{ position: 'absolute', left: '4px', right: '4px', top: '8px', bottom: '8px', borderTop: '1px solid rgba(0,0,0,0.15)', borderBottom: '1px solid rgba(0,0,0,0.15)' }} />
+              </div>
+
+              {/* Card Number */}
+              <div style={{ fontSize: '18px', fontWeight: 'bold', letterSpacing: '3px', fontFamily: 'monospace', marginBottom: '16px', textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>
+                {ACCOUNT_NO}
+              </div>
+
+              {/* Footer: Cardholder & Expiry */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+                <div>
+                  <div style={{ fontSize: '8px', color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', marginBottom: '2px' }}>Chủ tài khoản</div>
+                  <div style={{ fontSize: '13px', fontWeight: 'bold', letterSpacing: '0.5px', color: '#ffe259' }}>{ACCOUNT_NAME}</div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontSize: '8px', color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', marginBottom: '2px' }}>Thời hạn</div>
+                  <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#ffe259' }}>{activePlan.duration.toUpperCase()}</div>
+                </div>
+              </div>
+            </div>
+
             {/* Bank Transfer Specs */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>
               {/* STK */}

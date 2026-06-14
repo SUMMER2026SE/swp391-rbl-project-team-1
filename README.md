@@ -1,16 +1,58 @@
-# React + Vite
+# 🔧 Nhật ký thay đổi — EduPath AI
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+## 2026-06-05
 
-Currently, two official plugins are available:
+### Kết nối khoá học với cơ sở dữ liệu, tạm thời làm chức năng thanh toán pha kè, sửa luôn cái đăng xuất là chưa lưu dữ liệu (này chưa hoàn thiện lắm còn 1 số chưa lưu), Ở dưới là phần dã sửa:
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
 
-## React Compiler
+### ✅ Fix: Thanh toán Demo không mở được khóa học
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+**Nguyên nhân:** `CourseMall.jsx` kiểm tra `currentUser.enrollments[]` để xác định khóa học "Đã sở hữu", nhưng `handlePaymentSuccess` trong `App.jsx` chỉ cập nhật `unlockedCourses` mà bỏ quên `enrollments`.
 
-## Expanding the ESLint configuration
+**File đã sửa:** `apps/web/src/App.jsx` — `handlePaymentSuccess()`
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+```js
+// Sau fix: cập nhật đồng thời cả hai field
+setCurrentUser({
+  ...currentUser,
+  unlockedCourses: [...activeUnlocked, courseId],
+  enrollments: [...activeEnrollments, { courseId, paidAt: new Date().toISOString() }]
+});
+```
+
+---
+
+### ✅ Tính năng: Lưu dữ liệu vào PostgreSQL (không mất sau đăng xuất)
+
+**Vấn đề:** Toàn bộ dữ liệu chỉ lưu trong `localStorage`, khi đăng xuất và đăng nhập lại thì mất (enrollments, hồ sơ cá nhân).
+
+#### Backend — Thêm 2 API mới
+
+**`apps/api/src/controllers/payment.ts`**
+- Thêm `createDemoEnrollment()` — tạo bản ghi `Enrollment` thật trong PostgreSQL khi nhấn "Kích hoạt Demo"
+- `transactionId` dạng `DEMO_{studentId}_{courseId}_{timestamp}` để tránh trùng
+
+**`apps/api/src/controllers/auth.ts`**
+- Sửa `login()` — trả về kèm `enrollments[]` của student để frontend load ngay khi đăng nhập
+- Thêm `updateProfile()` — cập nhật `fullName`, `avatarUrl`, `subjectGroup` vào DB
+
+**`apps/api/src/index.ts`**
+- Đăng ký route `POST /enrollments/demo`
+- Đăng ký route `PATCH /auth/profile`
+
+#### Frontend — Kết nối với API
+
+**`apps/web/src/api.js`**
+- Thêm `api.demoEnroll(courseId)` — gọi `POST /enrollments/demo`
+- Thêm `api.updateProfile(payload)` — gọi `PATCH /auth/profile`
+
+**`apps/web/src/components/AuthPage.jsx`**
+- Sửa `mapBackendUser()` — giữ lại `enrollments[]` và `unlockedCourses[]` từ API response thay vì reset về `[]`
+
+**`apps/web/src/App.jsx`**
+- `handleAuthSuccess()` — map `enrollments` từ DB vào `currentUser` khi đăng nhập
+- `handlePaymentSuccess()` — gọi `api.demoEnroll()` sau khi cập nhật UI (optimistic update)
+- `handleSaveProfile()` — gọi `api.updateProfile()` khi lưu hồ sơ cá nhân
+- Tất cả có `try/catch` graceful fallback — nếu API lỗi thì UI vẫn hoạt động bình thường
+
+

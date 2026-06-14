@@ -52,6 +52,40 @@ export const api = {
   changePassword: (oldPassword, newPassword) =>
     request('/auth/change-password', { method: 'POST', body: { oldPassword, newPassword } }),
 
+  forgotPassword: (email) =>
+    request('/auth/forgot-password', { method: 'POST', body: { email } }),
+
+  resetPassword: (token, password) =>
+    request('/auth/reset-password', { method: 'POST', body: { token, password } }),
+
+  getCourses: (filters = {}) => {
+    const params = new URLSearchParams(filters).toString();
+    return request(`/courses?${params}`);
+  },
+
+  getCourseById: (id) => request(`/courses/${id}`),
+
+  createCourse: (payload) => request('/courses', { method: 'POST', body: payload }),
+
+  getExams: (subject) => request(`/exams${subject ? `?subject=${subject}` : ''}`),
+
+  getExamQuestionsPublic: (examId) => request(`/exams/${examId}/questions`),
+
+  getAttempts: () => request('/exams/attempts'),
+
+  startAttempt: (examId) => request(`/exams/${examId}/attempts`, { method: 'POST' }),
+
+  submitAttempt: (examId, attemptId, answers) => 
+    request(`/exams/${examId}/attempts/${attemptId}/submit`, { method: 'POST', body: { answers } }),
+
+  refreshRoadmap: () => request('/ai/roadmap/refresh', { method: 'POST' }),
+
+  createVNPayPayment: (courseId) => request('/enrollments', { method: 'POST', body: { courseId } }),
+
+  checkEnrollmentStatus: (courseId) => request(`/enrollments/status?courseId=${courseId}`),
+
+  checkProStatus: () => request('/users/pro-status'),
+
   requestRoleChange: (requestedRole, reason) =>
     request('/auth/role-change-request', { method: 'POST', body: { requestedRole, reason } }),
 
@@ -60,4 +94,73 @@ export const api = {
 
   reviewRoleChange: (requestId, action) =>
     request(`/admin/role-change-requests/${requestId}/review`, { method: 'POST', body: { action } }),
+
+  // Forum API helpers
+  getForumCategories: () =>
+    request('/forum/categories', { method: 'GET' }),
+
+  createForumCategory: (name, description, parentId) =>
+    request('/forum/categories', { method: 'POST', body: { name, description, parentId } }),
+
+  deleteForumCategory: (id) =>
+    request(`/forum/categories/${id}`, { method: 'DELETE' }),
+
+  getForumPosts: (params = {}) => {
+    const query = new URLSearchParams();
+    Object.entries(params).forEach(([k, v]) => {
+      if (v !== undefined && v !== null && v !== '') {
+        query.append(k, String(v));
+      }
+    });
+    return request(`/forum/posts?${query.toString()}`, { method: 'GET' });
+  },
+
+  getForumPostById: (id) =>
+    request(`/forum/posts/${id}`, { method: 'GET' }),
+
+  createForumPost: (postData) =>
+    request('/forum/posts', { method: 'POST', body: postData }),
+
+  deleteForumPost: (id) =>
+    request(`/forum/posts/${id}`, { method: 'DELETE' }),
+
+  togglePinForumPost: (id) =>
+    request(`/forum/posts/${id}/pin`, { method: 'PUT' }),
+
+  reactForumPost: (id, type) =>
+    request(`/forum/posts/${id}/react`, { method: 'POST', body: { type } }),
+
+  getForumComments: (postId) =>
+    request(`/forum/posts/${postId}/comments`, { method: 'GET' }),
+
+  createForumComment: (postId, content, parentId = null) =>
+    request(`/forum/posts/${postId}/comments`, { method: 'POST', body: { content, parentId } }),
+
+  acceptCommentSolution: (id) =>
+    request(`/forum/comments/${id}/accept`, { method: 'PUT' }),
+
+  getStudyGroups: () =>
+    request('/forum/study-groups', { method: 'GET' }),
+
+  createStudyGroup: (groupData) =>
+    request('/forum/study-groups', { method: 'POST', body: groupData }),
+
+  joinStudyGroup: (id) =>
+    request(`/forum/study-groups/${id}/join`, { method: 'POST' }),
+
+  leaveStudyGroup: (id) =>
+    request(`/forum/study-groups/${id}/leave`, { method: 'POST' }),
+
+  getForumLeaderboard: () =>
+    request('/forum/leaderboard', { method: 'GET' }),
+
+  getUserGamificationProfile: () =>
+    request('/forum/gamification/profile', { method: 'GET' }),
+
+  downloadResource: (id) =>
+    request(`/forum/resources/${id}/download`, { method: 'POST' }),
+
+  createForumReport: (postId, commentId, reason) =>
+    request('/forum/moderation/reports', { method: 'POST', body: { postId, commentId, reason } })
 };
+

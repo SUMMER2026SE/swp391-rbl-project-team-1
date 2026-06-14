@@ -1,6 +1,8 @@
 import { Server } from 'socket.io';
 import type { Server as HTTPServer } from 'http';
 
+let ioInstance: Server | null = null;
+
 export function initSocket(server: HTTPServer) {
   const io = new Server(server, {
     cors: {
@@ -9,12 +11,27 @@ export function initSocket(server: HTTPServer) {
     }
   });
 
+  ioInstance = io;
+
   io.on('connection', (socket) => {
     console.log(`[Socket] User connected: ${socket.id}`);
 
     socket.on('join_room', (roomId: string) => {
       socket.join(roomId);
       console.log(`[Socket] Socket ${socket.id} joined room: ${roomId}`);
+    });
+
+    // Forum post thread live updates
+    socket.on('join_post', (postId: string | number) => {
+      const room = `post_${postId}`;
+      socket.join(room);
+      console.log(`[Socket] Socket ${socket.id} joined post thread: ${room}`);
+    });
+
+    socket.on('leave_post', (postId: string | number) => {
+      const room = `post_${postId}`;
+      socket.leave(room);
+      console.log(`[Socket] Socket ${socket.id} left post thread: ${room}`);
     });
 
     socket.on('send_message', (data: { roomId: string; studentId: number; role: string; content: string }) => {
@@ -33,4 +50,8 @@ export function initSocket(server: HTTPServer) {
   });
 
   return io;
+}
+
+export function getIO() {
+  return ioInstance;
 }

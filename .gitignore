@@ -24,12 +24,19 @@ dist-ssr
 *.sw?
 .vercel
 
-# Environment variables
+# Environment variables - NEVER commit secrets to Git!
 .env
+.env.*
+*.env
 .env.local
 .env.*.local
+.env.development
 .env.development.local
+.env.test
 .env.test.local
+.env.production
 .env.production.local
-*.env
+*/.env
+apps/**/.env
+apps/**/.env.*
 
