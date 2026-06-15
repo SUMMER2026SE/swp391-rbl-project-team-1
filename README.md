@@ -2,6 +2,13 @@
 
 # 🔧 Nhật ký thay đổi — EduPath AI
 
+## 2026-06-15
+
+### ✅ Tính năng: Nâng cấp Luyện tập nhanh (Mini-Quiz) trong Ngân hàng đề thi
+- Hỗ trợ học sinh làm thử câu hỏi mẫu trực tuyến của 9 môn thi THPT Quốc Gia.
+- Hệ thống tự động chấm điểm, hiển thị hướng dẫn giải chi tiết ngay khi chọn đáp án trắc nghiệm.
+- Hỗ trợ soạn thảo dàn ý bài làm tự luận (môn Ngữ Văn) và xem gợi ý hướng dẫn chấm chi tiết.
+
 ## 2026-06-05
 
 ### Kết nối khoá học với cơ sở dữ liệu, tạm thời làm chức năng thanh toán pha kè, sửa luôn cái đăng xuất là chưa lưu dữ liệu (này chưa hoàn thiện lắm còn 1 số chưa lưu), Ở dưới là phần dã sửa:
