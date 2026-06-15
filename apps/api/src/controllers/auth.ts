@@ -3,7 +3,7 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import { prisma } from '../lib/prisma.js';
-import { sendOTPEmail, sendResetPasswordEmail, sendRoleChangeNotification, isRealSmtpActive } from '../lib/mailer.js';
+import { sendOTPEmail, sendResetPasswordEmail, sendResetPasswordOTPEmail, sendRoleChangeNotification, isRealSmtpActive } from '../lib/mailer.js';
 import { isDisposableEmail, isValidEmailFormat } from '../lib/disposable-domains.js';
 import { checkOtpSendRateLimit, recordOtpSend, checkResendCooldown, recordResendCooldown } from '../lib/rate-limiter.js';
 
@@ -694,32 +694,123 @@ export async function forgotPassword(req: Request, res: Response) {
       return res.status(404).json({ success: false, error: 'Không tìm thấy tài khoản với Email này.' });
     }
 
-    // Generate a secure reset token containing userId with 15 minutes expiration
+    // Generate 6-digit OTP and hash it
+    const otp = generateOTP();
+    const otpHash = await bcrypt.hash(otp, 10);
+
+    // Invalidate old PASSWORD_RESET OTPs for this email
+    await prisma.otpVerification.updateMany({
+      where: { email: email.toLowerCase(), purpose: 'PASSWORD_RESET', isUsed: false },
+      data: { isUsed: true }
+    });
+
+    // Store in database
+    await prisma.otpVerification.create({
+      data: {
+        email: email.toLowerCase(),
+        otpHash,
+        purpose: 'PASSWORD_RESET',
+        expiresAt: new Date(Date.now() + OTP_TTL_MS) // 5 minutes
+      }
+    });
+
+    // Send email via SMTP
+    const sent = await sendResetPasswordOTPEmail(email, user.fullName, otp);
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        message: 'Mã OTP khôi phục mật khẩu đã được gửi vào Email của bạn!',
+        devOtp: !isRealSmtpActive ? otp : undefined
+      }
+    });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+}
+
+export async function verifyResetOtp(req: Request, res: Response) {
+  const { email, otp } = req.body;
+
+  if (!email || !otp) {
+    return res.status(400).json({ success: false, error: 'Thiếu email hoặc mã OTP.' });
+  }
+
+  try {
+    const user = await prisma.user.findUnique({ where: { email: email.toLowerCase() } });
+    if (!user) {
+      return res.status(404).json({ success: false, error: 'Người dùng không tồn tại.' });
+    }
+
+    // Find the latest unused, non-expired OTP for this email with purpose PASSWORD_RESET
+    const record = await prisma.otpVerification.findFirst({
+      where: {
+        email: email.toLowerCase(),
+        purpose: 'PASSWORD_RESET',
+        isUsed: false
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    if (!record) {
+      return res.status(400).json({ success: false, error: 'Vui lòng yêu cầu mã OTP khôi phục mật khẩu trước.' });
+    }
+
+    // Check expiry
+    if (new Date() > record.expiresAt) {
+      await prisma.otpVerification.update({
+        where: { id: record.id },
+        data: { isUsed: true }
+      });
+      return res.status(400).json({ success: false, error: 'Mã OTP đã hết hạn. Hãy yêu cầu mã mới.' });
+    }
+
+    // Check max attempts
+    if (record.attempts >= record.maxAttempts) {
+      await prisma.otpVerification.update({
+        where: { id: record.id },
+        data: { isUsed: true }
+      });
+      return res.status(429).json({
+        success: false,
+        error: 'Đã vượt quá số lần thử. Vui lòng yêu cầu mã OTP mới.'
+      });
+    }
+
+    // Compare OTP hash
+    const isMatch = await bcrypt.compare(otp, record.otpHash);
+
+    if (!isMatch) {
+      // Increment attempt counter
+      const updatedRecord = await prisma.otpVerification.update({
+        where: { id: record.id },
+        data: { attempts: { increment: 1 } }
+      });
+      const remaining = record.maxAttempts - updatedRecord.attempts;
+      return res.status(400).json({
+        success: false,
+        error: `Mã OTP không chính xác. Còn ${remaining} lần thử.`,
+        data: { remainingAttempts: remaining }
+      });
+    }
+
+    // OTP is correct - mark as used
+    await prisma.otpVerification.update({
+      where: { id: record.id },
+      data: { isUsed: true }
+    });
+
+    // Generate secure reset token containing userId with 15 minutes expiration
     const token = jwt.sign(
       { id: user.id, purpose: 'reset-password' },
       JWT_SECRET,
       { expiresIn: '15m' }
     );
 
-    // Build the reset link pointing to the local frontend
-    const clientUrl = process.env.CLIENT_URL || 'http://localhost:5174';
-    const resetLink = `${clientUrl}/reset-password?token=${token}`;
-
-    const sent = await sendResetPasswordEmail(email, user.fullName, resetLink);
-    if (!sent) {
-      // In local development, if SMTP is not configured, we also simulate and return the token so they can test easily!
-      console.warn(`[Forgot Password] SMTP not configured. Simulated reset link: ${resetLink}`);
-      return res.status(200).json({ 
-        success: true, 
-        data: {
-          simulated: true,
-          resetLink,
-          message: 'Hệ thống đang chạy local (không có cấu hình SMTP). Dưới đây là link khôi phục mật khẩu để bạn dễ dàng test thử:'
-        } 
-      });
-    }
-
-    return res.status(200).json({ success: true, data: 'Đường dẫn đặt lại mật khẩu đã được gửi vào Email của bạn!' });
+    return res.status(200).json({
+      success: true,
+      data: { token }
+    });
   } catch (err: any) {
     return res.status(500).json({ success: false, error: err.message });
   }

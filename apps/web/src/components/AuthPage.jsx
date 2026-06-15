@@ -543,7 +543,8 @@ export default function AuthPage({ defaultMode = 'login', onAuthSuccess, usersLi
                   style={{ textTransform: 'uppercase' }}
                 >
                   {mode === 'forgot' && 'QUÊN MẬT KHẨU'}
-                  {mode === 'reset_password' && 'OTP XÁC THỰC'}
+                  {mode === 'forgot_otp' && 'XÁC THỰC OTP KHÔI PHỤC'}
+                  {mode === 'reset_password' && 'ĐẶT LẠI MẬT KHẨU'}
                   {mode === 'signup_otp' && 'XÁC THỰC OTP ĐĂNG KÝ'}
                   {mode === 'google_role_select' && 'CHỌN VAI TRÒ'}
                 </button>
@@ -566,6 +567,7 @@ export default function AuthPage({ defaultMode = 'login', onAuthSuccess, usersLi
                 {mode === 'signup' && 'Tạo tài khoản mới ✨'}
                 {mode === 'signup_otp' && 'Xác thực OTP 📧'}
                 {mode === 'forgot' && 'Khôi phục mật khẩu 🔑'}
+                {mode === 'forgot_otp' && 'Xác thực OTP khôi phục 📧'}
                 {mode === 'reset_password' && 'Đặt lại mật khẩu mới 🛡️'}
                 {mode === 'google_role_select' && 'Chọn vai trò của bạn 🎯'}
               </h2>
@@ -574,7 +576,8 @@ export default function AuthPage({ defaultMode = 'login', onAuthSuccess, usersLi
                 {mode === 'signup' && 'Đăng ký miễn phí và bắt đầu học tập tại EduPath ngay hôm nay.'}
                 {mode === 'signup_otp' && `Mã OTP đã được gửi tới ${pendingSignupEmail}. Nhập mã để hoàn tất đăng ký.`}
                 {mode === 'forgot' && 'Nhập email đã đăng ký. Chúng tôi sẽ gửi mã OTP xác nhận ngay.'}
-                {mode === 'reset_password' && 'Mã OTP đã được gửi đến email của bạn. Hãy đổi mật khẩu.'}
+                {mode === 'forgot_otp' && `Mã OTP đã được gửi tới ${resetEmail}. Nhập mã để tiếp tục.`}
+                {mode === 'reset_password' && 'Mật khẩu mới của bạn phải đáp ứng các yêu cầu bảo mật.'}
                 {mode === 'google_role_select' && 'Đây là lần đầu bạn sử dụng EduPath. Hãy cho chúng tôi biết bạn là ai.'}
               </p>
             </div>
@@ -748,36 +751,67 @@ export default function AuthPage({ defaultMode = 'login', onAuthSuccess, usersLi
             {/* FORGOT PASSWORD FORM */}
             {mode === 'forgot' && (
               <form onSubmit={handleSubmit} className="auth-premium-form">
-                {!resetSuccess ? (
-                  <>
-                    <div className="auth-input-group">
-                      <label>EMAIL</label>
-                      <div className="auth-input-wrap">
-                        <HiMail className="auth-input-icon" />
-                        <input 
-                          type="email" 
-                          placeholder="email@example.com" 
-                          value={resetEmail} 
-                          onChange={e => setResetEmail(e.target.value)} 
-                          required 
-                        />
-                      </div>
-                    </div>
-                    <button type="submit" className="auth-submit-btn-premium" disabled={loading}>
-                      {loading ? 'ĐANG GỬI...' : 'GỬI LIÊN KẾT ĐẶT LẠI MẬT KHẨU →'}
-                    </button>
-                  </>
-                ) : (
-                  <div className="auth-alert success" style={{ flexDirection: 'column', gap: 8 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <HiCheckCircle />
-                      <strong>Đã gửi thành công!</strong>
-                    </div>
-                    <p style={{ fontSize: '13px' }}>Kiểm tra hộp thư thử nghiệm bên dưới để nhận mã OTP khôi phục cho <strong>{resetEmail}</strong>.</p>
+                <div className="auth-input-group">
+                  <label>EMAIL KHÔI PHỤC</label>
+                  <div className="auth-input-wrap">
+                    <HiMail className="auth-input-icon" />
+                    <input 
+                      type="email" 
+                      placeholder="email@example.com" 
+                      value={resetEmail} 
+                      onChange={e => setResetEmail(e.target.value)} 
+                      required 
+                    />
+                  </div>
+                </div>
+                <button type="submit" className="auth-submit-btn-premium" disabled={loading}>
+                  {loading ? 'ĐANG GỬI...' : 'GỬI MÃ XÁC THỰC OTP →'}
+                </button>
+                <button type="button" className="auth-link-btn-flat" onClick={() => { switchMode('login'); setResetEmail(''); }}>
+                  <HiArrowLeft /> Quay lại đăng nhập
+                </button>
+              </form>
+            )}
+
+            {/* FORGOT PASSWORD OTP VERIFICATION FORM */}
+            {mode === 'forgot_otp' && (
+              <form onSubmit={handleSubmit} className="auth-premium-form">
+                <p className="auth-form-sub-text">Nhập mã OTP 6 chữ số khôi phục mật khẩu gửi tới <strong>{resetEmail}</strong></p>
+                
+                {/* Premium 6-digit OTP input */}
+                <OtpDigitInput
+                  value={typedOtp}
+                  onChange={setTypedOtp}
+                  disabled={loading}
+                />
+
+                {generatedOtp && (
+                  <div
+                    className="dev-otp-hint"
+                    style={{
+                      marginTop: 10,
+                      padding: '12px 14px',
+                      background: '#FFF8E1',
+                      border: '2.5px solid #000000',
+                      borderRadius: '12px',
+                      boxShadow: '2.5px 2.5px 0px #000000',
+                      fontSize: '12px',
+                      color: '#B45309',
+                      fontWeight: '800',
+                      textAlign: 'center',
+                      cursor: 'pointer'
+                    }}
+                    onClick={() => setTypedOtp(generatedOtp)}
+                  >
+                    💡 Nhấp vào đây để tự động điền mã thử nghiệm: <strong style={{ color: '#000000', textDecoration: 'underline' }}>{generatedOtp}</strong>
                   </div>
                 )}
-                <button type="button" className="auth-link-btn-flat" onClick={() => { switchMode('login'); setResetSuccess(false); setResetEmail(''); }}>
-                  <HiArrowLeft /> Quay lại đăng nhập
+
+                <button type="submit" className="auth-submit-btn-premium" disabled={loading || typedOtp.length !== 6}>
+                  {loading ? 'ĐANG XẠC THỰC...' : 'XÁC NHẬN MÃ OTP →'}
+                </button>
+                <button type="button" className="auth-link-btn-flat" onClick={() => switchMode('forgot')}>
+                  <HiArrowLeft /> Quay lại nhập Email
                 </button>
               </form>
             )}
@@ -787,21 +821,6 @@ export default function AuthPage({ defaultMode = 'login', onAuthSuccess, usersLi
               <form onSubmit={handleSubmit} className="auth-premium-form">
                 <p className="auth-form-sub-text">Đặt mật khẩu mới cho tài khoản: <strong>{resetEmail}</strong></p>
                 
-                <div className="auth-input-group">
-                  <label>MÃ XÁC THỰC OTP (6 CHỮ SỐ)</label>
-                  <div className="auth-input-wrap">
-                    <HiLockClosed className="auth-input-icon" />
-                    <input
-                      type="text"
-                      maxLength={6}
-                      placeholder="Nhập mã OTP 6 chữ số từ Mock Inbox"
-                      value={typedOtp}
-                      onChange={e => setTypedOtp(e.target.value.replace(/\D/g, ''))}
-                      required
-                    />
-                  </div>
-                </div>
-
                 <div className="auth-input-group">
                   <label>MẬT KHẨU MỚI</label>
                   <div className="auth-input-wrap">
