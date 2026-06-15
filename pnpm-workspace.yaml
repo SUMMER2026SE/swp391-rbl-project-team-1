@@ -7,4 +7,3 @@ allowBuilds:
   bcrypt: true
   esbuild: true
   prisma: true
-  tesseract.js: true

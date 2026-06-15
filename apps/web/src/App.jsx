@@ -23,27 +23,9 @@ import AISystemCenter from './components/AISystemCenter';
 import Forum from './components/Forum';
 import CourseMall from './components/CourseMall';
 import ChatbotWidget from './components/ChatbotWidget.jsx';
-import OCRScanner from './components/OCRScanner.jsx';
-import StudentDashboard from './components/dashboard/StudentDashboard';
+import Leaderboard from './components/Leaderboard';
 
-import CoursesPage from './pages/CoursesPage';
-import CourseDetailPage from './pages/CourseDetailPage';
-import LearningPage from './pages/LearningPage';
-import MockExamsPage from './pages/MockExamsPage';
-import MockExamDetailPage from './pages/MockExamDetailPage';
-import MockExamTakingPage from './pages/MockExamTakingPage';
-import MockExamResultPage from './pages/MockExamResultPage';
-import { enrollmentService } from './services/enrollmentService';
-import './styles/mockExams.css';
-import './styles/dashboard.css';
-import './styles/courses.css';
-import AITutorPage from './pages/AITutorPage';
-import './styles/aitutor.css';
-import ExamBankPage from './pages/ExamBankPage';
-import './styles/exambank.css';
-
-
-import { HiPlay, HiDocumentDownload, HiBeaker, HiX, HiBookOpen } from 'react-icons/hi';
+import { HiPlay, HiDocumentDownload, HiBeaker, HiX } from 'react-icons/hi';
 import { api } from './api';
 
 // Initial Database preloads
@@ -115,7 +97,7 @@ const initialUsers = [
   },
   {
     id: 103,
-    name: 'Trần Văn Thuần',
+    name: 'Trần Văn Thuận',
     email: 'Tranvanthuan2005tt@gmail.com',
     password: 'admin123',
     role: 'admin',
@@ -166,7 +148,7 @@ const initialForumPosts = [
     title: "📢 [THÔNG BÁO QUAN TRỌNG] Lịch thi thử THPT Quốc Gia 2026 & Tài liệu Ôn tập Độc quyền",
     content: "Chào toàn thể các em học sinh trên hệ thống EduPath AI,\n\nBan Quản Trị xin gửi tới các em lịch thi thử trực tuyến các môn học trọng điểm (Toán, Lý, Hóa, Anh, Sinh) chuẩn cấu trúc của Bộ GD&ĐT. Các đề thi sẽ được mở vào tối thứ 7 hàng tuần lúc 20:00.\n\nSau khi làm bài, các em sẽ nhận được phân tích kết quả chi tiết từ hệ thống AI và lộ trình khắc phục lỗ hổng kiến thức tương ứng.\n\nChúc các em ôn tập đạt kết quả cao nhất!",
     subject: "Khác",
-    author: "Trần Văn Thuần",
+    author: "Trần Văn Thuận",
     authorAvatar: "AD",
     authorRole: "admin",
     date: "Đã ghim",
@@ -395,126 +377,6 @@ function LibraryCabinet({ addLog }) {
   );
 }
 
-const generateMassiveExamsList = (backendExams) => {
-  if (!backendExams || backendExams.length === 0) return [];
-
-  const mathExams = backendExams.filter(e => e.subject === 'Toán học');
-  const physicsExams = backendExams.filter(e => e.subject === 'Vật lý');
-  const chemistryExams = backendExams.filter(e => e.subject === 'Hóa học');
-  const biologyExams = backendExams.filter(e => e.subject === 'Sinh học');
-  const englishExams = backendExams.filter(e => e.subject === 'Tiếng Anh');
-  const aptitudeExams = backendExams.filter(e => e.subject.includes('Đánh giá năng lực') || e.title.includes('HSA') || e.title.includes('ĐGNL'));
-
-  const getMappedId = (subject) => {
-    let list = [];
-    if (subject === 'Toán học') list = mathExams;
-    else if (subject === 'Vật lý') list = physicsExams;
-    else if (subject === 'Hóa học') list = chemistryExams;
-    else if (subject === 'Sinh học') list = biologyExams;
-    else if (subject === 'Tiếng Anh') list = englishExams;
-    else list = aptitudeExams;
-
-    if (list.length === 0) return backendExams[0]?.id;
-    const randomIndex = Math.floor(Math.random() * list.length);
-    return list[randomIndex]?.id;
-  };
-
-  const list = [...backendExams];
-
-  const schools = [
-    'Chuyên Hà Nội - Amsterdam', 'Chuyên Lam Sơn Thanh Hóa', 'Chuyên Phan Bội Châu Nghệ An',
-    'Chuyên Lê Hồng Phong Nam Định', 'Chuyên Nguyễn Trãi Hải Dương', 'Chuyên Bắc Ninh',
-    'Chuyên Quốc Học Huế', 'Chuyên Lê Quý Đôn Đà Nẵng', 'Chuyên Trần Đại Nghĩa TP.HCM',
-    'Chuyên Lương Thế Vinh Đồng Nai', 'Chuyên Hùng Vương Gia Lai', 'Chuyên KHTN Hà Nội',
-    'Chuyên Sư Phạm Hà Nội', 'THPT Kim Liên Hà Nội', 'THPT Phan Đình Phùng Hà Nội',
-    'THPT Lê Quý Đôn TP.HCM', 'THPT Gia Định TP.HCM', 'THPT Bùi Thị Xuân TP.HCM'
-  ];
-
-  const aptitudeTitles = [
-    'Đề thi thử Đánh giá năng lực ĐHQG Hà Nội (HSA) - Đợt 401',
-    'Đề thi thử Đánh giá năng lực ĐHQG Hà Nội (HSA) - Đợt 402',
-    'Đề thi thử Đánh giá năng lực ĐHQG Hà Nội (HSA) - Đợt 403',
-    'Đề thi thử Đánh giá năng lực ĐHQG Hà Nội (HSA) - Đợt 404',
-    'Đề thi thử Đánh giá năng lực ĐHQG Hà Nội (HSA) - Đợt 405',
-    'Đề thi thử Đánh giá năng lực ĐHQG Hà Nội (HSA) - Đợt 406',
-    'Đề thi Đánh giá năng lực ĐHQG TP.HCM - Đợt 1',
-    'Đề thi Đánh giá năng lực ĐHQG TP.HCM - Đợt 2',
-    'Đề thi thử Đánh giá tư duy Đại học Bách Khoa Hà Nội (TSA)'
-  ];
-
-  let count = 1000;
-  const subjects = ['Toán học', 'Vật lý', 'Hóa học', 'Sinh học', 'Tiếng Anh'];
-  const years = ['2024', '2023', '2022', '2021', '2020'];
-
-  // 1. Generate School Mocks
-  for (let year of years) {
-    for (let school of schools) {
-      for (let subject of subjects) {
-        count++;
-        const mappedId = getMappedId(subject);
-        const examObj = backendExams.find(e => e.id === mappedId);
-        list.push({
-          id: count,
-          title: `Đề thi thử ${subject} THPTQG ${year} - ${school}`,
-          subject,
-          subjectGroup: subject === 'Tiếng Anh' ? 'D01' : (subject === 'Sinh học' ? 'B00' : 'A01'),
-          duration: subject === 'Toán học' ? 90 : (subject === 'Tiếng Anh' ? 60 : 50),
-          isPublic: true,
-          isGenerated: true,
-          dbExamId: mappedId,
-          examQuestions: examObj?.examQuestions || []
-        });
-      }
-    }
-  }
-
-  // 2. Generate HSA & Aptitude
-  for (let i = 0; i < aptitudeTitles.length; i++) {
-    count++;
-    const mappedId = getMappedId('Đánh giá năng lực');
-    const examObj = backendExams.find(e => e.id === mappedId);
-    list.push({
-      id: count,
-      title: aptitudeTitles[i],
-      subject: 'Đánh giá năng lực',
-      subjectGroup: 'A01',
-      duration: 150,
-      isPublic: true,
-      isGenerated: true,
-      dbExamId: mappedId,
-      examQuestions: examObj?.examQuestions || []
-    });
-  }
-
-  // 3. Generate MOET Codes
-  const moetSubjects = ['Toán học', 'Vật lý', 'Hóa học', 'Sinh học', 'Tiếng Anh'];
-  const moetYears = ['2024', '2023', '2022', '2021', '2020'];
-  const codes = ['102', '103', '104', '105', '106', '107', '108', '202', '203', '204'];
-
-  for (let year of moetYears) {
-    for (let subject of moetSubjects) {
-      for (let code of codes) {
-        count++;
-        const mappedId = getMappedId(subject);
-        const examObj = backendExams.find(e => e.id === mappedId);
-        list.push({
-          id: count,
-          title: `Đề thi chính thức THPT QG Môn ${subject} ${year} - Mã đề ${code}`,
-          subject,
-          subjectGroup: subject === 'Tiếng Anh' ? 'D01' : (subject === 'Sinh học' ? 'B00' : 'A01'),
-          duration: subject === 'Toán học' ? 90 : (subject === 'Tiếng Anh' ? 60 : 50),
-          isPublic: true,
-          isGenerated: true,
-          dbExamId: mappedId,
-          examQuestions: examObj?.examQuestions || []
-        });
-      }
-    }
-  }
-
-  return list;
-};
-
 export default function App() {
   // Global Application States
   const [currentUser, setCurrentUser] = useState(() => JSON.parse(localStorage.getItem('current_user')) || null);
@@ -522,77 +384,13 @@ export default function App() {
   const [theme, setTheme] = useState(() => localStorage.getItem('app_theme') || 'light');
   const [activeTab, setActiveTab] = useState('home');
 
-  // Custom SPA Router State
-  const [currentPath, setCurrentPath] = useState(window.location.pathname);
-
-  useEffect(() => {
-    const handlePopState = () => {
-      setCurrentPath(window.location.pathname);
-    };
-    const handleAuthRedirect = (e) => {
-      setActiveTab(e.detail.mode);
-    };
-    window.addEventListener('popstate', handlePopState);
-    window.addEventListener('edupath-auth-redirect', handleAuthRedirect);
-    return () => {
-      window.removeEventListener('popstate', handlePopState);
-      window.removeEventListener('edupath-auth-redirect', handleAuthRedirect);
-    };
-  }, []);
-
-  const navigateTo = (path) => {
-    window.history.pushState({}, '', path);
-    setCurrentPath(path);
-  };
-
-  const getParsedRoute = () => {
-    if (currentPath === '/courses') {
-      return { route: 'courses-list' };
-    }
-    const courseMatch = currentPath.match(/^\/courses\/(\d+)$/);
-    if (courseMatch) {
-      return { route: 'course-detail', courseId: courseMatch[1] };
-    }
-    const learnMatch = currentPath.match(/^\/learn\/(\d+)(?:\/lesson\/(\d+))?$/);
-    if (learnMatch) {
-      return { route: 'learn', courseId: learnMatch[1], lessonId: learnMatch[2] || null };
-    }
-    if (currentPath === '/mock-exams') {
-      return { route: 'mock-exams-list' };
-    }
-    const mockExamMatch = currentPath.match(/^\/mock-exams\/([^/]+)$/);
-    if (mockExamMatch && !currentPath.includes('/start') && !currentPath.includes('/result/')) {
-      return { route: 'mock-exam-detail', examId: mockExamMatch[1] };
-    }
-    const mockExamTakingMatch = currentPath.match(/^\/mock-exams\/([^/]+)\/start$/);
-    if (mockExamTakingMatch) {
-      return { route: 'mock-exam-taking', examId: mockExamTakingMatch[1] };
-    }
-    const mockExamResultMatch = currentPath.match(/^\/mock-exams\/([^/]+)\/result\/([^/]+)$/);
-    if (mockExamResultMatch) {
-      return { route: 'mock-exam-result', examId: mockExamResultMatch[1], attemptId: mockExamResultMatch[2] };
-    }
-
-    if (currentPath.startsWith('/ai-tutor')) {
-      return { route: 'ai-tutor' };
-    }
-
-    if (currentPath === '/exam-bank') {
-      return { route: 'exam-bank' };
-    }
-
-    return { route: 'legacy' };
-  };
-
-  const parsedRoute = getParsedRoute();
-
   // Relational Tables databases in localStorage
   const [usersList, setUsersList] = useState(() => {
     const list = JSON.parse(localStorage.getItem('users_list')) || initialUsers;
     if (!list.find(u => u.email.toLowerCase() === 'tranvanthuan2005tt@gmail.com')) {
       list.push({
         id: 103,
-        name: 'Trần Văn Thuần',
+        name: 'Trần Văn Thuận',
         email: 'Tranvanthuan2005tt@gmail.com',
         password: 'admin123',
         role: 'admin',
@@ -612,7 +410,6 @@ export default function App() {
   });
   const [courses, setCourses] = useState(() => JSON.parse(localStorage.getItem('app_courses')) || initialCourses);
   const [examsList, setExamsList] = useState([]);
-  const [attemptsHistory, setAttemptsHistory] = useState([]);
   const [questionBank, setQuestionBank] = useState(() => JSON.parse(localStorage.getItem('app_questions')) || initialQuestions);
   const [submissions, setSubmissions] = useState(() => JSON.parse(localStorage.getItem('app_submissions')) || []);
   const [notifications, setNotifications] = useState(() => JSON.parse(localStorage.getItem('app_notifications')) || [
@@ -643,21 +440,6 @@ export default function App() {
   // View state controllers
   const [activeCourseDetails, setActiveCourseDetails] = useState(null);
   const [activeTestSimulator, setActiveTestSimulator] = useState(null);
-  const [activeOCRScanner, setActiveOCRScanner] = useState(null);
-  const [examFilterSubject, setExamFilterSubject] = useState('All');
-  const [examFilterYear, setExamFilterYear] = useState('All');
-  const [examSearchQuery, setExamSearchQuery] = useState('');
-  const [examCategory, setExamCategory] = useState('All');
-  const [pageOfficial, setPageOfficial] = useState(1);
-  const [pageMock, setPageMock] = useState(1);
-  const [pageAptitude, setPageAptitude] = useState(1);
-
-  useEffect(() => {
-    setPageOfficial(1);
-    setPageMock(1);
-    setPageAptitude(1);
-  }, [examFilterSubject, examFilterYear, examSearchQuery, examCategory]);
-
   const [checkoutCourse, setCheckoutCourse] = useState(null);
   const [showUpgradePRO, setShowUpgradePRO] = useState(false);
 
@@ -681,23 +463,6 @@ export default function App() {
   const [settingsNewPass, setSettingsNewPass] = useState('');
   const [settingsConfirmNewPass, setSettingsConfirmNewPass] = useState('');
 
-  // Toast notifications
-  const [toasts, setToasts] = useState([]);
-  const showToast = useRef(null);
-  showToast.current = (message, type = 'success') => {
-    const id = Date.now() + Math.random();
-    setToasts(prev => [...prev, { id, message, type }]);
-    setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 4200);
-  };
-  useEffect(() => {
-    const handler = (e) => showToast.current(e.detail.message, e.detail.type);
-    window.addEventListener('app:toast', handler);
-    return () => window.removeEventListener('app:toast', handler);
-  }, []);
-
-  // AI feedback modal
-  const [aiFeedbackModal, setAiFeedbackModal] = useState(null);
-
   // Sync settings states when current user changes or tab is settings
   const [resetToken, setResetToken] = useState(null);
 
@@ -711,15 +476,6 @@ export default function App() {
       setRole('guest');
     }
   }, []);
-
-  // Redirect guest users away from mock exams
-  useEffect(() => {
-    if ((role === 'guest' || !currentUser) && parsedRoute.route.startsWith('mock-')) {
-      showToast.current?.('Vui lòng đăng nhập để sử dụng chức năng thi thử!', 'warning');
-      navigateTo('/');
-      setActiveTab('login');
-    }
-  }, [currentUser, role, parsedRoute.route]);
 
   useEffect(() => {
     if (currentUser) {
@@ -799,34 +555,16 @@ export default function App() {
       // 3. Fetch exams from backend
       const backendExams = await api.getExams();
       if (backendExams && backendExams.length > 0) {
-        setExamsList(generateMassiveExamsList(backendExams));
+        setExamsList(backendExams);
       }
     } catch (err) {
       console.warn("Không thể tải danh sách đề thi từ backend API.");
-    }
-
-    try {
-      // 4. Fetch test attempts from backend
-      const history = await api.getAttempts();
-      if (history) {
-        setAttemptsHistory(history);
-      }
-    } catch (err) {
-      console.warn("Không thể tải lịch sử thi thử từ backend API.");
     }
   };
 
   useEffect(() => {
     fetchInitialData();
   }, [currentUser, activeTab]);
-
-  useEffect(() => {
-    if (activeTab === 'tests') {
-      setTimeout(() => {
-        window.MathJax?.typesetPromise?.().catch((err) => console.log("MathJax error:", err));
-      }, 200);
-    }
-  }, [activeTab, examsList, examFilterSubject, examFilterYear, examSearchQuery, examCategory, activeTestSimulator]);
 
   const addLog = (text, tag = 'sys') => {
     const newLog = {
@@ -860,26 +598,18 @@ export default function App() {
   };
 
   const handleBackToDashboard = (targetTab) => {
-    if (targetTab === 'courses') {
-      navigateTo('/courses');
-    } else {
-      navigateTo('/');
-      setActiveTab(targetTab || 'home');
-      setActiveCourseDetails(null);
-      setActiveTestSimulator(null);
-      setActiveOCRScanner(null);
-    }
+    setActiveTab(targetTab || 'home');
+    setActiveCourseDetails(null);
+    setActiveTestSimulator(null);
   };
 
   const handleLogout = () => {
     addLog(`Người dùng "${currentUser?.name}" đăng xuất an toàn khỏi hệ thống`, 'sys');
-    navigateTo('/');
     setCurrentUser(null);
     setRole('guest');
     setActiveTab('home');
     setActiveCourseDetails(null);
     setActiveTestSimulator(null);
-    setActiveOCRScanner(null);
     setCheckoutCourse(null);
   };
 
@@ -895,9 +625,9 @@ export default function App() {
       setCurrentUser(updatedUser);
       
       addLog(`Người dùng "${currentUser.name}" đổi mật khẩu tài khoản thành công (UC-04)`, 'sys');
-      showToast.current('Đổi mật khẩu thành công!', 'success');
+      alert('Đổi mật khẩu thành công!');
     } catch (err) {
-      showToast.current(err.message || 'Đổi mật khẩu thất bại!', 'error');
+      alert(err.message || 'Đổi mật khẩu thất bại!');
     }
   };
 
@@ -906,55 +636,44 @@ export default function App() {
     const updatedList = usersList.map(u => u.email === updatedProfile.email ? updatedProfile : u);
     setUsersList(updatedList);
     addLog(`Người dùng "${updatedProfile.name}" cập nhật thông tin cá nhân thành công`, 'sys');
-    showToast.current('Lưu thông tin cá nhân thành công!', 'success');
+    alert('Lưu thông tin cá nhân thành công!');
   };
 
   const handleSettingsPasswordChange = async (oldPass, newPass, confirmPass) => {
     if (!oldPass || !newPass || !confirmPass) {
-      showToast.current('Vui lòng nhập đầy đủ các trường đổi mật khẩu!', 'warning');
+      alert('Vui lòng nhập đầy đủ các trường đổi mật khẩu!');
       return;
     }
     if (newPass.length < 6) {
-      showToast.current('Mật khẩu mới phải từ 6 ký tự trở lên!', 'warning');
+      alert('Mật khẩu mới phải từ 6 ký tự trở lên!');
       return;
     }
     if (newPass !== confirmPass) {
-      showToast.current('Xác nhận mật khẩu mới không trùng khớp!', 'warning');
+      alert('Xác nhận mật khẩu mới không trùng khớp!');
       return;
     }
 
     try {
       await api.changePassword(oldPass, newPass);
-
+      
       const updatedList = usersList.map(u => u.email === currentUser.email ? { ...u, password: newPass } : u);
       setUsersList(updatedList);
-
+      
       const updatedUser = { ...currentUser, password: newPass };
       setCurrentUser(updatedUser);
-
+      
       addLog(`Người dùng "${currentUser.name}" đổi mật khẩu thành công từ cài đặt cá nhân`, 'sys');
-      showToast.current('Đổi mật khẩu thành công!', 'success');
+      alert('Đổi mật khẩu thành công!');
       setSettingsOldPass('');
       setSettingsNewPass('');
       setSettingsConfirmNewPass('');
     } catch (err) {
-      showToast.current(err.message || 'Đổi mật khẩu thất bại!', 'error');
+      alert(err.message || 'Đổi mật khẩu thất bại!');
     }
   };
 
   // Student purchases course
-  const handlePaymentSuccess = async (courseId) => {
-    // Write payment & enrollment rows into local storage db / Supabase tables
-    if (currentUser) {
-      try {
-        const targetCourse = courses.find(c => c.id === courseId);
-        const priceNum = targetCourse ? parseFloat(String(targetCourse.price).replace(/\D/g, '')) : 499000;
-        await enrollmentService.enrollCourse(currentUser.id, courseId, priceNum);
-      } catch (err) {
-        console.error('Failed to log payment enrollment data:', err);
-      }
-    }
-
+  const handlePaymentSuccess = (courseId) => {
     // Add to student's list in users database
     const updatedUsers = usersList.map(u => {
       if (u.email === currentUser.email) {
@@ -966,7 +685,7 @@ export default function App() {
     setUsersList(updatedUsers);
 
     // Sync active session unlockedCourses
-    const activeUnlocked = currentUser?.unlockedCourses || [];
+    const activeUnlocked = currentUser.unlockedCourses || [];
     setCurrentUser({
       ...currentUser,
       unlockedCourses: [...activeUnlocked, courseId]
@@ -1134,27 +853,15 @@ export default function App() {
 
   return (
     <div className="app-layout">
-      {/* Sidebar - Guarded against guest visitors and focused exam sessions */}
-      {role !== 'guest' && activeTab !== 'landing' && parsedRoute.route !== 'mock-exam-taking' && !parsedRoute.route.startsWith('mock-') && (
+      {/* Sidebar - Guarded against guest visitors */}
+      {role !== 'guest' && activeTab !== 'landing' && (
         <Sidebar
           role={role}
-          active={parsedRoute.route !== 'legacy' ? (parsedRoute.route.startsWith('mock-') ? 'tests' : (parsedRoute.route === 'ai-tutor' ? 'ai-qa' : (parsedRoute.route === 'exam-bank' ? 'library' : 'courses'))) : activeTab}
+          active={activeTab}
           setActive={(tab) => {
-            if (tab === 'courses') {
-              navigateTo('/courses');
-            } else if (tab === 'tests') {
-              navigateTo('/mock-exams');
-            } else if (tab === 'ai-qa') {
-              navigateTo('/ai-tutor');
-            } else if (tab === 'library') {
-              navigateTo('/exam-bank');
-            } else {
-              navigateTo('/');
-              setActiveTab(tab);
-              setActiveCourseDetails(null);
-              setActiveTestSimulator(null);
-              setActiveOCRScanner(null);
-            }
+            setActiveTab(tab);
+            setActiveCourseDetails(null);
+            setActiveTestSimulator(null);
           }}
           userProfile={currentUser}
           onLogout={handleLogout}
@@ -1162,52 +869,34 @@ export default function App() {
         />
       )}
 
-      <div className="main-wrapper" style={{ marginLeft: (role === 'guest' || activeTab === 'landing' || parsedRoute.route.startsWith('mock-')) ? 0 : 'var(--sidebar-width)' }}>
-        <main className="main-content" style={(role === 'guest' || activeTab === 'landing' || parsedRoute.route.startsWith('mock-')) ? { maxWidth: '100%', padding: 0 } : { maxWidth: '100%' }}>
-          {currentUser && parsedRoute.route.startsWith('mock-') && parsedRoute.route !== 'mock-exam-taking' && (
-            <div className="mock-exams-simple-header">
-              <button onClick={() => navigateTo('/')} className="mock-exams-back-btn">
-                ← Quay lại Trang chủ
-              </button>
-              <div className="mock-exams-user-profile">
-                <div className="mock-exams-user-avatar">
-                  {currentUser.avatar || currentUser.name?.substring(0, 2).toUpperCase() || 'HS'}
-                </div>
-                <span className="mock-exams-user-name">{currentUser.name}</span>
-              </div>
-            </div>
-          )}
-
+      <div className="main-wrapper" style={{ marginLeft: (role === 'guest' || activeTab === 'landing') ? 0 : 'var(--sidebar-width)' }}>
+        <main className="main-content" style={(role === 'guest' || activeTab === 'landing') ? { maxWidth: '100%', padding: 0 } : { maxWidth: '100%' }}>
           {role !== 'guest' && activeTab !== 'landing' ? (
-            !parsedRoute.route.startsWith('mock-') && (
-              <Header
-                role={role}
-                userProfile={currentUser}
-                theme={theme}
-                onToggleTheme={handleToggleTheme}
-                notifications={notifications}
-                onClearNotifications={() => setNotifications(prev => prev.map(n => ({ ...n, read: true })))}
-                onLogout={handleLogout}
-                onChangePassword={handleChangePassword}
-                onNavigateSettings={() => { navigateTo('/'); setActiveTab('settings'); setActiveCourseDetails(null); setActiveTestSimulator(null); setActiveOCRScanner(null); }}
-                addLog={addLog}
-              />
-            )
+            <Header
+              role={role}
+              userProfile={currentUser}
+              theme={theme}
+              onToggleTheme={handleToggleTheme}
+              notifications={notifications}
+              onClearNotifications={() => setNotifications(prev => prev.map(n => ({ ...n, read: true })))}
+              onLogout={handleLogout}
+              onChangePassword={handleChangePassword}
+              addLog={addLog}
+              activeTab={activeTab}
+            />
           ) : (
             // Minimal Header for Guests
-            <>
-              {theme === 'dark' && parsedRoute.route !== 'mock-exam-taking' && (
-                <div style={{ position: 'fixed', top: '16px', right: '16px', zIndex: 100 }}>
-                  <button className="header-icon-btn" onClick={handleToggleTheme}>
-                    ☀️
-                  </button>
-                </div>
-              )}
-            </>
+            theme === 'dark' && (
+              <div style={{ position: 'fixed', top: '16px', right: '16px', zIndex: 100 }}>
+                <button className="header-icon-btn" onClick={handleToggleTheme}>
+                  ☀️
+                </button>
+              </div>
+            )
           )}
 
           {/* ================= PUBLIC OR PREVIEW LANDING PAGE ================= */}
-          {(role === 'guest' || activeTab === 'landing') && !parsedRoute.route.startsWith('mock-') && parsedRoute.route !== 'ai-tutor' && parsedRoute.route !== 'exam-bank' && (
+          {(role === 'guest' || activeTab === 'landing') && (
             <div>
               {role === 'guest' && activeTab === 'reset-password' ? (
                 <div className="auth-page-layout" style={{ position: 'relative', display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '80vh', padding: '20px' }}>
@@ -1222,20 +911,20 @@ export default function App() {
                         const password = e.target.password.value;
                         const confirm = e.target.confirm.value;
                         if (password.length < 6) {
-                          showToast.current('Mật khẩu mới phải có tối thiểu 6 ký tự!', 'warning');
+                          alert('Mật khẩu mới phải có tối thiểu 6 ký tự!');
                           return;
                         }
                         if (password !== confirm) {
-                          showToast.current('Mật khẩu xác nhận không khớp! Vui lòng nhập lại.', 'warning');
+                          alert('Mật khẩu xác nhận không khớp! Vui lòng nhập lại.');
                           return;
                         }
                         try {
                           await api.resetPassword(resetToken, password);
-                          showToast.current('Đặt lại mật khẩu thành công! Hãy đăng nhập bằng mật khẩu mới.', 'success');
+                          alert('Đặt lại mật khẩu thành công! Em có thể đăng nhập bằng mật khẩu mới.');
                           setResetToken(null);
                           setActiveTab('login');
                         } catch (err) {
-                          showToast.current(err.message || 'Lỗi đặt lại mật khẩu.', 'error');
+                          alert(err.message || 'Lỗi đặt lại mật khẩu.');
                         }
                       }}>
                         <div className="form-group" style={{ marginBottom: '16px' }}>
@@ -1283,151 +972,245 @@ export default function App() {
                   onLikePost={handleForumLikePost}
                   onAddComment={handleForumAddComment}
                   onAcceptCommentSolution={handleForumAcceptCommentSolution}
-                  onCheckoutCourse={(course) => setCheckoutCourse(course)}
-                  onNavigateToLearn={(courseId, lessonId) => {
-                    if (currentUser) {
-                      setActiveTab('home');
-                      navigateTo(`/learn/${courseId}${lessonId ? `/lesson/${lessonId}` : ''}`);
-                    } else {
-                      setActiveTab('signup');
-                    }
-                  }}
-                  onUpdateUser={(updated) => {
-                    setCurrentUser(updated);
-                    setUsersList(prev => prev.map(u => u.email === updated.email ? updated : u));
-                  }}
-                  currentPath={currentPath}
-                  navigateTo={navigateTo}
                 />
               )}
-            </div>
-          )}
-
-          {/* ================= MOCK EXAMS ROUTER WORKSPACE (PUBLIC ACCESS) ================= */}
-          {parsedRoute.route.startsWith('mock-') && (
-            <div style={{ padding: '20px 0' }}>
-              {parsedRoute.route === 'mock-exams-list' && (
-                <MockExamsPage
-                  currentUser={currentUser}
-                  onSelectExam={(examId) => navigateTo(`/mock-exams/${examId}`)}
-                  navigateTo={navigateTo}
-                />
-              )}
-
-              {parsedRoute.route === 'mock-exam-detail' && (
-                <MockExamDetailPage
-                  examId={parsedRoute.examId}
-                  currentUser={currentUser}
-                  onStartExam={(examId) => navigateTo(`/mock-exams/${examId}/start`)}
-                  navigateTo={navigateTo}
-                />
-              )}
-
-              {parsedRoute.route === 'mock-exam-taking' && (
-                <MockExamTakingPage
-                  examId={parsedRoute.examId}
-                  currentUser={currentUser}
-                  onFinished={(examId, attemptId) => navigateTo(`/mock-exams/${examId}/result/${attemptId}`)}
-                  navigateTo={navigateTo}
-                />
-              )}
-
-              {parsedRoute.route === 'mock-exam-result' && (
-                <MockExamResultPage
-                  examId={parsedRoute.examId}
-                  attemptId={parsedRoute.attemptId}
-                  currentUser={currentUser}
-                  navigateTo={navigateTo}
-                />
-              )}
-            </div>
-          )}
-
-          {/* ================= COURSES ROUTER WORKSPACE ================= */}
-          {role !== 'guest' && activeTab !== 'landing' && (parsedRoute.route === 'courses-list' || parsedRoute.route === 'course-detail') && (
-            <div style={{ padding: '20px 0' }}>
-              {parsedRoute.route === 'courses-list' && (
-                <CoursesPage
-                  currentUser={currentUser}
-                  onSelectCourse={(course) => navigateTo(`/courses/${course.id}`)}
-                  onCheckoutCourse={(course) => setCheckoutCourse(course)}
-                  navigateTo={navigateTo}
-                />
-              )}
-
-              {parsedRoute.route === 'course-detail' && (
-                <CourseDetailPage
-                  courseId={parsedRoute.courseId}
-                  currentUser={currentUser}
-                  onNavigateToLearn={(courseId, lessonId, isDemo = false) => {
-                    const demoQuery = isDemo ? '?demo=true' : '';
-                    navigateTo(`/learn/${courseId}${lessonId ? `/lesson/${lessonId}` : ''}${demoQuery}`);
-                  }}
-                  onUpdateUser={(updated) => {
-                    setCurrentUser(updated);
-                    const updatedList = usersList.map(u => u.email === updated.email ? updated : u);
-                    setUsersList(updatedList);
-                  }}
-                  navigateTo={navigateTo}
-                />
-              )}
-            </div>
-          )}
-
-          {/* ================= AI TUTOR WORKSPACE ================= */}
-          {parsedRoute.route === 'ai-tutor' && (
-            <div style={{ padding: '20px 0' }}>
-              <AITutorPage
-                currentUser={currentUser}
-                navigateTo={navigateTo}
-                addLog={addLog}
-              />
-            </div>
-          )}
-
-          {/* ================= EXAM BANK PAGE ================= */}
-          {parsedRoute.route === 'exam-bank' && (
-            <div style={{ padding: '0' }}>
-              <ExamBankPage
-                currentUser={currentUser}
-                navigateTo={navigateTo}
-              />
-            </div>
-          )}
-
-          {/* ================= STUDENT LEARNING WORKSPACE ================= */}
-          {(role === 'student' || window.location.search.includes('demo=true')) && activeTab !== 'landing' && parsedRoute.route === 'learn' && (
-            <div style={{ padding: '20px 0' }}>
-              <LearningPage
-                courseId={parsedRoute.courseId}
-                lessonId={parsedRoute.lessonId}
-                currentUser={currentUser}
-                onSelectLesson={(courseId, lessonId) => navigateTo(`/learn/${courseId}/lesson/${lessonId}${window.location.search}`)}
-                onBackToCourse={() => navigateTo(`/courses/${parsedRoute.courseId}`)}
-              />
             </div>
           )}
 
           {/* ================= STUDENT WORKSPACE ================= */}
-          {role === 'student' && activeTab !== 'landing' && parsedRoute.route === 'legacy' && !activeCourseDetails && !activeTestSimulator && !activeOCRScanner && (
+          {role === 'student' && activeTab !== 'landing' && !activeCourseDetails && !activeTestSimulator && (
 
             <div>
               {activeTab === 'home' && (
-                <StudentDashboard
-                  currentUser={currentUser}
-                  setActiveTab={setActiveTab}
-                  navigateTo={navigateTo}
-                />
+                <div className="student-home animate-in">
+
+                  {/* ── Hero Welcome Banner ── */}
+                  <div className="hero-banner">
+                    <div className="hero-banner-bg" />
+                    <div className="hero-banner-content">
+                      <div className="hero-left">
+                        <div className="hero-tag">✨ Hệ thống học tập AI cá nhân hóa</div>
+                        <h2 className="hero-title">
+                          Chào mừng trở lại, <span>{currentUser?.name?.split(' ').slice(-1)[0] || 'bạn'}!</span>
+                        </h2>
+                        <p className="hero-sub">
+                          Khối <strong>{currentUser?.combo || 'A01'}</strong> · Mục tiêu{' '}
+                          <strong>{currentUser?.targetScore || '27+'} điểm THPTQG</strong> ·{' '}
+                          Còn <strong>180 ngày</strong> đến kỳ thi
+                        </p>
+                        <div className="hero-actions">
+                          <button className="btn-hero-primary" onClick={() => setActiveTab('path')}>
+                            🗺️ Xem lộ trình AI
+                          </button>
+                          <button className="btn-hero-secondary" onClick={() => setActiveTestSimulator('Đề Khảo sát Hàm số Chương I')}>
+                            ✏️ Làm bài thi ngay
+                          </button>
+                        </div>
+                      </div>
+                      <div className="hero-right">
+                        <div className="hero-progress-ring">
+                          <svg width="120" height="120" viewBox="0 0 120 120">
+                            <circle cx="60" cy="60" r="52" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="8" />
+                            <circle cx="60" cy="60" r="52" fill="none" stroke="rgba(255,255,255,0.9)" strokeWidth="8"
+                              strokeDasharray={`${2 * Math.PI * 52 * 0.72} ${2 * Math.PI * 52 * 0.28}`}
+                              strokeDashoffset={2 * Math.PI * 52 * 0.25}
+                              strokeLinecap="round" />
+                          </svg>
+                          <div className="ring-inner">
+                            <span className="ring-value">72%</span>
+                            <span className="ring-label">Lộ trình</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* ── Quick Stats Row ── */}
+                  <div className="stats-row">
+                    {[
+                      { icon: '🔥', value: '7', unit: 'ngày', label: 'Streak học liên tiếp', color: '#E17055', bg: 'rgba(225,112,85,0.1)', trend: '+2 so với tuần trước' },
+                      { icon: '📊', value: '8.2', unit: '/10', label: 'Điểm TB bài kiểm tra', color: '#0984E3', bg: 'rgba(9,132,227,0.1)', trend: '↑ +0.4 điểm' },
+                      { icon: '📚', value: '3', unit: 'khóa', label: 'Đang theo học', color: '#6C5CE7', bg: 'rgba(108,92,231,0.1)', trend: '1 khóa sắp xong' },
+                      { icon: '⏱️', value: '4.5', unit: 'giờ', label: 'Học tập tuần này', color: '#00B894', bg: 'rgba(0,184,148,0.1)', trend: '↑ +1.2h so với tuần trước' },
+                    ].map((s, i) => (
+                      <div key={i} className="stat-card-v2" style={{ '--stat-color': s.color, '--stat-bg': s.bg }}>
+                        <div className="stat-icon-v2">{s.icon}</div>
+                        <div className="stat-body">
+                          <div className="stat-value-v2">{s.value}<span className="stat-unit">{s.unit}</span></div>
+                          <div className="stat-label-v2">{s.label}</div>
+                          <div className="stat-trend">{s.trend}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* ── Main Grid ── */}
+                  <div className="home-grid">
+
+                    {/* Left column */}
+                    <div className="home-col-main">
+
+                      {/* Today's Missions */}
+                      <div className="card-v2 animate-in">
+                        <div className="card-v2-header">
+                          <div className="card-v2-title">
+                            <span className="card-title-icon" style={{ background: 'rgba(253,203,110,0.2)', color: '#FDCB6E' }}>📋</span>
+                            Nhiệm vụ hôm nay
+                          </div>
+                          <span className="card-badge green">2/4 hoàn thành</span>
+                        </div>
+                        <div className="mission-list">
+                          {[
+                            { done: true, label: 'Xem bài giảng: Ứng dụng đạo hàm', sub: 'Toán học · 25 phút', icon: '▶️', xp: '+50 XP' },
+                            { done: true, label: 'Luyện 10 câu trắc nghiệm Đạo hàm', sub: 'Toán học · 8.5/10 điểm', icon: '✏️', xp: '+30 XP' },
+                            { done: false, label: 'Đọc tóm tắt lý thuyết Dao động cơ', sub: 'Vật lý · ~15 phút', icon: '📖', xp: '+20 XP', onClick: () => setActiveTab('library') },
+                            { done: false, label: 'Hỏi AI về bài tập khó hôm nay', sub: 'AI Tutor · Sẵn sàng 24/7', icon: '🤖', xp: '+10 XP', onClick: () => setActiveTab('ai-qa') },
+                          ].map((m, i) => (
+                            <div key={i} className={`mission-item ${m.done ? 'done' : ''}`} onClick={m.onClick} style={{ cursor: m.onClick ? 'pointer' : 'default' }}>
+                              <div className={`mission-check ${m.done ? 'checked' : ''}`}>
+                                {m.done ? '✓' : ''}
+                              </div>
+                              <div className="mission-icon">{m.icon}</div>
+                              <div className="mission-body">
+                                <div className="mission-label">{m.label}</div>
+                                <div className="mission-sub">{m.sub}</div>
+                              </div>
+                              <div className="mission-xp">{m.xp}</div>
+                            </div>
+                          ))}
+                        </div>
+                        <div className="mission-progress-bar">
+                          <div style={{ width: '50%' }} />
+                        </div>
+                      </div>
+
+                      {/* AI Recommendations */}
+                      <div className="card-v2 animate-in">
+                        <div className="card-v2-header">
+                          <div className="card-v2-title">
+                            <span className="card-title-icon" style={{ background: 'rgba(162,155,254,0.2)', color: '#6C5CE7' }}>✨</span>
+                            AI đề xuất cho bạn
+                          </div>
+                          <span className="card-badge purple">Cập nhật hôm nay</span>
+                        </div>
+                        <div className="rec-grid-v2">
+                          {[
+                            {
+                              type: 'Bài học', typeColor: '#0984E3', title: 'Hàm số bậc 2 và đồ thị', subject: 'Toán học',
+                              time: '45 phút', icon: '🎬', progress: 60,
+                              reason: 'Bạn đang ở tuần 2 lộ trình Toán',
+                              onClick: () => { const c = activeUserCourses.find(c => c.id === 1); if (c) setActiveCourseDetails(c); }
+                            },
+                            {
+                              type: 'Luyện tập', typeColor: '#E17055', title: 'Sửa sai Khảo sát hàm số', subject: 'Toán học',
+                              time: '5 câu', icon: '✏️', progress: 0,
+                              reason: 'Điểm yếu phát hiện qua AI',
+                              onClick: () => setActiveTestSimulator('Bài tập củng cố Đạo hàm')
+                            },
+                            {
+                              type: 'AI Tutor', typeColor: '#00B894', title: 'Giải thích Dao động cơ', subject: 'Vật lý',
+                              time: 'Trực tuyến', icon: '🤖', progress: 0,
+                              reason: 'Chủ đề bạn chưa học tuần này',
+                              onClick: () => setActiveTab('ai-qa')
+                            },
+                          ].map((r, i) => (
+                            <div key={i} className="rec-card-v2" onClick={r.onClick}>
+                              <div className="rec-card-top">
+                                <span className="rec-type-badge" style={{ background: r.typeColor + '1a', color: r.typeColor }}>{r.type}</span>
+                                <span className="rec-icon">{r.icon}</span>
+                              </div>
+                              <h4 className="rec-title-v2">{r.title}</h4>
+                              <p className="rec-subject-v2">{r.subject}</p>
+                              <p className="rec-reason">💡 {r.reason}</p>
+                              {r.progress > 0 && (
+                                <div className="rec-progress">
+                                  <div style={{ width: r.progress + '%' }} />
+                                </div>
+                              )}
+                              <div className="rec-footer-v2">
+                                <span>⏱ {r.time}</span>
+                                <button className="rec-cta">Bắt đầu →</button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Progress Chart */}
+                      <ProgressChart />
+                    </div>
+
+                    {/* Right column */}
+                    <div className="home-col-side">
+
+                      {/* Subject Performance */}
+                      <div className="card-v2 animate-in">
+                        <div className="card-v2-header">
+                          <div className="card-v2-title">
+                            <span className="card-title-icon" style={{ background: 'rgba(9,132,227,0.15)', color: '#0984E3' }}>📊</span>
+                            Năng lực theo môn
+                          </div>
+                        </div>
+                        <div className="subject-bars">
+                          {[
+                            { subject: 'Toán học', score: 7.8, max: 10, color: '#6C5CE7', icon: '📐', status: 'Tốt' },
+                            { subject: 'Vật lý', score: 6.5, max: 10, color: '#0984E3', icon: '⚡', status: 'Cần cải thiện' },
+                            { subject: 'Tiếng Anh', score: 8.4, max: 10, color: '#00B894', icon: '🔤', status: 'Xuất sắc' },
+                          ].map((s, i) => (
+                            <div key={i} className="subject-bar-item">
+                              <div className="subject-bar-head">
+                                <span>{s.icon} {s.subject}</span>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                  <span className="subject-status" style={{ color: s.score >= 8 ? '#00B894' : s.score >= 7 ? '#FDCB6E' : '#E17055' }}>{s.status}</span>
+                                  <strong style={{ color: s.color }}>{s.score}</strong>
+                                </div>
+                              </div>
+                              <div className="subject-bar-track">
+                                <div className="subject-bar-fill" style={{ width: `${(s.score / s.max) * 100}%`, background: s.color }} />
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Streak */}
+                      <StreakCard />
+
+                      {/* Upcoming Tests */}
+                      <UpcomingTests />
+
+                      {/* EduBot Quick Access */}
+                      <div className="card-v2 edubot-card animate-in" onClick={() => setActiveTab('ai-qa')} style={{ cursor: 'pointer' }}>
+                        <div className="edubot-bg" />
+                        <div style={{ position: 'relative', zIndex: 1 }}>
+                          <div className="edubot-top">
+                            <div>
+                              <div className="edubot-title">Trợ lý EduBot AI</div>
+                              <div className="edubot-sub">Luôn sẵn sàng giải đáp 24/7</div>
+                            </div>
+                            <span className="ai-live-badge">● LIVE</span>
+                          </div>
+                          <p className="edubot-prompt">
+                            {currentUser?.name?.split(' ').slice(-1)[0]}, hôm nay muốn hỏi gì nào?
+                          </p>
+                          <div className="edubot-chips">
+                            <span>Giải bài tập</span>
+                            <span>Công thức</span>
+                            <span>Phân tích đề</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Performance Card */}
+                      <PerformanceCard />
+                    </div>
+                  </div>
+                </div>
               )}
 
               {/* Learning path adaptive roadmap tab */}
               {activeTab === 'path' && (
-                <AISystemCenter 
-                  submissions={activeUserSubmissions} 
-                  addLog={addLog} 
-                  currentUser={currentUser}
-                  navigateTo={navigateTo}
-                />
+                <AISystemCenter submissions={activeUserSubmissions} addLog={addLog} />
               )}
 
               {/* Courses tab */}
@@ -1442,665 +1225,47 @@ export default function App() {
 
               {/* Forum tab */}
               {activeTab === 'forum' && (
-                <Forum currentUser={currentUser} />
-              )}
-
-              {/* Leaderboard tab */}
-              {activeTab === 'leaderboard' && (
-                <div className="card animate-in" style={{ border: '3px solid #000', boxShadow: '5px 5px 0px #000', padding: '28px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2.5px solid #000', paddingBottom: '16px', marginBottom: '20px' }}>
-                    <div>
-                      <h3 style={{ fontSize: '20px', fontWeight: '950', color: '#000', margin: 0 }}>
-                        🏆 BẢNG XẾP HẠNG HỌC VIÊN XUẤT SẮC
-                      </h3>
-                      <p style={{ fontSize: '13px', color: '#6b7280', margin: '4px 0 0 0' }}>
-                        Bảng vàng vinh danh những chiến thần học tập có phong độ cao nhất trên hệ thống EduPath.
-                      </p>
-                    </div>
-                    <span style={{ fontSize: '32px' }}>🏆</span>
-                  </div>
-
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px', marginBottom: '28px' }}>
-                    <div style={{ background: 'linear-gradient(135deg, #fef9c3, #fef08a)', border: '2px solid #000', borderRadius: '16px', padding: '16px', textAlign: 'center', boxShadow: '3px 3px 0px #000' }}>
-                      <span style={{ fontSize: '24px' }}>🥇 Thủ khoa Tuần</span>
-                      <h4 style={{ fontSize: '16px', fontWeight: '900', margin: '8px 0 2px 0' }}>Nguyễn Lâm Vy</h4>
-                      <p style={{ fontSize: '12px', color: '#854d0e', margin: 0 }}>Khối A01 – Điểm trung bình: <strong>9.8</strong></p>
-                    </div>
-                    <div style={{ background: 'linear-gradient(135deg, #f1f5f9, #e2e8f0)', border: '2px solid #000', borderRadius: '16px', padding: '16px', textAlign: 'center', boxShadow: '3px 3px 0px #000' }}>
-                      <span style={{ fontSize: '24px' }}>🥈 Á khoa Tuần</span>
-                      <h4 style={{ fontSize: '16px', fontWeight: '900', margin: '8px 0 2px 0' }}>Trần Minh Đức</h4>
-                      <p style={{ fontSize: '12px', color: '#475569', margin: 0 }}>Khối B00 – Điểm trung bình: <strong>9.6</strong></p>
-                    </div>
-                    <div style={{ background: 'linear-gradient(135deg, #ffedd5, #fed7aa)', border: '2px solid #000', borderRadius: '16px', padding: '16px', textAlign: 'center', boxShadow: '3px 3px 0px #000' }}>
-                      <span style={{ fontSize: '24px' }}>🥉 Tam khoa Tuần</span>
-                      <h4 style={{ fontSize: '16px', fontWeight: '900', margin: '8px 0 2px 0' }}>Lê Quỳnh Chi</h4>
-                      <p style={{ fontSize: '12px', color: '#c2410c', margin: 0 }}>Khối D01 – Điểm trung bình: <strong>9.4</strong></p>
-                    </div>
-                  </div>
-
-                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }} className="exams-sidebar-table">
-                    <thead>
-                      <tr style={{ borderBottom: '2px solid #000' }}>
-                        <th style={{ padding: '12px 8px', fontWeight: '900' }}>Hạng</th>
-                        <th style={{ padding: '12px 8px', fontWeight: '900' }}>Học sinh</th>
-                        <th style={{ padding: '12px 8px', fontWeight: '900' }}>Tổ hợp môn</th>
-                        <th style={{ padding: '12px 8px', fontWeight: '900' }}>Chuỗi học (Streak)</th>
-                        <th style={{ padding: '12px 8px', fontWeight: '900', textAlign: 'right' }}>Điểm số</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {[
-                        { rank: 1, name: "Nguyễn Lâm Vy", combo: "A01 (Toán - Lý - Anh)", streak: 42, score: "9.8", avatar: "LV" },
-                        { rank: 2, name: "Trần Minh Đức", combo: "B00 (Toán - Hóa - Sinh)", streak: 35, score: "9.6", avatar: "MĐ" },
-                        { rank: 3, name: "Lê Quỳnh Chi", combo: "D01 (Toán - Văn - Anh)", streak: 28, score: "9.4", avatar: "QC" },
-                        { rank: 4, name: "Phạm Minh Hoàng", combo: "A01 (Toán - Lý - Anh)", streak: 21, score: "9.0", avatar: "MH" },
-                        { rank: 5, name: "Đỗ Gia Bảo", combo: "B00 (Toán - Hóa - Sinh)", streak: 17, score: "8.8", avatar: "GB" }
-                      ].map(student => (
-                        <tr key={student.rank} style={{ borderBottom: '1px solid #e2e8f0' }}>
-                          <td style={{ padding: '12px 8px' }}>
-                            <span className={student.rank <= 3 ? `rank-${student.rank}` : 'rank-other'}>
-                              {student.rank}
-                            </span>
-                          </td>
-                          <td style={{ padding: '12px 8px' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                              <div style={{ width: '30px', height: '30px', borderRadius: '50%', background: '#6c5ce7', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '11px' }}>
-                                {student.avatar}
-                              </div>
-                              <strong>{student.name}</strong>
-                            </div>
-                          </td>
-                          <td style={{ padding: '12px 8px', color: '#4b5563', fontSize: '13px' }}>{student.combo}</td>
-                          <td style={{ padding: '12px 8px', fontWeight: '700', color: '#d97706' }}>🔥 {student.streak} ngày</td>
-                          <td style={{ padding: '12px 8px', textAlign: 'right', fontWeight: '900', fontSize: '15px' }}>{student.score}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                <Forum
+                  forumPosts={forumPosts}
+                  onAddPost={handleForumAddPost}
+                  onLikePost={handleForumLikePost}
+                  onAddComment={handleForumAddComment}
+                  onAcceptCommentSolution={handleForumAcceptCommentSolution}
+                  currentUser={currentUser}
+                />
               )}
 
               {/* Online Mock Exams tab */}
               {activeTab === 'tests' && (
-                <div className="exams-lobby-layout animate-in">
-                  
-                  {/* Left Column: Main Exams Panel */}
-                  <div className="exams-main-content">
-                    
-                    {/* Hero Banner with statistics */}
-                    <div className="exams-hero-banner">
-                      <span className="subj-eyebrow" style={{ background: 'rgba(255, 255, 255, 0.15)', color: '#fff' }}>
-                        Hệ thống luyện đề chuẩn cấu trúc Bộ GD&ĐT
-                      </span>
-                      <h2 style={{ fontSize: '28px', fontWeight: '950', color: '#fff', margin: '12px 0 6px 0', lineHeight: 1.2 }}>
-                        Chinh phục Kỳ thi THPT Quốc Gia
-                      </h2>
-                      <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.85)', margin: '0 0 24px 0', maxWidth: '560px', lineHeight: 1.5 }}>
-                        Luyện tập trực tuyến với các đề thi chính thức các năm 2024 - 2025. Phân tích lỗ hổng kiến thức tức thì bằng trí tuệ nhân tạo Adaptive AI.
-                      </p>
-                      
-                      {/* Stat row counters */}
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: '16px' }}>
-                        <div style={{ background: 'rgba(255, 255, 255, 0.08)', padding: '12px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.15)' }}>
-                          <span style={{ display: 'block', fontSize: '11px', color: 'rgba(255,255,255,0.65)', fontWeight: 'bold', textTransform: 'uppercase' }}>Lượt thi thử</span>
-                          <strong style={{ fontSize: '20px', color: '#fff', fontWeight: '900' }}>42,500+</strong>
+                <div className="card">
+                  <h3 style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '14px' }}>HỆ THỐNG KIỂM TRA & LUYỆN ĐỀ</h3>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    {examsList && examsList.length > 0 ? (
+                      examsList.map(exam => (
+                        <div key={exam.id} style={{ padding: '16px', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', background: 'var(--bg-main)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <div>
+                            <span className="badge-pill" style={{ background: 'var(--primary-bg)', color: 'var(--primary)', fontSize: '10px' }}>{exam.subject}</span>
+                            <h4 style={{ fontSize: '14px', fontWeight: 'bold', marginTop: '6px' }}>{exam.title}</h4>
+                            <p style={{ fontSize: '11.5px', color: 'var(--text-secondary)', marginTop: '2px' }}>Thời lượng: {exam.duration} phút • Quy chuẩn đề thi THPTQG</p>
+                          </div>
+                          <button className="btn-primary" onClick={() => setActiveTestSimulator(exam)}>
+                            Bắt đầu làm bài
+                          </button>
                         </div>
-                        <div style={{ background: 'rgba(255, 255, 255, 0.08)', padding: '12px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.15)' }}>
-                          <span style={{ display: 'block', fontSize: '11px', color: 'rgba(255,255,255,0.65)', fontWeight: 'bold', textTransform: 'uppercase' }}>Tỷ lệ hài lòng</span>
-                          <strong style={{ fontSize: '20px', color: '#fff', fontWeight: '900' }}>98.2%</strong>
+                      ))
+                    ) : (
+                      <div style={{ padding: '16px', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', background: 'var(--bg-main)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div>
+                          <span className="badge-pill" style={{ background: 'var(--primary-bg)', color: 'var(--primary)', fontSize: '10px' }}>Toán học</span>
+                          <h4 style={{ fontSize: '14px', fontWeight: 'bold', marginTop: '6px' }}>Đề khảo sát kiểm tra Khảo sát hàm số chương I</h4>
+                          <p style={{ fontSize: '11.5px', color: 'var(--text-secondary)', marginTop: '2px' }}>Thời lượng: 30 phút • Quy chuẩn đề thi THPTQG</p>
                         </div>
-                        <div style={{ background: 'rgba(255, 255, 255, 0.08)', padding: '12px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.15)' }}>
-                          <span style={{ display: 'block', fontSize: '11px', color: 'rgba(255,255,255,0.65)', fontWeight: 'bold', textTransform: 'uppercase' }}>Đề chính thức</span>
-                          <strong style={{ fontSize: '20px', color: '#fff', fontWeight: '900' }}>2024 - 2025</strong>
-                        </div>
-                        <div style={{ background: 'rgba(255, 255, 255, 0.08)', padding: '12px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.15)' }}>
-                          <span style={{ display: 'block', fontSize: '11px', color: 'rgba(255,255,255,0.65)', fontWeight: 'bold', textTransform: 'uppercase' }}>AI Chẩn đoán</span>
-                          <strong style={{ fontSize: '20px', color: '#fff', fontWeight: '900' }}>Tự động 100%</strong>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* OCR Answer Sheet Grading Entry Banner */}
-                    <div 
-                      className="card animate-in"
-                      style={{
-                        padding: '20px 24px',
-                        background: 'linear-gradient(135deg, rgba(240, 253, 244, 0.6), rgba(220, 252, 231, 0.6))',
-                        border: '1px solid rgba(16, 185, 129, 0.2)',
-                        borderRadius: '16px',
-                        boxShadow: 'var(--shadow-md)',
-                        display: 'flex',
-                        flexWrap: 'wrap',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        gap: '16px'
-                      }}
-                    >
-                      <div style={{ flex: '1', minWidth: '280px' }}>
-                        <span className="badge-pill" style={{ background: 'var(--accent-green)', color: '#fff', fontWeight: 'bold', fontSize: '10px', textTransform: 'uppercase' }}>
-                          ⚡ Tính năng Mới
-                        </span>
-                        <h3 style={{ fontSize: '16px', fontWeight: '700', color: '#14532d', margin: '6px 0 4px 0' }}>
-                          📸 Tự động chấm điểm nhanh qua Camera (OCR)
-                        </h3>
-                        <p style={{ fontSize: '12.5px', color: '#166534', margin: 0, lineHeight: 1.4 }}>
-                          Làm bài ra giấy hoặc tô phiếu trắc nghiệm rồi chụp ảnh tải lên. AI sẽ tự động đọc kết quả, đối chiếu đáp án chính thức của Bộ GD&ĐT và chấm điểm ngay lập tức!
-                        </p>
-                      </div>
-                      
-                      <button
-                        onClick={() => setActiveOCRScanner(true)}
-                        className="btn-primary"
-                        style={{
-                          background: 'linear-gradient(135deg, #10b981, #059669)',
-                          color: '#fff',
-                          border: 'none',
-                          padding: '10px 22px',
-                          fontSize: '13px',
-                          fontWeight: '600',
-                          borderRadius: 'var(--radius-sm)',
-                          boxShadow: '0 4px 12px rgba(16, 185, 129, 0.2)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '6px',
-                          cursor: 'pointer',
-                          transition: 'all 0.2s ease'
-                        }}
-                      >
-                        Chấm điểm bằng OCR 📸
-                      </button>
-                    </div>
-
-                    {/* Lịch sử thi thử và Chẩn đoán AI */}
-                    {attemptsHistory && attemptsHistory.length > 0 && (
-                      <div className="card animate-in" style={{ padding: '20px 24px', borderRadius: '16px', border: '1px solid var(--border)', background: 'var(--bg-card)', boxShadow: 'var(--shadow-sm)', marginBottom: '24px' }}>
-                        <h3 style={{ fontSize: '15px', fontWeight: '800', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
-                          <span>📝</span> Lịch sử thi thử & Chẩn đoán từ AI <span style={{ fontSize: '11px', background: 'rgba(108, 92, 231, 0.1)', color: 'var(--primary)', padding: '2px 8px', borderRadius: '12px', fontWeight: 'bold' }}>{attemptsHistory.length} lượt</span>
-                        </h3>
-                        <div style={{ overflowX: 'auto' }}>
-                          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', textAlign: 'left' }}>
-                            <thead>
-                              <tr style={{ borderBottom: '2px solid var(--border)', color: 'var(--text-secondary)' }}>
-                                <th style={{ padding: '8px 12px', fontWeight: 'bold' }}>Môn học</th>
-                                <th style={{ padding: '8px 12px', fontWeight: 'bold' }}>Đề thi</th>
-                                <th style={{ padding: '8px 12px', fontWeight: 'bold' }}>Ngày thi</th>
-                                <th style={{ padding: '8px 12px', fontWeight: 'bold', textAlign: 'right' }}>Điểm số</th>
-                                <th style={{ padding: '8px 12px', fontWeight: 'bold', textAlign: 'center' }}>Nhận xét AI</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {attemptsHistory.map((att) => {
-                                const dateStr = new Date(att.startedAt).toLocaleDateString('vi-VN', { hour: '2-digit', minute: '2-digit' });
-                                const scoreColor = att.score >= 8 ? 'var(--accent-green)' : (att.score >= 5 ? 'var(--accent-orange)' : 'var(--accent-red)');
-                                return (
-                                  <tr key={att.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                                    <td style={{ padding: '12px', fontWeight: 'bold' }}>{att.exam?.subject || 'Môn học'}</td>
-                                    <td style={{ padding: '12px', color: 'var(--text-secondary)' }}>{att.exam?.title || 'Đề tự luyện'}</td>
-                                    <td style={{ padding: '12px', color: 'var(--text-muted)' }}>{dateStr}</td>
-                                    <td style={{ padding: '12px', textAlign: 'right', fontWeight: '900', color: scoreColor, fontSize: '15px' }}>
-                                      {att.score.toFixed(1)}
-                                    </td>
-                                    <td style={{ padding: '12px', textAlign: 'center' }}>
-                                      {att.aiFeedback && (
-                                        <button
-                                          onClick={() => {
-                                            const feedback = typeof att.aiFeedback === 'string' ? JSON.parse(att.aiFeedback) : att.aiFeedback;
-                                            setAiFeedbackModal({ feedback, exam: att.exam });
-                                          }}
-                                          style={{
-                                            padding: '4px 10px',
-                                            fontSize: '11px',
-                                            background: 'rgba(108, 92, 231, 0.1)',
-                                            color: 'var(--primary)',
-                                            border: 'none',
-                                            borderRadius: '6px',
-                                            cursor: 'pointer',
-                                            fontWeight: 'bold'
-                                          }}
-                                        >
-                                          Chi tiết 🔎
-                                        </button>
-                                      )}
-                                    </td>
-                                  </tr>
-                                );
-                              })}
-                            </tbody>
-                          </table>
-                        </div>
+                        <button className="btn-primary" onClick={() => setActiveTestSimulator("Đề Khảo sát Hàm số Chương I")}>
+                          Bắt đầu làm bài
+                        </button>
                       </div>
                     )}
-
-                    {/* Filters Tabs by Subject & Year & Search & Category */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '24px' }}>
-                      
-                      {/* Search Bar & Category filter row */}
-                      <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
-                        <div style={{ flex: '1', minWidth: '280px', position: 'relative' }}>
-                          <input 
-                            type="text" 
-                            placeholder="🔍 Tìm kiếm tên đề thi, từ khóa (Ví dụ: Toán 2024, Chuyên)..." 
-                            value={examSearchQuery} 
-                            onChange={e => setExamSearchQuery(e.target.value)} 
-                            style={{
-                              width: '100%',
-                              padding: '10px 16px 10px 36px',
-                              fontSize: '13px',
-                              borderRadius: '12px',
-                              border: '1px solid var(--border)',
-                              background: 'var(--bg-card)',
-                              color: 'var(--text-primary)',
-                              boxShadow: 'var(--shadow-sm)',
-                              outline: 'none',
-                              transition: 'all 0.2s ease'
-                            }}
-                          />
-                          <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', opacity: 0.6 }}>🔍</span>
-                          {examSearchQuery && (
-                            <button 
-                              onClick={() => setExamSearchQuery('')}
-                              style={{
-                                position: 'absolute',
-                                right: '12px',
-                                top: '50%',
-                                transform: 'translateY(-50%)',
-                                border: 'none',
-                                background: 'none',
-                                cursor: 'pointer',
-                                color: 'var(--text-secondary)',
-                                fontSize: '13px'
-                              }}
-                            >
-                              ✕
-                            </button>
-                          )}
-                        </div>
-
-                        {/* Category selection */}
-                        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                          {[
-                            { key: 'All', label: '🗂️ Tất cả' },
-                            { key: 'Official', label: '📌 Đề chính thức THPT QG' },
-                            { key: 'Mock', label: '🏫 Đề Trường Chuyên' },
-                            { key: 'Aptitude', label: '🎯 Đánh giá năng lực' }
-                          ].map(cat => {
-                            const isSelected = examCategory === cat.key;
-                            return (
-                              <button
-                                key={cat.key}
-                                onClick={() => setExamCategory(cat.key)}
-                                style={{
-                                  padding: '8px 16px',
-                                  fontSize: '12.5px',
-                                  fontWeight: '600',
-                                  borderRadius: '10px',
-                                  border: isSelected ? '1px solid var(--primary)' : '1px solid var(--border)',
-                                  background: isSelected ? 'var(--primary)' : 'var(--bg-card)',
-                                  color: isSelected ? '#fff' : 'var(--text-secondary)',
-                                  cursor: 'pointer',
-                                  boxShadow: isSelected ? '0 4px 12px rgba(108, 92, 231, 0.15)' : 'var(--shadow-sm)',
-                                  transition: 'all 0.2s ease'
-                                }}
-                              >
-                                {cat.label}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-
-                      {/* Stats Dashboard row */}
-                      <div style={{
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
-                        gap: '12px',
-                        background: 'linear-gradient(135deg, rgba(108, 92, 231, 0.04), rgba(165, 180, 252, 0.04))',
-                        padding: '16px',
-                        borderRadius: '16px',
-                        border: '1px solid var(--border)',
-                        boxShadow: 'var(--shadow-sm)'
-                      }}>
-                        <div style={{ textAlign: 'center', borderRight: '1px solid var(--border)', padding: '4px' }}>
-                          <span style={{ display: 'block', fontSize: '10px', color: 'var(--text-secondary)', fontWeight: 'bold', textTransform: 'uppercase' }}>TỔNG SỐ ĐỀ THI</span>
-                          <strong style={{ fontSize: '18px', color: 'var(--primary)', fontWeight: '850' }}>{examsList.length} đề thi</strong>
-                        </div>
-                        <div style={{ textAlign: 'center', borderRight: '1px solid var(--border)', padding: '4px' }}>
-                          <span style={{ display: 'block', fontSize: '10px', color: 'var(--text-secondary)', fontWeight: 'bold', textTransform: 'uppercase' }}>CHUYÊN ĐỀ PHỦ</span>
-                          <strong style={{ fontSize: '18px', color: '#10b981', fontWeight: '850' }}>20+ chủ đề</strong>
-                        </div>
-                        <div style={{ textAlign: 'center', borderRight: '1px solid var(--border)', padding: '4px' }}>
-                          <span style={{ display: 'block', fontSize: '10px', color: 'var(--text-secondary)', fontWeight: 'bold', textTransform: 'uppercase' }}>CƠ CẤU ĐỘ KHÓ</span>
-                          <span style={{ fontSize: '11.5px', color: 'var(--text-primary)', fontWeight: '700', display: 'block', marginTop: '4px' }}>Dễ 35% | TB 45% | Khó 20%</span>
-                        </div>
-                        <div style={{ textAlign: 'center', padding: '4px' }}>
-                          <span style={{ display: 'block', fontSize: '10px', color: 'var(--text-secondary)', fontWeight: 'bold', textTransform: 'uppercase' }}>HỆ THỐNG GIÁM SÁT</span>
-                          <strong style={{ fontSize: '16px', color: '#db8142', fontWeight: '850' }}>AI Diagnostics ⚡</strong>
-                        </div>
-                      </div>
-
-                      {/* Subject filters & Year filters Row */}
-                      <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <div className="exams-filter-tabs" style={{ marginBottom: 0 }}>
-                          {['All', 'Toán học', 'Vật lý', 'Hóa học', 'Sinh học', 'Tiếng Anh', 'Đánh giá năng lực'].map(subject => (
-                            <button
-                              key={subject}
-                              className={examFilterSubject === subject ? 'active' : ''}
-                              onClick={() => setExamFilterSubject(subject)}
-                              style={{ cursor: 'pointer' }}
-                            >
-                              {subject === 'All' ? 'Tất cả môn học' : subject}
-                            </button>
-                          ))}
-                        </div>
-                        
-                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                          <span style={{ fontSize: '12.5px', fontWeight: '600', color: 'var(--text-primary)' }}>🗓️ Năm:</span>
-                          {['All', '2024', '2023', '2022', '2021', '2020'].map(year => {
-                            const isSelected = examFilterYear === year;
-                            return (
-                              <button
-                                key={year}
-                                onClick={() => setExamFilterYear(year)}
-                                style={{
-                                  padding: '5px 12px',
-                                  fontSize: '12px',
-                                  fontWeight: '600',
-                                  borderRadius: '20px',
-                                  border: isSelected ? '1px solid var(--primary)' : '1px solid var(--border)',
-                                  background: isSelected ? 'var(--primary)' : 'var(--bg-card)',
-                                  color: isSelected ? '#fff' : 'var(--text-secondary)',
-                                  cursor: 'pointer',
-                                  transition: 'all 0.2s ease',
-                                  boxShadow: isSelected ? 'var(--shadow-sm)' : 'none'
-                                }}
-                              >
-                                {year === 'All' ? 'Tất cả' : year}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-
-                    </div>
-
-                    {/* Detailed Layout & Categorized Grids */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
-                      {(() => {
-                        // Filter logic
-                        const filtered = examsList.filter(exam => {
-                          const matchesSubject = examFilterSubject === 'All' || exam.subject === examFilterSubject;
-                          const matchesYear = examFilterYear === 'All' || exam.title.includes(examFilterYear);
-                          const matchesSearch = examSearchQuery.trim() === '' || 
-                            exam.title.toLowerCase().includes(examSearchQuery.toLowerCase()) ||
-                            exam.subject.toLowerCase().includes(examSearchQuery.toLowerCase());
-                          
-                          let matchesCategory = true;
-                          const isOfficial = exam.title.includes("chính thức") || exam.title.includes("QG");
-                          const isAptitude = exam.subject.includes("Đánh giá năng lực") || exam.title.includes("HSA") || exam.title.includes("ĐGNL") || exam.title.includes("năng lực");
-                          const isMock = !isOfficial && !isAptitude;
-
-                          if (examCategory === 'Official') matchesCategory = isOfficial;
-                          else if (examCategory === 'Mock') matchesCategory = isMock;
-                          else if (examCategory === 'Aptitude') matchesCategory = isAptitude;
-
-                          return matchesSubject && matchesYear && matchesSearch && matchesCategory;
-                        });
-
-                        if (filtered.length === 0) {
-                          return (
-                            <div className="subj-empty">
-                              <span className="subj-empty-icon">📂</span>
-                              <h3>Không tìm thấy đề thi phù hợp</h3>
-                              <p>Vui lòng thử tìm kiếm khác hoặc thay đổi bộ lọc.</p>
-                            </div>
-                          );
-                        }
-
-                        // Categories breakdown
-                        const official = filtered.filter(e => e.title.includes("chính thức") || e.title.includes("QG"));
-                        const aptitude = filtered.filter(e => e.subject.includes("Đánh giá năng lực") || e.title.includes("HSA") || e.title.includes("ĐGNL") || e.title.includes("năng lực"));
-                        const mocks = filtered.filter(e => !e.title.includes("chính thức") && !e.title.includes("QG") && !e.subject.includes("Đánh giá năng lực") && !e.title.includes("HSA") && !e.title.includes("ĐGNL") && !e.title.includes("năng lực"));
-
-                        const renderCard = (exam) => {
-                          const isMath = exam.subject === 'Toán học';
-                          const isPhysics = exam.subject === 'Vật lý';
-                          const isChemistry = exam.subject === 'Hóa học';
-                          const isBiology = exam.subject === 'Sinh học';
-                          const isEnglish = exam.subject === 'Tiếng Anh';
-                          const cardHeaderBg = isMath ? '#5b75f3' : (isPhysics ? '#52ad58' : (isChemistry ? '#06b6d4' : (isBiology ? '#10b981' : (isEnglish ? '#db8142' : '#8b5cf6'))));
-                          const mascot = isMath ? '🦉' : (isPhysics ? '🦊' : (isChemistry ? '🧪' : (isBiology ? '🌿' : (isEnglish ? '🐸' : '🎯'))));
-
-                          return (
-                            <div key={exam.id} className="exam-paper-card animate-in">
-                              <div className="exam-paper-header" style={{ background: cardHeaderBg }}>
-                                <span className="exam-paper-tag">{exam.subject}</span>
-                                <div className="exam-paper-header-right">
-                                  <span className="exam-paper-difficulty" style={{ background: 'rgba(0,0,0,0.2)' }}>
-                                    Chuẩn cấu trúc
-                                  </span>
-                                  <span className="exam-paper-mascot">{mascot}</span>
-                                </div>
-                              </div>
-
-                              <div className="exam-paper-body">
-                                <span className="exam-paper-subject" style={{ color: cardHeaderBg }}>{exam.subjectGroup || 'Tổ hợp'}</span>
-                                <h4 className="exam-paper-title" title={exam.title}>{exam.title}</h4>
-                                
-                                <div className="exam-paper-info-grid">
-                                  <div className="info-item">⏱ {exam.duration} phút</div>
-                                  <div className="info-item">📝 {exam.subject === 'Vật lý' ? '40 câu' : '50 câu'}</div>
-                                </div>
-                              </div>
-
-                              <div className="exam-paper-footer">
-                                <button 
-                                  className="btn-primary" 
-                                  onClick={() => setActiveTestSimulator(exam)}
-                                  style={{ background: cardHeaderBg, color: '#fff', border: 'none', fontWeight: '600', boxShadow: `0 4px 12px ${cardHeaderBg}28`, cursor: 'pointer', transition: 'all 0.2s ease' }}
-                                >
-                                  Làm online 💻
-                                </button>
-                                <button 
-                                  className="btn-outline" 
-                                  onClick={() => setActiveOCRScanner(exam)}
-                                  style={{ border: '1px solid var(--border)', fontWeight: '600', background: '#fff', color: 'var(--text-secondary)', cursor: 'pointer', transition: 'all 0.2s ease', boxShadow: 'var(--shadow-sm)' }}
-                                >
-                                  Nộp file OCR 📸
-                                </button>
-                              </div>
-                            </div>
-                          );
-                        };
-
-                        const ITEMS_PER_PAGE = 6;
-                        const paginatedOfficial = official.slice((pageOfficial - 1) * ITEMS_PER_PAGE, pageOfficial * ITEMS_PER_PAGE);
-                        const paginatedMocks = mocks.slice((pageMock - 1) * ITEMS_PER_PAGE, pageMock * ITEMS_PER_PAGE);
-                        const paginatedAptitude = aptitude.slice((pageAptitude - 1) * ITEMS_PER_PAGE, pageAptitude * ITEMS_PER_PAGE);
-
-                        return (
-                          <>
-                            {/* Section 1: Official Exams */}
-                            {(examCategory === 'All' || examCategory === 'Official') && official.length > 0 && (
-                              <div style={{ marginBottom: '24px' }}>
-                                <h3 style={{ fontSize: '15px', fontWeight: '800', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
-                                  <span>📌</span> Đề thi chính thức THPT Quốc Gia <span style={{ fontSize: '11px', background: 'rgba(108, 92, 231, 0.1)', color: 'var(--primary)', padding: '2px 8px', borderRadius: '12px', fontWeight: 'bold' }}>{official.length} đề</span>
-                                </h3>
-                                <div className="exam-cards-grid">
-                                  {paginatedOfficial.map(renderCard)}
-                                </div>
-                                {official.length > ITEMS_PER_PAGE && (
-                                  <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '12px', marginTop: '20px' }}>
-                                    <button 
-                                      disabled={pageOfficial === 1} 
-                                      onClick={() => setPageOfficial(pageOfficial - 1)}
-                                      className="btn-outline"
-                                      style={{ padding: '6px 16px', fontSize: '12.5px', borderRadius: '8px', cursor: 'pointer' }}
-                                    >
-                                      ◀ Trước
-                                    </button>
-                                    <span style={{ fontSize: '13px', fontWeight: 'bold', color: 'var(--text-secondary)' }}>Trang {pageOfficial} / {Math.ceil(official.length / ITEMS_PER_PAGE)}</span>
-                                    <button 
-                                      disabled={pageOfficial >= Math.ceil(official.length / ITEMS_PER_PAGE)} 
-                                      onClick={() => setPageOfficial(pageOfficial + 1)}
-                                      className="btn-outline"
-                                      style={{ padding: '6px 16px', fontSize: '12.5px', borderRadius: '8px', cursor: 'pointer' }}
-                                    >
-                                      Sau ▶
-                                    </button>
-                                  </div>
-                                )}
-                              </div>
-                            )}
-
-                            {/* Section 2: Mock Exams */}
-                            {(examCategory === 'All' || examCategory === 'Mock') && mocks.length > 0 && (
-                              <div style={{ marginBottom: '24px' }}>
-                                <h3 style={{ fontSize: '15px', fontWeight: '800', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
-                                  <span>🏫</span> Đề thi thử các trường THPT Chuyên <span style={{ fontSize: '11px', background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', padding: '2px 8px', borderRadius: '12px', fontWeight: 'bold' }}>{mocks.length} đề</span>
-                                </h3>
-                                <div className="exam-cards-grid">
-                                  {paginatedMocks.map(renderCard)}
-                                </div>
-                                {mocks.length > ITEMS_PER_PAGE && (
-                                  <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '12px', marginTop: '20px' }}>
-                                    <button 
-                                      disabled={pageMock === 1} 
-                                      onClick={() => setPageMock(pageMock - 1)}
-                                      className="btn-outline"
-                                      style={{ padding: '6px 16px', fontSize: '12.5px', borderRadius: '8px', cursor: 'pointer' }}
-                                    >
-                                      ◀ Trước
-                                    </button>
-                                    <span style={{ fontSize: '13px', fontWeight: 'bold', color: 'var(--text-secondary)' }}>Trang {pageMock} / {Math.ceil(mocks.length / ITEMS_PER_PAGE)}</span>
-                                    <button 
-                                      disabled={pageMock >= Math.ceil(mocks.length / ITEMS_PER_PAGE)} 
-                                      onClick={() => setPageMock(pageMock + 1)}
-                                      className="btn-outline"
-                                      style={{ padding: '6px 16px', fontSize: '12.5px', borderRadius: '8px', cursor: 'pointer' }}
-                                    >
-                                      Sau ▶
-                                    </button>
-                                  </div>
-                                )}
-                              </div>
-                            )}
-
-                            {/* Section 3: Aptitude Exams */}
-                            {(examCategory === 'All' || examCategory === 'Aptitude') && aptitude.length > 0 && (
-                              <div style={{ marginBottom: '24px' }}>
-                                <h3 style={{ fontSize: '15px', fontWeight: '800', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
-                                  <span>🎯</span> Đề Đánh giá năng lực ĐHQG (HSA / APT) <span style={{ fontSize: '11px', background: 'rgba(219, 129, 66, 0.1)', color: '#db8142', padding: '2px 8px', borderRadius: '12px', fontWeight: 'bold' }}>{aptitude.length} đề</span>
-                                </h3>
-                                <div className="exam-cards-grid">
-                                  {paginatedAptitude.map(renderCard)}
-                                </div>
-                                {aptitude.length > ITEMS_PER_PAGE && (
-                                  <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '12px', marginTop: '20px' }}>
-                                    <button 
-                                      disabled={pageAptitude === 1} 
-                                      onClick={() => setPageAptitude(pageAptitude - 1)}
-                                      className="btn-outline"
-                                      style={{ padding: '6px 16px', fontSize: '12.5px', borderRadius: '8px', cursor: 'pointer' }}
-                                    >
-                                      ◀ Trước
-                                    </button>
-                                    <span style={{ fontSize: '13px', fontWeight: 'bold', color: 'var(--text-secondary)' }}>Trang {pageAptitude} / {Math.ceil(aptitude.length / ITEMS_PER_PAGE)}</span>
-                                    <button 
-                                      disabled={pageAptitude >= Math.ceil(aptitude.length / ITEMS_PER_PAGE)} 
-                                      onClick={() => setPageAptitude(pageAptitude + 1)}
-                                      className="btn-outline"
-                                      style={{ padding: '6px 16px', fontSize: '12.5px', borderRadius: '8px', cursor: 'pointer' }}
-                                    >
-                                      Sau ▶
-                                    </button>
-                                  </div>
-                                )}
-                              </div>
-                            )}
-                          </>
-                        );
-                      })()}
-                    </div>
-
                   </div>
-
-                  {/* Right Column: Statistics Sidebar widgets */}
-                  <div className="exams-sidebar-panel">
-                    
-                    {/* Widget 1: Personal Performance Stats */}
-                    <div className="exams-sidebar-widget animate-in">
-                      <h4>Thành tích thi thử</h4>
-                      <div className="stat-row-enhanced">
-                        <div className="stat-row-icon" style={{ background: '#fef3c7', color: '#d97706' }}>🔥</div>
-                        <div className="stat-row-info">
-                          <span className="stat-row-label">Chuỗi ngày ôn luyện (Streak)</span>
-                          <span className="stat-row-value">{attemptsHistory.length > 0 ? "3 ngày liên tục" : "0 ngày"}</span>
-                        </div>
-                      </div>
-                      <div className="stat-row-enhanced">
-                        <div className="stat-row-icon" style={{ background: '#dbeafe', color: '#1d4ed8' }}>📈</div>
-                        <div className="stat-row-info">
-                          <span className="stat-row-label">Điểm trung bình (Average Score)</span>
-                          <span className="stat-row-value">
-                            {attemptsHistory.length > 0
-                              ? (attemptsHistory.reduce((sum, item) => sum + item.score, 0) / attemptsHistory.length).toFixed(1)
-                              : '0.0'} / 10.0
-                          </span>
-                        </div>
-                      </div>
-                      <div className="stat-row-enhanced">
-                        <div className="stat-row-icon" style={{ background: '#d1fae5', color: '#065f46' }}>✓</div>
-                        <div className="stat-row-info">
-                          <span className="stat-row-label">Đề thi đã hoàn thành</span>
-                          <span className="stat-row-value">{attemptsHistory.length} bộ đề</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Widget 2: Leaderboard */}
-                    <div className="exams-sidebar-widget animate-in">
-                      <h4>Bảng vàng thành tích</h4>
-                      <table className="exams-sidebar-table">
-                        <thead>
-                          <tr>
-                            <th>Hạng</th>
-                            <th>Học sinh</th>
-                            <th style={{ textAlign: 'right' }}>Điểm số</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          <tr>
-                            <td><span className="rank-1">1</span></td>
-                            <td><strong>Nguyễn Lâm Vy</strong> <span style={{ display: 'block', fontSize: '10px', color: '#6b7280' }}>Khối A01</span></td>
-                            <td style={{ textAlign: 'right', fontWeight: '900', color: '#d97706' }}>9.8</td>
-                          </tr>
-                          <tr>
-                            <td><span className="rank-2">2</span></td>
-                            <td><strong>Trần Minh Đức</strong> <span style={{ display: 'block', fontSize: '10px', color: '#6b7280' }}>Khối B00</span></td>
-                            <td style={{ textAlign: 'right', fontWeight: '900', color: '#475569' }}>9.6</td>
-                          </tr>
-                          <tr>
-                            <td><span className="rank-3">3</span></td>
-                            <td><strong>Lê Quỳnh Chi</strong> <span style={{ display: 'block', fontSize: '10px', color: '#6b7280' }}>Khối D01</span></td>
-                            <td style={{ textAlign: 'right', fontWeight: '900', color: '#b45309' }}>9.4</td>
-                          </tr>
-                        </tbody>
-                      </table>
-                    </div>
-
-                    {/* Widget 3: AI study tips */}
-                    <div className="exams-sidebar-widget exams-ai-tips-widget animate-in">
-                      <h4>💡 Lời khuyên từ EduBot AI</h4>
-                      <div className="ai-tip-card">
-                        🎯 <strong>Toán học:</strong> Hãy chú trọng rèn luyện kỹ năng giải nhanh bằng máy tính Casio các dạng hàm số ở phần Vận dụng.
-                      </div>
-                      <div className="ai-tip-card">
-                        ⚡ <strong>Vật lý:</strong> Dành thêm 15 phút mỗi ngày làm quen với phương pháp giản đồ vector cho mạch xoay chiều RLC.
-                      </div>
-                    </div>
-
-                  </div>
-
                 </div>
               )}
 
@@ -2112,6 +1277,11 @@ export default function App() {
               {/* Library docs downloads tab */}
               {activeTab === 'library' && (
                 <LibraryCabinet addLog={addLog} />
+              )}
+
+              {/* Leaderboard tab */}
+              {activeTab === 'leaderboard' && (
+                <Leaderboard currentUser={currentUser} addLog={addLog} />
               )}
 
               {/* Settings Profile tab */}
@@ -2186,7 +1356,7 @@ export default function App() {
                                   const file = e.target.files[0];
                                   if (file) {
                                     if (file.size > 2 * 1024 * 1024) {
-                                      showToast.current('Dung lượng ảnh tối đa là 2MB!', 'warning');
+                                      alert('Dung lượng ảnh tối đa là 2MB!');
                                       return;
                                     }
                                     const reader = new FileReader();
@@ -2541,15 +1711,6 @@ export default function App() {
             />
           )}
 
-          {/* Student active OCR Scanner view */}
-          {role === 'student' && activeTab !== 'landing' && activeOCRScanner && (
-            <OCRScanner
-              examsList={examsList}
-              onBack={() => setActiveOCRScanner(null)}
-              addLog={addLog}
-            />
-          )}
-
           {/* ================= TEACHER WORKSPACE ================= */}
           {role === 'teacher' && activeTab !== 'landing' && (
             activeTab === 'forum' ? (
@@ -2627,63 +1788,6 @@ export default function App() {
       {/* Public Chatbot AI floating button and chat dialog */}
       <ChatbotWidget />
 
-      {/* ── Toast Notifications ── */}
-      <div className="app-toasts-container">
-        {toasts.map(t => (
-          <div key={t.id} className={`app-toast app-toast-${t.type}`}>
-            <span className="app-toast-icon">
-              {t.type === 'success' ? '✅' : t.type === 'error' ? '❌' : '⚠️'}
-            </span>
-            <span>{t.message}</span>
-          </div>
-        ))}
-      </div>
-
-      {/* ── AI Feedback Modal ── */}
-      {aiFeedbackModal && (
-        <div className="ai-feedback-modal-overlay" onClick={() => setAiFeedbackModal(null)}>
-          <div className="ai-feedback-modal" onClick={e => e.stopPropagation()}>
-            <h3>🤖 Chẩn đoán AI — {aiFeedbackModal.exam?.title || 'Đề tự luyện'}</h3>
-
-            <div className="ai-feedback-section">
-              <div className="ai-feedback-section-label">📝 Đánh giá chung</div>
-              <div className="ai-feedback-section-body">
-                {aiFeedbackModal.feedback.assessment || 'Chưa có đánh giá.'}
-              </div>
-            </div>
-
-            <div className="ai-feedback-section">
-              <div className="ai-feedback-section-label">⚠️ Lỗ hổng kiến thức</div>
-              <div className="ai-feedback-section-body">
-                {(aiFeedbackModal.feedback.knowledgeGaps || []).length > 0
-                  ? (aiFeedbackModal.feedback.knowledgeGaps).map((gap, i) => (
-                      <span key={i} className="ai-feedback-gap-tag">{gap}</span>
-                    ))
-                  : <span style={{ color: 'var(--accent-green)' }}>Không phát hiện lỗ hổng lớn ✓</span>
-                }
-              </div>
-            </div>
-
-            {(aiFeedbackModal.feedback.advice || []).length > 0 && (
-              <div className="ai-feedback-section">
-                <div className="ai-feedback-section-label">💡 Lời khuyên cải thiện</div>
-                <div className="ai-feedback-section-body" style={{ padding: '6px 14px' }}>
-                  {(aiFeedbackModal.feedback.advice).map((item, i) => (
-                    <div key={i} className="ai-feedback-advice-item">
-                      <span style={{ color: 'var(--primary)', fontWeight: 800 }}>→</span>
-                      <span>{item}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <button className="ai-feedback-close-btn" onClick={() => setAiFeedbackModal(null)}>
-              Đã hiểu, đóng lại
-            </button>
-          </div>
-        </div>
-      )}
 
     </div>
   );

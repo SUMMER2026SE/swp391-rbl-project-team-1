@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { toast } from '../utils/toast';
 import { HiSearch, HiAcademicCap, HiStar, HiUsers, HiBookOpen, HiCurrencyDollar, HiCheckCircle } from 'react-icons/hi';
 import teacherMathImg from '../assets/teacher_math.png';
 import studentLearningImg from '../assets/student_learning.png';
@@ -96,7 +95,7 @@ export default function CourseMall({ courses, currentUser, onSelectCourse, onChe
             <button 
               className="btn-primary" 
               style={{ background: '#fff', color: 'var(--primary)', fontWeight: 'bold', border: 'none', padding: '10px 20px', borderRadius: 'var(--radius-md)', cursor: 'pointer' }}
-              onClick={() => toast('Đăng ký tư vấn combo thành công! EduPath sẽ liên hệ với bạn ngay.', 'success')}
+              onClick={() => alert('Đăng ký tư vấn combo thành công! EduPath sẽ liên hệ với bạn ngay.')}
             >
               Tư vấn Combo Pro
             </button>

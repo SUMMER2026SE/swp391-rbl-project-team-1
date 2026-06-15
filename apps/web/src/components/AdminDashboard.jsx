@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { toast } from '../utils/toast';
 import { HiTerminal, HiUsers, HiClipboardCheck, HiGlobeAlt, HiAdjustments, HiTrendingUp } from 'react-icons/hi';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
@@ -49,12 +48,12 @@ export default function AdminDashboard({
     onSendAnnouncement(annText);
     setAnnText('');
     addLog(`Quản trị viên phát hành thông báo hệ thống: "${annText}"`, 'sys');
-    toast('Đã gửi thông báo hệ thống đến tất cả người dùng!', 'success');
+    alert('Đã gửi thông báo hệ thống đến tất cả người dùng!');
   };
 
   const handleUpdateAIWeights = () => {
     addLog(`[AI Config] Cập nhật trọng số thuật toán thích ứng (Khó: ${aiWeightDifficulty}%, Điểm yếu: ${aiWeightWeakness}%, Lộ trình: ${aiWeightRoadmap}%)`, 'sys');
-    toast('Cập nhật cấu hình thuật toán AI thành công!', 'success');
+    alert('Cập nhật cấu hình thuật toán AI thành công!');
   };
 
   return (
@@ -190,7 +189,7 @@ export default function AdminDashboard({
                         onClick={() => {
                           onApproveTeacher(u.name, u.combo || 'Tổng hợp');
                           addLog(`Quản trị viên cấp duyệt tài khoản "${u.name}" thành vai trò GIÁO VIÊN`, 'sys');
-                          toast(`Phê duyệt hồ sơ giáo viên "${u.name}" thành công!`, 'success');
+                          alert(`Phê duyệt hồ sơ giáo viên "${u.name}" thành công!`);
                         }}
                       >
                         Phê duyệt Cấp quyền
@@ -199,7 +198,7 @@ export default function AdminDashboard({
                         className="btn-outline"
                         style={{ padding: '5px 14px', fontSize: '11px', color: 'var(--accent-red)', borderColor: 'var(--accent-red)' }}
                         onClick={() => {
-                          toast(`Đã từ chối hồ sơ của ứng viên "${u.name}".`, 'warning');
+                          alert(`Đã từ chối hồ sơ của ứng viên "${u.name}".`);
                         }}
                       >
                         Từ chối

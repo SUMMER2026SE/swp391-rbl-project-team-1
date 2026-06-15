@@ -4,21 +4,15 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import { initSocket } from './lib/socket.js';
 
-import { login, logout, sendOtp, resendOtp, verifyOtpRegister, googleAuth, googleCompleteOnboarding, changePassword, forgotPassword, resetPassword, requestRoleChange, getRoleChangeRequests, reviewRoleChange } from './controllers/auth.js';
+// Controller imports
+import { login, logout, sendOtp, resendOtp, verifyOtpRegister, googleAuth, googleCompleteOnboarding, changePassword, requestRoleChange, getRoleChangeRequests, reviewRoleChange, forgotPassword, resetPassword } from './controllers/auth.js';
 import { getCourses, getCourseById, createCourse, getCourseStats } from './controllers/course.js';
-import { getExams, startAttempt, submitAttempt, getAttempts, getExamQuestionsPublic, getAttemptById } from './controllers/exam.js';
+import { getExams, startAttempt, submitAttempt } from './controllers/exam.js';
 import { streamAIChat, refreshRoadmap, generateAIQuestions } from './controllers/ai.js';
 import { chatbotConsult } from './controllers/chatbot.js';
 import { createVNPayPayment, vnpayWebhook, sepayWebhook, checkEnrollmentStatus, checkUserProStatus } from './controllers/payment.js';
+import { getScoreLeaderboard, getStreakLeaderboard, getCourseLeaderboard } from './controllers/leaderboard.js';
 import { authenticateJWT, requireRole } from './middleware/auth.js';
-import { 
-  getCategories, createCategory, deleteCategory,
-  getPosts, getPostById, createPost, deletePost, togglePinPost, reactPost,
-  getComments, createComment, acceptCommentSolution,
-  getStudyGroups, createStudyGroup, joinStudyGroup, leaveStudyGroup,
-  getLeaderboard, getUserGamificationProfile,
-  downloadResource, createReport, getReports, resolveReport
-} from './controllers/forum.js';
 
 dotenv.config();
 
@@ -71,9 +65,6 @@ app.post('/courses', authenticateJWT, requireRole(['TEACHER', 'ADMIN']), createC
 
 // Protected Exam Routes
 app.get('/exams', getExams);
-app.get('/exams/:id/questions', getExamQuestionsPublic);
-app.get('/exams/attempts', authenticateJWT, requireRole(['STUDENT']), getAttempts);
-app.get('/exams/attempts/:attemptId', authenticateJWT, requireRole(['STUDENT']), getAttemptById);
 app.post('/exams/:id/attempts', authenticateJWT, requireRole(['STUDENT']), startAttempt);
 app.post('/exams/:id/attempts/:attemptId/submit', authenticateJWT, requireRole(['STUDENT']), submitAttempt);
 
@@ -85,49 +76,17 @@ app.post('/enrollments/sepay-webhook', sepayWebhook);
 app.get('/users/pro-status', authenticateJWT, requireRole(['STUDENT']), checkUserProStatus);
 
 // Protected AI Routes
-app.post('/ai/chat', (req, res, next) => {
-  const authHeader = req.headers.authorization;
-  if (authHeader && authHeader.startsWith('Bearer ')) {
-    return authenticateJWT(req as any, res, next);
-  }
-  next();
-}, streamAIChat);
+app.post('/ai/chat', authenticateJWT, requireRole(['STUDENT']), streamAIChat);
 app.post('/ai/roadmap/refresh', authenticateJWT, requireRole(['STUDENT']), refreshRoadmap);
 app.post('/ai/generate-questions', authenticateJWT, requireRole(['TEACHER', 'ADMIN']), generateAIQuestions);
 
 // Public AI Chatbot Route (No Auth required so landing page guests can use it!)
 app.post('/chatbot', chatbotConsult);
 
-// =========================================================================
-// FORUM FEATURES ROUTING
-// =========================================================================
-app.get('/forum/categories', getCategories);
-app.post('/forum/categories', authenticateJWT, requireRole(['ADMIN']), createCategory);
-app.delete('/forum/categories/:id', authenticateJWT, requireRole(['ADMIN']), deleteCategory);
-
-app.get('/forum/posts', getPosts);
-app.get('/forum/posts/:id', getPostById);
-app.post('/forum/posts', authenticateJWT, createPost);
-app.delete('/forum/posts/:id', authenticateJWT, deletePost);
-app.put('/forum/posts/:id/pin', authenticateJWT, requireRole(['TEACHER', 'ADMIN']), togglePinPost);
-app.post('/forum/posts/:id/react', authenticateJWT, reactPost);
-
-app.get('/forum/posts/:postId/comments', getComments);
-app.post('/forum/posts/:postId/comments', authenticateJWT, createComment);
-app.put('/forum/comments/:id/accept', authenticateJWT, acceptCommentSolution);
-
-app.get('/forum/study-groups', authenticateJWT, getStudyGroups);
-app.post('/forum/study-groups', authenticateJWT, createStudyGroup);
-app.post('/forum/study-groups/:id/join', authenticateJWT, joinStudyGroup);
-app.post('/forum/study-groups/:id/leave', authenticateJWT, leaveStudyGroup);
-
-app.get('/forum/leaderboard', getLeaderboard);
-app.get('/forum/gamification/profile', authenticateJWT, getUserGamificationProfile);
-
-app.post('/forum/resources/:id/download', downloadResource);
-app.post('/forum/moderation/reports', authenticateJWT, createReport);
-app.get('/forum/moderation/reports', authenticateJWT, requireRole(['ADMIN']), getReports);
-app.put('/forum/moderation/reports/:id/resolve', authenticateJWT, requireRole(['ADMIN']), resolveReport);
+// Leaderboard Routes (requires authentication)
+app.get('/leaderboard/scores', authenticateJWT, getScoreLeaderboard);
+app.get('/leaderboard/streaks', authenticateJWT, getStreakLeaderboard);
+app.get('/leaderboard/courses', authenticateJWT, getCourseLeaderboard);
 
 // Root Hello check
 app.get('/', (req, res) => {

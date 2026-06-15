@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { toast } from '../utils/toast';
 import { HiClock, HiCheckCircle, HiChevronRight, HiChevronLeft, HiSparkles, HiFlag } from 'react-icons/hi';
 import studentLearningImg from '../assets/student_learning.png';
 import { api } from '../api';
@@ -82,54 +81,6 @@ const sampleQuizQuestions = [
   }
 ];
 
-const autoWrapMath = (text) => {
-  if (!text) return '';
-  if (text.includes('$') || text.includes('\\(') || text.includes('\\[') || text.includes('$$')) {
-    return text;
-  }
-  const latexPattern = /\\(frac|sqrt|vec|alpha|beta|gamma|delta|pi|theta|phi|omega|sigma|int|log|cos|sin|tan|lim|sum|prod|cup|cap|subset|subseteq|in|notin|neq|ge|le|approx|equiv|partial|nabla|to|rightarrow|left|right|cdot|text|mu|omega)/i;
-  const mathCharsPattern = /[\^\\_]/;
-  const isSimpleOptionFormula = text.length < 80 && (
-    latexPattern.test(text) ||
-    mathCharsPattern.test(text) ||
-    /^[a-zA-Z\s]*[=><\-\+]/i.test(text) && (text.includes('^') || text.includes('/') || text.includes('*'))
-  );
-  if (isSimpleOptionFormula) {
-    return `$${text.trim()}$`;
-  }
-  let processed = text;
-  processed = processed.replace(/(?:\b|\s)(\([-+\infty\w\s]+;[-+\infty\w\s]+(?:\s*;\s*[-+\infty\w\s]+)?\))(?:\b|\s)/g, (match, p1) => {
-    return match.replace(p1, `$${p1.trim()}$`);
-  });
-  processed = processed.replace(/([a-zA-Z_0-9']+(?:_[a-zA-Z0-9]+)?\s*(?:[=><]+|\\approx)\s*(?:[a-zA-Z0-9_+\-*\/\\^{}()[\]\s\.\u03c0\u221e]+))/g, (match, p1) => {
-    if (/[\^\\_/\*\u03c0\u221e\(\)]|[a-zA-Z]{2,}\s+[a-zA-Z]/.test(p1) || p1.includes('\\') || p1.includes('^')) {
-      let formula = p1.trim();
-      const trail = formula.match(/[\.,;:\?]+$/);
-      let suffix = '';
-      if (trail) {
-        formula = formula.slice(0, -trail[0].length);
-        suffix = trail[0];
-      }
-      return ` $${formula}$${suffix} `;
-    }
-    return match;
-  });
-  processed = processed.replace(/(?:\s|^)([a-zA-Z0-9_+\-*\/\\^{}()[\]\.]*[\^\\_][a-zA-Z0-9_+\-*\/\\^{}()[\]\.]*)(?:\s|$)/g, (match, p1) => {
-    if (!p1.startsWith('$') && !p1.endsWith('$')) {
-      let formula = p1.trim();
-      const trail = formula.match(/[\.,;:\?]+$/);
-      let suffix = '';
-      if (trail) {
-        formula = formula.slice(0, -trail[0].length);
-        suffix = trail[0];
-      }
-      return ` $${formula}$${suffix} `;
-    }
-    return match;
-  });
-  return processed.replace(/\s+/g, ' ');
-};
-
 export default function TestSimulator({ exam, testName, onFinished, addLog }) {
   const [questions, setQuestions] = useState([]);
   const [attemptId, setAttemptId] = useState(null);
@@ -143,8 +94,6 @@ export default function TestSimulator({ exam, testName, onFinished, addLog }) {
   const [hasStarted, setHasStarted] = useState(false);
   const [testMode, setTestMode] = useState('exam'); // 'exam' or 'practice'
   const [flagged, setFlagged] = useState({}); // { [qId]: boolean }
-  const [isPaused, setIsPaused] = useState(false);
-  const [reviewFilter, setReviewFilter] = useState('all'); // 'all', 'correct', 'incorrect', 'unanswered'
   
   // Adaptive AI Practice state
   const [aiGeneratedPractice, setAiGeneratedPractice] = useState(null);
@@ -155,7 +104,7 @@ export default function TestSimulator({ exam, testName, onFinished, addLog }) {
       if (exam && exam.id) {
         setLoading(true);
         try {
-          const res = await api.startAttempt(exam.dbExamId || exam.id);
+          const res = await api.startAttempt(exam.id);
           if (res && res.attempt) {
             setAttemptId(res.attempt.id);
             if (res.questions && res.questions.length > 0) {
@@ -169,17 +118,17 @@ export default function TestSimulator({ exam, testName, onFinished, addLog }) {
                 
                 const mappedOptions = parsedOptions.map(opt => ({
                   key: opt.label || opt.key,
-                  value: autoWrapMath(opt.text || opt.value)
+                  value: opt.text || opt.value
                 }));
 
                 return {
                   id: q.id,
-                  question: autoWrapMath(q.content),
+                  question: q.content,
                   options: mappedOptions,
                   correctAnswer: q.correctAnswer,
                   difficulty: q.difficulty === 'HARD' ? 'Khó' : (q.difficulty === 'MEDIUM' ? 'Trung bình' : 'Dễ'),
                   difficultyClass: q.difficulty === 'HARD' ? 'diff-hard' : (q.difficulty === 'MEDIUM' ? 'diff-medium' : 'diff-easy'),
-                  explanation: autoWrapMath(q.explanation || 'Không có lời giải chi tiết.'),
+                  explanation: q.explanation || 'Không có lời giải chi tiết.',
                   topic: q.topic,
                   subject: q.subject
                 };
@@ -190,7 +139,7 @@ export default function TestSimulator({ exam, testName, onFinished, addLog }) {
           }
         } catch (err) {
           console.error("Lỗi khi tải đề thi từ server:", err);
-          toast("Không thể tải đề thi từ hệ thống. Sử dụng đề thi thử nghiệm!", 'warning');
+          alert("Không thể tải đề thi từ hệ thống. Sử dụng đề thi thử nghiệm!");
           setQuestions(sampleQuizQuestions);
         } finally {
           setLoading(false);
@@ -203,14 +152,14 @@ export default function TestSimulator({ exam, testName, onFinished, addLog }) {
   }, [exam]);
 
   useEffect(() => {
-    if (testMode === 'practice' || isPaused) return;
+    if (testMode === 'practice') return;
     if (timeLeft > 0 && !submitted) {
       const timer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
       return () => clearTimeout(timer);
     } else if (timeLeft === 0 && !submitted) {
       handleSubmitTest();
     }
-  }, [timeLeft, submitted, testMode, isPaused]);
+  }, [timeLeft, submitted, testMode]);
 
   const handleSelectOption = (qId, optionKey) => {
     if (submitted) return;
@@ -246,14 +195,6 @@ export default function TestSimulator({ exam, testName, onFinished, addLog }) {
     }
   }, []);
 
-  useEffect(() => {
-    if (window.MathJax) {
-      setTimeout(() => {
-        window.MathJax.typesetPromise?.().catch((err) => console.log("MathJax error:", err));
-      }, 100);
-    }
-  }, [currentIdx, questions, submitted, reviewing, aiGeneratedPractice, hasStarted, testMode]);
-
   const handleSubmitTest = async () => {
     setSubmitted(true);
     let correctCount = 0;
@@ -267,7 +208,7 @@ export default function TestSimulator({ exam, testName, onFinished, addLog }) {
           selectedAnswer: answers[qId]
         }));
         
-        const res = await api.submitAttempt(exam.dbExamId || exam.id, attemptId, backendAnswers);
+        const res = await api.submitAttempt(exam.id, attemptId, backendAnswers);
         if (res && res.attemptAnswers) {
           correctCount = res.attemptAnswers.filter(ans => ans.isCorrect).length;
           const score = res.score;
@@ -290,7 +231,7 @@ export default function TestSimulator({ exam, testName, onFinished, addLog }) {
         }
       } catch (err) {
         console.error("Lỗi khi nộp bài thi:", err);
-        toast("Có lỗi xảy ra khi gửi kết quả lên hệ thống.", 'error');
+        alert("Có lỗi xảy ra khi gửi kết quả lên hệ thống.");
       } finally {
         setLoading(false);
       }
@@ -327,7 +268,7 @@ export default function TestSimulator({ exam, testName, onFinished, addLog }) {
     
     setTimeout(() => {
       setGeneratingPractice(false);
-      const generated = [
+      setAiGeneratedPractice([
         {
           id: 101,
           question: "[AI sinh ra - Chủ đề: Phương trình mũ] Cho phương trình $4^x - 6.2^x + 5 = 0$. Tìm tổng các nghiệm thực của phương trình?",
@@ -352,13 +293,7 @@ export default function TestSimulator({ exam, testName, onFinished, addLog }) {
           correctAnswer: 'A',
           explanation: "y' = -3x^2 + 3 = -3(x^2 - 1). y' = 0 <=> x = -1 hoặc x = 1. Trong khoảng (-1; 1), y' > 0 => Hàm số đồng biến."
         }
-      ].map(q => ({
-        ...q,
-        question: autoWrapMath(q.question),
-        options: q.options.map(opt => ({ ...opt, value: autoWrapMath(opt.value) })),
-        explanation: autoWrapMath(q.explanation)
-      }));
-      setAiGeneratedPractice(generated);
+      ]);
       addLog(`[AI] Đã tạo thành công 2 câu luyện tập thông minh dựa trên lịch sử lỗi sai!`, 'ai');
     }, 1500);
   };
@@ -550,27 +485,7 @@ export default function TestSimulator({ exam, testName, onFinished, addLog }) {
         ) : (
           // ACTIVE TEST TAKING ENVIRONMENT
           <div className="test-simulator-layout">
-            <div className="test-questions-panel" style={{ position: 'relative', minHeight: '400px' }}>
-              {isPaused && (
-                <div style={{
-                  position: 'absolute',
-                  top: 0, left: 0, right: 0, bottom: 0,
-                  background: 'rgba(0,0,0,0.85)',
-                  backdropFilter: 'blur(10px)',
-                  display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                  zIndex: 1000, borderRadius: 'var(--radius-lg)', padding: '24px', color: '#fff',
-                  textAlign: 'center'
-                }}>
-                  <span style={{ fontSize: '48px', marginBottom: '16px' }}>⏸️</span>
-                  <h3 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '8px', color: '#fff' }}>ĐÃ TẠM DỪNG BÀI THI</h3>
-                  <p style={{ fontSize: '13px', opacity: 0.8, maxWidth: '320px', marginBottom: '24px', lineHeight: 1.5 }}>
-                    Nội dung câu hỏi đã được ẩn đi để đảm bảo tính công bằng. Bạn có thể tiếp tục làm bài bất cứ lúc nào.
-                  </p>
-                  <button className="btn-primary" onClick={() => setIsPaused(false)} style={{ background: 'var(--primary)', color: '#fff', border: 'none', padding: '12px 32px', fontWeight: 'bold', borderRadius: 'var(--radius-md)', cursor: 'pointer' }}>
-                    Tiếp tục làm bài 🚀
-                  </button>
-                </div>
-              )}
+            <div className="test-questions-panel">
               <div className="question-item-box">
                 <div className="question-header">
                   <span style={{ fontSize: '14px', fontWeight: '700', color: 'var(--primary)' }}>
@@ -710,28 +625,6 @@ export default function TestSimulator({ exam, testName, onFinished, addLog }) {
                   <p style={{ fontSize: '11px', fontWeight: isTimeCritical ? 'bold' : 'normal' }}>
                     {isTimeCritical ? '⏳ SẮP HẾT GIỜ! NỘP BÀI NGAY' : 'Thời gian làm bài còn lại'}
                   </p>
-                  <button
-                    onClick={() => setIsPaused(!isPaused)}
-                    style={{
-                      marginTop: '10px',
-                      width: '100%',
-                      padding: '8px',
-                      fontSize: '12px',
-                      fontWeight: 'bold',
-                      borderRadius: '8px',
-                      border: '1px solid var(--border)',
-                      background: isPaused ? 'var(--primary)' : 'var(--bg-card)',
-                      color: isPaused ? '#fff' : 'var(--text-primary)',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '6px',
-                      transition: 'all 0.2s'
-                    }}
-                  >
-                    {isPaused ? '▶️ Tiếp tục làm bài' : '⏸️ Tạm dừng làm bài'}
-                  </button>
                 </div>
               ) : (
                 <div className="card" style={{ padding: '16px', textAlign: 'center', border: '1.5px dashed var(--accent-green)', background: 'rgba(0,184,148,0.05)', color: 'var(--accent-green)' }}>
@@ -840,7 +733,7 @@ export default function TestSimulator({ exam, testName, onFinished, addLog }) {
                     );
                   })}
                 </div>
-                <button className="btn-primary" style={{ width: '100%', background: 'linear-gradient(135deg, var(--primary), var(--primary-light))', border: 'none', color: '#fff', fontWeight: '600', padding: '12px', borderRadius: 'var(--radius-md)', boxShadow: '0 4px 12px rgba(108,92,231,0.2)', cursor: 'pointer', transition: 'all 0.2s ease' }} onClick={handleSubmitTest}>
+                <button className="btn-primary" style={{ width: '100%', background: 'linear-gradient(135deg, var(--primary), var(--primary-light))', border: 'none', color: '#fff', fontWeight: 'bold' }} onClick={handleSubmitTest}>
                   Nộp bài thi
                 </button>
               </div>
@@ -964,10 +857,10 @@ export default function TestSimulator({ exam, testName, onFinished, addLog }) {
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', marginTop: '28px' }}>
-              <button className="btn-primary" onClick={() => setReviewing(true)} style={{ background: 'linear-gradient(135deg, var(--primary), var(--primary-light))', border: 'none', padding: '10px 24px', fontWeight: '600', borderRadius: 'var(--radius-md)', boxShadow: '0 4px 12px rgba(108,92,231,0.2)', cursor: 'pointer', transition: 'all 0.2s ease' }}>
+              <button className="btn-primary" onClick={() => setReviewing(true)} style={{ background: 'linear-gradient(135deg, var(--primary), var(--primary-light))', border: 'none', padding: '10px 24px', fontWeight: 'bold' }}>
                 🔎 Xem đáp án chi tiết
               </button>
-              <button className="btn-outline" onClick={() => onFinished(scoreResult)} style={{ padding: '10px 24px', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', background: '#fff', color: 'var(--text-secondary)', fontWeight: '600', cursor: 'pointer', transition: 'all 0.2s ease', boxShadow: 'var(--shadow-sm)' }}>
+              <button className="btn-outline" onClick={() => onFinished(scoreResult)} style={{ padding: '10px 24px' }}>
                 Hoàn thành đề thi
               </button>
             </div>
@@ -1033,7 +926,7 @@ export default function TestSimulator({ exam, testName, onFinished, addLog }) {
                 {!aiGeneratedPractice ? (
                   <button
                     className="btn-primary"
-                    style={{ fontSize: '12.5px', padding: '10px 22px', display: 'flex', alignItems: 'center', gap: 8, background: 'linear-gradient(135deg, var(--accent-orange), #e67e22)', border: 'none', color: '#fff', fontWeight: '600', borderRadius: 'var(--radius-md)', boxShadow: '0 4px 12px rgba(243,156,18,0.2)', cursor: 'pointer', transition: 'all 0.2s ease' }}
+                    style={{ fontSize: '12.5px', padding: '10px 20px', display: 'flex', alignItems: 'center', gap: 8, background: 'linear-gradient(135deg, var(--accent-orange), #e67e22)', border: 'none', color: '#fff', fontWeight: 'bold', boxShadow: '0 4px 12px rgba(243,156,18,0.2)' }}
                     disabled={generatingPractice}
                     onClick={handleGenerateAIPractice}
                   >
@@ -1078,46 +971,9 @@ export default function TestSimulator({ exam, testName, onFinished, addLog }) {
               <h3 style={{ fontSize: '15px', fontWeight: 'bold', marginBottom: '16px' }}>XEM ĐÁP ÁN CHI TIẾT TỪNG CÂU</h3>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '20px' }}>
                 <div style={{ borderRight: '1px solid var(--border)', paddingRight: '16px' }}>
-                  <div style={{ display: 'flex', gap: '6px', marginBottom: '16px', flexWrap: 'wrap' }}>
-                    {['all', 'correct', 'incorrect', 'unanswered'].map(f => (
-                      <button
-                        key={f}
-                        onClick={() => {
-                          setReviewFilter(f);
-                          const filteredIdxs = questions.map((q, idx) => ({ q, idx })).filter(item => {
-                            const isCorrect = answers[item.q.id] === item.q.correctAnswer;
-                            const hasAnswered = !!answers[item.q.id];
-                            if (f === 'correct') return isCorrect;
-                            if (f === 'incorrect') return hasAnswered && !isCorrect;
-                            if (f === 'unanswered') return !hasAnswered;
-                            return true;
-                          }).map(item => item.idx);
-                          if (filteredIdxs.length > 0 && !filteredIdxs.includes(currentIdx)) {
-                            setCurrentIdx(filteredIdxs[0]);
-                          }
-                        }}
-                        style={{
-                          padding: '4px 8px',
-                          fontSize: '11px',
-                          borderRadius: '6px',
-                          border: '1px solid var(--border)',
-                          background: reviewFilter === f ? 'var(--primary)' : 'var(--bg-card)',
-                          color: reviewFilter === f ? '#fff' : 'var(--text-secondary)',
-                          cursor: 'pointer',
-                          fontWeight: 'bold'
-                        }}
-                      >
-                        {f === 'all' ? 'Tất cả' : (f === 'correct' ? 'Đúng' : (f === 'incorrect' ? 'Sai' : 'Chưa làm'))}
-                      </button>
-                    ))}
-                  </div>
                   <div className="test-grid-bubble">
                     {questions.map((q, idx) => {
                       const isCorrect = answers[q.id] === q.correctAnswer;
-                      const hasAnswered = !!answers[q.id];
-                      if (reviewFilter === 'correct' && !isCorrect) return null;
-                      if (reviewFilter === 'incorrect' && (!hasAnswered || isCorrect)) return null;
-                      if (reviewFilter === 'unanswered' && hasAnswered) return null;
                       return (
                         <button
                           key={q.id}
