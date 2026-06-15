@@ -1,11 +1,4 @@
 import React from 'react';
-import { 
-  HiSparkles, 
-  HiOutlineExclamation, 
-  HiCalendar,
-  HiLightBulb
-} from 'react-icons/hi';
-import { FaRobot } from 'react-icons/fa';
 
 export default function AiExamFeedback({ feedback }) {
   if (!feedback) return null;
@@ -22,7 +15,7 @@ export default function AiExamFeedback({ feedback }) {
   return (
     <div className="ai-feedback-container animate-in" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px', borderBottom: '1px solid var(--border)', paddingBottom: '10px' }}>
-        <FaRobot style={{ fontSize: '28px', color: 'var(--exams-purple)' }} />
+        <span style={{ fontSize: '24px' }}>🤖</span>
         <div>
           <h3 style={{ fontSize: '15px', fontWeight: '950', color: 'var(--exams-purple)', margin: 0 }}>
             CHẨN ĐOÁN HỌC TẬP TỪ TRỢ LÝ AI EDUBOT
@@ -33,9 +26,8 @@ export default function AiExamFeedback({ feedback }) {
 
       {/* Main Advice Summary */}
       {advice && (
-        <p style={{ fontSize: '13.5px', color: 'var(--text-primary)', lineHeight: 1.5, margin: 0, padding: '12px', background: 'var(--bg-main)', borderRadius: '8px', borderLeft: '3px solid var(--exams-purple)', display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
-          <HiLightBulb style={{ fontSize: '18px', color: 'var(--exams-purple)', flexShrink: 0, marginTop: '2px' }} />
-          <span>{advice}</span>
+        <p style={{ fontSize: '13.5px', color: 'var(--text-primary)', lineHeight: 1.5, margin: 0, padding: '12px', background: 'var(--bg-main)', borderRadius: '8px', borderLeft: '3px solid var(--exams-purple)' }}>
+          {advice}
         </p>
       )}
 
@@ -44,7 +36,7 @@ export default function AiExamFeedback({ feedback }) {
         {/* Strengths */}
         <div style={{ background: 'var(--bg-card)', padding: '16px', borderRadius: '12px', border: '1px solid rgba(0, 184, 148, 0.2)' }}>
           <h4 style={{ fontSize: '13px', fontWeight: 'bold', color: 'var(--exams-green)', margin: '0 0 10px 0', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <HiSparkles style={{ fontSize: '16px', color: 'var(--exams-green)' }} /> Điểm mạnh nổi bật:
+            <span>💪</span> Điểm mạnh nổi bật:
           </h4>
           <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '12.5px', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '6px' }}>
             {strengths.map((s, idx) => (
@@ -56,7 +48,7 @@ export default function AiExamFeedback({ feedback }) {
         {/* Weaknesses */}
         <div style={{ background: 'var(--bg-card)', padding: '16px', borderRadius: '12px', border: '1px solid rgba(214, 48, 49, 0.2)' }}>
           <h4 style={{ fontSize: '13px', fontWeight: 'bold', color: 'var(--exams-red)', margin: '0 0 10px 0', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <HiOutlineExclamation style={{ fontSize: '16px', color: 'var(--exams-red)' }} /> Điểm yếu & Lỗ hổng:
+            <span>⚠️</span> Điểm yếu & Lỗ hổng:
           </h4>
           <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '12.5px', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '6px' }}>
             {weaknesses.map((w, idx) => (
@@ -96,7 +88,7 @@ export default function AiExamFeedback({ feedback }) {
       {studyPlan.length > 0 && (
         <div style={{ borderTop: '1px dashed var(--border)', paddingTop: '16px' }}>
           <h4 style={{ fontSize: '13.5px', fontWeight: 'bold', color: 'var(--text-primary)', margin: '0 0 14px 0', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <HiCalendar style={{ fontSize: '16px', color: 'var(--exams-purple)' }} /> Kế hoạch hành động 7 ngày khắc phục lỗi sai:
+            <span>🗓️</span> Kế hoạch hành động 7 ngày khắc phục lỗi sai:
           </h4>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             {studyPlan.map((d) => (

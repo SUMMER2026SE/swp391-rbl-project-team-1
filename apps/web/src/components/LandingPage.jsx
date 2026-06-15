@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { toast } from '../utils/toast';
 import { api } from '../api';
 import { HiArrowRight, HiCheck, HiStar, HiLightningBolt, HiMenuAlt3, HiX, HiTrendingUp, HiSparkles, HiLockClosed, HiClock, HiPlay } from 'react-icons/hi';
 import FooterSunMascot from './FooterSunMascot';
@@ -993,7 +992,7 @@ export default function LandingPage({
       setExamReviewing(false);
     } catch (err) {
       console.error("Lỗi khi tải câu hỏi đề thi:", err);
-      toast("Không thể tải câu hỏi của đề thi này. Vui lòng thử lại sau!", 'error');
+      alert("Không thể tải câu hỏi của đề thi này. Vui lòng thử lại sau!");
     } finally {
       setLoadingQuestions(false);
     }
@@ -1007,14 +1006,14 @@ export default function LandingPage({
       }, 1000);
     } else if (examTimeLeft === 0 && !examSubmitted && selectedExamSimulator && examMode === 'exam') {
       setExamSubmitted(true);
-      toast("Đã hết thời gian làm bài! Hệ thống tự động nộp bài.", 'warning');
+      alert("Đã hết thời gian làm bài! Hệ thống tự động nộp bài thi thử của bạn.");
     }
     return () => clearInterval(timer);
   }, [selectedExamSimulator, examMode, examSubmitted, examTimeLeft, examIsPaused]);
 
   const handleGenerateRoadmap = () => {
     if (!generatorWeakness.trim()) {
-      toast("Vui lòng nhập điểm yếu học tập để AI phân tích lộ trình phù hợp!", 'warning');
+      alert("Vui lòng nhập một số điểm yếu học tập chính của bạn (ví dụ: mất gốc hình không gian, ngữ pháp...) để AI phân tích!");
       return;
     }
     setGeneratorStatus('analyzing');
@@ -1065,7 +1064,7 @@ export default function LandingPage({
 
   const handleAddPostPublic = (newPost) => {
     if (!currentUser) {
-      toast("Vui lòng đăng nhập để đóng góp bài viết trên Diễn đàn!", 'warning');
+      alert("Vui lòng đăng nhập hoặc đăng ký tài khoản để đóng góp bài viết trên Diễn đàn!");
       onNavigateToAuth('login');
       return;
     }
@@ -1074,7 +1073,7 @@ export default function LandingPage({
 
   const handleLikePostPublic = (postId) => {
     if (!currentUser) {
-      toast("Vui lòng đăng nhập để bình chọn bài viết yêu thích!", 'warning');
+      alert("Vui lòng đăng nhập để bình chọn bài viết yêu thích!");
       onNavigateToAuth('login');
       return;
     }
@@ -1083,7 +1082,7 @@ export default function LandingPage({
 
   const handleAddCommentPublic = (postId, newComment) => {
     if (!currentUser) {
-      toast("Vui lòng đăng nhập để tham gia thảo luận!", 'warning');
+      alert("Vui lòng đăng nhập để tham gia thảo luận!");
       onNavigateToAuth('login');
       return;
     }
@@ -1259,7 +1258,7 @@ export default function LandingPage({
           <div className="lp-nav__links">
             <a href="#home" className={activeLandingView === 'home' ? 'lp-link--active' : ''} onClick={(e) => { e.preventDefault(); setActiveLandingView('home'); }}>Trang chủ</a>
             <a href="/courses" className={activeLandingView === 'courses' ? 'lp-link--active' : ''} onClick={(e) => { e.preventDefault(); if (navigateTo) { navigateTo('/courses'); } else { setActiveLandingView('courses'); } }}>Khóa học</a>
-            <a href="/mock-exams" className={currentPath?.startsWith('/mock-exams') ? 'lp-link--active' : ''} onClick={(e) => { e.preventDefault(); if (!currentUser) { toast("Vui lòng đăng nhập để sử dụng chức năng thi thử!", 'warning'); if (onNavigateToAuth) onNavigateToAuth('login'); } else { if (navigateTo) { navigateTo('/mock-exams'); } else { setActiveLandingView('exams'); } } }}>Thi thử</a>
+            <a href="/mock-exams" className={currentPath?.startsWith('/mock-exams') ? 'lp-link--active' : ''} onClick={(e) => { e.preventDefault(); if (navigateTo) { navigateTo('/mock-exams'); } else { setActiveLandingView('exams'); } }}>Thi thử</a>
             <a href="#features" className={activeLandingView === 'features' ? 'lp-link--active' : ''} onClick={(e) => { e.preventDefault(); setActiveLandingView('features'); }}>Lộ trình học</a>
             <a href="/ai-tutor" className={currentPath === '/ai-tutor' ? 'lp-link--active' : ''} onClick={(e) => { e.preventDefault(); if (navigateTo) { navigateTo('/ai-tutor'); } else { setActiveLandingView('ai-tutor'); } }}>AI Gia sư</a>
             <a href="/exam-bank" className={currentPath === '/exam-bank' ? 'lp-link--active' : ''} onClick={(e) => { e.preventDefault(); if (navigateTo) { navigateTo('/exam-bank'); } }}>Ngân hàng đề</a>
@@ -1500,7 +1499,7 @@ export default function LandingPage({
           <div className="lp-mobile-menu">
             <a href="#home" onClick={(e) => { e.preventDefault(); setActiveLandingView('home'); setMobileMenuOpen(false); }}>Trang chủ</a>
             <a href="/courses" onClick={(e) => { e.preventDefault(); if (navigateTo) { navigateTo('/courses'); } else { setActiveLandingView('courses'); } setMobileMenuOpen(false); }}>Khóa học</a>
-            <a href="/mock-exams" onClick={(e) => { e.preventDefault(); if (!currentUser) { toast("Vui lòng đăng nhập để sử dụng chức năng thi thử!", 'warning'); if (onNavigateToAuth) onNavigateToAuth('login'); } else { if (navigateTo) { navigateTo('/mock-exams'); } else { setActiveLandingView('exams'); } } setMobileMenuOpen(false); }}>Thi thử</a>
+            <a href="/mock-exams" onClick={(e) => { e.preventDefault(); if (navigateTo) { navigateTo('/mock-exams'); } else { setActiveLandingView('exams'); } setMobileMenuOpen(false); }}>Thi thử</a>
             <a href="#features" onClick={(e) => { e.preventDefault(); setActiveLandingView('features'); setMobileMenuOpen(false); }}>Lộ trình học</a>
             <a href="/ai-tutor" onClick={(e) => { e.preventDefault(); if (navigateTo) { navigateTo('/ai-tutor'); } else { setActiveLandingView('ai-tutor'); } setMobileMenuOpen(false); }}>AI Gia sư</a>
             <a href="/exam-bank" onClick={(e) => { e.preventDefault(); if (navigateTo) { navigateTo('/exam-bank'); } setMobileMenuOpen(false); }}>Ngân hàng đề</a>
@@ -2679,7 +2678,7 @@ export default function LandingPage({
                     </div>
                     <span className="time-display">05:42 / {selectedLessonPlayer.lesson.duration}</span>
                     <select 
-                      onChange={(e) => toast(`Tốc độ phát: ${e.target.value}x`, 'success')}
+                      onChange={(e) => alert(`Đã chuyển tốc độ phát sang ${e.target.value}`)}
                       className="speed-select"
                     >
                       <option value="1">1.0x</option>
@@ -2780,7 +2779,7 @@ export default function LandingPage({
                           style={{ marginTop: '15px' }}
                           onClick={() => {
                             if (Object.keys(lessonQuizAnswers).length < getLessonQuizQuestions(selectedLessonPlayer.course.id).length) {
-                              toast("Vui lòng hoàn thành tất cả câu hỏi trước khi nộp bài!", 'warning');
+                              alert("Vui lòng hoàn thành toàn bộ các câu hỏi trắc nghiệm trước khi nộp bài!");
                               return;
                             }
                             setLessonQuizSubmitted(true);
@@ -2945,7 +2944,7 @@ export default function LandingPage({
                   className="lp-btn lp-btn--accent lp-btn--full" 
                   onClick={() => {
                     setPricingShowCheckout(false);
-                    toast(`Đăng ký thành công! Đặc quyền ${selectedPackage === 'elite' ? 'Elite Mentor' : 'Premium Pro'} sẽ được kích hoạt sau khi xác nhận giao dịch.`, 'success');
+                    alert(`Đăng ký giao dịch thành công! Đặc quyền ${selectedPackage === 'elite' ? 'Elite Mentor' : 'Premium Pro'} sẽ tự động đồng bộ khi bạn đăng ký hoặc đăng nhập tài khoản bằng email này.`);
                     onNavigateToAuth('signup');
                   }}
                   style={{ padding: '12px', fontSize: '13.5px', fontWeight: 'bold' }}
@@ -2987,7 +2986,7 @@ export default function LandingPage({
             <div className="lp-footer__col">
               <h4>Tính năng</h4>
               <a href="#features" onClick={(e) => { e.preventDefault(); setActiveLandingView('features'); }}>Lộ trình học</a>
-              <a href="/mock-exams" onClick={(e) => { e.preventDefault(); if (!currentUser) { toast("Vui lòng đăng nhập để sử dụng chức năng thi thử!", 'warning'); if (onNavigateToAuth) onNavigateToAuth('login'); } else { if (navigateTo) { navigateTo('/mock-exams'); } else { setActiveLandingView('exams'); } } }}>Thi thử</a>
+              <a href="/mock-exams" onClick={(e) => { e.preventDefault(); if (navigateTo) { navigateTo('/mock-exams'); } else { setActiveLandingView('exams'); } }}>Thi thử</a>
               <a href="#forum" onClick={(e) => { e.preventDefault(); setActiveLandingView('forum'); }}>Cộng đồng</a>
               <a href="#stats" onClick={(e) => { e.preventDefault(); setActiveLandingView('about'); }}>Về chúng tôi</a>
             </div>

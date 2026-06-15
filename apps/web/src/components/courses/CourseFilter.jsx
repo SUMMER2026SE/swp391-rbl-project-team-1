@@ -2,7 +2,7 @@ import { HiX } from 'react-icons/hi';
 
 const SUBJECTS = [
   { value: 'All', label: 'Tất cả môn' },
-  { value: 'Toán', label: 'Toán học' },
+  { value: 'Toán học', label: 'Toán học' },
   { value: 'Ngữ văn', label: 'Ngữ văn' },
   { value: 'Tiếng Anh', label: 'Tiếng Anh' },
   { value: 'Vật lý', label: 'Vật lý' },
@@ -29,6 +29,21 @@ const LEVELS = [
   { value: 'Cấp tốc', label: 'Cấp tốc' },
 ];
 
+const PRICES = [
+  { value: 'All', label: 'Tất cả học phí' },
+  { value: 'free', label: 'Miễn phí' },
+  { value: 'paid', label: 'Trả phí (Có phí)' },
+];
+
+export const BLOCK_SUBJECTS_MAP = {
+  'All': ['Toán học', 'Ngữ văn', 'Tiếng Anh', 'Vật lý', 'Hóa học', 'Sinh học', 'Lịch sử', 'Địa lý', 'GDCD'],
+  'Khối A00': ['Toán học', 'Vật lý', 'Hóa học'],
+  'Khối A01': ['Toán học', 'Vật lý', 'Tiếng Anh'],
+  'Khối B00': ['Toán học', 'Hóa học', 'Sinh học'],
+  'Khối C00': ['Ngữ văn', 'Lịch sử', 'Địa lý', 'GDCD'],
+  'Khối D01': ['Toán học', 'Ngữ văn', 'Tiếng Anh'],
+};
+
 const SORT_OPTIONS = [
   { value: 'popular', label: 'Phổ biến nhất' },
   { value: 'rating', label: 'Đánh giá cao' },
@@ -46,9 +61,22 @@ export default function CourseFilter({
   setBlock,
   level,
   setLevel,
+  priceType,
+  setPriceType,
   sortBy,
   setSortBy,
 }) {
+  const allowedSubjects = BLOCK_SUBJECTS_MAP[block] || BLOCK_SUBJECTS_MAP['All'];
+  const filteredSubjectsList = SUBJECTS.filter(s => s.value === 'All' || allowedSubjects.includes(s.value));
+
+  const handleBlockChange = (newBlock) => {
+    setBlock(newBlock);
+    const nextAllowed = BLOCK_SUBJECTS_MAP[newBlock] || BLOCK_SUBJECTS_MAP['All'];
+    if (subject !== 'All' && !nextAllowed.includes(subject)) {
+      setSubject('All');
+    }
+  };
+
   return (
     <div className="cf-bar">
       {/* Row 1: Search input & Sorting */}
@@ -101,11 +129,27 @@ export default function CourseFilter({
         </div>
       </div>
 
-      {/* Row 2: Subject selectors */}
+      {/* Row 2: Block Selectors (Khối thi THPT) */}
+      <div className="cf-section">
+        <span className="cf-label">Khối thi THPT</span>
+        <div className="cf-pills cf-pills--blocks">
+          {BLOCKS.map((b) => (
+            <button
+              key={b.value}
+              className={`cf-pill ${block === b.value ? 'cf-pill--active' : ''}`}
+              onClick={() => handleBlockChange(b.value)}
+            >
+              {b.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Row 3: Subject selectors (Môn học) */}
       <div className="cf-section">
         <span className="cf-label">Môn học</span>
         <div className="cf-pills">
-          {SUBJECTS.map((s) => (
+          {filteredSubjectsList.map((s) => (
             <button
               key={s.value}
               className={`cf-pill ${subject === s.value ? 'cf-pill--active' : ''}`}
@@ -117,36 +161,35 @@ export default function CourseFilter({
         </div>
       </div>
 
-      {/* Row 3: Block Selectors & Level Selectors */}
-      <div className="cf-row cf-row--filters">
-        <div className="cf-section" style={{ flex: 1, minWidth: '240px' }}>
-          <span className="cf-label">Khối thi THPT</span>
-          <div className="cf-pills">
-            {BLOCKS.map((b) => (
-              <button
-                key={b.value}
-                className={`cf-pill ${block === b.value ? 'cf-pill--active' : ''}`}
-                onClick={() => setBlock(b.value)}
-              >
-                {b.label}
-              </button>
-            ))}
-          </div>
+      {/* Row 4: Level selectors (Mức độ học tập) */}
+      <div className="cf-section">
+        <span className="cf-label">Mức độ học tập</span>
+        <div className="cf-pills">
+          {LEVELS.map((l) => (
+            <button
+              key={l.value}
+              className={`cf-pill ${level === l.value ? 'cf-pill--active' : ''}`}
+              onClick={() => setLevel(l.value)}
+            >
+              {l.label}
+            </button>
+          ))}
         </div>
+      </div>
 
-        <div className="cf-section" style={{ flex: 1, minWidth: '240px' }}>
-          <span className="cf-label">Mức độ học tập</span>
-          <div className="cf-pills">
-            {LEVELS.map((l) => (
-              <button
-                key={l.value}
-                className={`cf-pill ${level === l.value ? 'cf-pill--active' : ''}`}
-                onClick={() => setLevel(l.value)}
-              >
-                {l.label}
-              </button>
-            ))}
-          </div>
+      {/* Row 5: Price selectors (Học phí) */}
+      <div className="cf-section">
+        <span className="cf-label">Học phí</span>
+        <div className="cf-pills">
+          {PRICES.map((p) => (
+            <button
+              key={p.value}
+              className={`cf-pill ${priceType === p.value ? 'cf-pill--active' : ''}`}
+              onClick={() => setPriceType(p.value)}
+            >
+              {p.label}
+            </button>
+          ))}
         </div>
       </div>
     </div>

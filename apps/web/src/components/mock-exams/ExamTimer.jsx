@@ -1,9 +1,7 @@
 import React, { useEffect, useState } from 'react';
 
-export default function ExamTimer({ durationMinutes, initialSeconds, onTimeUp, onSecondsChange }) {
-  const [secondsLeft, setSecondsLeft] = useState(
-    initialSeconds != null ? initialSeconds : durationMinutes * 60
-  );
+export default function ExamTimer({ durationMinutes, onTimeUp, onSecondsChange }) {
+  const [secondsLeft, setSecondsLeft] = useState(durationMinutes * 60);
 
   useEffect(() => {
     if (secondsLeft <= 0) {

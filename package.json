@@ -10,7 +10,8 @@
     "build:api": "pnpm --filter @edupath/api build",
     "prisma:generate": "pnpm --filter @edupath/api prisma:generate",
     "prisma:migrate": "pnpm --filter @edupath/api prisma:migrate",
-    "prisma:seed": "pnpm --filter @edupath/api prisma:seed"
+    "prisma:seed": "pnpm --filter @edupath/api prisma:seed",
+    "prisma:seed:courses": "pnpm --filter @edupath/api prisma:seed:courses"
   },
   "devDependencies": {
     "typescript": "^5.4.5"

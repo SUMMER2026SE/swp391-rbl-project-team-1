@@ -4,7 +4,7 @@ export const MOCK_COURSES = [
   {
     id: "1",
     title: "Chuyên đề ứng dụng đạo hàm & khảo sát đồ thị hàm số 12",
-    subject: "Toán",
+    subject: "Toán học",
     block: "Khối A00",
     thumbnail: "/course_thumb_math.png",
     badge: "BÁN CHẠY",
@@ -366,7 +366,7 @@ export const MOCK_COURSES = [
   {
     id: "10",
     title: "Hình học không gian & Phép tính tích phân 12 chuyên sâu",
-    subject: "Toán",
+    subject: "Toán học",
     block: "Khối A00",
     thumbnail: "/course_thumb_math.png",
     badge: "HOT",

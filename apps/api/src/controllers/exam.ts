@@ -168,33 +168,3 @@ export async function getExamQuestionsPublic(req: Request, res: Response) {
   }
 }
 
-export async function getAttemptById(req: AuthRequest, res: Response) {
-  const { attemptId } = req.params;
-  const studentId = req.user?.id;
-
-  if (!studentId) return res.status(401).json({ success: false, error: 'Chưa xác thực!' });
-
-  try {
-    const attempt = await prisma.testAttempt.findFirst({
-      where: { id: Number(attemptId), studentId },
-      include: {
-        attemptAnswers: {
-          include: {
-            question: true
-          }
-        },
-        exam: true
-      }
-    });
-
-    if (!attempt) {
-      return res.status(404).json({ success: false, error: 'Không tìm thấy lượt thi!' });
-    }
-
-    return res.status(200).json({ success: true, data: attempt });
-  } catch (err: any) {
-    return res.status(500).json({ success: false, error: err.message });
-  }
-}
-
-

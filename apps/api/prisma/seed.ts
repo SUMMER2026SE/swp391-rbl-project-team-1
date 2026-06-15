@@ -76,7 +76,7 @@ async function main() {
       title: 'Khảo sát hàm số nâng cao THPTQG',
       description: 'Chuyên đề bứt phá điểm 9+ môn Toán khối A01 và D01.',
       subject: 'Toán học',
-      subjectGroup: 'A01',
+      level: 'Nâng cao',
       price: 499.0,
       isPublished: true,
       isApproved: true,
@@ -98,7 +98,7 @@ async function main() {
       title: 'Hóa học hữu cơ Este - Lipit chuyên sâu',
       description: 'Lộ trình bứt phá điểm tuyệt đối môn Hóa học khối B00.',
       subject: 'Hóa học',
-      subjectGroup: 'B00',
+      level: 'Cơ bản',
       price: 599.0,
       isPublished: true,
       isApproved: true,
@@ -120,7 +120,7 @@ async function main() {
       title: 'Chuyên đề Dao động cơ học thi đại học',
       description: 'Nắm chắc 7+ điểm phần dao động điều hòa khối A01.',
       subject: 'Vật lý',
-      subjectGroup: 'A01',
+      level: 'Cấp tốc',
       price: 399.0,
       isPublished: true,
       isApproved: true,
@@ -136,6 +136,7 @@ async function main() {
       }
     }
   });
+
 
   console.log('[Seed] Seeding 50 multiple choice questions...');
   const questionsData = [];
