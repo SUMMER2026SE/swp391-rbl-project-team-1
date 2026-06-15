@@ -820,3 +820,53 @@
     gap: 8px;
   }
 }
+
+/* ---------- Quick Practice Enhancements ---------- */
+.exambank-modal__tab {
+  position: relative;
+  overflow: hidden;
+}
+
+.exambank-modal__tab::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 0;
+  height: 3px;
+  background: var(--primary, #059669);
+  transition: all 0.3s ease;
+  transform: translateX(-50%);
+}
+
+.exambank-modal__tab--active::after {
+  width: 100%;
+}
+
+.exambank-modal__tab:hover {
+  color: var(--primary, #059669) !important;
+  background: rgba(5, 150, 105, 0.04) !important;
+  border-radius: 8px;
+}
+
+.exambank-practice-timer-panel {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+  animation: exambank-fadeIn 0.3s ease;
+}
+
+/* Micro-animations for options */
+.exambank-modal__question-options button {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.exambank-modal__question-options button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+}
+
+/* Circular Gauge Animation */
+@keyframes circleFill {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
