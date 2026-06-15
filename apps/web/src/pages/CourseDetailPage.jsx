@@ -44,15 +44,15 @@ export default function CourseDetailPage({ courseId, currentUser, onNavigateToLe
   }, [courseId, currentUser]);
 
   const handleEnroll = async (action) => {
-    if (!currentUser && action !== 'preview') {
-      alert('Vui lòng đăng nhập hoặc đăng ký tài khoản để bắt đầu học tập!');
-      return;
-    }
-
     const firstLessonId = course?.curriculum?.[0]?.lessons?.[0]?.id;
     const firstPreviewLesson = course?.curriculum
       ?.flatMap(s => s.lessons)
       ?.find(l => l.isPreview)?.id || firstLessonId;
+
+    if (action === 'demo') {
+      onNavigateToLearn(course.id, firstLessonId, true);
+      return;
+    }
 
     if (action === 'learn') {
       onNavigateToLearn(course.id, firstLessonId);
@@ -67,6 +67,11 @@ export default function CourseDetailPage({ courseId, currentUser, onNavigateToLe
 
     if (action === 'cart') {
       alert(`Đã thêm khóa học "${course.title}" vào giỏ hàng của bạn!`);
+      return;
+    }
+
+    if (!currentUser) {
+      alert('Vui lòng đăng nhập hoặc đăng ký tài khoản để bắt đầu học tập!');
       return;
     }
 

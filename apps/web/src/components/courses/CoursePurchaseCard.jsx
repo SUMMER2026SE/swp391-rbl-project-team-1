@@ -143,6 +143,30 @@ export default function CoursePurchaseCard({ course, isOwned, onEnroll }) {
             >
               ĐĂNG KÝ HỌC NGAY
             </button>
+            
+            <button
+              className="cc-btn cc-btn--demo"
+              style={{
+                width: '100%',
+                padding: '12px',
+                fontSize: '13.5px',
+                fontWeight: '800',
+                borderRadius: '12px',
+                border: '2.5px solid var(--emerald-primary)',
+                background: 'var(--emerald-light)',
+                color: 'var(--emerald-primary)',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px'
+              }}
+              onClick={() => onEnroll('demo')}
+            >
+              🚀 VÀO HỌC DEMO (TRẢI NGHIỆM)
+            </button>
+
             <button
               className="cc-btn"
               style={{

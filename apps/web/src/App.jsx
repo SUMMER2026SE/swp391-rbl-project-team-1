@@ -115,7 +115,7 @@ const initialUsers = [
   },
   {
     id: 103,
-    name: 'Trần Văn Thuận',
+    name: 'Trần Văn Thuần',
     email: 'Tranvanthuan2005tt@gmail.com',
     password: 'admin123',
     role: 'admin',
@@ -166,7 +166,7 @@ const initialForumPosts = [
     title: "📢 [THÔNG BÁO QUAN TRỌNG] Lịch thi thử THPT Quốc Gia 2026 & Tài liệu Ôn tập Độc quyền",
     content: "Chào toàn thể các em học sinh trên hệ thống EduPath AI,\n\nBan Quản Trị xin gửi tới các em lịch thi thử trực tuyến các môn học trọng điểm (Toán, Lý, Hóa, Anh, Sinh) chuẩn cấu trúc của Bộ GD&ĐT. Các đề thi sẽ được mở vào tối thứ 7 hàng tuần lúc 20:00.\n\nSau khi làm bài, các em sẽ nhận được phân tích kết quả chi tiết từ hệ thống AI và lộ trình khắc phục lỗ hổng kiến thức tương ứng.\n\nChúc các em ôn tập đạt kết quả cao nhất!",
     subject: "Khác",
-    author: "Trần Văn Thuận",
+    author: "Trần Văn Thuần",
     authorAvatar: "AD",
     authorRole: "admin",
     date: "Đã ghim",
@@ -592,7 +592,7 @@ export default function App() {
     if (!list.find(u => u.email.toLowerCase() === 'tranvanthuan2005tt@gmail.com')) {
       list.push({
         id: 103,
-        name: 'Trần Văn Thuận',
+        name: 'Trần Văn Thuần',
         email: 'Tranvanthuan2005tt@gmail.com',
         password: 'admin123',
         role: 'admin',
@@ -1314,7 +1314,10 @@ export default function App() {
                 <CourseDetailPage
                   courseId={parsedRoute.courseId}
                   currentUser={currentUser}
-                  onNavigateToLearn={(courseId, lessonId) => navigateTo(`/learn/${courseId}${lessonId ? `/lesson/${lessonId}` : ''}`)}
+                  onNavigateToLearn={(courseId, lessonId, isDemo = false) => {
+                    const demoQuery = isDemo ? '?demo=true' : '';
+                    navigateTo(`/learn/${courseId}${lessonId ? `/lesson/${lessonId}` : ''}${demoQuery}`);
+                  }}
                   onUpdateUser={(updated) => {
                     setCurrentUser(updated);
                     const updatedList = usersList.map(u => u.email === updated.email ? updated : u);
@@ -1348,13 +1351,13 @@ export default function App() {
           )}
 
           {/* ================= STUDENT LEARNING WORKSPACE ================= */}
-          {role === 'student' && activeTab !== 'landing' && parsedRoute.route === 'learn' && (
+          {(role === 'student' || window.location.search.includes('demo=true')) && activeTab !== 'landing' && parsedRoute.route === 'learn' && (
             <div style={{ padding: '20px 0' }}>
               <LearningPage
                 courseId={parsedRoute.courseId}
                 lessonId={parsedRoute.lessonId}
                 currentUser={currentUser}
-                onSelectLesson={(courseId, lessonId) => navigateTo(`/learn/${courseId}/lesson/${lessonId}`)}
+                onSelectLesson={(courseId, lessonId) => navigateTo(`/learn/${courseId}/lesson/${lessonId}${window.location.search}`)}
                 onBackToCourse={() => navigateTo(`/courses/${parsedRoute.courseId}`)}
               />
             </div>

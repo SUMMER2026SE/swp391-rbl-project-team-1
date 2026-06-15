@@ -107,7 +107,8 @@ export default function LearningPage({ courseId, lessonId, currentUser, onSelect
     }
   }, [currentLesson, allLessons, courseId, onSelectLesson]);
 
-  const isLocked = !isOwned && currentLesson && !currentLesson.isPreview;
+  const isDemoMode = window.location.search.includes('demo=true');
+  const isLocked = !isDemoMode && !isOwned && currentLesson && !currentLesson.isPreview;
 
   const currentIdx = allLessons.findIndex(l => currentLesson && l.id.toString() === currentLesson.id.toString());
   const hasPrev = currentIdx > 0;
@@ -127,6 +128,47 @@ export default function LearningPage({ courseId, lessonId, currentUser, onSelect
   return (
     <div className="cp-page-container">
       <div className="cp-page animate-in" style={{ gap: '24px' }}>
+        
+        {isDemoMode && (
+          <div 
+            style={{
+              background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+              color: '#ffffff',
+              padding: '14px 24px',
+              borderRadius: 'var(--radius-lg)',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              boxShadow: 'var(--shadow-warm-sm)',
+              flexWrap: 'wrap',
+              gap: '12px'
+            }}
+            className="animate-in"
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '18px' }}>✨</span>
+              <span style={{ fontSize: '14px', fontWeight: 'bold' }}>
+                Bạn đang ở lớp học thử nghiệm (DEMO). Đăng ký khóa học ngay để mở khóa toàn bộ giáo trình VIP và được AI phân tích lộ trình!
+              </span>
+            </div>
+            <button 
+              onClick={onBackToCourse}
+              style={{
+                backgroundColor: '#ffffff',
+                color: 'var(--emerald-primary)',
+                border: 'none',
+                padding: '8px 16px',
+                borderRadius: '8px',
+                fontWeight: '800',
+                fontSize: '12.5px',
+                cursor: 'pointer',
+                boxShadow: '0 4px 10px rgba(0,0,0,0.1)'
+              }}
+            >
+              ĐĂNG KÝ HỌC NGAY
+            </button>
+          </div>
+        )}
         
         {/* ── TOP CONTROL BAR ── */}
         <div 
