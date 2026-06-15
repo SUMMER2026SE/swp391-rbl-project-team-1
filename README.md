@@ -1,3 +1,5 @@
+[![Review Assignment Due Date](https://classroom.github.com/assets/deadline-readme-button-22041afd0340ce965d47ae6ef1cefeee28c7c493a6346c4f15d667ab976d596c.svg)](https://classroom.github.com/a/XOuqS_1S)
+
 # 🔧 Nhật ký thay đổi — EduPath AI
 
 ## 2026-06-05
@@ -54,5 +56,4 @@ setCurrentUser({
 - `handlePaymentSuccess()` — gọi `api.demoEnroll()` sau khi cập nhật UI (optimistic update)
 - `handleSaveProfile()` — gọi `api.updateProfile()` khi lưu hồ sơ cá nhân
 - Tất cả có `try/catch` graceful fallback — nếu API lỗi thì UI vẫn hoạt động bình thường
-
 
