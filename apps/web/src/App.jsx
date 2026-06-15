@@ -37,6 +37,10 @@ import { enrollmentService } from './services/enrollmentService';
 import './styles/mockExams.css';
 import './styles/dashboard.css';
 import './styles/courses.css';
+import AITutorPage from './pages/AITutorPage';
+import './styles/aitutor.css';
+import ExamBankPage from './pages/ExamBankPage';
+import './styles/exambank.css';
 
 
 import { HiPlay, HiDocumentDownload, HiBeaker, HiX } from 'react-icons/hi';
@@ -111,7 +115,7 @@ const initialUsers = [
   },
   {
     id: 103,
-    name: 'Trần Văn Thuận',
+    name: 'Trần Văn Thuần',
     email: 'Tranvanthuan2005tt@gmail.com',
     password: 'admin123',
     role: 'admin',
@@ -162,7 +166,7 @@ const initialForumPosts = [
     title: "📢 [THÔNG BÁO QUAN TRỌNG] Lịch thi thử THPT Quốc Gia 2026 & Tài liệu Ôn tập Độc quyền",
     content: "Chào toàn thể các em học sinh trên hệ thống EduPath AI,\n\nBan Quản Trị xin gửi tới các em lịch thi thử trực tuyến các môn học trọng điểm (Toán, Lý, Hóa, Anh, Sinh) chuẩn cấu trúc của Bộ GD&ĐT. Các đề thi sẽ được mở vào tối thứ 7 hàng tuần lúc 20:00.\n\nSau khi làm bài, các em sẽ nhận được phân tích kết quả chi tiết từ hệ thống AI và lộ trình khắc phục lỗ hổng kiến thức tương ứng.\n\nChúc các em ôn tập đạt kết quả cao nhất!",
     subject: "Khác",
-    author: "Trần Văn Thuận",
+    author: "Trần Văn Thuần",
     authorAvatar: "AD",
     authorRole: "admin",
     date: "Đã ghim",
@@ -525,8 +529,15 @@ export default function App() {
     const handlePopState = () => {
       setCurrentPath(window.location.pathname);
     };
+    const handleAuthRedirect = (e) => {
+      setActiveTab(e.detail.mode);
+    };
     window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
+    window.addEventListener('edupath-auth-redirect', handleAuthRedirect);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+      window.removeEventListener('edupath-auth-redirect', handleAuthRedirect);
+    };
   }, []);
 
   const navigateTo = (path) => {
@@ -562,6 +573,14 @@ export default function App() {
       return { route: 'mock-exam-result', examId: mockExamResultMatch[1], attemptId: mockExamResultMatch[2] };
     }
 
+    if (currentPath.startsWith('/ai-tutor')) {
+      return { route: 'ai-tutor' };
+    }
+
+    if (currentPath === '/exam-bank') {
+      return { route: 'exam-bank' };
+    }
+
     return { route: 'legacy' };
   };
 
@@ -573,7 +592,7 @@ export default function App() {
     if (!list.find(u => u.email.toLowerCase() === 'tranvanthuan2005tt@gmail.com')) {
       list.push({
         id: 103,
-        name: 'Trần Văn Thuận',
+        name: 'Trần Văn Thuần',
         email: 'Tranvanthuan2005tt@gmail.com',
         password: 'admin123',
         role: 'admin',
@@ -1093,12 +1112,16 @@ export default function App() {
       {role !== 'guest' && activeTab !== 'landing' && (
         <Sidebar
           role={role}
-          active={parsedRoute.route !== 'legacy' ? (parsedRoute.route.startsWith('mock-') ? 'tests' : 'courses') : activeTab}
+          active={parsedRoute.route !== 'legacy' ? (parsedRoute.route.startsWith('mock-') ? 'tests' : (parsedRoute.route === 'ai-tutor' ? 'ai-qa' : (parsedRoute.route === 'exam-bank' ? 'library' : 'courses'))) : activeTab}
           setActive={(tab) => {
             if (tab === 'courses') {
               navigateTo('/courses');
             } else if (tab === 'tests') {
               navigateTo('/mock-exams');
+            } else if (tab === 'ai-qa') {
+              navigateTo('/ai-tutor');
+            } else if (tab === 'library') {
+              navigateTo('/exam-bank');
             } else {
               navigateTo('/');
               setActiveTab(tab);
@@ -1139,7 +1162,7 @@ export default function App() {
           )}
 
           {/* ================= PUBLIC OR PREVIEW LANDING PAGE ================= */}
-          {(role === 'guest' || activeTab === 'landing') && !parsedRoute.route.startsWith('mock-') && (
+          {(role === 'guest' || activeTab === 'landing') && !parsedRoute.route.startsWith('mock-') && parsedRoute.route !== 'ai-tutor' && parsedRoute.route !== 'exam-bank' && (
             <div>
               {role === 'guest' && activeTab === 'reset-password' ? (
                 <div className="auth-page-layout" style={{ position: 'relative', display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '80vh', padding: '20px' }}>
@@ -1291,7 +1314,10 @@ export default function App() {
                 <CourseDetailPage
                   courseId={parsedRoute.courseId}
                   currentUser={currentUser}
-                  onNavigateToLearn={(courseId, lessonId) => navigateTo(`/learn/${courseId}${lessonId ? `/lesson/${lessonId}` : ''}`)}
+                  onNavigateToLearn={(courseId, lessonId, isDemo = false) => {
+                    const demoQuery = isDemo ? '?demo=true' : '';
+                    navigateTo(`/learn/${courseId}${lessonId ? `/lesson/${lessonId}` : ''}${demoQuery}`);
+                  }}
                   onUpdateUser={(updated) => {
                     setCurrentUser(updated);
                     const updatedList = usersList.map(u => u.email === updated.email ? updated : u);
@@ -1303,14 +1329,35 @@ export default function App() {
             </div>
           )}
 
+          {/* ================= AI TUTOR WORKSPACE ================= */}
+          {parsedRoute.route === 'ai-tutor' && (
+            <div style={{ padding: '20px 0' }}>
+              <AITutorPage
+                currentUser={currentUser}
+                navigateTo={navigateTo}
+                addLog={addLog}
+              />
+            </div>
+          )}
+
+          {/* ================= EXAM BANK PAGE ================= */}
+          {parsedRoute.route === 'exam-bank' && (
+            <div style={{ padding: '0' }}>
+              <ExamBankPage
+                currentUser={currentUser}
+                navigateTo={navigateTo}
+              />
+            </div>
+          )}
+
           {/* ================= STUDENT LEARNING WORKSPACE ================= */}
-          {role === 'student' && activeTab !== 'landing' && parsedRoute.route === 'learn' && (
+          {(role === 'student' || window.location.search.includes('demo=true')) && activeTab !== 'landing' && parsedRoute.route === 'learn' && (
             <div style={{ padding: '20px 0' }}>
               <LearningPage
                 courseId={parsedRoute.courseId}
                 lessonId={parsedRoute.lessonId}
                 currentUser={currentUser}
-                onSelectLesson={(courseId, lessonId) => navigateTo(`/learn/${courseId}/lesson/${lessonId}`)}
+                onSelectLesson={(courseId, lessonId) => navigateTo(`/learn/${courseId}/lesson/${lessonId}${window.location.search}`)}
                 onBackToCourse={() => navigateTo(`/courses/${parsedRoute.courseId}`)}
               />
             </div>

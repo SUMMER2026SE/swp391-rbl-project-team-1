@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 
-export default function VideoPlayer({ videoUrl, title }) {
+export default function VideoPlayer({ videoUrl, title, onEnded }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -42,6 +42,7 @@ export default function VideoPlayer({ videoUrl, title }) {
         controls
         autoPlay
         onLoadedData={() => setLoading(false)}
+        onEnded={onEnded}
         style={{ width: '100%', height: '100%', objectFit: 'contain' }}
       />
     </div>

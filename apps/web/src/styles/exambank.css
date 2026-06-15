@@ -1,0 +1,822 @@
+/* ============================================================
+   EXAM BANK PAGE — Ngân hàng đề thi THPT Quốc Gia
+   Design: Cream/Emerald + Neo-brutalism accents
+   ============================================================ */
+
+/* ---------- Layout ---------- */
+.exambank-page {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #F5F1E8 0%, #EDE8DC 50%, #F0EBE1 100%);
+  font-family: 'Inter', 'Segoe UI', sans-serif;
+  color: #1a1a2e;
+}
+
+/* ---------- Guest Header ---------- */
+.exambank-guest-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 32px;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  border-bottom: 3px solid #059669;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.exambank-guest-header__logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+}
+
+.exambank-guest-header__logo-icon {
+  width: 36px;
+  height: 36px;
+  background: linear-gradient(135deg, #059669, #10b981);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  color: white;
+  font-weight: 800;
+}
+
+.exambank-guest-header__logo span {
+  color: white;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.exambank-guest-header__logo em {
+  color: #10b981;
+  font-style: normal;
+}
+
+.exambank-guest-header__actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.exambank-guest-header__btn {
+  padding: 8px 20px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+}
+
+.exambank-guest-header__btn--back {
+  background: transparent;
+  color: #94a3b8;
+  border: 1px solid #334155;
+}
+
+.exambank-guest-header__btn--back:hover {
+  background: #334155;
+  color: white;
+}
+
+.exambank-guest-header__btn--login {
+  background: transparent;
+  color: #10b981;
+  border: 1px solid #10b981;
+}
+
+.exambank-guest-header__btn--login:hover {
+  background: #10b981;
+  color: white;
+}
+
+.exambank-guest-header__btn--register {
+  background: linear-gradient(135deg, #059669, #10b981);
+  color: white;
+}
+
+.exambank-guest-header__btn--register:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(5, 150, 105, 0.4);
+}
+
+/* ---------- Hero Section ---------- */
+.exambank-hero {
+  padding: 48px 40px 32px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.exambank-hero::before {
+  content: '';
+  position: absolute;
+  top: -60px;
+  right: -60px;
+  width: 200px;
+  height: 200px;
+  background: radial-gradient(circle, rgba(5,150,105,0.08) 0%, transparent 70%);
+  border-radius: 50%;
+}
+
+.exambank-hero__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: linear-gradient(135deg, #059669, #10b981);
+  color: white;
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 16px;
+}
+
+.exambank-hero h1 {
+  font-size: 36px;
+  font-weight: 800;
+  color: #1a1a2e;
+  margin: 0 0 12px;
+  line-height: 1.2;
+}
+
+.exambank-hero h1 span {
+  background: linear-gradient(135deg, #059669, #10b981);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.exambank-hero__desc {
+  font-size: 16px;
+  color: #64748b;
+  max-width: 640px;
+  margin: 0 auto 28px;
+  line-height: 1.6;
+}
+
+/* ---------- Stats Row ---------- */
+.exambank-stats {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.exambank-stat {
+  background: white;
+  border: 2px solid #e8e2d6;
+  border-radius: 16px;
+  padding: 16px 28px;
+  text-align: center;
+  min-width: 140px;
+  transition: all 0.3s;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
+
+.exambank-stat:hover {
+  border-color: #059669;
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(5,150,105,0.1);
+}
+
+.exambank-stat__number {
+  font-size: 28px;
+  font-weight: 800;
+  color: #059669;
+  display: block;
+}
+
+.exambank-stat__label {
+  font-size: 13px;
+  color: #64748b;
+  margin-top: 4px;
+}
+
+/* ---------- Filters ---------- */
+.exambank-filters {
+  padding: 0 40px;
+  margin-bottom: 32px;
+}
+
+.exambank-filters__inner {
+  background: white;
+  border: 2px solid #e8e2d6;
+  border-radius: 20px;
+  padding: 24px 28px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+}
+
+.exambank-filters__row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.exambank-filters__label {
+  font-size: 14px;
+  font-weight: 700;
+  color: #374151;
+  min-width: 60px;
+}
+
+.exambank-filters__chips {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  flex: 1;
+}
+
+.exambank-chip {
+  padding: 7px 16px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 2px solid #e8e2d6;
+  background: #faf8f4;
+  color: #64748b;
+  transition: all 0.25s;
+  white-space: nowrap;
+}
+
+.exambank-chip:hover {
+  border-color: #059669;
+  color: #059669;
+  background: #ecfdf5;
+}
+
+.exambank-chip--active {
+  background: linear-gradient(135deg, #059669, #10b981);
+  color: white;
+  border-color: #059669;
+  box-shadow: 0 2px 8px rgba(5,150,105,0.25);
+}
+
+.exambank-chip--active:hover {
+  color: white;
+  background: linear-gradient(135deg, #047857, #059669);
+}
+
+.exambank-filters__divider {
+  width: 100%;
+  height: 1px;
+  background: #f0ebe1;
+  margin: 14px 0;
+}
+
+.exambank-filters__search {
+  flex: 1;
+  min-width: 200px;
+  position: relative;
+}
+
+.exambank-filters__search input {
+  width: 100%;
+  padding: 10px 16px 10px 40px;
+  border: 2px solid #e8e2d6;
+  border-radius: 12px;
+  font-size: 14px;
+  background: #faf8f4;
+  color: #1a1a2e;
+  transition: border-color 0.2s;
+  outline: none;
+}
+
+.exambank-filters__search input:focus {
+  border-color: #059669;
+  background: white;
+}
+
+.exambank-filters__search-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94a3b8;
+  font-size: 16px;
+}
+
+.exambank-filters__count {
+  font-size: 13px;
+  color: #64748b;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* ---------- Grid ---------- */
+.exambank-content {
+  padding: 0 40px 60px;
+}
+
+.exambank-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 20px;
+}
+
+/* ---------- Exam Card ---------- */
+.exambank-card {
+  background: white;
+  border: 2px solid #e8e2d6;
+  border-radius: 18px;
+  overflow: hidden;
+  transition: all 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  cursor: default;
+  display: flex;
+  flex-direction: column;
+}
+
+.exambank-card:hover {
+  border-color: var(--card-color, #059669);
+  transform: translateY(-4px);
+  box-shadow: 0 12px 32px rgba(0,0,0,0.08);
+}
+
+.exambank-card__header {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+}
+
+.exambank-card__year-badge {
+  width: 80px;
+  min-height: 90px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: var(--card-color, #059669);
+  color: white;
+  flex-shrink: 0;
+}
+
+.exambank-card__year-badge span {
+  font-size: 26px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.exambank-card__year-badge small {
+  font-size: 10px;
+  font-weight: 600;
+  opacity: 0.85;
+  margin-top: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.exambank-card__info {
+  flex: 1;
+  padding: 14px 18px;
+}
+
+.exambank-card__subject-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--card-color, #059669);
+  background: color-mix(in srgb, var(--card-color, #059669) 8%, white);
+  border: 1px solid color-mix(in srgb, var(--card-color, #059669) 20%, white);
+  padding: 3px 10px;
+  border-radius: 6px;
+  margin-bottom: 6px;
+}
+
+.exambank-card__title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1a1a2e;
+  margin: 0 0 2px;
+  line-height: 1.3;
+}
+
+.exambank-card__subtitle {
+  font-size: 12px;
+  color: #94a3b8;
+  margin: 0;
+}
+
+/* ---------- Card Stats ---------- */
+.exambank-card__stats {
+  display: flex;
+  gap: 0;
+  border-top: 1px solid #f0ebe1;
+  padding: 0;
+}
+
+.exambank-card__stat {
+  flex: 1;
+  text-align: center;
+  padding: 10px 8px;
+  border-right: 1px solid #f0ebe1;
+}
+
+.exambank-card__stat:last-child {
+  border-right: none;
+}
+
+.exambank-card__stat-value {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1a1a2e;
+  display: block;
+}
+
+.exambank-card__stat-label {
+  font-size: 11px;
+  color: #94a3b8;
+  margin-top: 2px;
+}
+
+/* ---------- Card Actions ---------- */
+.exambank-card__actions {
+  display: flex;
+  gap: 8px;
+  padding: 12px 18px 16px;
+  border-top: 1px solid #f0ebe1;
+  margin-top: auto;
+}
+
+.exambank-card__btn {
+  flex: 1;
+  padding: 9px 12px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 2px solid transparent;
+}
+
+.exambank-card__btn--view {
+  background: #faf8f4;
+  color: var(--card-color, #059669);
+  border-color: var(--card-color, #059669);
+}
+
+.exambank-card__btn--view:hover {
+  background: color-mix(in srgb, var(--card-color, #059669) 8%, white);
+  transform: translateY(-1px);
+}
+
+.exambank-card__btn--download {
+  background: var(--card-color, #059669);
+  color: white;
+}
+
+.exambank-card__btn--download:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--card-color, #059669) 35%, transparent);
+}
+
+/* ---------- Empty State ---------- */
+.exambank-empty {
+  text-align: center;
+  padding: 60px 20px;
+}
+
+.exambank-empty__icon {
+  font-size: 56px;
+  margin-bottom: 16px;
+}
+
+.exambank-empty__title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #374151;
+  margin: 0 0 8px;
+}
+
+.exambank-empty__desc {
+  font-size: 14px;
+  color: #94a3b8;
+}
+
+/* ---------- Modal Overlay ---------- */
+.exambank-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(4px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: exambank-fadeIn 0.25s ease;
+}
+
+@keyframes exambank-fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.exambank-modal {
+  background: white;
+  border-radius: 20px;
+  max-width: 800px;
+  width: 100%;
+  max-height: 85vh;
+  overflow-y: auto;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.2);
+  animation: exambank-slideUp 0.3s ease;
+}
+
+@keyframes exambank-slideUp {
+  from { transform: translateY(30px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.exambank-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24px 28px 16px;
+  border-bottom: 1px solid #f0ebe1;
+  position: sticky;
+  top: 0;
+  background: white;
+  border-radius: 20px 20px 0 0;
+  z-index: 2;
+}
+
+.exambank-modal__header h2 {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1a1a2e;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.exambank-modal__header h2 span {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 6px;
+  color: white;
+}
+
+.exambank-modal__close {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: #f1f5f9;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+  transition: all 0.2s;
+}
+
+.exambank-modal__close:hover {
+  background: #e2e8f0;
+  color: #1a1a2e;
+}
+
+.exambank-modal__body {
+  padding: 24px 28px 32px;
+}
+
+.exambank-modal__exam-info {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.exambank-modal__exam-tag {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 13px;
+  color: #475569;
+}
+
+.exambank-modal__exam-tag strong {
+  color: #1a1a2e;
+}
+
+.exambank-modal__section {
+  margin-bottom: 24px;
+}
+
+.exambank-modal__section h3 {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1a1a2e;
+  margin: 0 0 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.exambank-modal__question-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.exambank-modal__question {
+  background: #faf8f4;
+  border: 1px solid #e8e2d6;
+  border-radius: 12px;
+  padding: 14px 18px;
+  line-height: 1.6;
+}
+
+.exambank-modal__question-num {
+  font-weight: 700;
+  color: #059669;
+  margin-right: 6px;
+}
+
+.exambank-modal__question-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px 16px;
+  margin-top: 8px;
+  padding-left: 8px;
+}
+
+.exambank-modal__question-opt {
+  font-size: 13px;
+  color: #475569;
+  padding: 4px 0;
+}
+
+.exambank-modal__actions {
+  display: flex;
+  gap: 12px;
+  padding-top: 16px;
+  border-top: 1px solid #f0ebe1;
+}
+
+.exambank-modal__btn {
+  flex: 1;
+  padding: 12px 20px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.exambank-modal__btn--secondary {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.exambank-modal__btn--secondary:hover {
+  background: #e2e8f0;
+}
+
+.exambank-modal__btn--primary {
+  background: linear-gradient(135deg, #059669, #10b981);
+  color: white;
+}
+
+.exambank-modal__btn--primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(5,150,105,0.35);
+}
+
+/* ---------- Subject Section Headers ---------- */
+.exambank-subject-section {
+  margin-bottom: 36px;
+}
+
+.exambank-subject-section__header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #e8e2d6;
+}
+
+.exambank-subject-section__emoji {
+  font-size: 28px;
+}
+
+.exambank-subject-section__name {
+  font-size: 20px;
+  font-weight: 800;
+  color: #1a1a2e;
+  margin: 0;
+}
+
+.exambank-subject-section__count {
+  font-size: 12px;
+  font-weight: 600;
+  background: #f1f5f9;
+  color: #64748b;
+  padding: 4px 10px;
+  border-radius: 10px;
+  margin-left: auto;
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 768px) {
+  .exambank-hero {
+    padding: 32px 20px 24px;
+  }
+
+  .exambank-hero h1 {
+    font-size: 26px;
+  }
+
+  .exambank-stats {
+    gap: 12px;
+  }
+
+  .exambank-stat {
+    padding: 12px 18px;
+    min-width: 110px;
+  }
+
+  .exambank-stat__number {
+    font-size: 22px;
+  }
+
+  .exambank-filters {
+    padding: 0 16px;
+  }
+
+  .exambank-filters__inner {
+    padding: 16px;
+  }
+
+  .exambank-filters__row {
+    gap: 10px;
+  }
+
+  .exambank-content {
+    padding: 0 16px 40px;
+  }
+
+  .exambank-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .exambank-guest-header {
+    padding: 10px 16px;
+  }
+
+  .exambank-modal {
+    margin: 10px;
+    max-height: 90vh;
+  }
+
+  .exambank-modal__question-options {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .exambank-hero h1 {
+    font-size: 22px;
+  }
+
+  .exambank-card__header {
+    flex-direction: column;
+  }
+
+  .exambank-card__year-badge {
+    width: 100%;
+    min-height: 60px;
+    flex-direction: row;
+    gap: 8px;
+  }
+}
