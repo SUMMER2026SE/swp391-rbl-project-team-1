@@ -1,4 +1,11 @@
 import React from 'react';
+import { 
+  HiSparkles, 
+  HiCheckCircle, 
+  HiOutlineExclamation, 
+  HiClock,
+  HiClipboardList
+} from 'react-icons/hi';
 
 export default function ExamResultSummary({ result, durationSeconds }) {
   const score = result.score || 0;
@@ -22,9 +29,22 @@ export default function ExamResultSummary({ result, durationSeconds }) {
   const strokeDashoffset = circumference - (score / 10) * circumference;
 
   let scoreColor = 'var(--exams-red)';
-  if (score >= 8.5) scoreColor = 'var(--exams-green)';
-  else if (score >= 6.5) scoreColor = 'var(--exams-purple)';
-  else if (score >= 5.0) scoreColor = 'var(--exams-orange)';
+  let ScoreIcon = HiOutlineExclamation;
+  let iconColor = 'var(--exams-red)';
+
+  if (score >= 8.5) {
+    scoreColor = 'var(--exams-green)';
+    ScoreIcon = HiSparkles;
+    iconColor = 'var(--exams-orange)';
+  } else if (score >= 6.5) {
+    scoreColor = 'var(--exams-purple)';
+    ScoreIcon = HiCheckCircle;
+    iconColor = 'var(--exams-purple)';
+  } else if (score >= 5.0) {
+    scoreColor = 'var(--exams-orange)';
+    ScoreIcon = HiCheckCircle;
+    iconColor = 'var(--exams-orange)';
+  }
 
   return (
     <div className="card" style={{ padding: '28px', border: '1px solid var(--border)', borderRadius: '16px', display: 'flex', flexWrap: 'wrap', gap: '28px', alignItems: 'center' }}>
@@ -59,9 +79,7 @@ export default function ExamResultSummary({ result, durationSeconds }) {
               Xếp loại: {rank}
             </span>
           </div>
-          <span style={{ fontSize: '24px' }}>
-            {score >= 8 ? '🎉' : (score >= 5 ? '💪' : '📚')}
-          </span>
+          <ScoreIcon style={{ fontSize: '32px', color: iconColor }} />
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: '12px' }}>
@@ -79,7 +97,7 @@ export default function ExamResultSummary({ result, durationSeconds }) {
           </div>
           <div style={{ background: 'rgba(9, 132, 227, 0.06)', padding: '10px', borderRadius: '10px', borderLeft: '3px solid var(--exams-blue)' }}>
             <span style={{ display: 'block', fontSize: '10px', color: 'var(--text-secondary)', fontWeight: 'bold' }}>THỜI GIAN LÀM</span>
-            <strong style={{ fontSize: '13px', color: 'var(--exams-blue)' }}>{formatTime(durationSeconds)}</strong>
+            <strong style={{ fontSize: '13px', color: 'var(--exams-blue)' }}><HiClock style={{ verticalAlign: 'middle', marginRight: '3px' }} />{formatTime(durationSeconds)}</strong>
           </div>
         </div>
 

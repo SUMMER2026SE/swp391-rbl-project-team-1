@@ -4,10 +4,9 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import { initSocket } from './lib/socket.js';
 
-// Controller imports
 import { login, logout, sendOtp, resendOtp, verifyOtpRegister, googleAuth, googleCompleteOnboarding, changePassword, forgotPassword, resetPassword, requestRoleChange, getRoleChangeRequests, reviewRoleChange } from './controllers/auth.js';
 import { getCourses, getCourseById, createCourse, getCourseStats } from './controllers/course.js';
-import { getExams, startAttempt, submitAttempt, getAttempts, getExamQuestionsPublic } from './controllers/exam.js';
+import { getExams, startAttempt, submitAttempt, getAttempts, getExamQuestionsPublic, getAttemptById } from './controllers/exam.js';
 import { streamAIChat, refreshRoadmap, generateAIQuestions } from './controllers/ai.js';
 import { chatbotConsult } from './controllers/chatbot.js';
 import { createVNPayPayment, vnpayWebhook, sepayWebhook, checkEnrollmentStatus, checkUserProStatus } from './controllers/payment.js';
@@ -74,6 +73,7 @@ app.post('/courses', authenticateJWT, requireRole(['TEACHER', 'ADMIN']), createC
 app.get('/exams', getExams);
 app.get('/exams/:id/questions', getExamQuestionsPublic);
 app.get('/exams/attempts', authenticateJWT, requireRole(['STUDENT']), getAttempts);
+app.get('/exams/attempts/:attemptId', authenticateJWT, requireRole(['STUDENT']), getAttemptById);
 app.post('/exams/:id/attempts', authenticateJWT, requireRole(['STUDENT']), startAttempt);
 app.post('/exams/:id/attempts/:attemptId/submit', authenticateJWT, requireRole(['STUDENT']), submitAttempt);
 

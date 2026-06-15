@@ -73,6 +73,8 @@ export const api = {
 
   getAttempts: () => request('/exams/attempts'),
 
+  getAttemptById: (attemptId) => request(`/exams/attempts/${attemptId}`),
+
   startAttempt: (examId) => request(`/exams/${examId}/attempts`, { method: 'POST' }),
 
   submitAttempt: (examId, attemptId, answers) => 

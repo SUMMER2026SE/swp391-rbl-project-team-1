@@ -4,8 +4,20 @@ import ExamTimer from '../components/mock-exams/ExamTimer';
 import QuestionCard from '../components/mock-exams/QuestionCard';
 import QuestionNavigator from '../components/mock-exams/QuestionNavigator';
 import ExamSubmitModal from '../components/mock-exams/ExamSubmitModal';
+import DraggableFloatingWidget from '../components/mock-exams/DraggableFloatingWidget';
 import { mockExamService } from '../services/mockExamService';
-import { HiShieldCheck, HiOutlineExclamation, HiCalculator, HiClipboardCopy, HiPresentationChartLine, HiBookOpen, HiX } from 'react-icons/hi';
+import { 
+  HiShieldCheck, 
+  HiOutlineExclamation, 
+  HiCalculator, 
+  HiClipboardCopy, 
+  HiPresentationChartLine, 
+  HiBookOpen, 
+  HiX,
+  HiChevronLeft,
+  HiChevronRight,
+  HiOutlineShieldExclamation
+} from 'react-icons/hi';
 
 // Dangerous identifiers that must never reach new Function
 const CALC_DANGEROUS = /constructor|prototype|__proto__|fetch|XMLHttpRequest|window\b|document\b|\beval\b|Function\b|import\b|require\b|process\b|global\b|\bthis\b|alert\b|confirm\b|prompt\b/i;
@@ -79,8 +91,11 @@ export default function MockExamTakingPage({ examId, currentUser, onFinished, na
   // Refs to provide fresh values to stale-closure callbacks (violation/timer auto-submit)
   const answersRef = useRef(answers);
   const secondsRemainingRef = useRef(secondsRemaining);
+  const showViolationModalRef = useRef(showViolationModal);
+
   useEffect(() => { answersRef.current = answers; }, [answers]);
   useEffect(() => { secondsRemainingRef.current = secondsRemaining; }, [secondsRemaining]);
+  useEffect(() => { showViolationModalRef.current = showViolationModal; }, [showViolationModal]);
 
   // Initialize and load questions
   const loadExamWorkspace = async () => {
@@ -178,13 +193,14 @@ export default function MockExamTakingPage({ examId, currentUser, onFinished, na
       document.documentElement.requestFullscreen().catch(() => {});
       setIsFullscreen(true);
     } else {
-      document.exitFullscreen();
+      document.exitFullscreen().catch(() => {});
       setIsFullscreen(false);
     }
   };
 
   // Visibility & Tab-blur violation triggers
   const triggerViolation = (reason) => {
+    if (showViolationModalRef.current) return; // Ignore secondary triggers while standard alert dialog is visible
     setViolationCount(prev => {
       const nextVal = prev + 1;
       if (nextVal >= 3) {
@@ -434,40 +450,52 @@ export default function MockExamTakingPage({ examId, currentUser, onFinished, na
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', padding: '0 16px', maxWidth: '1300px', margin: '0 auto', position: 'relative' }} className="animate-in">
       
       {/* ── TOP HEADER TOOLBAR ── */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '14px', flexWrap: 'wrap', gap: '12px' }}>
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span className="source-badge official">Bộ GD&ĐT</span>
-            <h2 style={{ fontSize: '17px', fontWeight: '950', color: 'var(--text-primary)', margin: 0 }}>
-              {exam?.title}
-            </h2>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', borderBottom: '1px solid var(--border)', paddingBottom: '14px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span className="source-badge official">Bộ GD&ĐT</span>
+              <h2 style={{ fontSize: '17px', fontWeight: '950', color: 'var(--text-primary)', margin: 0 }}>
+                {exam?.title}
+              </h2>
+            </div>
+            <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Môn thi: {exam?.exam_subjects?.name} • Mã đề: {exam?.exam_code} • Khóa thi: {exam?.year}</span>
           </div>
-          <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Môn thi: {exam?.exam_subjects?.name} • Mã đề: {exam?.exam_code} • Khóa thi: {exam?.year}</span>
+
+          {/* Real-time Status and Violation indicators */}
+          <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(231, 76, 60, 0.08)', color: 'var(--accent-red)', padding: '6px 12px', borderRadius: '8px', border: '1px solid rgba(231,76,60,0.15)', fontSize: '11.5px', fontWeight: 'bold' }}>
+              <span>⚠️ Cảnh báo:</span>
+              <span>{violationCount}/3 lần</span>
+            </div>
+
+            <button 
+              onClick={toggleFullscreen} 
+              className="btn-outline"
+              style={{ padding: '6px 12px', fontSize: '12px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}
+            >
+              🖥️ {isFullscreen ? 'Thu nhỏ' : 'Toàn màn hình'}
+            </button>
+
+            {secondsRemaining > 0 && (
+              <ExamTimer
+                durationMinutes={exam.duration_minutes}
+                initialSeconds={secondsRemaining}
+                onTimeUp={handleTimeUp}
+                onSecondsChange={handleSecondsChange}
+              />
+            )}
+          </div>
         </div>
 
-        {/* Real-time Status and Violation indicators */}
-        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(231, 76, 60, 0.08)', color: 'var(--accent-red)', padding: '6px 12px', borderRadius: '8px', border: '1px solid rgba(231,76,60,0.15)', fontSize: '11.5px', fontWeight: 'bold' }}>
-            <span>⚠️ Cảnh báo:</span>
-            <span>{violationCount}/3 lần</span>
+        {/* Progress bar container */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '4px' }}>
+          <span style={{ fontSize: '11.5px', fontWeight: 'bold', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
+            Tiến độ: {answeredCount}/{questions.length} câu ({Math.round(answeredCount / questions.length * 100 || 0)}%)
+          </span>
+          <div className="taking-progress-container" style={{ flex: 1, margin: 0 }}>
+            <div className="taking-progress-bar" style={{ width: `${(answeredCount / questions.length) * 100}%` }}></div>
           </div>
-
-          <button 
-            onClick={toggleFullscreen} 
-            className="btn-outline"
-            style={{ padding: '6px 12px', fontSize: '12px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}
-          >
-            {isFullscreen ? '🖥️ Thu nhỏ' : '🖥️ Toàn màn hình'}
-          </button>
-
-          {secondsRemaining > 0 && (
-            <ExamTimer
-              durationMinutes={exam.duration_minutes}
-              initialSeconds={secondsRemaining}
-              onTimeUp={handleTimeUp}
-              onSecondsChange={handleSecondsChange}
-            />
-          )}
         </div>
       </div>
 
@@ -497,66 +525,124 @@ export default function MockExamTakingPage({ examId, currentUser, onFinished, na
             </button>
           </div>
 
-          {/* Draggable/Toggled Scientific Calculator Panel */}
+          {/* Draggable Scientific Calculator Panel */}
           {showCalculator && (
-            <div className="card casio-calculator-panel animate-in" style={{ padding: '16px', border: '2.5px solid #000', borderRadius: '16px', maxWidth: '320px', background: '#2D3436', color: '#fff', boxShadow: '6px 6px 0px #000' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', borderBottom: '1px solid #4a4a4a', paddingBottom: '6px' }}>
-                <span style={{ fontSize: '12px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}><HiCalculator /> CASIO fx-580VN X</span>
-                <button onClick={() => setShowCalculator(false)} style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', fontSize: '16px' }}><HiX /></button>
-              </div>
+            <DraggableFloatingWidget
+              title="CASIO fx-580VN X"
+              icon={HiCalculator}
+              onClose={() => setShowCalculator(false)}
+              defaultPosition={{ x: window.innerWidth - 360, y: 150 }}
+            >
+              <div className="casio-calculator-body">
+                <div className="casio-screen">
+                  <div className="casio-screen-input">{calcInput || '0'}</div>
+                  <div className="casio-screen-output">{calcOutput}</div>
+                </div>
 
-              {/* Calculator Screen */}
-              <div style={{ background: '#DFE4EA', color: '#2F3542', padding: '10px 14px', borderRadius: '8px', minHeight: '56px', textAlign: 'right', marginBottom: '12px', fontFamily: 'monospace', position: 'relative' }}>
-                <div style={{ fontSize: '13px', overflowX: 'auto', whiteSpace: 'nowrap' }}>{calcInput || '0'}</div>
-                <div style={{ fontSize: '18px', fontWeight: 'bold', marginTop: '4px' }}>{calcOutput}</div>
+                <div className="casio-grid">
+                  {/* Row 1: Sci functions */}
+                  {['sin(', 'cos(', 'tan(', '(', ')'].map(btn => (
+                    <button 
+                      type="button"
+                      key={btn} 
+                      onClick={() => handleCalcClick(btn)} 
+                      className="casio-btn casio-btn-sci"
+                    >
+                      {btn.replace('(', '')}
+                    </button>
+                  ))}
+                  {/* Row 2: Sci functions */}
+                  {['sqrt(', '^', 'ln(', 'log(', 'π'].map(btn => (
+                    <button 
+                      type="button"
+                      key={btn} 
+                      onClick={() => handleCalcClick(btn)} 
+                      className="casio-btn casio-btn-sci"
+                    >
+                      {btn === 'sqrt(' ? '√' : (btn === '^' ? 'xʸ' : btn.replace('(', ''))}
+                    </button>
+                  ))}
+                  {/* Row 3: Numbers + controls */}
+                  {['7', '8', '9', '⌫', 'C'].map(btn => {
+                    let btnClass = 'casio-btn casio-btn-num';
+                    if (btn === 'C' || btn === '⌫') btnClass = 'casio-btn casio-btn-clear';
+                    return (
+                      <button 
+                        type="button"
+                        key={btn} 
+                        onClick={() => handleCalcClick(btn)} 
+                        className={btnClass}
+                      >
+                        {btn}
+                      </button>
+                    );
+                  })}
+                  {/* Row 4 */}
+                  {['4', '5', '6', '×', '÷'].map(btn => {
+                    const isOp = isNaN(btn);
+                    return (
+                      <button 
+                        type="button"
+                        key={btn} 
+                        onClick={() => handleCalcClick(btn)} 
+                        className={`casio-btn ${isOp ? 'casio-btn-op' : 'casio-btn-num'}`}
+                      >
+                        {btn}
+                      </button>
+                    );
+                  })}
+                  {/* Row 5 */}
+                  {['1', '2', '3', '+', '-'].map(btn => {
+                    const isOp = isNaN(btn);
+                    return (
+                      <button 
+                        type="button"
+                        key={btn} 
+                        onClick={() => handleCalcClick(btn)} 
+                        className={`casio-btn ${isOp ? 'casio-btn-op' : 'casio-btn-num'}`}
+                      >
+                        {btn}
+                      </button>
+                    );
+                  })}
+                  {/* Row 6 */}
+                  {['0', '.', 'e', ')', '='].map(btn => {
+                    let btnClass = 'casio-btn casio-btn-num';
+                    if (btn === '=') btnClass = 'casio-btn casio-btn-equal';
+                    else if (btn === ')' || btn === 'e') btnClass = 'casio-btn casio-btn-sci';
+                    return (
+                      <button 
+                        type="button"
+                        key={btn} 
+                        onClick={() => handleCalcClick(btn)} 
+                        className={btnClass}
+                      >
+                        {btn}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-
-              {/* Calculator Grid */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '6px' }}>
-                {/* Advanced Row 1 */}
-                {['sin(', 'cos(', 'tan(', '(', ')'].map(btn => (
-                  <button key={btn} onClick={() => handleCalcClick(btn)} style={{ background: '#4b5563', color: '#fff', border: 'none', padding: '8px 4px', fontSize: '11px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>{btn.replace('(', '')}</button>
-                ))}
-                {/* Advanced Row 2 */}
-                {['sqrt(', '^', 'ln(', 'log(', 'π'].map(btn => (
-                  <button key={btn} onClick={() => handleCalcClick(btn)} style={{ background: '#4b5563', color: '#fff', border: 'none', padding: '8px 4px', fontSize: '11px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>{btn === 'sqrt(' ? '√' : (btn === '^' ? 'xʸ' : btn.replace('(', ''))}</button>
-                ))}
-                {/* Normal calculator row 1 */}
-                {['7', '8', '9', '⌫', 'C'].map(btn => (
-                  <button key={btn} onClick={() => handleCalcClick(btn)} style={{ background: btn === 'C' ? '#d63031' : (btn === '⌫' ? '#e17055' : '#7f8c8d'), color: '#fff', border: 'none', padding: '10px 4px', fontSize: '13px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>{btn}</button>
-                ))}
-                {/* Row 2 */}
-                {['4', '5', '6', '×', '÷'].map(btn => (
-                  <button key={btn} onClick={() => handleCalcClick(btn)} style={{ background: isNaN(btn) ? '#57606f' : '#7f8c8d', color: '#fff', border: 'none', padding: '10px 4px', fontSize: '13px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>{btn}</button>
-                ))}
-                {/* Row 3 */}
-                {['1', '2', '3', '+', '-'].map(btn => (
-                  <button key={btn} onClick={() => handleCalcClick(btn)} style={{ background: isNaN(btn) ? '#57606f' : '#7f8c8d', color: '#fff', border: 'none', padding: '10px 4px', fontSize: '13px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>{btn}</button>
-                ))}
-                {/* Row 4 */}
-                {['0', '.', 'e', ')', '='].map(btn => (
-                  <button key={btn} onClick={() => handleCalcClick(btn)} style={{ background: btn === '=' ? '#00b894' : '#7f8c8d', color: '#fff', border: 'none', padding: '10px 4px', fontSize: '13px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>{btn}</button>
-                ))}
-              </div>
-            </div>
+            </DraggableFloatingWidget>
           )}
 
-          {/* Toggleable Scratchpad Text Area */}
+          {/* Draggable Electronic Scratchpad */}
           {showScratchpad && (
-            <div className="card scratchpad-panel animate-in" style={{ padding: '16px', border: '1.5px dashed var(--accent-green)', borderRadius: '16px', background: 'var(--bg-main)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                <span style={{ fontSize: '12.5px', fontWeight: 'bold', color: 'var(--accent-green)', display: 'flex', alignItems: 'center', gap: '4px' }}><HiClipboardCopy /> GIẤY NHÁP ĐIỆN TỬ (Tự động lưu trữ)</span>
-                <button onClick={() => setShowScratchpad(false)} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '16px' }}><HiX /></button>
-              </div>
+            <DraggableFloatingWidget
+              title="GIẤY NHÁP ĐIỆN TỬ"
+              icon={HiClipboardCopy}
+              onClose={() => setShowScratchpad(false)}
+              defaultPosition={{ x: window.innerWidth - 380, y: 480 }}
+              width="360px"
+            >
               <textarea
-                className="form-control"
-                rows="4"
-                placeholder="Nháp nhanh các dữ kiện hoặc lời giải tại đây... (Ví dụ: x = 2, y = 5 => sin(x) = 0.9)"
+                className="scratchpad-widget-textarea"
+                rows="5"
+                placeholder="Nháp nhanh các dữ kiện hoặc lời giải tại đây... (Tự động lưu trữ)"
                 value={scratchpadText}
                 onChange={(e) => handleScratchpadChange(e.target.value)}
-                style={{ width: '100%', padding: '10px', fontSize: '13px', borderRadius: '8px', border: '1.5px solid var(--border)', background: 'var(--bg-card)', color: 'var(--text-primary)', outline: 'none' }}
               />
-            </div>
+            </DraggableFloatingWidget>
           )}
 
           {/* Question Card Display */}
@@ -577,9 +663,9 @@ export default function MockExamTakingPage({ examId, currentUser, onFinished, na
               className="btn-outline"
               disabled={currentIdx === 0}
               onClick={() => setCurrentIdx(prev => prev - 1)}
-              style={{ padding: '10px 20px', cursor: currentIdx === 0 ? 'not-allowed' : 'pointer' }}
+              style={{ padding: '10px 20px', cursor: currentIdx === 0 ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
             >
-              ◀ Câu trước
+              <HiChevronLeft /> Câu trước
             </button>
 
             <span style={{ fontSize: '13px', fontWeight: 'bold', display: 'flex', alignItems: 'center', color: 'var(--text-secondary)' }}>
@@ -590,9 +676,9 @@ export default function MockExamTakingPage({ examId, currentUser, onFinished, na
               <button 
                 className="btn-outline"
                 onClick={() => setCurrentIdx(prev => prev + 1)}
-                style={{ padding: '10px 20px', cursor: 'pointer' }}
+                style={{ padding: '10px 20px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
               >
-                Câu tiếp theo ▶
+                Câu tiếp theo <HiChevronRight />
               </button>
             ) : (
               <button 
@@ -646,7 +732,7 @@ export default function MockExamTakingPage({ examId, currentUser, onFinished, na
         <div className="checkout-overlay" style={{ zIndex: 11000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div className="checkout-modal animate-in" style={{ maxWidth: '460px', border: '3px solid var(--exams-red)', boxShadow: '0 10px 40px rgba(214, 48, 49, 0.2)' }}>
             <div style={{ textAlign: 'center', padding: '10px 0' }}>
-              <div style={{ fontSize: '48px', color: 'var(--exams-red)', animation: 'pulse 0.5s infinite alternate' }}>🚨</div>
+              <div style={{ fontSize: '48px', color: 'var(--exams-red)', animation: 'pulse 0.5s infinite alternate' }}><HiOutlineShieldExclamation style={{ display: 'block', margin: '0 auto' }} /></div>
               <h3 style={{ fontSize: '17px', fontWeight: '950', color: 'var(--exams-red)', marginTop: '16px', letterSpacing: '-0.5px' }}>
                 CẢNH BÁO VI PHẠM NỘI QUY THI
               </h3>

@@ -43,7 +43,7 @@ import ExamBankPage from './pages/ExamBankPage';
 import './styles/exambank.css';
 
 
-import { HiPlay, HiDocumentDownload, HiBeaker, HiX } from 'react-icons/hi';
+import { HiPlay, HiDocumentDownload, HiBeaker, HiX, HiBookOpen } from 'react-icons/hi';
 import { api } from './api';
 
 // Initial Database preloads
@@ -712,6 +712,15 @@ export default function App() {
     }
   }, []);
 
+  // Redirect guest users away from mock exams
+  useEffect(() => {
+    if ((role === 'guest' || !currentUser) && parsedRoute.route.startsWith('mock-')) {
+      showToast.current?.('Vui lòng đăng nhập để sử dụng chức năng thi thử!', 'warning');
+      navigateTo('/');
+      setActiveTab('login');
+    }
+  }, [currentUser, role, parsedRoute.route]);
+
   useEffect(() => {
     if (currentUser) {
       setSettingsName(currentUser.name || '');
@@ -1125,8 +1134,8 @@ export default function App() {
 
   return (
     <div className="app-layout">
-      {/* Sidebar - Guarded against guest visitors */}
-      {role !== 'guest' && activeTab !== 'landing' && (
+      {/* Sidebar - Guarded against guest visitors and focused exam sessions */}
+      {role !== 'guest' && activeTab !== 'landing' && parsedRoute.route !== 'mock-exam-taking' && !parsedRoute.route.startsWith('mock-') && (
         <Sidebar
           role={role}
           active={parsedRoute.route !== 'legacy' ? (parsedRoute.route.startsWith('mock-') ? 'tests' : (parsedRoute.route === 'ai-tutor' ? 'ai-qa' : (parsedRoute.route === 'exam-bank' ? 'library' : 'courses'))) : activeTab}
@@ -1153,30 +1162,48 @@ export default function App() {
         />
       )}
 
-      <div className="main-wrapper" style={{ marginLeft: (role === 'guest' || activeTab === 'landing') ? 0 : 'var(--sidebar-width)' }}>
-        <main className="main-content" style={(role === 'guest' || activeTab === 'landing') ? { maxWidth: '100%', padding: 0 } : { maxWidth: '100%' }}>
+      <div className="main-wrapper" style={{ marginLeft: (role === 'guest' || activeTab === 'landing' || parsedRoute.route.startsWith('mock-')) ? 0 : 'var(--sidebar-width)' }}>
+        <main className="main-content" style={(role === 'guest' || activeTab === 'landing' || parsedRoute.route.startsWith('mock-')) ? { maxWidth: '100%', padding: 0 } : { maxWidth: '100%' }}>
+          {currentUser && parsedRoute.route.startsWith('mock-') && parsedRoute.route !== 'mock-exam-taking' && (
+            <div className="mock-exams-simple-header">
+              <button onClick={() => navigateTo('/')} className="mock-exams-back-btn">
+                ← Quay lại Trang chủ
+              </button>
+              <div className="mock-exams-user-profile">
+                <div className="mock-exams-user-avatar">
+                  {currentUser.avatar || currentUser.name?.substring(0, 2).toUpperCase() || 'HS'}
+                </div>
+                <span className="mock-exams-user-name">{currentUser.name}</span>
+              </div>
+            </div>
+          )}
+
           {role !== 'guest' && activeTab !== 'landing' ? (
-            <Header
-              role={role}
-              userProfile={currentUser}
-              theme={theme}
-              onToggleTheme={handleToggleTheme}
-              notifications={notifications}
-              onClearNotifications={() => setNotifications(prev => prev.map(n => ({ ...n, read: true })))}
-              onLogout={handleLogout}
-              onChangePassword={handleChangePassword}
-              onNavigateSettings={() => { navigateTo('/'); setActiveTab('settings'); setActiveCourseDetails(null); setActiveTestSimulator(null); setActiveOCRScanner(null); }}
-              addLog={addLog}
-            />
+            !parsedRoute.route.startsWith('mock-') && (
+              <Header
+                role={role}
+                userProfile={currentUser}
+                theme={theme}
+                onToggleTheme={handleToggleTheme}
+                notifications={notifications}
+                onClearNotifications={() => setNotifications(prev => prev.map(n => ({ ...n, read: true })))}
+                onLogout={handleLogout}
+                onChangePassword={handleChangePassword}
+                onNavigateSettings={() => { navigateTo('/'); setActiveTab('settings'); setActiveCourseDetails(null); setActiveTestSimulator(null); setActiveOCRScanner(null); }}
+                addLog={addLog}
+              />
+            )
           ) : (
             // Minimal Header for Guests
-            theme === 'dark' && (
-              <div style={{ position: 'fixed', top: '16px', right: '16px', zIndex: 100 }}>
-                <button className="header-icon-btn" onClick={handleToggleTheme}>
-                  ☀️
-                </button>
-              </div>
-            )
+            <>
+              {theme === 'dark' && parsedRoute.route !== 'mock-exam-taking' && (
+                <div style={{ position: 'fixed', top: '16px', right: '16px', zIndex: 100 }}>
+                  <button className="header-icon-btn" onClick={handleToggleTheme}>
+                    ☀️
+                  </button>
+                </div>
+              )}
+            </>
           )}
 
           {/* ================= PUBLIC OR PREVIEW LANDING PAGE ================= */}

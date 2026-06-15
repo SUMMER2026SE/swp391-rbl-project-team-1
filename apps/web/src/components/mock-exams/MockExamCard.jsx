@@ -1,4 +1,12 @@
 import React from 'react';
+import { 
+  HiCalendar, 
+  HiClock, 
+  HiUsers, 
+  HiClipboardList, 
+  HiLightningBolt 
+} from 'react-icons/hi';
+import { FaCalculator, FaGlobe, FaAtom, FaFlask } from 'react-icons/fa';
 
 const SUBJECT_HEADER_BG = {
   1: 'linear-gradient(135deg, #6c5ce7, #8e7cf8)',
@@ -7,11 +15,11 @@ const SUBJECT_HEADER_BG = {
   4: 'linear-gradient(135deg, #00b894, #55efc4)',
 };
 
-const SUBJECT_MASCOT = {
-  1: '📐',
-  2: '🗣️',
-  3: '⚛️',
-  4: '🧪',
+const SUBJECT_ICONS = {
+  1: FaCalculator,
+  2: FaGlobe,
+  3: FaAtom,
+  4: FaFlask
 };
 
 function formatAttempts(n) {
@@ -23,7 +31,7 @@ function formatAttempts(n) {
 export default function MockExamCard({ exam, onSelect, onStart }) {
   const sid = exam.subject_id;
   const cardHeaderBg = SUBJECT_HEADER_BG[sid] || 'linear-gradient(135deg, #6c5ce7, #8e7cf8)';
-  const mascot = SUBJECT_MASCOT[sid] || '📝';
+  const SubjectIcon = SUBJECT_ICONS[sid] || HiClipboardList;
 
   const sourceLabel = exam.source || 'Thi thử';
   let sourceClass = 'mock';
@@ -53,9 +61,13 @@ export default function MockExamCard({ exam, onSelect, onStart }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           <span className={`source-badge ${sourceClass}`}>{sourceLabel}</span>
           {isNew && !isHot && <span className="exam-badge-new">Mới</span>}
-          {isHot && <span className="exam-badge-hot">🔥 Hot</span>}
+          {isHot && (
+            <span className="exam-badge-hot" style={{ display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
+              <HiLightningBolt style={{ fontSize: '11px' }} /> Hot
+            </span>
+          )}
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <span
             style={{
               fontSize: '10.5px',
@@ -68,14 +80,12 @@ export default function MockExamCard({ exam, onSelect, onStart }) {
           >
             {diff}
           </span>
-          <span
+          <SubjectIcon 
             style={{
-              fontSize: '22px',
-              fontFamily: "'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji',sans-serif",
+              fontSize: '18px',
+              color: '#fff',
             }}
-          >
-            {mascot}
-          </span>
+          />
         </div>
       </div>
 
@@ -90,7 +100,9 @@ export default function MockExamCard({ exam, onSelect, onStart }) {
         {/* Year + exam code tags */}
         <div className="exam-paper-meta-row">
           {exam.year && (
-            <span className="exam-meta-tag">📅 Năm {exam.year}</span>
+            <span className="exam-meta-tag" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+              <HiCalendar /> Năm {exam.year}
+            </span>
           )}
           {exam.exam_code && (
             <span className="exam-meta-tag">Mã: {exam.exam_code}</span>
@@ -100,15 +112,21 @@ export default function MockExamCard({ exam, onSelect, onStart }) {
         {/* Stats: time, questions, attempts, source */}
         <div className="exam-stats-grid-v2">
           <div className="exam-stat-v2">
-            <span className="exam-stat-v2-val">⏱ {exam.duration_minutes || 90}'</span>
+            <span className="exam-stat-v2-val" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+              <HiClock style={{ color: 'var(--text-secondary)' }} /> {exam.duration_minutes || 90}′
+            </span>
             <span className="exam-stat-v2-lbl">Thời gian</span>
           </div>
           <div className="exam-stat-v2">
-            <span className="exam-stat-v2-val">📝 {exam.total_questions || 50}</span>
+            <span className="exam-stat-v2-val" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+              <HiClipboardList style={{ color: 'var(--text-secondary)' }} /> {exam.total_questions || 50}
+            </span>
             <span className="exam-stat-v2-lbl">Câu hỏi</span>
           </div>
           <div className="exam-stat-v2">
-            <span className="exam-stat-v2-val">👥 {formatAttempts(attempts)}</span>
+            <span className="exam-stat-v2-val" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+              <HiUsers style={{ color: 'var(--text-secondary)' }} /> {formatAttempts(attempts)}
+            </span>
             <span className="exam-stat-v2-lbl">Lượt làm</span>
           </div>
           <div className="exam-stat-v2">

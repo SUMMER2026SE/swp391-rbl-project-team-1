@@ -4,12 +4,28 @@ import MockExamFilters from '../components/mock-exams/MockExamFilters';
 import { mockExamService } from '../services/mockExamService';
 import { supabase } from '../lib/supabaseClient';
 import { getLocalData } from '../services/mockDb';
+import { 
+  HiBookOpen, 
+  HiClipboardList, 
+  HiAcademicCap, 
+  HiOutlineFolderOpen, 
+  HiSearch, 
+  HiCheckCircle 
+} from 'react-icons/hi';
+import { FaCalculator, FaGlobe, FaAtom, FaFlask, FaRobot } from 'react-icons/fa';
 
 const SUBJECT_GRADIENTS = {
   1: 'linear-gradient(135deg, #6c5ce7 0%, #a29bfe 100%)',
   2: 'linear-gradient(135deg, #e17055 0%, #fdcb6e 100%)',
   3: 'linear-gradient(135deg, #0984e3 0%, #74b9ff 100%)',
   4: 'linear-gradient(135deg, #00b894 0%, #55efc4 100%)',
+};
+
+const SUBJECT_ICONS = {
+  1: FaCalculator,
+  2: FaGlobe,
+  3: FaAtom,
+  4: FaFlask
 };
 
 export default function MockExamsPage({ currentUser, onSelectExam, navigateTo }) {
@@ -79,26 +95,7 @@ export default function MockExamsPage({ currentUser, onSelectExam, navigateTo })
   return (
     <div className="mock-exams-public-page animate-in">
       {/* ── Public Navigation Header ── */}
-      {!currentUser && (
-        <div className="mock-exams-public-nav">
-          <div className="mock-exams-nav-inner">
-            <button onClick={() => navigateTo('/')} className="mock-exams-logo-btn">
-              <span className="mock-exams-logo-icon">📚</span>
-              <span className="mock-exams-logo-text">EduPath AI</span>
-            </button>
-
-            <div className="mock-exams-nav-links">
-              <button onClick={() => navigateTo('/')} className="mock-exams-nav-link">Trang chủ</button>
-              <button onClick={() => navigateTo('/mock-exams')} className="mock-exams-nav-link active">Thi thử</button>
-            </div>
-
-            <div className="mock-exams-nav-actions">
-              <button onClick={() => navigateTo('/')} className="mock-exams-login-btn">Đăng nhập</button>
-              <button onClick={() => navigateTo('/')} className="mock-exams-signup-btn">Đăng ký miễn phí</button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Public Navigation Header is now rendered globally by App.jsx to avoid duplication and maintain consistency */}
 
       <div className="mock-exams-content-wrapper">
 
@@ -131,9 +128,7 @@ export default function MockExamsPage({ currentUser, onSelectExam, navigateTo })
               {/* Embedded hero search */}
               <div className="hero-search-row">
                 <div className="hero-search-wrap">
-                  <svg className="hero-search-icon" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
-                  </svg>
+                  <HiSearch className="hero-search-icon" />
                   <input
                     type="text"
                     className="hero-search-input"
@@ -151,17 +146,19 @@ export default function MockExamsPage({ currentUser, onSelectExam, navigateTo })
               </div>
 
               <div className="hero-feature-pills">
-                <span className="hfp">✓ Hoàn toàn miễn phí</span>
-                <span className="hfp">✓ AI chấm &amp; phân tích</span>
-                <span className="hfp">✓ Chống gian lận</span>
-                <span className="hfp">✓ 4 môn chính</span>
+                <span className="hfp"><HiCheckCircle style={{ marginRight: '6px', color: '#55efc4' }} /> Hoàn toàn miễn phí</span>
+                <span className="hfp"><HiCheckCircle style={{ marginRight: '6px', color: '#55efc4' }} /> AI chấm &amp; phân tích</span>
+                <span className="hfp"><HiCheckCircle style={{ marginRight: '6px', color: '#55efc4' }} /> Chống gian lận</span>
+                <span className="hfp"><HiCheckCircle style={{ marginRight: '6px', color: '#55efc4' }} /> 4 môn chính</span>
               </div>
             </div>
 
             {/* Right: floating stat cards */}
             <div className="hero-stats-col">
               <div className="hero-stat-float">
-                <div className="hstat-icon-box purple">📋</div>
+                <div className="hstat-icon-box purple">
+                  <HiClipboardList style={{ color: '#a894ff' }} />
+                </div>
                 <div className="hstat-info">
                   <span className="hstat-num">{exams.length || 20}+</span>
                   <span className="hstat-title">Bộ đề thi</span>
@@ -169,7 +166,9 @@ export default function MockExamsPage({ currentUser, onSelectExam, navigateTo })
                 </div>
               </div>
               <div className="hero-stat-float">
-                <div className="hstat-icon-box blue">📐</div>
+                <div className="hstat-icon-box blue">
+                  <HiAcademicCap style={{ color: '#74b9ff' }} />
+                </div>
                 <div className="hstat-info">
                   <span className="hstat-num">4</span>
                   <span className="hstat-title">Môn học</span>
@@ -177,7 +176,9 @@ export default function MockExamsPage({ currentUser, onSelectExam, navigateTo })
                 </div>
               </div>
               <div className="hero-stat-float">
-                <div className="hstat-icon-box green">🤖</div>
+                <div className="hstat-icon-box green">
+                  <FaRobot style={{ color: '#55efc4' }} />
+                </div>
                 <div className="hstat-info">
                   <span className="hstat-num">AI</span>
                   <span className="hstat-title">Chấm &amp; Phân tích</span>
@@ -195,6 +196,7 @@ export default function MockExamsPage({ currentUser, onSelectExam, navigateTo })
           {subjects.map((sub, idx) => {
             const grad = SUBJECT_GRADIENTS[sub.id] || `linear-gradient(135deg, #6c5ce7, #a29bfe)`;
             const isActive = String(filters.subjectId) === String(sub.id);
+            const SubIcon = SUBJECT_ICONS[sub.id] || HiBookOpen;
             return (
               <button
                 key={sub.id}
@@ -202,7 +204,7 @@ export default function MockExamsPage({ currentUser, onSelectExam, navigateTo })
                 className={`exams-subject-card-v2 ${isActive ? 'active' : ''}`}
                 style={{ background: grad }}
               >
-                <span className="subject-v2-icon">{sub.icon}</span>
+                <SubIcon className="subject-v2-icon" style={{ display: 'block', margin: '0 auto 8px auto', color: '#fff', fontSize: '28px' }} />
                 <span className="subject-v2-name">{sub.name}</span>
                 <span className="subject-v2-count">{subjectCounts[sub.name] || 0} đề</span>
               </button>
@@ -289,7 +291,7 @@ export default function MockExamsPage({ currentUser, onSelectExam, navigateTo })
           </>
         ) : (
           <div className="exams-empty-state">
-            <span className="empty-icon">📂</span>
+            <HiOutlineFolderOpen style={{ fontSize: '48px', color: 'var(--text-muted)', display: 'block', margin: '0 auto 12px auto' }} />
             <h3 className="empty-title">Không tìm thấy đề thi phù hợp</h3>
             <p className="empty-desc">Vui lòng thay đổi từ khóa hoặc điều chỉnh bộ lọc tìm kiếm.</p>
             <button

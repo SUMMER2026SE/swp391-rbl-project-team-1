@@ -1,10 +1,18 @@
 import React from 'react';
+import { 
+  HiSearch, 
+  HiCheck, 
+  HiX, 
+  HiCheckCircle, 
+  HiOutlineExclamation, 
+  HiLightBulb 
+} from 'react-icons/hi';
 
 export default function ExamReviewList({ questions = [], userAnswers = {} }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginTop: '24px' }}>
-      <h3 style={{ fontSize: '16px', fontWeight: '900', color: 'var(--text-primary)', borderBottom: '1px solid var(--border)', paddingBottom: '10px' }}>
-        🔍 XEM LẠI BÀI LÀM CHI TIẾT
+      <h3 style={{ fontSize: '16px', fontWeight: '900', color: 'var(--text-primary)', borderBottom: '1px solid var(--border)', paddingBottom: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <HiSearch style={{ color: 'var(--exams-purple)' }} /> XEM LẠI BÀI LÀM CHI TIẾT
       </h3>
 
       {questions.map((q) => {
@@ -35,10 +43,17 @@ export default function ExamReviewList({ questions = [], userAnswers = {} }) {
                   padding: '4px 10px',
                   borderRadius: '20px',
                   background: isBlank ? '#64748b' : (isCorrect ? 'var(--exams-green)' : 'var(--exams-red)'),
-                  color: '#ffffff'
+                  color: '#ffffff',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px'
                 }}
               >
-                {isBlank ? 'CHƯA TRẢ LỜI' : (isCorrect ? 'ĐÚNG ✓' : 'SAI ✕')}
+                {isBlank ? 'CHƯA TRẢ LỜI' : isCorrect ? (
+                  <>ĐÚNG <HiCheck /></>
+                ) : (
+                  <>SAI <HiX /></>
+                )}
               </span>
             </div>
 
@@ -61,16 +76,19 @@ export default function ExamReviewList({ questions = [], userAnswers = {} }) {
 
                 let optionBg = 'transparent';
                 let optionBorder = 'var(--border)';
-                let optionIcon = '';
+                let showStatus = false;
+                let isOptCorrect = false;
 
                 if (isCorrectOpt) {
                   optionBg = 'rgba(0, 184, 148, 0.08)';
                   optionBorder = 'var(--exams-green)';
-                  optionIcon = '🟢 (Đáp án đúng)';
+                  showStatus = true;
+                  isOptCorrect = true;
                 } else if (isSelectedOpt && !isCorrectOpt) {
                   optionBg = 'rgba(214, 48, 49, 0.08)';
                   optionBorder = 'var(--exams-red)';
-                  optionIcon = '🔴 (Lựa chọn của bạn)';
+                  showStatus = true;
+                  isOptCorrect = false;
                 }
 
                 return (
@@ -98,13 +116,29 @@ export default function ExamReviewList({ questions = [], userAnswers = {} }) {
                         alignItems: 'center',
                         justifyContent: 'center',
                         fontWeight: 'bold',
-                        fontSize: '11px'
+                        fontSize: '11px',
+                        flexShrink: 0
                       }}
                     >
                       {opt.option_label}
                     </span>
                     <span style={{ color: 'var(--text-primary)', flex: 1 }}>{opt.option_text}</span>
-                    {optionIcon && <span style={{ fontSize: '11px', fontWeight: 'bold', color: isCorrectOpt ? 'var(--exams-green)' : 'var(--exams-red)' }}>{optionIcon}</span>}
+                    {showStatus && (
+                      <span style={{ 
+                        fontSize: '11px', 
+                        fontWeight: 'bold', 
+                        color: isOptCorrect ? 'var(--exams-green)' : 'var(--exams-red)',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '2px'
+                      }}>
+                        {isOptCorrect ? (
+                          <><HiCheckCircle /> (Đáp án đúng)</>
+                        ) : (
+                          <><HiOutlineExclamation /> (Lựa chọn của bạn)</>
+                        )}
+                      </span>
+                    )}
                   </div>
                 );
               })}
@@ -122,7 +156,9 @@ export default function ExamReviewList({ questions = [], userAnswers = {} }) {
                   color: 'var(--text-secondary)'
                 }}
               >
-                <strong style={{ display: 'block', color: 'var(--exams-purple)', marginBottom: '4px' }}>💡 Hướng dẫn giải chi tiết:</strong>
+                <strong style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--exams-purple)', marginBottom: '4px' }}>
+                  <HiLightBulb /> Hướng dẫn giải chi tiết:
+                </strong>
                 <p style={{ margin: 0, whiteSpace: 'pre-line', lineHeight: 1.5 }}>
                   {q.explanation || `Đáp án đúng là ${correctAnswer?.option_label}.`}
                 </p>
