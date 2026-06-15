@@ -35,6 +35,12 @@ const navGroups = {
         { label: 'Bảng xếp hạng', id: 'leaderboard', icon: HiChartBar },
       ],
     },
+    {
+      groupLabel: '⚙️ Tài khoản',
+      items: [
+        { label: 'Cài đặt hồ sơ', id: 'settings', icon: HiCog },
+      ],
+    },
   ],
   teacher: [
     {
@@ -44,6 +50,12 @@ const navGroups = {
         { icon: HiChat, label: 'Diễn đàn học tập', id: 'forum' },
         { icon: HiDatabase, label: 'Ngân hàng câu hỏi', id: 'questions' },
         { icon: HiChartBar, label: 'Thống kê lớp học', id: 'stats' },
+      ],
+    },
+    {
+      groupLabel: '⚙️ Tài khoản',
+      items: [
+        { icon: HiCog, label: 'Cài đặt hồ sơ', id: 'settings' },
       ],
     },
   ],
@@ -58,6 +70,12 @@ const navGroups = {
         { icon: HiCollection, label: 'Gửi thông báo', id: 'announcements' },
         { icon: HiTrendingUp, label: 'Thống kê tài chính', id: 'finance' },
         { icon: HiCog, label: 'Cấu hình AI', id: 'ai-config' },
+      ],
+    },
+    {
+      groupLabel: '⚙️ Tài khoản',
+      items: [
+        { icon: HiCog, label: 'Cài đặt hồ sơ', id: 'settings' },
       ],
     },
   ],

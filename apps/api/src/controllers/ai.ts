@@ -2,6 +2,31 @@ import type { Response } from 'express';
 import type { AuthRequest } from '../middleware/auth.js';
 import { prisma } from '../lib/prisma.js';
 
+// Helper to process SSE lines from OpenRouter
+function processLines(buffer: string, res: Response): string {
+  const lines = buffer.split('\n');
+  const lastLine = lines.pop() || '';
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+    if (trimmed === 'data: [DONE]') continue;
+    if (trimmed.startsWith('data: ')) {
+      try {
+        const jsonStr = trimmed.slice(6);
+        const parsed = JSON.parse(jsonStr);
+        const text = parsed.choices?.[0]?.delta?.content || '';
+        if (text) {
+          res.write(`data: ${JSON.stringify({ text })}\n\n`);
+        }
+      } catch (e) {
+        // Ignored, might be incomplete JSON chunk
+      }
+    }
+  }
+  return lastLine;
+}
+
 // Server-Sent Events (SSE) AI Streaming Chat
 export async function streamAIChat(req: AuthRequest, res: Response) {
   const { message } = req.body;
@@ -11,31 +36,101 @@ export async function streamAIChat(req: AuthRequest, res: Response) {
   res.setHeader('Connection', 'keep-alive');
   res.flushHeaders();
 
-  const responseChunks = [
-    "Chào em! Thầy đã nhận được câu hỏi ôn luyện kỳ thi THPTQG.\n\n",
-    "Để giải bài toán này một cách chính xác, chúng ta thực hiện theo các bước cụ thể như sau:\n\n",
-    "**Bước 1**: Xác định các hệ số của bài toán và tập xác định.\n",
-    "**Bước 2**: Áp dụng định lý đạo hàm liên hợp hoặc công thức giải nhanh lý thuyết.\n",
-    "**Bước 3**: Thay số và kết luận kết quả cuối cùng.\n\n",
-    "Em hãy thử áp dụng tương tự với các dạng bài tập tự luyện trong chương này. Có phần nào chưa hiểu rõ, cứ nhắn thầy hỗ trợ tiếp nhé! Chúc em ôn luyện thật tốt! ✨"
-  ];
+  const apiKey = process.env.OPENROUTER_API_KEY;
+  const model = process.env.OPENROUTER_MODEL || 'google/gemini-2.5-flash';
 
-  let idx = 0;
-  const interval = setInterval(() => {
-    if (idx < responseChunks.length) {
-      res.write(`data: ${JSON.stringify({ text: responseChunks[idx] })}\n\n`);
-      idx++;
-    } else {
-      res.write('data: [DONE]\n\n');
-      clearInterval(interval);
-      res.end();
-    }
-  }, 400);
+  if (!apiKey) {
+    res.write(`data: ${JSON.stringify({ text: "Hệ thống AI Gia sư đang bảo trì (thiếu cấu hình API Key)." })}\n\n`);
+    res.write('data: [DONE]\n\n');
+    res.end();
+    return;
+  }
 
+  const systemPrompt = {
+    role: 'system',
+    content: 'Bạn là "EduBot" - Trợ lý AI gia sư và hướng dẫn ôn thi THPT Quốc gia của hệ thống giáo dục trực tuyến EduPath AI. ' +
+      'Nhiệm vụ của bạn là giải đáp chi tiết, hướng dẫn từng bước một cách khoa học cho các câu hỏi về lý thuyết, bài tập của học sinh (Toán, Vật lý, Hóa học, Tiếng Anh, v.v.). ' +
+      'Hãy trả lời bằng tiếng Việt một cách thân thiện, nhiệt tình, chuyên nghiệp, luôn sử dụng định dạng markdown (in đậm, công thức, bullet points) rõ ràng để học sinh dễ theo dõi.'
+  };
+
+  const abortController = new AbortController();
   req.on('close', () => {
-    clearInterval(interval);
+    abortController.abort();
     res.end();
   });
+
+  try {
+    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': 'https://edupath.vn',
+        'X-Title': 'EduPath AI Tutor'
+      },
+      body: JSON.stringify({
+        model: model,
+        messages: [
+          systemPrompt,
+          { role: 'user', content: message }
+        ],
+        stream: true,
+        temperature: 0.7,
+        max_tokens: 2000
+      }),
+      signal: abortController.signal
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      console.error(`[AI Tutor SSE Error] OpenRouter status ${response.status}: ${errText}`);
+      res.write(`data: ${JSON.stringify({ text: `Lỗi kết nối AI (${response.status}). Vui lòng thử lại.` })}\n\n`);
+      res.write('data: [DONE]\n\n');
+      res.end();
+      return;
+    }
+
+    const decoder = new TextDecoder('utf-8');
+    let buffer = '';
+
+    if (!response.body) {
+      res.write(`data: ${JSON.stringify({ text: "Không nhận được phản hồi từ AI." })}\n\n`);
+      res.write('data: [DONE]\n\n');
+      res.end();
+      return;
+    }
+
+    if (typeof (response.body as any).getReader === 'function') {
+      const reader = (response.body as any).getReader();
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        buffer = processLines(buffer, res);
+      }
+    } else {
+      for await (const chunk of response.body as any) {
+        buffer += decoder.decode(chunk, { stream: true });
+        buffer = processLines(buffer, res);
+      }
+    }
+
+    if (buffer.trim()) {
+      processLines(buffer + '\n', res);
+    }
+
+    res.write('data: [DONE]\n\n');
+    res.end();
+  } catch (err: any) {
+    if (err.name === 'AbortError') {
+      console.log('[AI Tutor SSE] Request aborted by client.');
+      return;
+    }
+    console.error('[AI Tutor SSE Exception]', err);
+    res.write(`data: ${JSON.stringify({ text: "Đã xảy ra sự cố khi kết nối với máy chủ AI. Vui lòng thử lại sau." })}\n\n`);
+    res.write('data: [DONE]\n\n');
+    res.end();
+  }
 }
 
 // Refresh Adaptive Study Roadmap based on recent performance

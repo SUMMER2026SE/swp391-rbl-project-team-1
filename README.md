@@ -1,4 +1,13 @@
+[![Review Assignment Due Date](https://classroom.github.com/assets/deadline-readme-button-22041afd0340ce965d47ae6ef1cefeee28c7c493a6346c4f15d667ab976d596c.svg)](https://classroom.github.com/a/XOuqS_1S)
+
 # 🔧 Nhật ký thay đổi — EduPath AI
+
+## 2026-06-15
+
+### ✅ Tính năng: Nâng cấp Luyện tập nhanh (Mini-Quiz) trong Ngân hàng đề thi
+- Hỗ trợ học sinh làm thử câu hỏi mẫu trực tuyến của 9 môn thi THPT Quốc Gia.
+- Hệ thống tự động chấm điểm, hiển thị hướng dẫn giải chi tiết ngay khi chọn đáp án trắc nghiệm.
+- Hỗ trợ soạn thảo dàn ý bài làm tự luận (môn Ngữ Văn) và xem gợi ý hướng dẫn chấm chi tiết.
 
 ## 2026-06-05
 
@@ -54,5 +63,4 @@ setCurrentUser({
 - `handlePaymentSuccess()` — gọi `api.demoEnroll()` sau khi cập nhật UI (optimistic update)
 - `handleSaveProfile()` — gọi `api.updateProfile()` khi lưu hồ sơ cá nhân
 - Tất cả có `try/catch` graceful fallback — nếu API lỗi thì UI vẫn hoạt động bình thường
-
 

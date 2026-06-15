@@ -5,14 +5,18 @@ import dotenv from 'dotenv';
 import { initSocket } from './lib/socket.js';
 
 // Controller imports
-import { login, logout, register, sendOtp, resendOtp, verifyOtpRegister, googleAuth, googleCompleteOnboarding, changePassword, forgotPassword, resetPassword, requestRoleChange, getRoleChangeRequests, reviewRoleChange } from './controllers/auth.js';
+import {
+  login, logout, sendOtp, resendOtp, verifyOtpRegister,
+  googleAuth, forgotPassword, resetPassword, googleCompleteOnboarding,
+  changePassword, requestRoleChange, getRoleChangeRequests, reviewRoleChange
+} from './controllers/auth.js';
 import { getCourses, getCourseById, createCourse, getCourseStats } from './controllers/course.js';
-import { getExams, startAttempt, submitAttempt, getAttempts, getExamQuestionsPublic } from './controllers/exam.js';
+import { getExams, startAttempt, submitAttempt } from './controllers/exam.js';
 import { streamAIChat, refreshRoadmap, generateAIQuestions } from './controllers/ai.js';
 import { chatbotConsult } from './controllers/chatbot.js';
 import { createVNPayPayment, vnpayWebhook, sepayWebhook, checkEnrollmentStatus, checkUserProStatus } from './controllers/payment.js';
 import { authenticateJWT, requireRole } from './middleware/auth.js';
-import { 
+import {
   getCategories, createCategory, deleteCategory,
   getPosts, getPostById, createPost, deletePost, togglePinPost, reactPost,
   getComments, createComment, acceptCommentSolution,
@@ -72,8 +76,6 @@ app.post('/courses', authenticateJWT, requireRole(['TEACHER', 'ADMIN']), createC
 
 // Protected Exam Routes
 app.get('/exams', getExams);
-app.get('/exams/:id/questions', getExamQuestionsPublic);
-app.get('/exams/attempts', authenticateJWT, requireRole(['STUDENT']), getAttempts);
 app.post('/exams/:id/attempts', authenticateJWT, requireRole(['STUDENT']), startAttempt);
 app.post('/exams/:id/attempts/:attemptId/submit', authenticateJWT, requireRole(['STUDENT']), submitAttempt);
 
@@ -85,7 +87,13 @@ app.post('/enrollments/sepay-webhook', sepayWebhook);
 app.get('/users/pro-status', authenticateJWT, requireRole(['STUDENT']), checkUserProStatus);
 
 // Protected AI Routes
-app.post('/ai/chat', authenticateJWT, requireRole(['STUDENT']), streamAIChat);
+app.post('/ai/chat', (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    return authenticateJWT(req as any, res, next);
+  }
+  next();
+}, streamAIChat);
 app.post('/ai/roadmap/refresh', authenticateJWT, requireRole(['STUDENT']), refreshRoadmap);
 app.post('/ai/generate-questions', authenticateJWT, requireRole(['TEACHER', 'ADMIN']), generateAIQuestions);
 

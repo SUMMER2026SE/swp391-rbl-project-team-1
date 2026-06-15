@@ -12,23 +12,25 @@ export const aiService = {
       ? `Ngữ cảnh bài học: "${lesson.title}". Nội dung bài học: "${lesson.content || ''}". `
       : '';
     
-    // Check if token exists to call backend
     const token = localStorage.getItem('access_token');
+    const headers = {
+      'Content-Type': 'application/json'
+    };
     if (token) {
-      try {
-        const response = await fetch(`${API_BASE}/ai/chat`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify({ 
-            message: `${lessonContext}Học sinh hỏi: ${content}` 
-          })
-        });
+      headers['Authorization'] = `Bearer ${token}`;
+    }
 
-        if (response.ok) {
-          const contentType = response.headers.get('content-type');
+    try {
+      const response = await fetch(`${API_BASE}/ai/chat`, {
+        method: 'POST',
+        headers: headers,
+        body: JSON.stringify({ 
+          message: `${lessonContext}Học sinh hỏi: ${content}` 
+        })
+      });
+
+      if (response.ok) {
+        const contentType = response.headers.get('content-type');
           if (contentType && contentType.includes('application/json')) {
             const data = await response.json();
             return data.data?.text || data.text || data.message || '';
@@ -59,7 +61,6 @@ export const aiService = {
       } catch (err) {
         console.warn('[aiService] Failed to call backend AI API, using local mock response.', err);
       }
-    }
 
     // Fallback Mock AI Tutor response in Vietnamese tailored to the lesson context!
     return new Promise((resolve) => {
