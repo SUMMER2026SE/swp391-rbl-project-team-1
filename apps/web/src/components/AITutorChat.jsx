@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { HiPaperAirplane, HiSparkles, HiChatAlt2, HiUser } from 'react-icons/hi';
+import { API_BASE } from '../api';
 
 const channels = [
   { id: 'ai-tutor', name: 'Trợ lý AI EduBot', type: 'ai', subject: 'Tất cả môn học', avatar: '🤖', welcome: 'Chào bạn! Mình là EduBot, trợ lý học tập AI của bạn. Hãy gửi bài tập hoặc câu hỏi bất kỳ, mình sẽ hướng dẫn chi tiết từng bước nhé!' },
@@ -55,36 +56,104 @@ export default function AITutorChat({ addLog }) {
 
     if (channelId === 'ai-tutor') {
       addLog(`Học viên gửi câu hỏi cho AI: "${inputText.substring(0, 40)}..."`, 'sys');
-    } else {
-      addLog(`Học viên gửi tin nhắn cho giáo viên ${activeChannel.name}: "${inputText.substring(0, 40)}..."`, 'sys');
-    }
-
-    // Simulate AI / Teacher response
-    setTimeout(() => {
-      let replyText = '';
-      if (channelId === 'ai-tutor') {
-        const query = inputText.toLowerCase();
-        if (query.includes('hàm số') || query.includes('toán')) {
-          replyText = `**[EduBot giải bài Toán Hàm số]**\n\nĐể giải bài toán hàm số này, ta thực hiện theo 3 bước sau:\n\n1. **Tìm tập xác định**: Đảm bảo mẫu thức khác không hoặc biểu thức trong căn lớn hơn hoặc bằng không.\n2. **Tính đạo hàm y'**: Tìm các điểm mà tại đó y' = 0 hoặc y' không xác định.\n3. **Lập bảng biến thiên**: Từ dấu của y' để suy ra các khoảng đồng biến, nghịch biến.\n\n*Gợi ý*: Phương trình bậc hai $ax^2 + bx + c = 0$ có nghiệm kép khi $\\Delta = b^2 - 4ac = 0$. Em có muốn thử sức với bài toán tương tự không?`;
-        } else if (query.includes('lý') || query.includes('dao động')) {
-          replyText = `**[EduBot Vật Lý]**\n\nTrong dao động điều hòa, phương trình li độ là:\n$$x = A\\cos(\\omega t + \\varphi)$$\nTrong đó:\n- $A$: Biên độ dao động (luôn dương).\n- $\\omega$: Tần số góc (rad/s).\n- $\\varphi$: Pha ban đầu.\n\n*Lưu ý*: Vận tốc cực đại đạt tại vị trí cân bằng ($v_{max} = \\omega A$), gia tốc cực đại đạt tại biên ($a_{max} = \\omega^2 A$). Em cần giải bài tập số mấy trong đề vậy?`;
-        } else {
-          replyText = `Cảm ơn bạn đã hỏi! Cầu hỏi của bạn về "${inputText}" đã được ghi nhận. Để hỗ trợ hiệu quả nhất cho kỳ thi THPTQG, bạn có thể gửi cụ thể đề toán học, lý thuyết dao động vật lý hoặc bài tập Tiếng Anh để mình phân tích và giải thích chi tiết nhé! ✨`;
-        }
-        addLog(`Hệ thống AI tự động trả lời câu hỏi`, 'ai');
-      } else {
-        // Teacher replies
-        replyText = `Cảm ơn Minh Anh. Thầy/Cô đã nhận được câu hỏi của em. Thầy/Cô đang chấm bài thi thử của lớp, thầy/cô sẽ xem chi tiết và phản hồi em vào tối nay nhé. Trong lúc đó, em hãy xem lại video bài giảng và hoàn thành bài luyện tập tuần này nhé! Chúc em học tốt! 💪`;
-      }
-
-      const botMessage = { sender: 'bot', text: replyText, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) };
+      
+      const botMessageId = Date.now();
+      const initialBotMsg = {
+        id: botMessageId,
+        sender: 'bot',
+        text: '',
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      };
 
       setChatHistories(prev => ({
         ...prev,
-        [channelId]: [...(prev[channelId] || []), botMessage]
+        [channelId]: [...(prev[channelId] || []), initialBotMsg]
       }));
-      setTyping(false);
-    }, 1500);
+
+      (async () => {
+        try {
+          const response = await fetch(`${API_BASE}/ai/chat`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+            },
+            body: JSON.stringify({ message: inputText })
+          });
+
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+
+          const reader = response.body.getReader();
+          const decoder = new TextDecoder('utf-8');
+          let currentResponse = '';
+          setTyping(false);
+
+          while (true) {
+            const { value, done } = await reader.read();
+            if (done) break;
+
+            const chunk = decoder.decode(value, { stream: true });
+            const lines = chunk.split('\n');
+            for (const line of lines) {
+              if (line.startsWith('data: ')) {
+                const dataStr = line.slice(6).trim();
+                if (dataStr === '[DONE]') {
+                  break;
+                }
+                try {
+                  const parsed = JSON.parse(dataStr);
+                  if (parsed.text) {
+                    currentResponse += parsed.text;
+                    setChatHistories(prev => {
+                      const history = prev[channelId] || [];
+                      const updated = history.map(msg => 
+                        msg.id === botMessageId ? { ...msg, text: currentResponse } : msg
+                      );
+                      return {
+                        ...prev,
+                        [channelId]: updated
+                      };
+                    });
+                  }
+                } catch (e) {
+                  // ignore incomplete JSON boundaries
+                }
+              }
+            }
+          }
+          addLog(`Hệ thống AI tự động trả lời câu hỏi hoàn tất`, 'ai');
+        } catch (err) {
+          console.error("SSE Error:", err);
+          setChatHistories(prev => {
+            const history = prev[channelId] || [];
+            const updated = history.map(msg => 
+              msg.id === botMessageId 
+                ? { ...msg, text: "Chào em! Thầy đã nhận được câu hỏi. Tuy nhiên, hệ thống AI đang tải trọng số hoặc chưa xác thực được tài khoản của em. Em hãy kiểm tra kết nối mạng và thử lại nhé!" } 
+                : msg
+            );
+            return {
+              ...prev,
+              [channelId]: updated
+            };
+          });
+          setTyping(false);
+        }
+      })();
+    } else {
+      addLog(`Học viên gửi tin nhắn cho giáo viên ${activeChannel.name}: "${inputText.substring(0, 40)}..."`, 'sys');
+      setTimeout(() => {
+        const replyText = `Cảm ơn Minh Anh. Thầy/Cô đã nhận được câu hỏi của em. Thầy/Cô đang chấm bài thi thử của lớp, thầy/cô sẽ xem chi tiết và phản hồi em vào tối nay nhé. Trong lúc đó, em hãy xem lại video bài giảng và hoàn thành bài luyện tập tuần này nhé! Chúc em học tốt! 💪`;
+        const botMessage = { sender: 'bot', text: replyText, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) };
+
+        setChatHistories(prev => ({
+          ...prev,
+          [channelId]: [...(prev[channelId] || []), botMessage]
+        }));
+        setTyping(false);
+      }, 1500);
+    }
   };
 
   return (

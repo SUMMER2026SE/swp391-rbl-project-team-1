@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
+    "dev": "pnpm -r --parallel dev",
     "dev:web": "pnpm --filter @edupath/web dev",
     "dev:api": "pnpm --filter @edupath/api dev",
     "build:web": "pnpm --filter @edupath/web build",

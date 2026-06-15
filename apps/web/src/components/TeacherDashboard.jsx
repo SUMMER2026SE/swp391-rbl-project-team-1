@@ -7,9 +7,19 @@ export default function TeacherDashboard({
   onDeleteCourse,
   questionBank,
   onAddQuestion,
-  addLog
+  addLog,
+  activeTab: propActiveTab = 'home',
+  setActiveTab
 }) {
-  const [activeTab, setActiveTab] = useState('courses'); // 'courses' or 'questions' or 'stats'
+  const currentTab = propActiveTab === 'home' ? 'courses' : propActiveTab;
+
+  const handleTabChange = (tab) => {
+    if (tab === 'courses') {
+      setActiveTab('home');
+    } else {
+      setActiveTab(tab);
+    }
+  };
   
   // New Course state
   const [newTitle, setNewTitle] = useState('');
@@ -88,29 +98,29 @@ export default function TeacherDashboard({
       {/* Sub tabs */}
       <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', background: 'var(--bg-card)', padding: '10px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)' }}>
         <button
-          className={`demo-role-btn ${activeTab === 'courses' ? 'active' : ''}`}
-          onClick={() => setActiveTab('courses')}
+          className={`demo-role-btn ${currentTab === 'courses' ? 'active' : ''}`}
+          onClick={() => handleTabChange('courses')}
           style={{ padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 6 }}
         >
           📚 Quản lý khóa học
         </button>
         <button
-          className={`demo-role-btn ${activeTab === 'questions' ? 'active' : ''}`}
-          onClick={() => setActiveTab('questions')}
+          className={`demo-role-btn ${currentTab === 'questions' ? 'active' : ''}`}
+          onClick={() => handleTabChange('questions')}
           style={{ padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 6 }}
         >
           <HiDatabase /> Ngân hàng câu hỏi
         </button>
         <button
-          className={`demo-role-btn ${activeTab === 'stats' ? 'active' : ''}`}
-          onClick={() => setActiveTab('stats')}
+          className={`demo-role-btn ${currentTab === 'stats' ? 'active' : ''}`}
+          onClick={() => handleTabChange('stats')}
           style={{ padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 6 }}
         >
           <HiChartPie /> Thống kê lớp học
         </button>
       </div>
 
-      {activeTab === 'courses' && (
+      {currentTab === 'courses' && (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '20px' }}>
           {/* Creator Form */}
           <div className="card">
@@ -198,7 +208,7 @@ export default function TeacherDashboard({
         </div>
       )}
 
-      {activeTab === 'questions' && (
+      {currentTab === 'questions' && (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
           {/* Question Maker Form */}
           <div className="card">
@@ -312,7 +322,7 @@ export default function TeacherDashboard({
         </div>
       )}
 
-      {activeTab === 'stats' && (
+      {currentTab === 'stats' && (
         <div className="card">
           <h3 style={{ fontSize: '15px', fontWeight: 'bold', marginBottom: '16px' }}>THỐNG KÊ HIỆU SUẤT KHÓA HỌC</h3>
           

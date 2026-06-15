@@ -281,6 +281,73 @@ export async function checkEnrollmentStatus(req: AuthRequest, res: Response) {
   }
 }
 
+// Demo Enrollment — create a real DB enrollment without payment (POST /enrollments/demo)
+export async function createDemoEnrollment(req: AuthRequest, res: Response) {
+  const studentId = req.user?.id;
+  const { courseId } = req.body;
+
+  if (!studentId) return res.status(401).json({ success: false, error: 'Chưa xác thực!' });
+  if (!courseId) return res.status(400).json({ success: false, error: 'Thiếu courseId!' });
+
+  try {
+    // Ensure student sub-record exists
+    const studentUser = await prisma.user.findUnique({
+      where: { id: studentId },
+      include: { student: true }
+    });
+
+    if (!studentUser) {
+      return res.status(404).json({ success: false, error: 'Không tìm thấy người dùng!' });
+    }
+
+    if (!studentUser.student) {
+      await prisma.student.create({
+        data: { userId: studentId, subjectGroup: 'A01' }
+      });
+    }
+
+    // Verify course exists
+    const course = await prisma.course.findUnique({ where: { id: Number(courseId) } });
+    if (!course) {
+      return res.status(404).json({ success: false, error: 'Không tìm thấy khóa học!' });
+    }
+
+    // Check if already enrolled (idempotent)
+    const existing = await prisma.enrollment.findFirst({
+      where: { studentId, courseId: Number(courseId) }
+    });
+
+    if (existing) {
+      console.log(`[Demo Enrollment] Học sinh ${studentId} đã đăng ký khóa ${courseId} từ trước.`);
+      return res.status(200).json({
+        success: true,
+        data: { enrollmentId: existing.id, courseId: Number(courseId), alreadyEnrolled: true }
+      });
+    }
+
+    // Create real enrollment with demo transactionId
+    const txnId = `DEMO_${studentId}_${courseId}_${Date.now()}`;
+    const enrollment = await prisma.enrollment.create({
+      data: {
+        studentId,
+        courseId: Number(courseId),
+        transactionId: txnId,
+        paidAt: new Date()
+      }
+    });
+
+    console.log(`[Demo Enrollment] Đã kích hoạt khóa học ID=${courseId} cho học sinh ID=${studentId} (Demo Mode).`);
+
+    return res.status(200).json({
+      success: true,
+      data: { enrollmentId: enrollment.id, courseId: Number(courseId), transactionId: txnId }
+    });
+  } catch (err: any) {
+    console.error('[Demo Enrollment Error]', err);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+}
+
 // Check if the current logged-in user is PRO (GET /users/pro-status)
 export async function checkUserProStatus(req: AuthRequest, res: Response) {
   const studentId = req.user?.id;

@@ -23,6 +23,21 @@ import AISystemCenter from './components/AISystemCenter';
 import Forum from './components/Forum';
 import CourseMall from './components/CourseMall';
 import ChatbotWidget from './components/ChatbotWidget.jsx';
+import OCRScanner from './components/OCRScanner.jsx';
+import StudentDashboard from './components/dashboard/StudentDashboard';
+
+import CoursesPage from './pages/CoursesPage';
+import CourseDetailPage from './pages/CourseDetailPage';
+import LearningPage from './pages/LearningPage';
+import MockExamsPage from './pages/MockExamsPage';
+import MockExamDetailPage from './pages/MockExamDetailPage';
+import MockExamTakingPage from './pages/MockExamTakingPage';
+import MockExamResultPage from './pages/MockExamResultPage';
+import { enrollmentService } from './services/enrollmentService';
+import './styles/mockExams.css';
+import './styles/dashboard.css';
+import './styles/courses.css';
+
 
 import { HiPlay, HiDocumentDownload, HiBeaker, HiX } from 'react-icons/hi';
 import { api } from './api';
@@ -143,6 +158,36 @@ const initialQuestions = [
 
 const initialForumPosts = [
   {
+    id: 100,
+    title: "📢 [THÔNG BÁO QUAN TRỌNG] Lịch thi thử THPT Quốc Gia 2026 & Tài liệu Ôn tập Độc quyền",
+    content: "Chào toàn thể các em học sinh trên hệ thống EduPath AI,\n\nBan Quản Trị xin gửi tới các em lịch thi thử trực tuyến các môn học trọng điểm (Toán, Lý, Hóa, Anh, Sinh) chuẩn cấu trúc của Bộ GD&ĐT. Các đề thi sẽ được mở vào tối thứ 7 hàng tuần lúc 20:00.\n\nSau khi làm bài, các em sẽ nhận được phân tích kết quả chi tiết từ hệ thống AI và lộ trình khắc phục lỗ hổng kiến thức tương ứng.\n\nChúc các em ôn tập đạt kết quả cao nhất!",
+    subject: "Khác",
+    author: "Trần Văn Thuận",
+    authorAvatar: "AD",
+    authorRole: "admin",
+    date: "Đã ghim",
+    likes: 128,
+    likedBy: [],
+    comments: [
+      {
+        id: 1001,
+        author: "Nguyễn Minh Anh",
+        avatar: "MA",
+        content: "Tuyệt vời quá ạ! Em đang mong có đề thi thử chuẩn cấu trúc để test năng lực.",
+        date: "2 giờ trước",
+        isAccepted: false
+      },
+      {
+        id: 1002,
+        author: "Lê Minh Tuấn",
+        avatar: "MT",
+        content: "Em sẽ đặt lịch thi đúng giờ. Cảm ơn thầy cô admin rất nhiều!",
+        date: "1 giờ trước",
+        isAccepted: false
+      }
+    ]
+  },
+  {
     id: 1,
     title: "Có bạn nào giải được bài toán cực trị Casio 12 câu 4 đề minh họa không?",
     content: "Chào mọi người, em đang ôn thi phần ứng dụng đạo hàm và gặp khó khăn trong việc tìm giá trị cực trị lớn nhất bằng Casio FX-880. Em đã thử lập bảng biến thiên nhưng mất nhiều thời gian quá. Bác nào có mẹo bấm máy nhanh chỉ em với!",
@@ -158,7 +203,8 @@ const initialForumPosts = [
         author: "Thầy Thế Anh",
         avatar: "TA",
         content: "Em có thể dùng tính năng Table (Vô cực đại) trên FX-880, quét từ -5 đến 5 với bước nhảy là 0.1 để định vị vùng cực trị trước, sau đó dùng công cụ Solver để tính đạo hàm bằng 0 cực kỳ chính xác nhé!",
-        date: "5 phút trước"
+        date: "5 phút trước",
+        isAccepted: false
       }
     ]
   },
@@ -345,12 +391,181 @@ function LibraryCabinet({ addLog }) {
   );
 }
 
+const generateMassiveExamsList = (backendExams) => {
+  if (!backendExams || backendExams.length === 0) return [];
+
+  const mathExams = backendExams.filter(e => e.subject === 'Toán học');
+  const physicsExams = backendExams.filter(e => e.subject === 'Vật lý');
+  const chemistryExams = backendExams.filter(e => e.subject === 'Hóa học');
+  const biologyExams = backendExams.filter(e => e.subject === 'Sinh học');
+  const englishExams = backendExams.filter(e => e.subject === 'Tiếng Anh');
+  const aptitudeExams = backendExams.filter(e => e.subject.includes('Đánh giá năng lực') || e.title.includes('HSA') || e.title.includes('ĐGNL'));
+
+  const getMappedId = (subject) => {
+    let list = [];
+    if (subject === 'Toán học') list = mathExams;
+    else if (subject === 'Vật lý') list = physicsExams;
+    else if (subject === 'Hóa học') list = chemistryExams;
+    else if (subject === 'Sinh học') list = biologyExams;
+    else if (subject === 'Tiếng Anh') list = englishExams;
+    else list = aptitudeExams;
+
+    if (list.length === 0) return backendExams[0]?.id;
+    const randomIndex = Math.floor(Math.random() * list.length);
+    return list[randomIndex]?.id;
+  };
+
+  const list = [...backendExams];
+
+  const schools = [
+    'Chuyên Hà Nội - Amsterdam', 'Chuyên Lam Sơn Thanh Hóa', 'Chuyên Phan Bội Châu Nghệ An',
+    'Chuyên Lê Hồng Phong Nam Định', 'Chuyên Nguyễn Trãi Hải Dương', 'Chuyên Bắc Ninh',
+    'Chuyên Quốc Học Huế', 'Chuyên Lê Quý Đôn Đà Nẵng', 'Chuyên Trần Đại Nghĩa TP.HCM',
+    'Chuyên Lương Thế Vinh Đồng Nai', 'Chuyên Hùng Vương Gia Lai', 'Chuyên KHTN Hà Nội',
+    'Chuyên Sư Phạm Hà Nội', 'THPT Kim Liên Hà Nội', 'THPT Phan Đình Phùng Hà Nội',
+    'THPT Lê Quý Đôn TP.HCM', 'THPT Gia Định TP.HCM', 'THPT Bùi Thị Xuân TP.HCM'
+  ];
+
+  const aptitudeTitles = [
+    'Đề thi thử Đánh giá năng lực ĐHQG Hà Nội (HSA) - Đợt 401',
+    'Đề thi thử Đánh giá năng lực ĐHQG Hà Nội (HSA) - Đợt 402',
+    'Đề thi thử Đánh giá năng lực ĐHQG Hà Nội (HSA) - Đợt 403',
+    'Đề thi thử Đánh giá năng lực ĐHQG Hà Nội (HSA) - Đợt 404',
+    'Đề thi thử Đánh giá năng lực ĐHQG Hà Nội (HSA) - Đợt 405',
+    'Đề thi thử Đánh giá năng lực ĐHQG Hà Nội (HSA) - Đợt 406',
+    'Đề thi Đánh giá năng lực ĐHQG TP.HCM - Đợt 1',
+    'Đề thi Đánh giá năng lực ĐHQG TP.HCM - Đợt 2',
+    'Đề thi thử Đánh giá tư duy Đại học Bách Khoa Hà Nội (TSA)'
+  ];
+
+  let count = 1000;
+  const subjects = ['Toán học', 'Vật lý', 'Hóa học', 'Sinh học', 'Tiếng Anh'];
+  const years = ['2024', '2023', '2022', '2021', '2020'];
+
+  // 1. Generate School Mocks
+  for (let year of years) {
+    for (let school of schools) {
+      for (let subject of subjects) {
+        count++;
+        const mappedId = getMappedId(subject);
+        const examObj = backendExams.find(e => e.id === mappedId);
+        list.push({
+          id: count,
+          title: `Đề thi thử ${subject} THPTQG ${year} - ${school}`,
+          subject,
+          subjectGroup: subject === 'Tiếng Anh' ? 'D01' : (subject === 'Sinh học' ? 'B00' : 'A01'),
+          duration: subject === 'Toán học' ? 90 : (subject === 'Tiếng Anh' ? 60 : 50),
+          isPublic: true,
+          isGenerated: true,
+          dbExamId: mappedId,
+          examQuestions: examObj?.examQuestions || []
+        });
+      }
+    }
+  }
+
+  // 2. Generate HSA & Aptitude
+  for (let i = 0; i < aptitudeTitles.length; i++) {
+    count++;
+    const mappedId = getMappedId('Đánh giá năng lực');
+    const examObj = backendExams.find(e => e.id === mappedId);
+    list.push({
+      id: count,
+      title: aptitudeTitles[i],
+      subject: 'Đánh giá năng lực',
+      subjectGroup: 'A01',
+      duration: 150,
+      isPublic: true,
+      isGenerated: true,
+      dbExamId: mappedId,
+      examQuestions: examObj?.examQuestions || []
+    });
+  }
+
+  // 3. Generate MOET Codes
+  const moetSubjects = ['Toán học', 'Vật lý', 'Hóa học', 'Sinh học', 'Tiếng Anh'];
+  const moetYears = ['2024', '2023', '2022', '2021', '2020'];
+  const codes = ['102', '103', '104', '105', '106', '107', '108', '202', '203', '204'];
+
+  for (let year of moetYears) {
+    for (let subject of moetSubjects) {
+      for (let code of codes) {
+        count++;
+        const mappedId = getMappedId(subject);
+        const examObj = backendExams.find(e => e.id === mappedId);
+        list.push({
+          id: count,
+          title: `Đề thi chính thức THPT QG Môn ${subject} ${year} - Mã đề ${code}`,
+          subject,
+          subjectGroup: subject === 'Tiếng Anh' ? 'D01' : (subject === 'Sinh học' ? 'B00' : 'A01'),
+          duration: subject === 'Toán học' ? 90 : (subject === 'Tiếng Anh' ? 60 : 50),
+          isPublic: true,
+          isGenerated: true,
+          dbExamId: mappedId,
+          examQuestions: examObj?.examQuestions || []
+        });
+      }
+    }
+  }
+
+  return list;
+};
+
 export default function App() {
   // Global Application States
   const [currentUser, setCurrentUser] = useState(() => JSON.parse(localStorage.getItem('current_user')) || null);
   const [role, setRole] = useState(() => localStorage.getItem('user_role') || 'guest');
   const [theme, setTheme] = useState(() => localStorage.getItem('app_theme') || 'light');
   const [activeTab, setActiveTab] = useState('home');
+
+  // Custom SPA Router State
+  const [currentPath, setCurrentPath] = useState(window.location.pathname);
+
+  useEffect(() => {
+    const handlePopState = () => {
+      setCurrentPath(window.location.pathname);
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  const navigateTo = (path) => {
+    window.history.pushState({}, '', path);
+    setCurrentPath(path);
+  };
+
+  const getParsedRoute = () => {
+    if (currentPath === '/courses') {
+      return { route: 'courses-list' };
+    }
+    const courseMatch = currentPath.match(/^\/courses\/(\d+)$/);
+    if (courseMatch) {
+      return { route: 'course-detail', courseId: courseMatch[1] };
+    }
+    const learnMatch = currentPath.match(/^\/learn\/(\d+)(?:\/lesson\/(\d+))?$/);
+    if (learnMatch) {
+      return { route: 'learn', courseId: learnMatch[1], lessonId: learnMatch[2] || null };
+    }
+    if (currentPath === '/mock-exams') {
+      return { route: 'mock-exams-list' };
+    }
+    const mockExamMatch = currentPath.match(/^\/mock-exams\/([^/]+)$/);
+    if (mockExamMatch && !currentPath.includes('/start') && !currentPath.includes('/result/')) {
+      return { route: 'mock-exam-detail', examId: mockExamMatch[1] };
+    }
+    const mockExamTakingMatch = currentPath.match(/^\/mock-exams\/([^/]+)\/start$/);
+    if (mockExamTakingMatch) {
+      return { route: 'mock-exam-taking', examId: mockExamTakingMatch[1] };
+    }
+    const mockExamResultMatch = currentPath.match(/^\/mock-exams\/([^/]+)\/result\/([^/]+)$/);
+    if (mockExamResultMatch) {
+      return { route: 'mock-exam-result', examId: mockExamResultMatch[1], attemptId: mockExamResultMatch[2] };
+    }
+
+    return { route: 'legacy' };
+  };
+
+  const parsedRoute = getParsedRoute();
 
   // Relational Tables databases in localStorage
   const [usersList, setUsersList] = useState(() => {
@@ -377,6 +592,8 @@ export default function App() {
     return list;
   });
   const [courses, setCourses] = useState(() => JSON.parse(localStorage.getItem('app_courses')) || initialCourses);
+  const [examsList, setExamsList] = useState([]);
+  const [attemptsHistory, setAttemptsHistory] = useState([]);
   const [questionBank, setQuestionBank] = useState(() => JSON.parse(localStorage.getItem('app_questions')) || initialQuestions);
   const [submissions, setSubmissions] = useState(() => JSON.parse(localStorage.getItem('app_submissions')) || []);
   const [notifications, setNotifications] = useState(() => JSON.parse(localStorage.getItem('app_notifications')) || [
@@ -407,6 +624,21 @@ export default function App() {
   // View state controllers
   const [activeCourseDetails, setActiveCourseDetails] = useState(null);
   const [activeTestSimulator, setActiveTestSimulator] = useState(null);
+  const [activeOCRScanner, setActiveOCRScanner] = useState(null);
+  const [examFilterSubject, setExamFilterSubject] = useState('All');
+  const [examFilterYear, setExamFilterYear] = useState('All');
+  const [examSearchQuery, setExamSearchQuery] = useState('');
+  const [examCategory, setExamCategory] = useState('All');
+  const [pageOfficial, setPageOfficial] = useState(1);
+  const [pageMock, setPageMock] = useState(1);
+  const [pageAptitude, setPageAptitude] = useState(1);
+
+  useEffect(() => {
+    setPageOfficial(1);
+    setPageMock(1);
+    setPageAptitude(1);
+  }, [examFilterSubject, examFilterYear, examSearchQuery, examCategory]);
+
   const [checkoutCourse, setCheckoutCourse] = useState(null);
   const [showUpgradePRO, setShowUpgradePRO] = useState(false);
 
@@ -431,6 +663,19 @@ export default function App() {
   const [settingsConfirmNewPass, setSettingsConfirmNewPass] = useState('');
 
   // Sync settings states when current user changes or tab is settings
+  const [resetToken, setResetToken] = useState(null);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('token');
+    if (token) {
+      window.history.replaceState({}, document.title, window.location.pathname);
+      setResetToken(token);
+      setActiveTab('reset-password');
+      setRole('guest');
+    }
+  }, []);
+
   useEffect(() => {
     if (currentUser) {
       setSettingsName(currentUser.name || '');
@@ -473,6 +718,71 @@ export default function App() {
     }
   }, [theme]);
 
+  // Sync live backend data if logged in
+  const fetchInitialData = async () => {
+    if (!currentUser) return;
+    try {
+      // 1. Fetch courses from backend
+      const backendCourses = await api.getCourses();
+      if (backendCourses && backendCourses.length > 0) {
+        const mapped = backendCourses.map(c => ({
+          id: c.id,
+          title: c.title,
+          subject: c.subject,
+          price: c.price.toLocaleString('vi-VN'),
+          teacherName: c.teacher?.user?.fullName || c.teacherName || 'Giảng viên',
+          isUnlocked: c.isUnlocked || currentUser?.unlockedCourses?.includes(c.id) || false,
+          lessons: c.lessons || []
+        }));
+        setCourses(mapped);
+      }
+    } catch (err) {
+      console.warn("Không thể tải danh sách khóa học từ backend API, sử dụng mock thay thế.");
+    }
+
+    try {
+      // 2. Fetch User PRO status
+      const proStatus = await api.checkProStatus();
+      if (proStatus && proStatus.isPro !== currentUser.isPro) {
+        setCurrentUser(prev => prev ? { ...prev, isPro: proStatus.isPro } : null);
+      }
+    } catch (err) {
+      // ignore
+    }
+
+    try {
+      // 3. Fetch exams from backend
+      const backendExams = await api.getExams();
+      if (backendExams && backendExams.length > 0) {
+        setExamsList(generateMassiveExamsList(backendExams));
+      }
+    } catch (err) {
+      console.warn("Không thể tải danh sách đề thi từ backend API.");
+    }
+
+    try {
+      // 4. Fetch test attempts from backend
+      const history = await api.getAttempts();
+      if (history) {
+        setAttemptsHistory(history);
+      }
+    } catch (err) {
+      console.warn("Không thể tải lịch sử thi thử từ backend API.");
+    }
+  };
+
+  useEffect(() => {
+    fetchInitialData();
+  }, [currentUser, activeTab]);
+
+  useEffect(() => {
+    if (activeTab === 'tests') {
+      setTimeout(() => {
+        window.MathJax?.typesetPromise?.().catch((err) => console.log("MathJax error:", err));
+      }, 200);
+    }
+  }, [activeTab, examsList, examFilterSubject, examFilterYear, examSearchQuery, examCategory, activeTestSimulator]);
+
   const addLog = (text, tag = 'sys') => {
     const newLog = {
       id: Date.now(),
@@ -505,18 +815,26 @@ export default function App() {
   };
 
   const handleBackToDashboard = (targetTab) => {
-    setActiveTab(targetTab || 'home');
-    setActiveCourseDetails(null);
-    setActiveTestSimulator(null);
+    if (targetTab === 'courses') {
+      navigateTo('/courses');
+    } else {
+      navigateTo('/');
+      setActiveTab(targetTab || 'home');
+      setActiveCourseDetails(null);
+      setActiveTestSimulator(null);
+      setActiveOCRScanner(null);
+    }
   };
 
   const handleLogout = () => {
     addLog(`Người dùng "${currentUser?.name}" đăng xuất an toàn khỏi hệ thống`, 'sys');
+    navigateTo('/');
     setCurrentUser(null);
     setRole('guest');
     setActiveTab('home');
     setActiveCourseDetails(null);
     setActiveTestSimulator(null);
+    setActiveOCRScanner(null);
     setCheckoutCourse(null);
   };
 
@@ -580,7 +898,18 @@ export default function App() {
   };
 
   // Student purchases course
-  const handlePaymentSuccess = (courseId) => {
+  const handlePaymentSuccess = async (courseId) => {
+    // Write payment & enrollment rows into local storage db / Supabase tables
+    if (currentUser) {
+      try {
+        const targetCourse = courses.find(c => c.id === courseId);
+        const priceNum = targetCourse ? parseFloat(String(targetCourse.price).replace(/\D/g, '')) : 499000;
+        await enrollmentService.enrollCourse(currentUser.id, courseId, priceNum);
+      } catch (err) {
+        console.error('Failed to log payment enrollment data:', err);
+      }
+    }
+
     // Add to student's list in users database
     const updatedUsers = usersList.map(u => {
       if (u.email === currentUser.email) {
@@ -592,7 +921,7 @@ export default function App() {
     setUsersList(updatedUsers);
 
     // Sync active session unlockedCourses
-    const activeUnlocked = currentUser.unlockedCourses || [];
+    const activeUnlocked = currentUser?.unlockedCourses || [];
     setCurrentUser({
       ...currentUser,
       unlockedCourses: [...activeUnlocked, courseId]
@@ -681,6 +1010,23 @@ export default function App() {
     addLog(`Thêm phản hồi cho bài thảo luận`, 'sys');
   };
 
+  const handleForumAcceptCommentSolution = (postId, commentId) => {
+    const updated = forumPosts.map(post => {
+      if (post.id === postId) {
+        const updatedComments = (post.comments || []).map(c => {
+          if (c.id === commentId) {
+            return { ...c, isAccepted: !c.isAccepted };
+          }
+          return { ...c, isAccepted: false };
+        });
+        return { ...post, comments: updatedComments };
+      }
+      return post;
+    });
+    setForumPosts(updated);
+    addLog(`Cập nhật trạng thái Lời giải đúng nhất cho phản hồi`, 'sys');
+  };
+
   // Teacher Workspace Actions
   const handleCreateCourse = (newCourse) => {
     setCourseApprovals(prev => [newCourse, ...prev]);
@@ -747,11 +1093,19 @@ export default function App() {
       {role !== 'guest' && activeTab !== 'landing' && (
         <Sidebar
           role={role}
-          active={activeTab}
+          active={parsedRoute.route !== 'legacy' ? (parsedRoute.route.startsWith('mock-') ? 'tests' : 'courses') : activeTab}
           setActive={(tab) => {
-            setActiveTab(tab);
-            setActiveCourseDetails(null);
-            setActiveTestSimulator(null);
+            if (tab === 'courses') {
+              navigateTo('/courses');
+            } else if (tab === 'tests') {
+              navigateTo('/mock-exams');
+            } else {
+              navigateTo('/');
+              setActiveTab(tab);
+              setActiveCourseDetails(null);
+              setActiveTestSimulator(null);
+              setActiveOCRScanner(null);
+            }
           }}
           userProfile={currentUser}
           onLogout={handleLogout}
@@ -785,9 +1139,58 @@ export default function App() {
           )}
 
           {/* ================= PUBLIC OR PREVIEW LANDING PAGE ================= */}
-          {(role === 'guest' || activeTab === 'landing') && (
+          {(role === 'guest' || activeTab === 'landing') && !parsedRoute.route.startsWith('mock-') && (
             <div>
-              {role === 'guest' && (activeTab === 'login' || activeTab === 'signup') ? (
+              {role === 'guest' && activeTab === 'reset-password' ? (
+                <div className="auth-page-layout" style={{ position: 'relative', display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '80vh', padding: '20px' }}>
+                  <div className="auth-floating-container animate-in">
+                    <div className="auth-floating-card" style={{ maxWidth: '440px', width: '100%', margin: '40px auto', padding: '32px', background: 'var(--bg-card)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)', boxShadow: '0 12px 30px rgba(0,0,0,0.1)' }}>
+                      <div className="auth-card-header-bar" style={{ justifyContent: 'center', marginBottom: '24px', textAlign: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '16px' }}>
+                        <h3 style={{ fontSize: '18px', fontWeight: '800', color: 'var(--primary)', letterSpacing: '0.5px' }}>🛡️ ĐẶT LẠI MẬT KHẨU MỚI</h3>
+                        <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>Nhập mật khẩu mới cho tài khoản EduPath AI của em</p>
+                      </div>
+                      <form onSubmit={async (e) => {
+                        e.preventDefault();
+                        const password = e.target.password.value;
+                        const confirm = e.target.confirm.value;
+                        if (password.length < 6) {
+                          alert('Mật khẩu mới phải có tối thiểu 6 ký tự!');
+                          return;
+                        }
+                        if (password !== confirm) {
+                          alert('Mật khẩu xác nhận không khớp! Vui lòng nhập lại.');
+                          return;
+                        }
+                        try {
+                          await api.resetPassword(resetToken, password);
+                          alert('Đặt lại mật khẩu thành công! Em có thể đăng nhập bằng mật khẩu mới.');
+                          setResetToken(null);
+                          setActiveTab('login');
+                        } catch (err) {
+                          alert(err.message || 'Lỗi đặt lại mật khẩu.');
+                        }
+                      }}>
+                        <div className="form-group" style={{ marginBottom: '16px' }}>
+                          <label style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-main)', display: 'block', marginBottom: '6px' }}>Mật khẩu mới:</label>
+                          <input type="password" name="password" className="form-control" required minLength={6} placeholder="Tối thiểu 6 ký tự" style={{ width: '100%', padding: '10px', fontSize: '13.5px' }} />
+                        </div>
+                        <div className="form-group" style={{ marginBottom: '24px' }}>
+                          <label style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-main)', display: 'block', marginBottom: '6px' }}>Xác nhận mật khẩu mới:</label>
+                          <input type="password" name="confirm" className="form-control" required placeholder="Nhập lại mật khẩu mới" style={{ width: '100%', padding: '10px', fontSize: '13.5px' }} />
+                        </div>
+                        <button type="submit" className="btn-primary" style={{ width: '100%', padding: '12px', fontSize: '13.5px', fontWeight: 'bold', borderRadius: 'var(--radius-md)' }}>
+                          XÁC NHẬN ĐỔI MẬT KHẨU
+                        </button>
+                        <div style={{ textAlign: 'center', marginTop: '16px' }}>
+                          <button type="button" onClick={() => setActiveTab('login')} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', fontSize: '12px', cursor: 'pointer', textDecoration: 'underline' }}>
+                            Quay lại đăng nhập
+                          </button>
+                        </div>
+                      </form>
+                    </div>
+                  </div>
+                </div>
+              ) : role === 'guest' && (activeTab === 'login' || activeTab === 'signup') ? (
                 <AuthPage
                   defaultMode={activeTab === 'signup' ? 'signup' : 'login'}
                   onAuthSuccess={(user, newlyRegistered) => {
@@ -811,130 +1214,128 @@ export default function App() {
                   onAddPost={handleForumAddPost}
                   onLikePost={handleForumLikePost}
                   onAddComment={handleForumAddComment}
+                  onAcceptCommentSolution={handleForumAcceptCommentSolution}
+                  onCheckoutCourse={(course) => setCheckoutCourse(course)}
+                  onNavigateToLearn={(courseId, lessonId) => {
+                    if (currentUser) {
+                      setActiveTab('home');
+                      navigateTo(`/learn/${courseId}${lessonId ? `/lesson/${lessonId}` : ''}`);
+                    } else {
+                      setActiveTab('signup');
+                    }
+                  }}
+                  onUpdateUser={(updated) => {
+                    setCurrentUser(updated);
+                    setUsersList(prev => prev.map(u => u.email === updated.email ? updated : u));
+                  }}
+                  currentPath={currentPath}
+                  navigateTo={navigateTo}
                 />
               )}
             </div>
           )}
 
+          {/* ================= MOCK EXAMS ROUTER WORKSPACE (PUBLIC ACCESS) ================= */}
+          {parsedRoute.route.startsWith('mock-') && (
+            <div style={{ padding: '20px 0' }}>
+              {parsedRoute.route === 'mock-exams-list' && (
+                <MockExamsPage
+                  currentUser={currentUser}
+                  onSelectExam={(examId) => navigateTo(`/mock-exams/${examId}`)}
+                  navigateTo={navigateTo}
+                />
+              )}
+
+              {parsedRoute.route === 'mock-exam-detail' && (
+                <MockExamDetailPage
+                  examId={parsedRoute.examId}
+                  currentUser={currentUser}
+                  onStartExam={(examId) => navigateTo(`/mock-exams/${examId}/start`)}
+                  navigateTo={navigateTo}
+                />
+              )}
+
+              {parsedRoute.route === 'mock-exam-taking' && (
+                <MockExamTakingPage
+                  examId={parsedRoute.examId}
+                  currentUser={currentUser}
+                  onFinished={(examId, attemptId) => navigateTo(`/mock-exams/${examId}/result/${attemptId}`)}
+                  navigateTo={navigateTo}
+                />
+              )}
+
+              {parsedRoute.route === 'mock-exam-result' && (
+                <MockExamResultPage
+                  examId={parsedRoute.examId}
+                  attemptId={parsedRoute.attemptId}
+                  currentUser={currentUser}
+                  navigateTo={navigateTo}
+                />
+              )}
+            </div>
+          )}
+
+          {/* ================= COURSES ROUTER WORKSPACE ================= */}
+          {role !== 'guest' && activeTab !== 'landing' && (parsedRoute.route === 'courses-list' || parsedRoute.route === 'course-detail') && (
+            <div style={{ padding: '20px 0' }}>
+              {parsedRoute.route === 'courses-list' && (
+                <CoursesPage
+                  currentUser={currentUser}
+                  onSelectCourse={(course) => navigateTo(`/courses/${course.id}`)}
+                  onCheckoutCourse={(course) => setCheckoutCourse(course)}
+                  navigateTo={navigateTo}
+                />
+              )}
+
+              {parsedRoute.route === 'course-detail' && (
+                <CourseDetailPage
+                  courseId={parsedRoute.courseId}
+                  currentUser={currentUser}
+                  onNavigateToLearn={(courseId, lessonId) => navigateTo(`/learn/${courseId}${lessonId ? `/lesson/${lessonId}` : ''}`)}
+                  onUpdateUser={(updated) => {
+                    setCurrentUser(updated);
+                    const updatedList = usersList.map(u => u.email === updated.email ? updated : u);
+                    setUsersList(updatedList);
+                  }}
+                  navigateTo={navigateTo}
+                />
+              )}
+            </div>
+          )}
+
+          {/* ================= STUDENT LEARNING WORKSPACE ================= */}
+          {role === 'student' && activeTab !== 'landing' && parsedRoute.route === 'learn' && (
+            <div style={{ padding: '20px 0' }}>
+              <LearningPage
+                courseId={parsedRoute.courseId}
+                lessonId={parsedRoute.lessonId}
+                currentUser={currentUser}
+                onSelectLesson={(courseId, lessonId) => navigateTo(`/learn/${courseId}/lesson/${lessonId}`)}
+                onBackToCourse={() => navigateTo(`/courses/${parsedRoute.courseId}`)}
+              />
+            </div>
+          )}
+
           {/* ================= STUDENT WORKSPACE ================= */}
-          {role === 'student' && activeTab !== 'landing' && !activeCourseDetails && !activeTestSimulator && (
+          {role === 'student' && activeTab !== 'landing' && parsedRoute.route === 'legacy' && !activeCourseDetails && !activeTestSimulator && !activeOCRScanner && (
 
             <div>
               {activeTab === 'home' && (
-                <div>
-                  {/* Welcome stats row */}
-                  <div className="dashboard-stats-row animate-in">
-                    <div className="dash-stat-card">
-                      <div className="dash-stat-icon" style={{ background: 'rgba(108,92,231,0.12)', color: 'var(--primary)' }}>🎯</div>
-                      <div>
-                        <div className="dash-stat-value">27+</div>
-                        <div className="dash-stat-label">Điểm mục tiêu</div>
-                      </div>
-                    </div>
-                    <div className="dash-stat-card">
-                      <div className="dash-stat-icon" style={{ background: 'rgba(243,156,18,0.12)', color: 'var(--accent-orange)' }}>🔥</div>
-                      <div>
-                        <div className="dash-stat-value">7 ngày</div>
-                        <div className="dash-stat-label">Học liên tiếp</div>
-                      </div>
-                    </div>
-                    <div className="dash-stat-card">
-                      <div className="dash-stat-icon" style={{ background: 'rgba(0,184,148,0.12)', color: 'var(--accent-green)' }}>📈</div>
-                      <div>
-                        <div className="dash-stat-value">72%</div>
-                        <div className="dash-stat-label">Tiến độ lộ trình</div>
-                      </div>
-                    </div>
-                    <div className="dash-stat-card">
-                      <div className="dash-stat-icon" style={{ background: 'rgba(9,132,227,0.12)', color: 'var(--accent-blue)' }}>⏰</div>
-                      <div>
-                        <div className="dash-stat-value">180 ngày</div>
-                        <div className="dash-stat-label">Đến kỳ thi</div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="dashboard-main-grid">
-                    {/* Left column */}
-                    <div>
-                      <div className="card learning-path animate-in">
-                        <div className="card-header">
-                          <h3>LỘ TRÌNH HỌC TẬP AI</h3>
-                          <button className="link" onClick={() => setActiveTab('path')} style={{ background: 'none', border: 'none', font: 'inherit', color: 'var(--primary)', cursor: 'pointer', fontSize: '13px' }}>Xem đầy đủ →</button>
-                        </div>
-                        <div className="path-info-row" style={{ marginBottom: 16 }}>
-                          <div className="path-info">
-                            <p className="path-goal">Mục tiêu: <strong>Đạt 27+ điểm THPTQG</strong></p>
-                            <p className="path-combo">Khối: {currentUser?.combo || 'A01 (Toán – Lý – Anh)'}</p>
-                          </div>
-                        </div>
-                        <LearningPath />
-                      </div>
-
-                      <div className="card recommendations animate-in">
-                        <div className="card-header">
-                          <h3>ĐỀ XUẤT HÔM NAY</h3>
-                          <span className="badge-pill" style={{ background: 'var(--primary-bg)', color: 'var(--primary)', fontWeight: 'bold' }}>✨ AI gợi ý</span>
-                        </div>
-                        <div className="rec-grid">
-                          <div className="rec-card" onClick={() => { const course = activeUserCourses.find(c => c.id === 1); if (course) setActiveCourseDetails(course); }}>
-                            <span className="rec-badge lesson">Bài học</span>
-                            <h4>Hàm số bậc 2 và đồ thị</h4>
-                            <p className="rec-subject">Toán học</p>
-                            <div className="rec-card-footer">
-                              <span className="rec-time">⏱ 45 phút</span>
-                              <button className="rec-play">▶</button>
-                            </div>
-                          </div>
-                          <div className="rec-card" onClick={() => setActiveTestSimulator("Bài tập củng cố Đạo hàm")}>
-                            <span className="rec-badge exercise">Luyện tập</span>
-                            <h4>Sửa sai Khảo sát hàm số</h4>
-                            <p className="rec-subject">Toán học</p>
-                            <div className="rec-card-footer">
-                              <span className="rec-time">⏱ 5 câu</span>
-                              <button className="rec-play">▶</button>
-                            </div>
-                          </div>
-                          <div className="rec-card" onClick={() => setActiveTab('ai-qa')}>
-                            <span className="rec-badge review">AI Tutor</span>
-                            <h4>Hỏi EduBot về Dao động cơ</h4>
-                            <p className="rec-subject">Vật lý</p>
-                            <div className="rec-card-footer">
-                              <span className="rec-time">⏱ Trực tuyến</span>
-                              <button className="rec-play">💬</button>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      <ProgressChart />
-                    </div>
-
-                    {/* Right column */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                      <StreakCard />
-                      <PerformanceCard />
-                      <UpcomingTests />
-                      <div className="card chatbot-card animate-in" onClick={() => setActiveTab('ai-qa')} style={{ cursor: 'pointer' }}>
-                        <div className="chatbot-header">
-                          <h3>Trợ lý EduBot AI</h3>
-                          <span className="ai-badge">AI</span>
-                        </div>
-                        <p className="chatbot-question">{currentUser?.name}, hôm nay bạn muốn hỏi về kiến thức gì? Nhấp để bắt đầu!</p>
-                        <div className="chatbot-suggestions">
-                          <span className="chatbot-suggestion">Giải bài tập</span>
-                          <span className="chatbot-suggestion">Hỏi công thức</span>
-                        </div>
-                        <div className="chatbot-robot">🤖</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                <StudentDashboard
+                  currentUser={currentUser}
+                  setActiveTab={setActiveTab}
+                  navigateTo={navigateTo}
+                />
               )}
 
               {/* Learning path adaptive roadmap tab */}
               {activeTab === 'path' && (
-                <AISystemCenter submissions={activeUserSubmissions} addLog={addLog} />
+                <AISystemCenter 
+                  submissions={activeUserSubmissions} 
+                  addLog={addLog} 
+                  currentUser={currentUser}
+                  navigateTo={navigateTo}
+                />
               )}
 
               {/* Courses tab */}
@@ -949,31 +1350,665 @@ export default function App() {
 
               {/* Forum tab */}
               {activeTab === 'forum' && (
-                <Forum
-                  forumPosts={forumPosts}
-                  onAddPost={handleForumAddPost}
-                  onLikePost={handleForumLikePost}
-                  onAddComment={handleForumAddComment}
-                  currentUser={currentUser}
-                />
+                <Forum currentUser={currentUser} />
+              )}
+
+              {/* Leaderboard tab */}
+              {activeTab === 'leaderboard' && (
+                <div className="card animate-in" style={{ border: '3px solid #000', boxShadow: '5px 5px 0px #000', padding: '28px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2.5px solid #000', paddingBottom: '16px', marginBottom: '20px' }}>
+                    <div>
+                      <h3 style={{ fontSize: '20px', fontWeight: '950', color: '#000', margin: 0 }}>
+                        🏆 BẢNG XẾP HẠNG HỌC VIÊN XUẤT SẮC
+                      </h3>
+                      <p style={{ fontSize: '13px', color: '#6b7280', margin: '4px 0 0 0' }}>
+                        Bảng vàng vinh danh những chiến thần học tập có phong độ cao nhất trên hệ thống EduPath.
+                      </p>
+                    </div>
+                    <span style={{ fontSize: '32px' }}>🏆</span>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px', marginBottom: '28px' }}>
+                    <div style={{ background: 'linear-gradient(135deg, #fef9c3, #fef08a)', border: '2px solid #000', borderRadius: '16px', padding: '16px', textAlign: 'center', boxShadow: '3px 3px 0px #000' }}>
+                      <span style={{ fontSize: '24px' }}>🥇 Thủ khoa Tuần</span>
+                      <h4 style={{ fontSize: '16px', fontWeight: '900', margin: '8px 0 2px 0' }}>Nguyễn Lâm Vy</h4>
+                      <p style={{ fontSize: '12px', color: '#854d0e', margin: 0 }}>Khối A01 – Điểm trung bình: <strong>9.8</strong></p>
+                    </div>
+                    <div style={{ background: 'linear-gradient(135deg, #f1f5f9, #e2e8f0)', border: '2px solid #000', borderRadius: '16px', padding: '16px', textAlign: 'center', boxShadow: '3px 3px 0px #000' }}>
+                      <span style={{ fontSize: '24px' }}>🥈 Á khoa Tuần</span>
+                      <h4 style={{ fontSize: '16px', fontWeight: '900', margin: '8px 0 2px 0' }}>Trần Minh Đức</h4>
+                      <p style={{ fontSize: '12px', color: '#475569', margin: 0 }}>Khối B00 – Điểm trung bình: <strong>9.6</strong></p>
+                    </div>
+                    <div style={{ background: 'linear-gradient(135deg, #ffedd5, #fed7aa)', border: '2px solid #000', borderRadius: '16px', padding: '16px', textAlign: 'center', boxShadow: '3px 3px 0px #000' }}>
+                      <span style={{ fontSize: '24px' }}>🥉 Tam khoa Tuần</span>
+                      <h4 style={{ fontSize: '16px', fontWeight: '900', margin: '8px 0 2px 0' }}>Lê Quỳnh Chi</h4>
+                      <p style={{ fontSize: '12px', color: '#c2410c', margin: 0 }}>Khối D01 – Điểm trung bình: <strong>9.4</strong></p>
+                    </div>
+                  </div>
+
+                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }} className="exams-sidebar-table">
+                    <thead>
+                      <tr style={{ borderBottom: '2px solid #000' }}>
+                        <th style={{ padding: '12px 8px', fontWeight: '900' }}>Hạng</th>
+                        <th style={{ padding: '12px 8px', fontWeight: '900' }}>Học sinh</th>
+                        <th style={{ padding: '12px 8px', fontWeight: '900' }}>Tổ hợp môn</th>
+                        <th style={{ padding: '12px 8px', fontWeight: '900' }}>Chuỗi học (Streak)</th>
+                        <th style={{ padding: '12px 8px', fontWeight: '900', textAlign: 'right' }}>Điểm số</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {[
+                        { rank: 1, name: "Nguyễn Lâm Vy", combo: "A01 (Toán - Lý - Anh)", streak: 42, score: "9.8", avatar: "LV" },
+                        { rank: 2, name: "Trần Minh Đức", combo: "B00 (Toán - Hóa - Sinh)", streak: 35, score: "9.6", avatar: "MĐ" },
+                        { rank: 3, name: "Lê Quỳnh Chi", combo: "D01 (Toán - Văn - Anh)", streak: 28, score: "9.4", avatar: "QC" },
+                        { rank: 4, name: "Phạm Minh Hoàng", combo: "A01 (Toán - Lý - Anh)", streak: 21, score: "9.0", avatar: "MH" },
+                        { rank: 5, name: "Đỗ Gia Bảo", combo: "B00 (Toán - Hóa - Sinh)", streak: 17, score: "8.8", avatar: "GB" }
+                      ].map(student => (
+                        <tr key={student.rank} style={{ borderBottom: '1px solid #e2e8f0' }}>
+                          <td style={{ padding: '12px 8px' }}>
+                            <span className={student.rank <= 3 ? `rank-${student.rank}` : 'rank-other'}>
+                              {student.rank}
+                            </span>
+                          </td>
+                          <td style={{ padding: '12px 8px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                              <div style={{ width: '30px', height: '30px', borderRadius: '50%', background: '#6c5ce7', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '11px' }}>
+                                {student.avatar}
+                              </div>
+                              <strong>{student.name}</strong>
+                            </div>
+                          </td>
+                          <td style={{ padding: '12px 8px', color: '#4b5563', fontSize: '13px' }}>{student.combo}</td>
+                          <td style={{ padding: '12px 8px', fontWeight: '700', color: '#d97706' }}>🔥 {student.streak} ngày</td>
+                          <td style={{ padding: '12px 8px', textAlign: 'right', fontWeight: '900', fontSize: '15px' }}>{student.score}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               )}
 
               {/* Online Mock Exams tab */}
               {activeTab === 'tests' && (
-                <div className="card">
-                  <h3 style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '14px' }}>HỆ THỐNG KIỂM TRA & LUYỆN ĐỀ</h3>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    <div style={{ padding: '16px', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', background: 'var(--bg-main)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div>
-                        <span className="badge-pill" style={{ background: 'var(--primary-bg)', color: 'var(--primary)', fontSize: '10px' }}>Toán học</span>
-                        <h4 style={{ fontSize: '14px', fontWeight: 'bold', marginTop: '6px' }}>Đề khảo sát kiểm tra Khảo sát hàm số chương I</h4>
-                        <p style={{ fontSize: '11.5px', color: 'var(--text-secondary)', marginTop: '2px' }}>Thời lượng: 30 phút • Quy chuẩn đề thi THPTQG</p>
+                <div className="exams-lobby-layout animate-in">
+                  
+                  {/* Left Column: Main Exams Panel */}
+                  <div className="exams-main-content">
+                    
+                    {/* Hero Banner with statistics */}
+                    <div className="exams-hero-banner">
+                      <span className="subj-eyebrow" style={{ background: 'rgba(255, 255, 255, 0.15)', color: '#fff' }}>
+                        Hệ thống luyện đề chuẩn cấu trúc Bộ GD&ĐT
+                      </span>
+                      <h2 style={{ fontSize: '28px', fontWeight: '950', color: '#fff', margin: '12px 0 6px 0', lineHeight: 1.2 }}>
+                        Chinh phục Kỳ thi THPT Quốc Gia
+                      </h2>
+                      <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.85)', margin: '0 0 24px 0', maxWidth: '560px', lineHeight: 1.5 }}>
+                        Luyện tập trực tuyến với các đề thi chính thức các năm 2024 - 2025. Phân tích lỗ hổng kiến thức tức thì bằng trí tuệ nhân tạo Adaptive AI.
+                      </p>
+                      
+                      {/* Stat row counters */}
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: '16px' }}>
+                        <div style={{ background: 'rgba(255, 255, 255, 0.08)', padding: '12px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.15)' }}>
+                          <span style={{ display: 'block', fontSize: '11px', color: 'rgba(255,255,255,0.65)', fontWeight: 'bold', textTransform: 'uppercase' }}>Lượt thi thử</span>
+                          <strong style={{ fontSize: '20px', color: '#fff', fontWeight: '900' }}>42,500+</strong>
+                        </div>
+                        <div style={{ background: 'rgba(255, 255, 255, 0.08)', padding: '12px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.15)' }}>
+                          <span style={{ display: 'block', fontSize: '11px', color: 'rgba(255,255,255,0.65)', fontWeight: 'bold', textTransform: 'uppercase' }}>Tỷ lệ hài lòng</span>
+                          <strong style={{ fontSize: '20px', color: '#fff', fontWeight: '900' }}>98.2%</strong>
+                        </div>
+                        <div style={{ background: 'rgba(255, 255, 255, 0.08)', padding: '12px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.15)' }}>
+                          <span style={{ display: 'block', fontSize: '11px', color: 'rgba(255,255,255,0.65)', fontWeight: 'bold', textTransform: 'uppercase' }}>Đề chính thức</span>
+                          <strong style={{ fontSize: '20px', color: '#fff', fontWeight: '900' }}>2024 - 2025</strong>
+                        </div>
+                        <div style={{ background: 'rgba(255, 255, 255, 0.08)', padding: '12px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.15)' }}>
+                          <span style={{ display: 'block', fontSize: '11px', color: 'rgba(255,255,255,0.65)', fontWeight: 'bold', textTransform: 'uppercase' }}>AI Chẩn đoán</span>
+                          <strong style={{ fontSize: '20px', color: '#fff', fontWeight: '900' }}>Tự động 100%</strong>
+                        </div>
                       </div>
-                      <button className="btn-primary" onClick={() => setActiveTestSimulator("Đề Khảo sát Hàm số Chương I")}>
-                        Bắt đầu làm bài
+                    </div>
+
+                    {/* OCR Answer Sheet Grading Entry Banner */}
+                    <div 
+                      className="card animate-in"
+                      style={{
+                        padding: '20px 24px',
+                        background: 'linear-gradient(135deg, rgba(240, 253, 244, 0.6), rgba(220, 252, 231, 0.6))',
+                        border: '1px solid rgba(16, 185, 129, 0.2)',
+                        borderRadius: '16px',
+                        boxShadow: 'var(--shadow-md)',
+                        display: 'flex',
+                        flexWrap: 'wrap',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        gap: '16px'
+                      }}
+                    >
+                      <div style={{ flex: '1', minWidth: '280px' }}>
+                        <span className="badge-pill" style={{ background: 'var(--accent-green)', color: '#fff', fontWeight: 'bold', fontSize: '10px', textTransform: 'uppercase' }}>
+                          ⚡ Tính năng Mới
+                        </span>
+                        <h3 style={{ fontSize: '16px', fontWeight: '700', color: '#14532d', margin: '6px 0 4px 0' }}>
+                          📸 Tự động chấm điểm nhanh qua Camera (OCR)
+                        </h3>
+                        <p style={{ fontSize: '12.5px', color: '#166534', margin: 0, lineHeight: 1.4 }}>
+                          Làm bài ra giấy hoặc tô phiếu trắc nghiệm rồi chụp ảnh tải lên. AI sẽ tự động đọc kết quả, đối chiếu đáp án chính thức của Bộ GD&ĐT và chấm điểm ngay lập tức!
+                        </p>
+                      </div>
+                      
+                      <button
+                        onClick={() => setActiveOCRScanner(true)}
+                        className="btn-primary"
+                        style={{
+                          background: 'linear-gradient(135deg, #10b981, #059669)',
+                          color: '#fff',
+                          border: 'none',
+                          padding: '10px 22px',
+                          fontSize: '13px',
+                          fontWeight: '600',
+                          borderRadius: 'var(--radius-sm)',
+                          boxShadow: '0 4px 12px rgba(16, 185, 129, 0.2)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s ease'
+                        }}
+                      >
+                        Chấm điểm bằng OCR 📸
                       </button>
                     </div>
+
+                    {/* Lịch sử thi thử và Chẩn đoán AI */}
+                    {attemptsHistory && attemptsHistory.length > 0 && (
+                      <div className="card animate-in" style={{ padding: '20px 24px', borderRadius: '16px', border: '1px solid var(--border)', background: 'var(--bg-card)', boxShadow: 'var(--shadow-sm)', marginBottom: '24px' }}>
+                        <h3 style={{ fontSize: '15px', fontWeight: '800', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+                          <span>📝</span> Lịch sử thi thử & Chẩn đoán từ AI <span style={{ fontSize: '11px', background: 'rgba(108, 92, 231, 0.1)', color: 'var(--primary)', padding: '2px 8px', borderRadius: '12px', fontWeight: 'bold' }}>{attemptsHistory.length} lượt</span>
+                        </h3>
+                        <div style={{ overflowX: 'auto' }}>
+                          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', textAlign: 'left' }}>
+                            <thead>
+                              <tr style={{ borderBottom: '2px solid var(--border)', color: 'var(--text-secondary)' }}>
+                                <th style={{ padding: '8px 12px', fontWeight: 'bold' }}>Môn học</th>
+                                <th style={{ padding: '8px 12px', fontWeight: 'bold' }}>Đề thi</th>
+                                <th style={{ padding: '8px 12px', fontWeight: 'bold' }}>Ngày thi</th>
+                                <th style={{ padding: '8px 12px', fontWeight: 'bold', textAlign: 'right' }}>Điểm số</th>
+                                <th style={{ padding: '8px 12px', fontWeight: 'bold', textAlign: 'center' }}>Nhận xét AI</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {attemptsHistory.map((att) => {
+                                const dateStr = new Date(att.startedAt).toLocaleDateString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+                                const scoreColor = att.score >= 8 ? 'var(--accent-green)' : (att.score >= 5 ? 'var(--accent-orange)' : 'var(--accent-red)');
+                                return (
+                                  <tr key={att.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                                    <td style={{ padding: '12px', fontWeight: 'bold' }}>{att.exam?.subject || 'Môn học'}</td>
+                                    <td style={{ padding: '12px', color: 'var(--text-secondary)' }}>{att.exam?.title || 'Đề tự luyện'}</td>
+                                    <td style={{ padding: '12px', color: 'var(--text-muted)' }}>{dateStr}</td>
+                                    <td style={{ padding: '12px', textAlign: 'right', fontWeight: '900', color: scoreColor, fontSize: '15px' }}>
+                                      {att.score.toFixed(1)}
+                                    </td>
+                                    <td style={{ padding: '12px', textAlign: 'center' }}>
+                                      {att.aiFeedback && (
+                                        <button
+                                          onClick={() => {
+                                            const feedback = typeof att.aiFeedback === 'string' ? JSON.parse(att.aiFeedback) : att.aiFeedback;
+                                            alert(`🤖 [CHẨN ĐOÁN AI - Đề: ${att.exam?.title}]\n\n📝 Đánh giá chung: ${feedback.assessment || 'Chưa có đánh giá.'}\n\n⚠️ Lỗ hổng kiến thức: ${(feedback.knowledgeGaps || []).join(', ') || 'Không phát hiện lỗ hổng lớn.'}\n\n💡 Lời khuyên: \n${(feedback.advice || []).map(a => `- ${a}`).join('\n')}`);
+                                          }}
+                                          style={{
+                                            padding: '4px 10px',
+                                            fontSize: '11px',
+                                            background: 'rgba(108, 92, 231, 0.1)',
+                                            color: 'var(--primary)',
+                                            border: 'none',
+                                            borderRadius: '6px',
+                                            cursor: 'pointer',
+                                            fontWeight: 'bold'
+                                          }}
+                                        >
+                                          Chi tiết 🔎
+                                        </button>
+                                      )}
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Filters Tabs by Subject & Year & Search & Category */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '24px' }}>
+                      
+                      {/* Search Bar & Category filter row */}
+                      <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
+                        <div style={{ flex: '1', minWidth: '280px', position: 'relative' }}>
+                          <input 
+                            type="text" 
+                            placeholder="🔍 Tìm kiếm tên đề thi, từ khóa (Ví dụ: Toán 2024, Chuyên)..." 
+                            value={examSearchQuery} 
+                            onChange={e => setExamSearchQuery(e.target.value)} 
+                            style={{
+                              width: '100%',
+                              padding: '10px 16px 10px 36px',
+                              fontSize: '13px',
+                              borderRadius: '12px',
+                              border: '1px solid var(--border)',
+                              background: 'var(--bg-card)',
+                              color: 'var(--text-primary)',
+                              boxShadow: 'var(--shadow-sm)',
+                              outline: 'none',
+                              transition: 'all 0.2s ease'
+                            }}
+                          />
+                          <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', opacity: 0.6 }}>🔍</span>
+                          {examSearchQuery && (
+                            <button 
+                              onClick={() => setExamSearchQuery('')}
+                              style={{
+                                position: 'absolute',
+                                right: '12px',
+                                top: '50%',
+                                transform: 'translateY(-50%)',
+                                border: 'none',
+                                background: 'none',
+                                cursor: 'pointer',
+                                color: 'var(--text-secondary)',
+                                fontSize: '13px'
+                              }}
+                            >
+                              ✕
+                            </button>
+                          )}
+                        </div>
+
+                        {/* Category selection */}
+                        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                          {[
+                            { key: 'All', label: '🗂️ Tất cả' },
+                            { key: 'Official', label: '📌 Đề chính thức THPT QG' },
+                            { key: 'Mock', label: '🏫 Đề Trường Chuyên' },
+                            { key: 'Aptitude', label: '🎯 Đánh giá năng lực' }
+                          ].map(cat => {
+                            const isSelected = examCategory === cat.key;
+                            return (
+                              <button
+                                key={cat.key}
+                                onClick={() => setExamCategory(cat.key)}
+                                style={{
+                                  padding: '8px 16px',
+                                  fontSize: '12.5px',
+                                  fontWeight: '600',
+                                  borderRadius: '10px',
+                                  border: isSelected ? '1px solid var(--primary)' : '1px solid var(--border)',
+                                  background: isSelected ? 'var(--primary)' : 'var(--bg-card)',
+                                  color: isSelected ? '#fff' : 'var(--text-secondary)',
+                                  cursor: 'pointer',
+                                  boxShadow: isSelected ? '0 4px 12px rgba(108, 92, 231, 0.15)' : 'var(--shadow-sm)',
+                                  transition: 'all 0.2s ease'
+                                }}
+                              >
+                                {cat.label}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Stats Dashboard row */}
+                      <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
+                        gap: '12px',
+                        background: 'linear-gradient(135deg, rgba(108, 92, 231, 0.04), rgba(165, 180, 252, 0.04))',
+                        padding: '16px',
+                        borderRadius: '16px',
+                        border: '1px solid var(--border)',
+                        boxShadow: 'var(--shadow-sm)'
+                      }}>
+                        <div style={{ textAlign: 'center', borderRight: '1px solid var(--border)', padding: '4px' }}>
+                          <span style={{ display: 'block', fontSize: '10px', color: 'var(--text-secondary)', fontWeight: 'bold', textTransform: 'uppercase' }}>TỔNG SỐ ĐỀ THI</span>
+                          <strong style={{ fontSize: '18px', color: 'var(--primary)', fontWeight: '850' }}>{examsList.length} đề thi</strong>
+                        </div>
+                        <div style={{ textAlign: 'center', borderRight: '1px solid var(--border)', padding: '4px' }}>
+                          <span style={{ display: 'block', fontSize: '10px', color: 'var(--text-secondary)', fontWeight: 'bold', textTransform: 'uppercase' }}>CHUYÊN ĐỀ PHỦ</span>
+                          <strong style={{ fontSize: '18px', color: '#10b981', fontWeight: '850' }}>20+ chủ đề</strong>
+                        </div>
+                        <div style={{ textAlign: 'center', borderRight: '1px solid var(--border)', padding: '4px' }}>
+                          <span style={{ display: 'block', fontSize: '10px', color: 'var(--text-secondary)', fontWeight: 'bold', textTransform: 'uppercase' }}>CƠ CẤU ĐỘ KHÓ</span>
+                          <span style={{ fontSize: '11.5px', color: 'var(--text-primary)', fontWeight: '700', display: 'block', marginTop: '4px' }}>Dễ 35% | TB 45% | Khó 20%</span>
+                        </div>
+                        <div style={{ textAlign: 'center', padding: '4px' }}>
+                          <span style={{ display: 'block', fontSize: '10px', color: 'var(--text-secondary)', fontWeight: 'bold', textTransform: 'uppercase' }}>HỆ THỐNG GIÁM SÁT</span>
+                          <strong style={{ fontSize: '16px', color: '#db8142', fontWeight: '850' }}>AI Diagnostics ⚡</strong>
+                        </div>
+                      </div>
+
+                      {/* Subject filters & Year filters Row */}
+                      <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div className="exams-filter-tabs" style={{ marginBottom: 0 }}>
+                          {['All', 'Toán học', 'Vật lý', 'Hóa học', 'Sinh học', 'Tiếng Anh', 'Đánh giá năng lực'].map(subject => (
+                            <button
+                              key={subject}
+                              className={examFilterSubject === subject ? 'active' : ''}
+                              onClick={() => setExamFilterSubject(subject)}
+                              style={{ cursor: 'pointer' }}
+                            >
+                              {subject === 'All' ? 'Tất cả môn học' : subject}
+                            </button>
+                          ))}
+                        </div>
+                        
+                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                          <span style={{ fontSize: '12.5px', fontWeight: '600', color: 'var(--text-primary)' }}>🗓️ Năm:</span>
+                          {['All', '2024', '2023', '2022', '2021', '2020'].map(year => {
+                            const isSelected = examFilterYear === year;
+                            return (
+                              <button
+                                key={year}
+                                onClick={() => setExamFilterYear(year)}
+                                style={{
+                                  padding: '5px 12px',
+                                  fontSize: '12px',
+                                  fontWeight: '600',
+                                  borderRadius: '20px',
+                                  border: isSelected ? '1px solid var(--primary)' : '1px solid var(--border)',
+                                  background: isSelected ? 'var(--primary)' : 'var(--bg-card)',
+                                  color: isSelected ? '#fff' : 'var(--text-secondary)',
+                                  cursor: 'pointer',
+                                  transition: 'all 0.2s ease',
+                                  boxShadow: isSelected ? 'var(--shadow-sm)' : 'none'
+                                }}
+                              >
+                                {year === 'All' ? 'Tất cả' : year}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                    </div>
+
+                    {/* Detailed Layout & Categorized Grids */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
+                      {(() => {
+                        // Filter logic
+                        const filtered = examsList.filter(exam => {
+                          const matchesSubject = examFilterSubject === 'All' || exam.subject === examFilterSubject;
+                          const matchesYear = examFilterYear === 'All' || exam.title.includes(examFilterYear);
+                          const matchesSearch = examSearchQuery.trim() === '' || 
+                            exam.title.toLowerCase().includes(examSearchQuery.toLowerCase()) ||
+                            exam.subject.toLowerCase().includes(examSearchQuery.toLowerCase());
+                          
+                          let matchesCategory = true;
+                          const isOfficial = exam.title.includes("chính thức") || exam.title.includes("QG");
+                          const isAptitude = exam.subject.includes("Đánh giá năng lực") || exam.title.includes("HSA") || exam.title.includes("ĐGNL") || exam.title.includes("năng lực");
+                          const isMock = !isOfficial && !isAptitude;
+
+                          if (examCategory === 'Official') matchesCategory = isOfficial;
+                          else if (examCategory === 'Mock') matchesCategory = isMock;
+                          else if (examCategory === 'Aptitude') matchesCategory = isAptitude;
+
+                          return matchesSubject && matchesYear && matchesSearch && matchesCategory;
+                        });
+
+                        if (filtered.length === 0) {
+                          return (
+                            <div className="subj-empty">
+                              <span className="subj-empty-icon">📂</span>
+                              <h3>Không tìm thấy đề thi phù hợp</h3>
+                              <p>Vui lòng thử tìm kiếm khác hoặc thay đổi bộ lọc.</p>
+                            </div>
+                          );
+                        }
+
+                        // Categories breakdown
+                        const official = filtered.filter(e => e.title.includes("chính thức") || e.title.includes("QG"));
+                        const aptitude = filtered.filter(e => e.subject.includes("Đánh giá năng lực") || e.title.includes("HSA") || e.title.includes("ĐGNL") || e.title.includes("năng lực"));
+                        const mocks = filtered.filter(e => !e.title.includes("chính thức") && !e.title.includes("QG") && !e.subject.includes("Đánh giá năng lực") && !e.title.includes("HSA") && !e.title.includes("ĐGNL") && !e.title.includes("năng lực"));
+
+                        const renderCard = (exam) => {
+                          const isMath = exam.subject === 'Toán học';
+                          const isPhysics = exam.subject === 'Vật lý';
+                          const isChemistry = exam.subject === 'Hóa học';
+                          const isBiology = exam.subject === 'Sinh học';
+                          const isEnglish = exam.subject === 'Tiếng Anh';
+                          const cardHeaderBg = isMath ? '#5b75f3' : (isPhysics ? '#52ad58' : (isChemistry ? '#06b6d4' : (isBiology ? '#10b981' : (isEnglish ? '#db8142' : '#8b5cf6'))));
+                          const mascot = isMath ? '🦉' : (isPhysics ? '🦊' : (isChemistry ? '🧪' : (isBiology ? '🌿' : (isEnglish ? '🐸' : '🎯'))));
+
+                          return (
+                            <div key={exam.id} className="exam-paper-card animate-in">
+                              <div className="exam-paper-header" style={{ background: cardHeaderBg }}>
+                                <span className="exam-paper-tag">{exam.subject}</span>
+                                <div className="exam-paper-header-right">
+                                  <span className="exam-paper-difficulty" style={{ background: 'rgba(0,0,0,0.2)' }}>
+                                    Chuẩn cấu trúc
+                                  </span>
+                                  <span className="exam-paper-mascot">{mascot}</span>
+                                </div>
+                              </div>
+
+                              <div className="exam-paper-body">
+                                <span className="exam-paper-subject" style={{ color: cardHeaderBg }}>{exam.subjectGroup || 'Tổ hợp'}</span>
+                                <h4 className="exam-paper-title" title={exam.title}>{exam.title}</h4>
+                                
+                                <div className="exam-paper-info-grid">
+                                  <div className="info-item">⏱ {exam.duration} phút</div>
+                                  <div className="info-item">📝 {exam.subject === 'Vật lý' ? '40 câu' : '50 câu'}</div>
+                                </div>
+                              </div>
+
+                              <div className="exam-paper-footer">
+                                <button 
+                                  className="btn-primary" 
+                                  onClick={() => setActiveTestSimulator(exam)}
+                                  style={{ background: cardHeaderBg, color: '#fff', border: 'none', fontWeight: '600', boxShadow: `0 4px 12px ${cardHeaderBg}28`, cursor: 'pointer', transition: 'all 0.2s ease' }}
+                                >
+                                  Làm online 💻
+                                </button>
+                                <button 
+                                  className="btn-outline" 
+                                  onClick={() => setActiveOCRScanner(exam)}
+                                  style={{ border: '1px solid var(--border)', fontWeight: '600', background: '#fff', color: 'var(--text-secondary)', cursor: 'pointer', transition: 'all 0.2s ease', boxShadow: 'var(--shadow-sm)' }}
+                                >
+                                  Nộp file OCR 📸
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        };
+
+                        const ITEMS_PER_PAGE = 6;
+                        const paginatedOfficial = official.slice((pageOfficial - 1) * ITEMS_PER_PAGE, pageOfficial * ITEMS_PER_PAGE);
+                        const paginatedMocks = mocks.slice((pageMock - 1) * ITEMS_PER_PAGE, pageMock * ITEMS_PER_PAGE);
+                        const paginatedAptitude = aptitude.slice((pageAptitude - 1) * ITEMS_PER_PAGE, pageAptitude * ITEMS_PER_PAGE);
+
+                        return (
+                          <>
+                            {/* Section 1: Official Exams */}
+                            {(examCategory === 'All' || examCategory === 'Official') && official.length > 0 && (
+                              <div style={{ marginBottom: '24px' }}>
+                                <h3 style={{ fontSize: '15px', fontWeight: '800', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
+                                  <span>📌</span> Đề thi chính thức THPT Quốc Gia <span style={{ fontSize: '11px', background: 'rgba(108, 92, 231, 0.1)', color: 'var(--primary)', padding: '2px 8px', borderRadius: '12px', fontWeight: 'bold' }}>{official.length} đề</span>
+                                </h3>
+                                <div className="exam-cards-grid">
+                                  {paginatedOfficial.map(renderCard)}
+                                </div>
+                                {official.length > ITEMS_PER_PAGE && (
+                                  <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '12px', marginTop: '20px' }}>
+                                    <button 
+                                      disabled={pageOfficial === 1} 
+                                      onClick={() => setPageOfficial(pageOfficial - 1)}
+                                      className="btn-outline"
+                                      style={{ padding: '6px 16px', fontSize: '12.5px', borderRadius: '8px', cursor: 'pointer' }}
+                                    >
+                                      ◀ Trước
+                                    </button>
+                                    <span style={{ fontSize: '13px', fontWeight: 'bold', color: 'var(--text-secondary)' }}>Trang {pageOfficial} / {Math.ceil(official.length / ITEMS_PER_PAGE)}</span>
+                                    <button 
+                                      disabled={pageOfficial >= Math.ceil(official.length / ITEMS_PER_PAGE)} 
+                                      onClick={() => setPageOfficial(pageOfficial + 1)}
+                                      className="btn-outline"
+                                      style={{ padding: '6px 16px', fontSize: '12.5px', borderRadius: '8px', cursor: 'pointer' }}
+                                    >
+                                      Sau ▶
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+
+                            {/* Section 2: Mock Exams */}
+                            {(examCategory === 'All' || examCategory === 'Mock') && mocks.length > 0 && (
+                              <div style={{ marginBottom: '24px' }}>
+                                <h3 style={{ fontSize: '15px', fontWeight: '800', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
+                                  <span>🏫</span> Đề thi thử các trường THPT Chuyên <span style={{ fontSize: '11px', background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', padding: '2px 8px', borderRadius: '12px', fontWeight: 'bold' }}>{mocks.length} đề</span>
+                                </h3>
+                                <div className="exam-cards-grid">
+                                  {paginatedMocks.map(renderCard)}
+                                </div>
+                                {mocks.length > ITEMS_PER_PAGE && (
+                                  <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '12px', marginTop: '20px' }}>
+                                    <button 
+                                      disabled={pageMock === 1} 
+                                      onClick={() => setPageMock(pageMock - 1)}
+                                      className="btn-outline"
+                                      style={{ padding: '6px 16px', fontSize: '12.5px', borderRadius: '8px', cursor: 'pointer' }}
+                                    >
+                                      ◀ Trước
+                                    </button>
+                                    <span style={{ fontSize: '13px', fontWeight: 'bold', color: 'var(--text-secondary)' }}>Trang {pageMock} / {Math.ceil(mocks.length / ITEMS_PER_PAGE)}</span>
+                                    <button 
+                                      disabled={pageMock >= Math.ceil(mocks.length / ITEMS_PER_PAGE)} 
+                                      onClick={() => setPageMock(pageMock + 1)}
+                                      className="btn-outline"
+                                      style={{ padding: '6px 16px', fontSize: '12.5px', borderRadius: '8px', cursor: 'pointer' }}
+                                    >
+                                      Sau ▶
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+
+                            {/* Section 3: Aptitude Exams */}
+                            {(examCategory === 'All' || examCategory === 'Aptitude') && aptitude.length > 0 && (
+                              <div style={{ marginBottom: '24px' }}>
+                                <h3 style={{ fontSize: '15px', fontWeight: '800', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
+                                  <span>🎯</span> Đề Đánh giá năng lực ĐHQG (HSA / APT) <span style={{ fontSize: '11px', background: 'rgba(219, 129, 66, 0.1)', color: '#db8142', padding: '2px 8px', borderRadius: '12px', fontWeight: 'bold' }}>{aptitude.length} đề</span>
+                                </h3>
+                                <div className="exam-cards-grid">
+                                  {paginatedAptitude.map(renderCard)}
+                                </div>
+                                {aptitude.length > ITEMS_PER_PAGE && (
+                                  <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '12px', marginTop: '20px' }}>
+                                    <button 
+                                      disabled={pageAptitude === 1} 
+                                      onClick={() => setPageAptitude(pageAptitude - 1)}
+                                      className="btn-outline"
+                                      style={{ padding: '6px 16px', fontSize: '12.5px', borderRadius: '8px', cursor: 'pointer' }}
+                                    >
+                                      ◀ Trước
+                                    </button>
+                                    <span style={{ fontSize: '13px', fontWeight: 'bold', color: 'var(--text-secondary)' }}>Trang {pageAptitude} / {Math.ceil(aptitude.length / ITEMS_PER_PAGE)}</span>
+                                    <button 
+                                      disabled={pageAptitude >= Math.ceil(aptitude.length / ITEMS_PER_PAGE)} 
+                                      onClick={() => setPageAptitude(pageAptitude + 1)}
+                                      className="btn-outline"
+                                      style={{ padding: '6px 16px', fontSize: '12.5px', borderRadius: '8px', cursor: 'pointer' }}
+                                    >
+                                      Sau ▶
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </>
+                        );
+                      })()}
+                    </div>
+
                   </div>
+
+                  {/* Right Column: Statistics Sidebar widgets */}
+                  <div className="exams-sidebar-panel">
+                    
+                    {/* Widget 1: Personal Performance Stats */}
+                    <div className="exams-sidebar-widget animate-in">
+                      <h4>Thành tích thi thử</h4>
+                      <div className="stat-row-enhanced">
+                        <div className="stat-row-icon" style={{ background: '#fef3c7', color: '#d97706' }}>🔥</div>
+                        <div className="stat-row-info">
+                          <span className="stat-row-label">Chuỗi ngày ôn luyện (Streak)</span>
+                          <span className="stat-row-value">{attemptsHistory.length > 0 ? "3 ngày liên tục" : "0 ngày"}</span>
+                        </div>
+                      </div>
+                      <div className="stat-row-enhanced">
+                        <div className="stat-row-icon" style={{ background: '#dbeafe', color: '#1d4ed8' }}>📈</div>
+                        <div className="stat-row-info">
+                          <span className="stat-row-label">Điểm trung bình (Average Score)</span>
+                          <span className="stat-row-value">
+                            {attemptsHistory.length > 0
+                              ? (attemptsHistory.reduce((sum, item) => sum + item.score, 0) / attemptsHistory.length).toFixed(1)
+                              : '0.0'} / 10.0
+                          </span>
+                        </div>
+                      </div>
+                      <div className="stat-row-enhanced">
+                        <div className="stat-row-icon" style={{ background: '#d1fae5', color: '#065f46' }}>✓</div>
+                        <div className="stat-row-info">
+                          <span className="stat-row-label">Đề thi đã hoàn thành</span>
+                          <span className="stat-row-value">{attemptsHistory.length} bộ đề</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Widget 2: Leaderboard */}
+                    <div className="exams-sidebar-widget animate-in">
+                      <h4>Bảng vàng thành tích</h4>
+                      <table className="exams-sidebar-table">
+                        <thead>
+                          <tr>
+                            <th>Hạng</th>
+                            <th>Học sinh</th>
+                            <th style={{ textAlign: 'right' }}>Điểm số</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr>
+                            <td><span className="rank-1">1</span></td>
+                            <td><strong>Nguyễn Lâm Vy</strong> <span style={{ display: 'block', fontSize: '10px', color: '#6b7280' }}>Khối A01</span></td>
+                            <td style={{ textAlign: 'right', fontWeight: '900', color: '#d97706' }}>9.8</td>
+                          </tr>
+                          <tr>
+                            <td><span className="rank-2">2</span></td>
+                            <td><strong>Trần Minh Đức</strong> <span style={{ display: 'block', fontSize: '10px', color: '#6b7280' }}>Khối B00</span></td>
+                            <td style={{ textAlign: 'right', fontWeight: '900', color: '#475569' }}>9.6</td>
+                          </tr>
+                          <tr>
+                            <td><span className="rank-3">3</span></td>
+                            <td><strong>Lê Quỳnh Chi</strong> <span style={{ display: 'block', fontSize: '10px', color: '#6b7280' }}>Khối D01</span></td>
+                            <td style={{ textAlign: 'right', fontWeight: '900', color: '#b45309' }}>9.4</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* Widget 3: AI study tips */}
+                    <div className="exams-sidebar-widget exams-ai-tips-widget animate-in">
+                      <h4>💡 Lời khuyên từ EduBot AI</h4>
+                      <div className="ai-tip-card">
+                        🎯 <strong>Toán học:</strong> Hãy chú trọng rèn luyện kỹ năng giải nhanh bằng máy tính Casio các dạng hàm số ở phần Vận dụng.
+                      </div>
+                      <div className="ai-tip-card">
+                        ⚡ <strong>Vật lý:</strong> Dành thêm 15 phút mỗi ngày làm quen với phương pháp giản đồ vector cho mạch xoay chiều RLC.
+                      </div>
+                    </div>
+
+                  </div>
+
                 </div>
               )}
 
@@ -1407,37 +2442,73 @@ export default function App() {
           {/* Student active test simulator taking view */}
           {role === 'student' && activeTab !== 'landing' && activeTestSimulator && (
             <TestSimulator
-              testName={activeTestSimulator}
+              exam={typeof activeTestSimulator === 'object' ? activeTestSimulator : null}
+              testName={typeof activeTestSimulator === 'object' ? activeTestSimulator.title : activeTestSimulator}
               onFinished={handleFinishedTest}
+              addLog={addLog}
+            />
+          )}
+
+          {/* Student active OCR Scanner view */}
+          {role === 'student' && activeTab !== 'landing' && activeOCRScanner && (
+            <OCRScanner
+              examsList={examsList}
+              onBack={() => setActiveOCRScanner(null)}
               addLog={addLog}
             />
           )}
 
           {/* ================= TEACHER WORKSPACE ================= */}
           {role === 'teacher' && activeTab !== 'landing' && (
-            <TeacherDashboard
-              courses={courses}
-              onCreateCourse={handleCreateCourse}
-              onDeleteCourse={handleDeleteCourse}
-              questionBank={questionBank}
-              onAddQuestion={handleAddQuestion}
-              addLog={addLog}
-            />
+            activeTab === 'forum' ? (
+              <Forum
+                forumPosts={forumPosts}
+                onAddPost={handleForumAddPost}
+                onLikePost={handleForumLikePost}
+                onAddComment={handleForumAddComment}
+                onAcceptCommentSolution={handleForumAcceptCommentSolution}
+                currentUser={currentUser}
+              />
+            ) : (
+              <TeacherDashboard
+                courses={courses}
+                onCreateCourse={handleCreateCourse}
+                onDeleteCourse={handleDeleteCourse}
+                questionBank={questionBank}
+                onAddQuestion={handleAddQuestion}
+                addLog={addLog}
+                activeTab={activeTab}
+                setActiveTab={setActiveTab}
+              />
+            )
           )}
 
           {/* ================= ADMIN WORKSPACE ================= */}
           {role === 'admin' && activeTab !== 'landing' && (
-            <AdminDashboard
-              users={usersList}
-              onToggleUserBan={handleToggleUserBan}
-              onApproveTeacher={handleApproveTeacher}
-              courseApprovals={courseApprovals}
-              onApproveCourse={handleApproveCourse}
-              onRejectCourse={handleRejectCourse}
-              onSendAnnouncement={handleSendAnnouncement}
-              systemLogs={systemLogs}
-              addLog={addLog}
-            />
+            activeTab === 'forum' ? (
+              <Forum
+                forumPosts={forumPosts}
+                onAddPost={handleForumAddPost}
+                onLikePost={handleForumLikePost}
+                onAddComment={handleForumAddComment}
+                onAcceptCommentSolution={handleForumAcceptCommentSolution}
+                currentUser={currentUser}
+              />
+            ) : (
+              <AdminDashboard
+                users={usersList}
+                onToggleUserBan={handleToggleUserBan}
+                onApproveTeacher={handleApproveTeacher}
+                courseApprovals={courseApprovals}
+                onApproveCourse={handleApproveCourse}
+                onRejectCourse={handleRejectCourse}
+                onSendAnnouncement={handleSendAnnouncement}
+                systemLogs={systemLogs}
+                addLog={addLog}
+                activeTab={activeTab}
+                setActiveTab={setActiveTab}
+              />
+            )
           )}
         </main>
       </div>

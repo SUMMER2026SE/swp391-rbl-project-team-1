@@ -1,4 +1,4 @@
-import type { Response } from 'express';
+import type { Request, Response } from 'express';
 import type { AuthRequest } from '../middleware/auth.js';
 import { prisma } from '../lib/prisma.js';
 
@@ -35,7 +35,19 @@ export async function startAttempt(req: AuthRequest, res: Response) {
       }
     });
 
-    return res.status(201).json({ success: true, data: attempt });
+    const examQuestions = await prisma.examQuestion.findMany({
+      where: { examId: Number(id) },
+      include: { question: true },
+      orderBy: { order: 'asc' }
+    });
+
+    return res.status(201).json({
+      success: true,
+      data: {
+        attempt,
+        questions: examQuestions.map(eq => eq.question)
+      }
+    });
   } catch (err: any) {
     return res.status(500).json({ success: false, error: err.message });
   }
@@ -110,3 +122,49 @@ export async function submitAttempt(req: AuthRequest, res: Response) {
     return res.status(500).json({ success: false, error: err.message });
   }
 }
+
+export async function getAttempts(req: AuthRequest, res: Response) {
+  const studentId = req.user?.id;
+
+  if (!studentId) return res.status(401).json({ success: false, error: 'Chưa xác thực!' });
+
+  try {
+    const list = await prisma.testAttempt.findMany({
+      where: { studentId },
+      include: {
+        exam: {
+          select: {
+            title: true,
+            subject: true,
+            duration: true
+          }
+        }
+      },
+      orderBy: { startedAt: 'desc' }
+    });
+
+    return res.status(200).json({ success: true, data: list });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+}
+
+export async function getExamQuestionsPublic(req: Request, res: Response) {
+  const { id } = req.params;
+
+  try {
+    const examQuestions = await prisma.examQuestion.findMany({
+      where: { examId: Number(id) },
+      include: { question: true },
+      orderBy: { order: 'asc' }
+    });
+
+    return res.status(200).json({
+      success: true,
+      data: examQuestions.map(eq => eq.question)
+    });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+}
+

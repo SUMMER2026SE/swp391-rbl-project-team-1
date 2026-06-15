@@ -1,0 +1,146 @@
+{
+  "title": "Đề thi chính thức THPT Quốc Gia 2024 - Môn Hóa học",
+  "subject_slug": "hoa",
+  "subject_name": "Hóa học",
+  "year": 2024,
+  "exam_code": "301",
+  "exam_type": "official",
+  "source": "Bộ GD&ĐT",
+  "duration_minutes": 50,
+  "total_questions": 10,
+  "description": "Đề thi chính thức môn Hóa học kỳ thi tốt nghiệp THPT Quốc Gia năm 2024 từ Bộ Giáo dục và Đào tạo (Phiên bản Demo 10 câu hỏi trắc nghiệm).",
+  "pdf_url": "https://moet.gov.vn/hoahoc-2024.pdf",
+  "official_answer_key_url": "https://moet.gov.vn/hoahoc-2024-key.pdf",
+  "questions": [
+    {
+      "question_number": 1,
+      "question_text": "Este nào sau đây có công thức phân tử là $C_2H_4O_2$?",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Dễ",
+      "explanation": "Este đơn giản nhất là metyl fomat $HCOOCH_3$ có công thức phân tử là $C_2H_4O_2$.",
+      "options": [
+        { "option_label": "A", "option_text": "Metyl fomat", "is_correct": true },
+        { "option_label": "B", "option_text": "Etyl axetat", "is_correct": false },
+        { "option_label": "C", "option_text": "Metyl axetat", "is_correct": false },
+        { "option_label": "D", "option_text": "Etyl fomat", "is_correct": false }
+      ]
+    },
+    {
+      "question_number": 2,
+      "question_text": "Kim loại nào sau đây có tính dẫn điện tốt nhất trong tất cả các kim loại?",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Dễ",
+      "explanation": "Bạc ($Ag$) là kim loại dẫn điện tốt nhất, tiếp theo là đồng ($Cu$), vàng ($Au$), nhôm ($Al$), sắt ($Fe$).",
+      "options": [
+        { "option_label": "A", "option_text": "Đồng (Cu)", "is_correct": false },
+        { "option_label": "B", "option_text": "Nhôm (Al)", "is_correct": false },
+        { "option_label": "C", "option_text": "Bạc (Ag)", "is_correct": true },
+        { "option_label": "D", "option_text": "Sắt (Fe)", "is_correct": false }
+      ]
+    },
+    {
+      "question_number": 3,
+      "question_text": "Công thức hóa học của sắt(III) hydroxit là:",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Dễ",
+      "explanation": "Sắt(III) hydroxit có công thức hóa học là $Fe(OH)_3$.",
+      "options": [
+        { "option_label": "A", "option_text": "Fe(OH)_2", "is_correct": false },
+        { "option_label": "B", "option_text": "Fe(OH)_3", "is_correct": true },
+        { "option_label": "C", "option_text": "Fe2O3", "is_correct": false },
+        { "option_label": "D", "option_text": "FeO", "is_correct": false }
+      ]
+    },
+    {
+      "question_number": 4,
+      "question_text": "Chất nào sau đây là một monosaccarit phổ biến?",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Dễ",
+      "explanation": "Glucozơ và fructozơ là monosaccarit. Saccarozơ là đisaccarit; tinh bột và xenlulozơ là polisaccarit.",
+      "options": [
+        { "option_label": "A", "option_text": "Saccarozơ", "is_correct": false },
+        { "option_label": "B", "option_text": "Tinh bột", "is_correct": false },
+        { "option_label": "C", "option_text": "Glucozơ", "is_correct": true },
+        { "option_label": "D", "option_text": "Xenlulozơ", "is_correct": false }
+      ]
+    },
+    {
+      "question_number": 5,
+      "question_text": "Dung dịch chất nào sau đây làm quỳ tím chuyển sang màu xanh?",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Trung bình",
+      "explanation": "Metylamin ($CH_3NH_2$) có tính bazơ mạnh hơn amoniac nên làm xanh quỳ tím ẩm. Anilin ($C_6H_5NH_2$) có tính bazơ rất yếu không làm đổi màu quỳ tím.",
+      "options": [
+        { "option_label": "A", "option_text": "Anilin", "is_correct": false },
+        { "option_label": "B", "option_text": "Axit axetic", "is_correct": false },
+        { "option_label": "C", "option_text": "Metylamin", "is_correct": true },
+        { "option_label": "D", "option_text": "Glixerol", "is_correct": false }
+      ]
+    },
+    {
+      "question_number": 6,
+      "question_text": "Trùng ngưng axit $\\varepsilon$-aminocaproic thu được polime nào sau đây?",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Trung bình",
+      "explanation": "Trùng ngưng axit $\\varepsilon$-aminocaproic thu được nilon-6 (tơ capron).",
+      "options": [
+        { "option_label": "A", "option_text": "Tơ nilon-6,6", "is_correct": false },
+        { "option_label": "B", "option_text": "Tơ nilon-6", "is_correct": true },
+        { "option_label": "C", "option_text": "Tơ nitron", "is_correct": false },
+        { "option_label": "D", "option_text": "Tơ lapsan", "is_correct": false }
+      ]
+    },
+    {
+      "question_number": 7,
+      "question_text": "Để khử hoàn toàn 8 gam bột $Fe_2O_3$ ở nhiệt độ cao cần tối thiểu bao nhiêu lít khí $CO$ (đktc)?",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Trung bình",
+      "explanation": "Ta có: $n_{Fe_2O_3} = \\frac{8}{160} = 0,05$ mol. Phương trình phản ứng: $Fe_2O_3 + 3CO \\xrightarrow{t^o} 2Fe + 3CO_2$. Số mol $CO$ cần = $3 \\cdot 0,05 = 0,15$ mol. Thể tích $V_{CO} = 0,15 \\cdot 22,4 = 3,36$ lít.",
+      "options": [
+        { "option_label": "A", "option_text": "1,12 lít", "is_correct": false },
+        { "option_label": "B", "option_text": "2,24 lít", "is_correct": false },
+        { "option_label": "C", "option_text": "3,36 lít", "is_correct": true },
+        { "option_label": "D", "option_text": "4,48 lít", "is_correct": false }
+      ]
+    },
+    {
+      "question_number": 8,
+      "question_text": "Thủy phân hoàn toàn m gam tinh bột thành glucozơ. Cho toàn bộ glucozơ tham gia phản ứng tráng bạc hoàn toàn thu được 21,6 gam bạc kim loại. Hiệu suất của cả quá trình đạt 80%. Giá trị của m là:",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Trung bình",
+      "explanation": "Sơ đồ phản ứng: $(C_6H_{10}O_5)_n \\rightarrow n C_6H_{12}O_6 \\rightarrow 2n Ag$. Số mol $Ag = \\frac{21,6}{108} = 0,2$ mol $\\Rightarrow$ số mol gốc tinh bột lý thuyết = $0,1$ mol. Vì hiệu suất $850\\%$, khối lượng tinh bột thực tế $m = \\frac{0,1 \\cdot 162}{0,8} = 20,25$ gam.",
+      "options": [
+        { "option_label": "A", "option_text": "16,20 gam", "is_correct": false },
+        { "option_label": "B", "option_text": "20,25 gam", "is_correct": true },
+        { "option_label": "C", "option_text": "24,30 gam", "is_correct": false },
+        { "option_label": "D", "option_text": "32,40 gam", "is_correct": false }
+      ]
+    },
+    {
+      "question_number": 9,
+      "question_text": "Hòa tan hoàn toàn m gam hỗn hợp gồm $Na$, $K$ và $Ba$ vào nước thu được 100 ml dung dịch $X$ có pH = 13 và V lít khí $H_2$ (đktc). Giá trị của V là:",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Khó",
+      "explanation": "$pH = 13 \\Rightarrow pOH = 1 \\Rightarrow [OH^-] = 0,1$ M $\\Rightarrow n_{OH^-} = 0,1 \\cdot 0,1 = 0,01$ mol. Phương trình phản ứng nước: $2H_2O + 2e \\rightarrow 2OH^- + H_2$. Số mol $H_2 = \\frac{1}{2} n_{OH^-} = 0,005$ mol. Thể tích $V = 0,005 \\cdot 22,4 = 0,112$ lít = 112 ml.",
+      "options": [
+        { "option_label": "A", "option_text": "0,112 lít", "is_correct": true },
+        { "option_label": "B", "option_text": "0,224 lít", "is_correct": false },
+        { "option_label": "C", "option_text": "0,336 lít", "is_correct": false },
+        { "option_label": "D", "option_text": "0,448 lít", "is_correct": false }
+      ]
+    },
+    {
+      "question_number": 10,
+      "question_text": "X là một este no, hai chức, mạch hở. Xà phòng hóa hoàn toàn X bằng dung dịch NaOH vừa đủ thu được hỗn hợp gồm một muối của axit cacboxylic Y và một ancol Z. Đốt cháy hoàn toàn Z thu được CO2 và H2O có tỉ lệ mol là 1:2. Số công thức cấu tạo thỏa mãn của X là:",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Khó",
+      "explanation": "Z là ancol no, hai chức. Đốt cháy ancol cho $n_{CO_2} : n_{H_2O} = 1:2 \\Rightarrow$ số C : số H = $1 : 4 \\Rightarrow$ ancol Z là Etylen glicol $C_2H_4(OH)_2$. Vì X là este 2 chức no, hở $\\Rightarrow X$ tạo từ axit 2 chức và ancol 2 đơn chức, hoặc ancol 2 chức và axit đơn chức. Do ancol Z là Etylen glicol hai chức $\\Rightarrow$ Axit Y phải là đơn chức no (ví dụ axit fomic, axetic,...). Vậy công thức của este là $(RCOO)_2C_2H_4$. Do X có thể có gốc axit khác nhau hoặc giống nhau. Cho nên có 2 công thức thỏa mãn trong trường hợp tối giản.",
+      "options": [
+        { "option_label": "A", "option_text": "1", "is_correct": false },
+        { "option_label": "B", "option_text": "2", "is_correct": true },
+        { "option_label": "C", "option_text": "3", "is_correct": false },
+        { "option_label": "D", "option_text": "4", "is_correct": false }
+      ]
+    }
+  ]
+}
