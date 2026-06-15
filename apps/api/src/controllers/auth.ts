@@ -95,7 +95,9 @@ export async function login(req: Request, res: Response) {
   }
 }
 
-// Update user profile (PATCH /auth/profile)
+// ═════════════════════════════════════════════════════════
+// UPDATE USER PROFILE (PATCH /auth/profile)
+// ═════════════════════════════════════════════════════════
 export async function updateProfile(req: Request, res: Response) {
   const userId = (req as any).user?.id;
 
@@ -103,7 +105,7 @@ export async function updateProfile(req: Request, res: Response) {
     return res.status(401).json({ success: false, error: 'Chưa xác thực!' });
   }
 
-  const { fullName, avatarUrl, subjectGroup, phone, city, school, targetScore, targetUniversity, combo } = req.body;
+  const { fullName, avatarUrl, subjectGroup } = req.body;
 
   try {
     // Update base user info
@@ -680,6 +682,9 @@ export async function changePassword(req: Request, res: Response) {
   }
 }
 
+// ═════════════════════════════════════════════════════════
+// FORGOT PASSWORD
+// ═════════════════════════════════════════════════════════
 export async function forgotPassword(req: Request, res: Response) {
   const { email } = req.body;
 
@@ -701,7 +706,7 @@ export async function forgotPassword(req: Request, res: Response) {
     );
 
     // Build the reset link pointing to the local frontend
-    const clientUrl = process.env.CLIENT_URL || 'http://localhost:5174';
+    const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
     const resetLink = `${clientUrl}/reset-password?token=${token}`;
 
     const sent = await sendResetPasswordEmail(email, user.fullName, resetLink);
@@ -724,6 +729,52 @@ export async function forgotPassword(req: Request, res: Response) {
   }
 }
 
+// ═════════════════════════════════════════════════════════
+// RESET PASSWORD
+// ═════════════════════════════════════════════════════════
+export async function resetPassword(req: Request, res: Response) {
+  const { token, password } = req.body;
+
+  if (!token || !password) {
+    return res.status(400).json({ success: false, error: 'Thiếu thông tin mã xác nhận hoặc mật khẩu mới.' });
+  }
+
+  if (password.length < 6) {
+    return res.status(400).json({ success: false, error: 'Mật khẩu mới phải có tối thiểu 6 ký tự.' });
+  }
+
+  try {
+    // Verify token
+    const decoded = jwt.verify(token, JWT_SECRET) as any;
+    if (!decoded || decoded.purpose !== 'reset-password') {
+      return res.status(400).json({ success: false, error: 'Mã xác thực không hợp lệ!' });
+    }
+
+    const userId = decoded.id;
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      return res.status(404).json({ success: false, error: 'Người dùng không tồn tại.' });
+    }
+
+    // Hash and update the password
+    const passwordHash = await bcrypt.hash(password, 12);
+    await prisma.user.update({
+      where: { id: userId },
+      data: { passwordHash }
+    });
+
+    return res.status(200).json({ success: true, data: 'Đặt lại mật khẩu thành công! Vui lòng đăng nhập lại bằng mật khẩu mới.' });
+  } catch (err: any) {
+    if (err.name === 'TokenExpiredError') {
+      return res.status(400).json({ success: false, error: 'Đường dẫn đặt lại mật khẩu đã hết hạn (tối đa 15 phút)!' });
+    }
+    return res.status(400).json({ success: false, error: 'Mã token đặt lại mật khẩu không hợp lệ hoặc đã bị chỉnh sửa!' });
+  }
+}
+
+// ═════════════════════════════════════════════════════════
+// REQUEST ROLE CHANGE (user submits request)
+// ═════════════════════════════════════════════════════════
 export async function requestRoleChange(req: Request, res: Response) {
   const { requestedRole, reason } = req.body;
   const userId = (req as any).user?.id;
@@ -775,46 +826,9 @@ export async function requestRoleChange(req: Request, res: Response) {
   }
 }
 
-export async function resetPassword(req: Request, res: Response) {
-  const { token, password } = req.body;
-
-  if (!token || !password) {
-    return res.status(400).json({ success: false, error: 'Thiếu thông tin mã xác nhận hoặc mật khẩu mới.' });
-  }
-
-  if (password.length < 6) {
-    return res.status(400).json({ success: false, error: 'Mật khẩu mới phải có tối thiểu 6 ký tự.' });
-  }
-
-  try {
-    // Verify token
-    const decoded = jwt.verify(token, JWT_SECRET) as any;
-    if (!decoded || decoded.purpose !== 'reset-password') {
-      return res.status(400).json({ success: false, error: 'Mã xác thực không hợp lệ!' });
-    }
-
-    const userId = decoded.id;
-    const user = await prisma.user.findUnique({ where: { id: userId } });
-    if (!user) {
-      return res.status(404).json({ success: false, error: 'Người dùng không tồn tại.' });
-    }
-
-    // Hash and update the password
-    const passwordHash = await bcrypt.hash(password, 12);
-    await prisma.user.update({
-      where: { id: userId },
-      data: { passwordHash }
-    });
-
-    return res.status(200).json({ success: true, data: 'Đặt lại mật khẩu thành công! Vui lòng đăng nhập lại bằng mật khẩu mới.' });
-  } catch (err: any) {
-    if (err.name === 'TokenExpiredError') {
-      return res.status(400).json({ success: false, error: 'Đường dẫn đặt lại mật khẩu đã hết hạn (tối đa 15 phút)!' });
-    }
-    return res.status(400).json({ success: false, error: 'Mã token đặt lại mật khẩu không hợp lệ hoặc đã bị chỉnh sửa!' });
-  }
-}
-
+// ═════════════════════════════════════════════════════════
+// GET ROLE CHANGE REQUESTS (admin only)
+// ═════════════════════════════════════════════════════════
 export async function getRoleChangeRequests(req: Request, res: Response) {
   try {
     const requests = await prisma.roleChangeRequest.findMany({
@@ -831,6 +845,9 @@ export async function getRoleChangeRequests(req: Request, res: Response) {
   }
 }
 
+// ═════════════════════════════════════════════════════════
+// REVIEW ROLE CHANGE (admin approves/rejects)
+// ═════════════════════════════════════════════════════════
 export async function reviewRoleChange(req: Request, res: Response) {
   const requestId = parseInt(req.params.id);
   const { action } = req.body; // 'approve' or 'reject'

@@ -91,7 +91,14 @@ export async function sendOTPEmail(toEmail: string, studentName: string, otp: st
 
 export async function sendResetPasswordEmail(toEmail: string, studentName: string, resetLink: string): Promise<boolean> {
   if (!transporter) {
-    console.error(`[Mailer Error] Cannot send reset password email to ${toEmail}. SMTP credentials missing.`);
+    console.warn(
+      `\n============================================================\n` +
+      `[DEVELOPMENT RESET PASSWORD FALLBACK] (No SMTP Configured)\n` +
+      `Gửi tới: ${toEmail}\n` +
+      `Tên học sinh: ${studentName}\n` +
+      `Link đặt lại mật khẩu: ${resetLink}\n` +
+      `============================================================\n`
+    );
     return false;
   }
 
@@ -126,7 +133,7 @@ export async function sendResetPasswordEmail(toEmail: string, studentName: strin
           </p>
           
           <p style="font-size: 13px; color: #94a3b8; margin: 24px 0 0 0; line-height: 1.5; font-style: italic;">
-            Đường dẫn đặt lại mật khẩu này chỉ có hiệu lực trong vòng 15 phút. Nếu em không gửi yêu cầu này, em có thể bỏ qua email này một cách an sau.
+            Đường dẫn đặt lại mật khẩu này chỉ có hiệu lực trong vòng 15 phút. Nếu em không gửi yêu cầu này, em có thể bỏ qua email này một cách an toàn.
           </p>
         </div>
         

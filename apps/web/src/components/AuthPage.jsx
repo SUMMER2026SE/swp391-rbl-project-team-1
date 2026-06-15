@@ -9,6 +9,7 @@ function mapBackendUser(backendUser, password) {
   return {
     id: backendUser.id,
     name,
+    fullName: name,
     email: backendUser.email,
     password: password || 'backend_managed',
     role: roleLower,
@@ -18,7 +19,8 @@ function mapBackendUser(backendUser, password) {
     avatarUrl: backendUser.avatarUrl || null,
     isBanned: false,
     status: 'active',
-    unlockedCourses: []
+    enrollments: backendUser.enrollments || [],
+    unlockedCourses: (backendUser.enrollments || []).map(e => e.courseId)
   };
 }
 
@@ -333,14 +335,14 @@ export default function AuthPage({ defaultMode = 'login', onAuthSuccess, usersLi
     if ((email.toLowerCase() === 'admin@edupath.vn' || email.toLowerCase() === 'tranvanthuan2005tt@gmail.com') && password === 'admin123') {
       setLoading(false);
       addLog('Quản trị viên đăng nhập thành công', 'sys');
-      onAuthSuccess({ name: email.toLowerCase() === 'tranvanthuan2005tt@gmail.com' ? 'Trần Văn Thuần' : 'Quản trị viên Hệ thống', email: email.toLowerCase(), role: 'admin', avatar: 'AD' });
+      onAuthSuccess({ name: email.toLowerCase() === 'tranvanthuan2005tt@gmail.com' ? 'Trần Văn Thuận' : 'Quản trị viên Hệ thống', email: email.toLowerCase(), role: 'admin', avatar: 'AD' });
       return;
     }
     try {
       const data = await api.login(email, password);
       saveAuthTokens(data);
       const mappedUser = mapBackendUser(data.user, password);
-      addLog(`"${mappedUser.name}" đăng nhập thành công — vai trò: ${mappedUser.role.toUpperCase()}`, 'sys');
+      addLog(`"${mappedUser.name}" đăng nhập thành công — vai trò: ${mappedUser.role.toUpperCase()} (${mappedUser.enrollments.length} khóa học đã mua)`, 'sys');
       onAuthSuccess(mappedUser);
     } catch (err) {
       setErrorMessage(err.message);
@@ -444,20 +446,39 @@ export default function AuthPage({ defaultMode = 'login', onAuthSuccess, usersLi
     if (mode === 'signup') return handleSignupSubmit();
     if (mode === 'signup_otp') return handleVerifyOtp();
 
-    // Forgot / Reset password (simulated)
+    if (mode === 'forgot') {
+      if (!resetEmail.trim()) {
+        setErrorMessage('Vui lòng nhập Email khôi phục.');
+        return;
+      }
+      setLoading(true);
+      api.forgotPassword(resetEmail)
+        .then((resData) => {
+          setResetSuccess(true);
+          addLog(`Đã gửi yêu cầu khôi phục mật khẩu cho: ${resetEmail}`, 'sys');
+          if (resData && resData.simulated) {
+            setSuccessMessage(resData.message);
+            console.log('SIMULATED RESET LINK:', resData.resetLink);
+            alert(`[Chạy local - Không cần cấu hình SMTP]\n\nĐường dẫn đặt lại mật khẩu của bạn đã được tạo:\n${resData.resetLink}\n\nHãy nhấn OK, sao chép liên kết ở mục thông báo thành công hoặc trong Developer Console để dán vào tab mới đổi mật khẩu!`);
+          } else {
+            setSuccessMessage('Đường dẫn đặt lại mật khẩu đã được gửi vào Gmail của bạn! Vui lòng kiểm tra hộp thư.');
+          }
+        })
+        .catch((err) => {
+          setErrorMessage(err.message || 'Gửi liên kết khôi phục thất bại.');
+        })
+        .finally(() => {
+          setLoading(false);
+        });
+      return;
+    }
+
+    // Reset password (simulated)
     setLoading(true);
     setTimeout(() => {
       setLoading(false);
 
-      if (mode === 'forgot') {
-        if (!resetEmail.trim()) return;
-        const otp = Math.floor(100000 + Math.random() * 900000).toString();
-        setGeneratedOtp(otp);
-        setTypedOtp('');
-        addLog(`Yêu cầu khôi phục mật khẩu (Simulated OTP): ${resetEmail}`, 'sys');
-        setResetSuccess(true);
-        setShowInbox(true);
-      } else if (mode === 'reset_password') {
+      if (mode === 'reset_password') {
         if (typedOtp !== generatedOtp) {
           setErrorMessage('Mã xác thực OTP không chính xác. Vui lòng kiểm tra lại!');
           return;
