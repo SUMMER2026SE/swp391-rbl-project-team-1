@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { api } from '../api';
 import { HiArrowRight, HiCheck, HiStar, HiLightningBolt, HiMenuAlt3, HiX, HiTrendingUp, HiSparkles, HiLockClosed, HiClock, HiPlay } from 'react-icons/hi';
 import FooterSunMascot from './FooterSunMascot';
 import Forum from './Forum';
@@ -490,6 +491,82 @@ const GUEST_MOCK_EXAMS = [
   }
 ];
 
+// ── Component card khoá học tái sử dụng ──
+function CourseCard({ course, currentUser, onBackToDashboard, onNavigateToAuth }) {
+  return (
+    <div
+      style={{
+        background: 'var(--bg-card)',
+        borderRadius: '16px',
+        overflow: 'hidden',
+        border: '1px solid var(--border)',
+        boxShadow: '0 4px 16px rgba(0,0,0,0.06)',
+        transition: 'transform 0.22s ease, box-shadow 0.22s ease',
+        display: 'flex',
+        flexDirection: 'column',
+      }}
+      onMouseEnter={e => {
+        e.currentTarget.style.transform = 'translateY(-5px)';
+        e.currentTarget.style.boxShadow = '0 12px 28px rgba(0,0,0,0.13)';
+      }}
+      onMouseLeave={e => {
+        e.currentTarget.style.transform = 'none';
+        e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,0.06)';
+      }}
+    >
+      {/* Header gradient */}
+      <div style={{ background: course.imageBg, padding: '24px 20px 18px', color: '#fff', minHeight: '130px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <span style={{ display: 'inline-block', background: 'rgba(255,255,255,0.22)', backdropFilter: 'blur(6px)', padding: '4px 10px', borderRadius: '12px', fontSize: '10.5px', fontWeight: 'bold' }}>
+            {course.subject}
+          </span>
+          {course.subjectGroup && course.subjectGroup !== 'Khác' && (
+            <span style={{ background: 'rgba(0,0,0,0.25)', padding: '3px 8px', borderRadius: '8px', fontSize: '10px', fontWeight: 'bold' }}>
+              {course.subjectGroup}
+            </span>
+          )}
+        </div>
+        <h4 style={{ fontSize: '15px', fontWeight: '800', textShadow: '0 2px 4px rgba(0,0,0,0.3)', margin: '10px 0 0', lineHeight: '1.35', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+          {course.title}
+        </h4>
+      </div>
+
+      {/* Body */}
+      <div style={{ padding: '16px 20px 20px', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+        <div>
+          <p style={{ fontSize: '12.5px', color: 'var(--text-secondary)', margin: '0 0 4px' }}>
+            Giảng viên: <strong>{course.teacherName}</strong>
+          </p>
+          <p style={{ fontSize: '11.5px', color: 'var(--text-muted)', margin: '0 0 8px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+            📖 {course.duration}
+          </p>
+          {course.description && (
+            <p style={{ fontSize: '12px', color: 'var(--text-secondary)', lineHeight: '1.5', margin: '0 0 8px', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+              {course.description}
+            </p>
+          )}
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '12px', borderTop: '1px solid var(--border)', marginTop: '10px' }}>
+          <div>
+            <span style={{ fontSize: '9px', color: 'var(--text-muted)', display: 'block', marginBottom: '1px' }}>Học phí</span>
+            <span style={{ fontSize: '18px', fontWeight: '900', color: 'var(--accent-orange)' }}>
+              {!course.price || course.price === '0' || course.price === '0đ' ? 'Miễn phí' : `${course.price}đ`}
+            </span>
+          </div>
+          <button
+            onClick={() => currentUser ? onBackToDashboard('courses') : onNavigateToAuth('signup')}
+            style={{ background: 'var(--primary)', color: '#fff', border: 'none', borderRadius: '10px', padding: '9px 16px', fontSize: '12.5px', fontWeight: 'bold', cursor: 'pointer', transition: 'opacity 0.15s' }}
+            onMouseEnter={e => e.currentTarget.style.opacity = '0.85'}
+            onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+          >
+            {currentUser ? 'Vào học →' : 'Đăng ký'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function LandingPage({ 
   currentUser, 
   onNavigateToAuth, 
@@ -505,6 +582,55 @@ export default function LandingPage({
   const [scrolled, setScrolled] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const [activeLandingView, setActiveLandingView] = useState('home'); // 'home' | 'courses' | 'exams' | 'features' | 'ai-tutor' | 'question-bank' | 'leaderboard' | 'forum' | 'about'
+
+  // ── Dữ liệu khóa học thật từ database ──
+  const [dbCourses, setDbCourses] = useState([]);
+  const [dbCoursesLoading, setDbCoursesLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchCourses = async () => {
+      try {
+        setDbCoursesLoading(true);
+        const data = await api.getCourses();
+        if (data && data.length > 0) {
+          const GRADIENT_PALETTES = [
+            'linear-gradient(135deg, #0984E3, #74b9ff)',
+            'linear-gradient(135deg, #e17055, #fab1a0)',
+            'linear-gradient(135deg, #00b894, #55efc4)',
+            'linear-gradient(135deg, #6C5CE7, #a29bfe)',
+            'linear-gradient(135deg, #f39c12, #f8c471)',
+            'linear-gradient(135deg, #e84393, #fd79a8)',
+          ];
+          const mapped = data.map((c, idx) => ({
+            id: c.id,
+            title: c.title,
+            subject: c.subject,
+            subjectGroup: c.subjectGroup || 'Khác',
+            price: c.price.toLocaleString('vi-VN'),
+            teacherName: c.teacher?.user?.fullName || 'Giảng viên',
+            duration: `${c.lessons?.length || 0} bài giảng`,
+            rating: '4.8',
+            students: '1,000+',
+            imageBg: GRADIENT_PALETTES[idx % GRADIENT_PALETTES.length],
+            lessons: (c.lessons || []).map(l => ({ name: l.title || `Bài ${l.id}`, duration: l.duration || '--', isFree: false })),
+            description: c.description || '',
+          }));
+          setDbCourses(mapped);
+        }
+      } catch (err) {
+        console.warn('[LandingPage] Không thể fetch khóa học từ API:', err.message);
+      } finally {
+        setDbCoursesLoading(false);
+      }
+    };
+    fetchCourses();
+  }, []);
+
+  // Dùng data DB nếu có, fallback về FEATURED_COURSES tĩnh
+  const displayCourses = dbCourses.length > 0 ? dbCourses : FEATURED_COURSES;
+
+  // State xem tất cả khoá học
+  const [showAllCourses, setShowAllCourses] = useState(false);
   const [leaderboardTab, setLeaderboardTab] = useState('score'); // 'score' or 'streak'
   const [selectedPreviewCourse, setSelectedPreviewCourse] = useState(null);
 
@@ -1356,7 +1482,7 @@ export default function LandingPage({
           </div>
 
           <div className="lp-courses-grid">
-            {FEATURED_COURSES.map(course => (
+            {displayCourses.map(course => (
               <div key={course.id} className="lp-course-neo-card">
                 <div className="lp-course-header" style={{ background: course.imageBg }}>
                   <span className="lp-course-subject-badge">
@@ -1618,6 +1744,38 @@ export default function LandingPage({
         </div>
       </section>
 
+      {/* ── STUDENT PHOTO + WHY ── */}
+      <section className="subj-why is-visible" style={{ marginTop: '80px', marginBottom: '80px' }}>
+        <div className="subj-why-photo">
+          <img src={studentSuccessImg} alt="Học sinh EduPath đạt thành tích cao" />
+          <div className="subj-why-photo-badge">
+            <strong>28.5+</strong>
+            <span>Điểm THPTQG</span>
+          </div>
+        </div>
+        <div className="subj-why-content">
+          <span className="subj-why-eyebrow">Tại sao chọn EduPath?</span>
+          <h2>Học thông minh —<br />không chỉ học chăm</h2>
+          <ul className="subj-why-list">
+            <li><HiCheck />AI phân tích điểm yếu, gợi ý đúng chương cần ôn ngay</li>
+            <li><HiCheck />Đề thi bám sát cấu trúc Bộ GD&ĐT 2024–2025</li>
+            <li><HiCheck />Lộ trình ôn tập cá nhân hóa theo từng khối thi</li>
+            <li><HiCheck />Giáo viên trực tiếp chữa bài — không phải chatbot</li>
+            <li><HiCheck />Học mọi lúc mọi nơi: điện thoại, máy tính, tablet</li>
+          </ul>
+          <div className="subj-why-stats">
+            <div className="subj-why-stat">
+              <strong>100%</strong>
+              <span>Giáo viên đạt 8.0+</span>
+            </div>
+            <div className="subj-why-stat">
+              <strong>42,500+</strong>
+              <span>Học sinh đồng hành</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* ── CTA BANNER ── */}
       <section className="lp-cta-banner">
         <div className="lp-container lp-cta-inner">
@@ -1640,26 +1798,8 @@ export default function LandingPage({
         {/* ================= 2. SUBJECTS DEDICATED PAGE ================= */}
         {activeLandingView === 'courses' && (
           <div>
-            <div style={{ padding: '24px 28px 0', maxWidth: '1248px', margin: '0 auto' }}>
-              <button
-                onClick={() => setActiveLandingView('home')}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: 'var(--primary, #6c5ce7)',
-                  fontWeight: 'bold',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  fontSize: '14.5px',
-                  padding: 0
-                }}
-              >
-                ← Quay lại trang chủ
-              </button>
-            </div>
             <SubjectsPage
+              dbCourses={dbCourses}
               onNavigateToCourses={() => currentUser ? onBackToDashboard('courses') : onNavigateToAuth('signup')}
               onNavigateToLibrary={() => currentUser ? onBackToDashboard('library') : onNavigateToAuth('signup')}
               addLog={null}
@@ -2055,6 +2195,28 @@ export default function LandingPage({
         {/* ================= 5. PRICING (part of Khóa học) ================= */}
         {activeLandingView === 'courses' && (
           <div className="lp-container" style={{ padding: '40px 28px 80px' }}>
+            <div style={{ marginBottom: '32px' }}>
+              <button
+                onClick={() => setActiveLandingView('home')}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--primary, #6c5ce7)',
+                  fontWeight: 'bold',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  fontSize: '14.5px',
+                  padding: 0
+                }}
+              >
+                ← Quay lại trang chủ
+              </button>
+            </div>
+
+
+            <hr style={{ border: 'none', borderTop: '2px dashed var(--border)', marginBottom: '48px' }} />
 
             <div className="lp-modal-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '32px', alignItems: 'start' }}>
               
