@@ -1,6 +1,7 @@
 import type { Request, Response } from 'express';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 import { prisma } from '../lib/prisma.js';
 import { sendOTPEmail, sendRoleChangeNotification, isRealSmtpActive } from '../lib/mailer.js';
 import { isDisposableEmail, isValidEmailFormat } from '../lib/disposable-domains.js';
@@ -10,7 +11,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'edupath_jwt_secret_key_2026';
 const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'edupath_jwt_refresh_secret_key_2026';
 const JWT_TEMP_SECRET = process.env.JWT_TEMP_SECRET || 'edupath_jwt_temp_secret_2026';
 
-const OTP_TTL_MS = 10 * 60 * 1000; // 10 minutes
+const OTP_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
 // ─────────────────────────────────────────────────────────
 // Helper: Sign Access + Refresh JWT Tokens
@@ -25,7 +26,7 @@ function signTokens(user: { id: number; email: string; fullName: string; role: s
 // Helper: Generate 6-digit OTP
 // ─────────────────────────────────────────────────────────
 function generateOTP(): string {
-  return Math.floor(100000 + Math.random() * 900000).toString();
+  return crypto.randomInt(100000, 1000000).toString();
 }
 
 // ─────────────────────────────────────────────────────────
@@ -156,6 +157,7 @@ export async function sendOtp(req: Request, res: Response) {
     // Generate OTP and hash it
     const otp = generateOTP();
     const otpHash = await bcrypt.hash(otp, 10);
+    const passwordHash = await bcrypt.hash(password, 12);
 
     // Invalidate any previous unused OTPs for this email
     await prisma.otpVerification.updateMany({
@@ -169,7 +171,7 @@ export async function sendOtp(req: Request, res: Response) {
         email: email.toLowerCase(),
         otpHash,
         purpose: 'REGISTRATION',
-        payload: { email, fullName, password, role, subjectGroup, bio, phone },
+        payload: { email, fullName, passwordHash, role, subjectGroup, bio, phone },
         expiresAt: new Date(Date.now() + OTP_TTL_MS)
       }
     });
@@ -186,7 +188,7 @@ export async function sendOtp(req: Request, res: Response) {
         success: true,
         data: {
           message: 'Đã gửi mã OTP đến email của bạn. Hãy kiểm tra hộp thư (bao gồm cả mục Spam)!',
-          expiresInMinutes: 10,
+          expiresInMinutes: 5,
           cooldownSeconds: 60,
           devOtp: !isRealSmtpActive ? otp : undefined
         }
@@ -277,7 +279,7 @@ export async function resendOtp(req: Request, res: Response) {
         success: true,
         data: {
           message: 'Đã gửi lại mã OTP mới. Hãy kiểm tra hộp thư (bao gồm cả mục Spam)!',
-          expiresInMinutes: 10,
+          expiresInMinutes: 5,
           cooldownSeconds: 60,
           devOtp: !isRealSmtpActive ? otp : undefined
         }
@@ -358,9 +360,8 @@ export async function verifyOtpRegister(req: Request, res: Response) {
 
     // OTP is correct — create user account
     const payload = record.payload as any;
-    const { fullName, password, role, subjectGroup, bio } = payload || {};
+    const { fullName, passwordHash, role, subjectGroup, bio } = payload || {};
 
-    const passwordHash = await bcrypt.hash(password, 12);
     const assignedRole = role && ['STUDENT', 'TEACHER'].includes(role.toUpperCase())
       ? role.toUpperCase()
       : 'STUDENT';

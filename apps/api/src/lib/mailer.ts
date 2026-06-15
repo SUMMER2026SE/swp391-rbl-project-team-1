@@ -56,7 +56,7 @@ export async function sendOTPEmail(toEmail: string, studentName: string, otp: st
           <div style="background: #f0edff; border: 1.5px dashed #6c5ce7; border-radius: 12px; padding: 20px; text-align: center; margin: 24px 0;">
             <div style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: #6c5ce7; letter-spacing: 1px; margin-bottom: 8px;">Mã xác thực của em</div>
             <div style="font-size: 36px; font-weight: 800; color: #5a4bd1; letter-spacing: 6px; font-family: 'Courier New', Courier, monospace;">${otp}</div>
-            <div style="font-size: 11.5px; color: #636e72; margin-top: 10px; font-style: italic;">Mã có hiệu lực trong vòng 10 phút. Tuyệt đối không chia sẻ mã này cho bất kỳ ai!</div>
+            <div style="font-size: 11.5px; color: #636e72; margin-top: 10px; font-style: italic;">Mã có hiệu lực trong vòng 5 phút. Tuyệt đối không chia sẻ mã này cho bất kỳ ai!</div>
           </div>
           
           <p style="font-size: 13px; color: #94a3b8; margin: 24px 0 0 0; line-height: 1.5;">
