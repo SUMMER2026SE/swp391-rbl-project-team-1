@@ -2,6 +2,7 @@ import { HiStar, HiUserGroup, HiBookOpen, HiClock, HiPlay, HiCheckCircle } from 
 
 const SUBJECT_THUMBNAILS = {
   'Toán': '/course_thumb_math.png',
+  'Toán học': '/course_thumb_math.png',
   'Vật lý': '/course_thumb_physics.png',
   'Tiếng Anh': '/course_thumb_english.png',
   'Hóa học': '/course_thumb_chemistry.png',
@@ -15,7 +16,9 @@ const SUBJECT_THUMBNAILS = {
 // Return accent color variable name based on subject
 const getSubjectColorVar = (subject) => {
   switch (subject) {
-    case 'Toán': return 'var(--subject-toan)';
+    case 'Toán':
+    case 'Toán học':
+      return 'var(--subject-toan)';
     case 'Vật lý': return 'var(--subject-ly)';
     case 'Hóa học': return 'var(--subject-hoa)';
     case 'Ngữ văn': return 'var(--subject-van)';
@@ -42,20 +45,18 @@ function StarRating({ rating }) {
   const full = Math.floor(rating);
   const half = rating % 1 >= 0.5;
   return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
-      {Array.from({ length: 5 }, (_, i) => {
-        const isFilled = i < full;
-        const isHalf = i === full && half;
-        return (
-          <HiStar
-            key={i}
-            style={{
-              color: isFilled || isHalf ? '#F59E0B' : '#E5E7EB',
-              fontSize: '15px',
-            }}
-          />
-        );
-      })}
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '1px' }}>
+      {Array.from({ length: 5 }, (_, i) => (
+        <span
+          key={i}
+          style={{
+            color: i < full ? '#F59E0B' : (i === full && half ? '#F59E0B' : '#D1D5DB'),
+            fontSize: '13px',
+          }}
+        >
+          {i < full ? '★' : (i === full && half ? '⯨' : '★')}
+        </span>
+      ))}
     </span>
   );
 }
@@ -78,6 +79,7 @@ export default function CourseCard({ course, onSelect, onPurchase, isOwned }) {
     priceOriginal,
     priceSale,
     discountPercent,
+    level,
   } = course;
 
   const thumbUrl = thumbnail || SUBJECT_THUMBNAILS[subject] || '/course_thumb_math.png';
@@ -114,7 +116,6 @@ export default function CourseCard({ course, onSelect, onPurchase, isOwned }) {
         }
       }}
       aria-label={`Khóa học ${title} giảng dạy bởi ${instructor.name}`}
-      style={{ borderTop: `4px solid ${subjectColor}` }}
     >
       {/* ── THUMBNAIL ── */}
       <div className="cc-thumb">
@@ -160,10 +161,15 @@ export default function CourseCard({ course, onSelect, onPurchase, isOwned }) {
           {block} · Luyện thi THPTQG
         </span>
 
-        {/* Title */}
-        <h3 className="cc-title" title={title}>
-          {title}
-        </h3>
+        {/* Title & Level Badge */}
+        <div className="cc-title-container">
+          <h3 className="cc-title" title={title}>
+            {title}
+          </h3>
+          <span className={`cc-level-badge cc-level-badge--${level === 'Cơ bản' ? 'co-ban' : level === 'Nâng cao' ? 'nang-cao' : 'cap-toc'}`}>
+            {level}
+          </span>
+        </div>
 
         {/* Description */}
         <p className="cc-desc">
@@ -211,19 +217,17 @@ export default function CourseCard({ course, onSelect, onPurchase, isOwned }) {
       {/* ── FOOTER ── */}
       <div className="cc-footer">
         <div className="cc-price-group">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            {discountPercent > 0 && priceOriginal > 0 && (
-              <span className="cc-price-original">
-                {priceOriginal.toLocaleString('vi-VN')}đ
-              </span>
-            )}
-            {discountPercent > 0 && (
-              <span className="cc-discount">-{discountPercent}%</span>
-            )}
-          </div>
-          <span className="cc-price-current" style={{ color: subjectColor, fontWeight: 900 }}>
+          {discountPercent > 0 && priceOriginal > 0 && (
+            <span className="cc-price-original">
+              {priceOriginal.toLocaleString('vi-VN')}đ
+            </span>
+          )}
+          <span className="cc-price-current" style={{ color: subjectColor }}>
             {priceSale === 0 ? 'Miễn phí' : `${priceSale.toLocaleString('vi-VN')}đ`}
           </span>
+          {discountPercent > 0 && (
+            <span className="cc-discount">-{discountPercent}%</span>
+          )}
         </div>
 
         {isOwned ? (
@@ -239,10 +243,7 @@ export default function CourseCard({ course, onSelect, onPurchase, isOwned }) {
             className="cc-btn cc-btn--enroll"
             onClick={handleButtonClick}
             aria-label={`Đăng ký khóa học ${title}`}
-            style={{
-              background: `linear-gradient(135deg, ${subjectColor}, var(--emerald-primary))`,
-              boxShadow: `0 4px 12px ${subjectColor}25`
-            }}
+            style={{ backgroundColor: subjectColor }}
           >
             Đăng ký ngay
           </button>

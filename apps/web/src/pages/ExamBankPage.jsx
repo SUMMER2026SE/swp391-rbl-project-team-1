@@ -1,5 +1,4 @@
 import { useState, useMemo } from 'react';
-import { toast } from '../utils/toast';
 import {
   HiSearch, HiDownload, HiEye, HiX,
   HiAcademicCap, HiDocumentText, HiClock,
@@ -12,7 +11,7 @@ import {
 // ============================================================
 const SUBJECTS = [
   {
-    id: 'toan', name: 'Toán Học', emoji: '🦉', color: '#5b75f3',
+    id: 'toan', name: 'Toán học', emoji: '🦉', color: '#5b75f3',
     duration: 90, totalQuestions: 50, format: 'Trắc nghiệm',
     pastExams: [
       { year: 2024, avg: 6.45, downloads: '124K', difficulty: 'Khó vừa' },
@@ -29,7 +28,7 @@ const SUBJECTS = [
     ]
   },
   {
-    id: 'van', name: 'Ngữ Văn', emoji: '🦋', color: '#4598a7',
+    id: 'van', name: 'Ngữ văn', emoji: '🦋', color: '#4598a7',
     duration: 120, totalQuestions: 6, format: 'Tự luận',
     pastExams: [
       { year: 2024, avg: 7.06, downloads: '198K', difficulty: 'Trung bình' },
@@ -61,7 +60,7 @@ const SUBJECTS = [
     ]
   },
   {
-    id: 'ly', name: 'Vật Lý', emoji: '🦊', color: '#52ad58',
+    id: 'ly', name: 'Vật lý', emoji: '🦊', color: '#52ad58',
     duration: 50, totalQuestions: 40, format: 'Trắc nghiệm',
     pastExams: [
       { year: 2024, avg: 6.21, downloads: '89K', difficulty: 'Khó vừa' },
@@ -77,7 +76,7 @@ const SUBJECTS = [
     ]
   },
   {
-    id: 'hoa', name: 'Hóa Học', emoji: '🐙', color: '#cf6674',
+    id: 'hoa', name: 'Hóa học', emoji: '🐙', color: '#cf6674',
     duration: 50, totalQuestions: 40, format: 'Trắc nghiệm',
     pastExams: [
       { year: 2024, avg: 6.68, downloads: '92K', difficulty: 'Trung bình' },
@@ -93,7 +92,7 @@ const SUBJECTS = [
     ]
   },
   {
-    id: 'sinh', name: 'Sinh Học', emoji: '🐢', color: '#6f4ab3',
+    id: 'sinh', name: 'Sinh học', emoji: '🐢', color: '#6f4ab3',
     duration: 50, totalQuestions: 40, format: 'Trắc nghiệm',
     pastExams: [
       { year: 2024, avg: 6.07, downloads: '78K', difficulty: 'Khó vừa' },
@@ -109,7 +108,7 @@ const SUBJECTS = [
     ]
   },
   {
-    id: 'su', name: 'Lịch Sử', emoji: '📜', color: '#c44747',
+    id: 'su', name: 'Lịch sử', emoji: '📜', color: '#c44747',
     duration: 50, totalQuestions: 40, format: 'Trắc nghiệm',
     pastExams: [
       { year: 2024, avg: 5.79, downloads: '142K', difficulty: 'Trung bình' },
@@ -125,7 +124,7 @@ const SUBJECTS = [
     ]
   },
   {
-    id: 'dia', name: 'Địa Lý', emoji: '🌍', color: '#2d8659',
+    id: 'dia', name: 'Địa lý', emoji: '🌍', color: '#2d8659',
     duration: 50, totalQuestions: 40, format: 'Trắc nghiệm',
     pastExams: [
       { year: 2024, avg: 6.45, downloads: '138K', difficulty: 'Dễ' },
@@ -219,7 +218,7 @@ export default function ExamBankPage({ currentUser, navigateTo }) {
 
   const handleDownload = (exam) => {
     const filename = `De_thi_${exam.subjectName.replace(/\s/g, '_')}_${exam.year}_THPTQG.pdf`;
-    toast(`Đang tải xuống: ${filename}`, 'success');
+    alert(`📥 Đang tải xuống: ${filename}\n\n(Đây là bản demo — file thực tế sẽ được cung cấp khi hệ thống tích hợp kho tài liệu)`);
   };
 
   const isGuest = !currentUser;

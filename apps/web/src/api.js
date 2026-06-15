@@ -24,6 +24,9 @@ async function request(path, options = {}) {
   return data.data;
 }
 
+let coursesCache = null;
+let coursesPromise = null;
+
 export const api = {
   login: (email, password) =>
     request('/login', { method: 'POST', body: { email, password } }),
@@ -59,21 +62,48 @@ export const api = {
     request('/auth/reset-password', { method: 'POST', body: { token, password } }),
 
   getCourses: (filters = {}) => {
-    const params = new URLSearchParams(filters).toString();
-    return request(`/courses?${params}`);
+    // If there are filters, query directly
+    if (Object.keys(filters).length > 0) {
+      const params = new URLSearchParams(filters).toString();
+      return request(`/courses?${params}`);
+    }
+
+    // Return cached list if available
+    if (coursesCache) {
+      return Promise.resolve(coursesCache);
+    }
+
+    // Deduplicate concurrent requests
+    if (coursesPromise) {
+      return coursesPromise;
+    }
+
+    coursesPromise = request('/courses')
+      .then(data => {
+        coursesCache = data;
+        coursesPromise = null;
+        return data;
+      })
+      .catch(err => {
+        coursesPromise = null;
+        throw err;
+      });
+
+    return coursesPromise;
   },
 
   getCourseById: (id) => request(`/courses/${id}`),
 
-  createCourse: (payload) => request('/courses', { method: 'POST', body: payload }),
+  createCourse: (payload) => {
+    coursesCache = null; // Invalidate cache on new course creation
+    return request('/courses', { method: 'POST', body: payload });
+  },
 
   getExams: (subject) => request(`/exams${subject ? `?subject=${subject}` : ''}`),
 
   getExamQuestionsPublic: (examId) => request(`/exams/${examId}/questions`),
 
   getAttempts: () => request('/exams/attempts'),
-
-  getAttemptById: (attemptId) => request(`/exams/attempts/${attemptId}`),
 
   startAttempt: (examId) => request(`/exams/${examId}/attempts`, { method: 'POST' }),
 

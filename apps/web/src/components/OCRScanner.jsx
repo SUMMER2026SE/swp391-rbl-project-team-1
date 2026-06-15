@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from 'react';
-import { toast } from '../utils/toast';
 import { createWorker } from 'tesseract.js';
 import { 
   HiUpload, HiSparkles, HiCheckCircle, HiRefresh, 
@@ -81,7 +80,7 @@ export default function OCRScanner({ examsList, onBack, addLog }) {
       setDetectedAnswers({});
       setScoreResult(null);
     } else {
-      toast('Vui lòng chọn file hình ảnh hợp lệ (PNG, JPG, JPEG).', 'warning');
+      alert('Vui lòng chọn file hình ảnh hợp lệ (PNG, JPG, JPEG).');
     }
   };
 
@@ -145,7 +144,7 @@ export default function OCRScanner({ examsList, onBack, addLog }) {
       addLog(`[OCR] Hoàn thành nhận dạng. Đã giải mã thành công ${Object.keys(parsed).length}/${examQuestions.length} câu.`, 'ai');
     } catch (err) {
       console.error("OCR Error:", err);
-      toast("Lỗi nhận dạng hình ảnh. Hãy điền câu trả lời thủ công vào bảng bên dưới.", 'warning');
+      alert("Lỗi trong quá trình nhận dạng hình ảnh. Hệ thống sẽ bật bảng điền tay để bạn tự điền nhanh!");
       // Initialize empty/empty answers
       setDetectedAnswers({});
     } finally {

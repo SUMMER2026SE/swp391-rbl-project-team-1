@@ -1,8 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
-import { toast } from '../utils/toast';
-import {
-  HiChat, HiHeart, HiSearch, HiPlus, HiArrowLeft, HiUser, HiTag,
-  HiCheckCircle, HiDownload, HiUserGroup, HiStar, HiTrendingUp,
+import { 
+  HiChat, HiHeart, HiSearch, HiPlus, HiArrowLeft, HiUser, HiTag, 
+  HiCheckCircle, HiDownload, HiUserGroup, HiStar, HiTrendingUp, 
   HiSparkles, HiShieldCheck, HiFlag, HiRefresh
 } from 'react-icons/hi';
 import { io } from 'socket.io-client';
@@ -223,9 +222,9 @@ export default function Forum({ currentUser }) {
       // Reload stream
       fetchPosts();
       fetchGamifyProfile();
-      toast('Đăng bài thảo luận thành công!', 'success');
+      alert('Đăng bài thảo luận thành công!');
     } catch (err) {
-      toast(err.message || 'Đăng bài viết thất bại!', 'error');
+      alert(err.message || 'Đăng bài viết thất bại!');
     }
   };
 
@@ -235,7 +234,8 @@ export default function Forum({ currentUser }) {
 
     try {
       const newComment = await api.createForumComment(selectedPost.id, commentText, replyTargetId);
-
+      
+      // Update local comment nodes
       if (replyTargetId) {
         setComments(prev => prev.map(c => {
           if (c.id === replyTargetId) {
@@ -246,18 +246,18 @@ export default function Forum({ currentUser }) {
       } else {
         setComments(prev => [...prev, newComment]);
       }
-
+      
       setCommentText('');
       setReplyTargetId(null);
       fetchGamifyProfile();
     } catch (err) {
-      toast(err.message || 'Không thể gửi bình luận!', 'error');
+      alert(err.message || 'Không thể gửi bình luận!');
     }
   };
 
   const handleLikePost = async (postId) => {
     if (!currentUser) {
-      toast('Vui lòng đăng nhập để bình chọn!', 'warning');
+      alert('Vui lòng đăng nhập để bình chọn!');
       return;
     }
     try {
@@ -293,23 +293,25 @@ export default function Forum({ currentUser }) {
         });
       }
     } catch (err) {
-      toast(err.message || 'Thao tác vote thất bại!', 'error');
+      alert(err.message || 'Thao tác vote thất bại!');
     }
   };
 
   const handleAcceptSolution = async (commentId) => {
     try {
       await api.acceptCommentSolution(commentId);
+      
+      // Redraw comment solution state check
       setComments(prev => prev.map(c => {
         if (c.id === commentId) {
           return { ...c, isSolution: !c.isSolution };
         }
         return c;
       }));
-      toast('Đã cập nhật trạng thái lời giải hay!', 'success');
+      alert('Đã cập nhật trạng thái lời giải hay!');
       fetchGamifyProfile();
     } catch (err) {
-      toast(err.message || 'Không thể chọn câu trả lời này!', 'error');
+      alert(err.message || 'Không thể chọn câu trả lời này!');
     }
   };
 
@@ -323,9 +325,9 @@ export default function Forum({ currentUser }) {
       await api.createStudyGroup({ name, description, isPrivate });
       setShowGroupModal(false);
       fetchStudyGroups();
-      toast('Tạo nhóm học tập thành công!', 'success');
+      alert('Tạo nhóm học tập thành công!');
     } catch (err) {
-      toast(err.message || 'Tạo nhóm thất bại!', 'error');
+      alert(err.message || 'Tạo nhóm thất bại!');
     }
   };
 
@@ -333,9 +335,9 @@ export default function Forum({ currentUser }) {
     try {
       await api.joinStudyGroup(groupId);
       fetchStudyGroups();
-      toast('Đã tham gia nhóm học tập thành công!', 'success');
+      alert('Đã tham gia nhóm học tập thành công!');
     } catch (err) {
-      toast(err.message || 'Không thể tham gia nhóm!', 'error');
+      alert(err.message || 'Không thể tham gia nhóm!');
     }
   };
 
@@ -359,9 +361,9 @@ export default function Forum({ currentUser }) {
       await api.createForumReport(reportTarget.postId, reportTarget.commentId, reportReason);
       setReportReason('');
       setShowReportModal(false);
-      toast('Cảm ơn bạn! Báo cáo đã được gửi tới Ban quản trị kiểm duyệt.', 'success');
+      alert('Cảm ơn bạn! Báo cáo đã được gửi tới Ban quản trị kiểm duyệt.');
     } catch (err) {
-      toast(err.message || 'Lỗi gửi báo cáo!', 'error');
+      alert(err.message || 'Lỗi gửi báo cáo!');
     }
   };
 

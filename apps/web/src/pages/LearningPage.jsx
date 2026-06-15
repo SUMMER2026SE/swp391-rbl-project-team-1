@@ -1,5 +1,4 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { toast } from '../utils/toast';
 import VideoPlayer from '../components/courses/VideoPlayer';
 import ProgressSidebar from '../components/courses/ProgressSidebar';
 import CourseMaterials from '../components/courses/CourseMaterials';
@@ -7,7 +6,8 @@ import CourseDiscussion from '../components/courses/CourseDiscussion';
 import TeacherChat from '../components/courses/TeacherChat';
 import AiTutorChat from '../components/courses/AiTutorChat';
 import useCourseProgress from '../hooks/useCourseProgress';
-import { MOCK_COURSES } from '../data/courses';
+import { api } from '../api';
+import { mapDatabaseCourseToMockFormat } from '../utils/courseMapper';
 import { discussionService } from '../services/discussionService';
 
 export default function LearningPage({ courseId, lessonId, currentUser, onSelectLesson, onBackToCourse }) {
@@ -18,10 +18,23 @@ export default function LearningPage({ courseId, lessonId, currentUser, onSelect
   const [activeTab, setActiveTab] = useState('materials'); // materials, discussion, teacher, ai
   const [loading, setLoading] = useState(true);
 
-  // 1. Locate Course
+  // 1. Locate Course from database API
   useEffect(() => {
-    const found = MOCK_COURSES.find(c => c.id.toString() === courseId?.toString());
-    setCourse(found || null);
+    let active = true;
+    api.getCourseById(courseId)
+      .then(res => {
+        if (active && res) {
+          const mapped = mapDatabaseCourseToMockFormat(res);
+          setCourse(mapped);
+        } else if (active) {
+          setCourse(null);
+        }
+      })
+      .catch(err => {
+        console.error('Failed to load learning course from API:', err);
+        if (active) setCourse(null);
+      });
+    return () => { active = false; };
   }, [courseId]);
 
   // Flattened list of lessons for linear navigation
@@ -254,7 +267,7 @@ export default function LearningPage({ courseId, lessonId, currentUser, onSelect
         </div>
 
         {/* ── MAIN LAYOUT GRID ── */}
-        <div className="cp-learn-grid">
+        <div style={{ display: 'grid', gridTemplateColumns: '3fr 1.2fr', gap: '24px', alignItems: 'start' }} className="cp-learn-grid">
           
           {/* CỘT TRÁI (Video Player / Locks & Tab details) */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
@@ -324,7 +337,7 @@ export default function LearningPage({ courseId, lessonId, currentUser, onSelect
                   {activeTab === 'materials' && (
                     <CourseMaterials 
                       materials={materials}
-                      onDownload={(mat) => toast(`Bắt đầu tải tài liệu: ${mat.title}`, 'success')}
+                      onDownload={(mat) => alert(`Bắt đầu tải tài liệu học tập: ${mat.title}`)}
                     />
                   )}
                   {activeTab === 'discussion' && (

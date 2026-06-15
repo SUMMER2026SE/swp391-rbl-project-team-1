@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { toast } from '../utils/toast';
 import { HiPlus, HiTrash, HiDocumentAdd, HiDatabase, HiChartPie, HiPlusCircle } from 'react-icons/hi';
 
 export default function TeacherDashboard({
@@ -63,7 +62,7 @@ export default function TeacherDashboard({
   const handleAddQuestion = (e) => {
     e.preventDefault();
     if (!qText.trim() || !optA || !optB || !optC || !optD) {
-      toast('Vui lòng điền đầy đủ câu hỏi và 4 đáp án!', 'warning');
+      alert('Vui lòng điền đầy đủ câu hỏi và 4 đáp án!');
       return;
     }
 
@@ -91,7 +90,7 @@ export default function TeacherDashboard({
     setOptC('');
     setOptD('');
     addLog(`Giáo viên tạo câu hỏi mới trong Ngân hàng đề: "${qText.substring(0, 45)}..."`, 'sys');
-    toast('Thêm câu hỏi mới thành công!', 'success');
+    alert('Thêm câu hỏi mới thành công!');
   };
 
   return (

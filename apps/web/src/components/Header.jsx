@@ -1,6 +1,5 @@
 import { useState } from 'react';
-import { toast } from '../utils/toast';
-import { HiSearch, HiBell, HiSun, HiMoon, HiUser, HiLockClosed, HiLogout, HiX, HiCog } from 'react-icons/hi';
+import { HiSearch, HiBell, HiSun, HiMoon, HiUser, HiLockClosed, HiLogout, HiX } from 'react-icons/hi';
 
 export default function Header({
   role,
@@ -11,7 +10,6 @@ export default function Header({
   onClearNotifications,
   onLogout,
   onChangePassword,
-  onNavigateSettings,
   addLog
 }) {
   const [showNotif, setShowNotif] = useState(false);
@@ -41,11 +39,11 @@ export default function Header({
     e.preventDefault();
     if (!oldPass || !newPass || !confirmNewPass) return;
     if (newPass.length < 6) {
-      toast('Mật khẩu mới phải từ 6 ký tự trở lên!', 'warning');
+      alert('Mật khẩu mới phải từ 6 ký tự trở lên!');
       return;
     }
     if (newPass !== confirmNewPass) {
-      toast('Xác nhận mật khẩu mới không khớp!', 'warning');
+      alert('Xác nhận mật khẩu mới không khớp!');
       return;
     }
     onChangePassword(oldPass, newPass);
@@ -189,17 +187,6 @@ export default function Header({
               <div style={{ fontWeight: 'bold', fontSize: '13px' }}>{userProfile?.name}</div>
               <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>{userProfile?.email}</div>
             </div>
-            {onNavigateSettings && (
-              <button
-                className="dropdown-item"
-                onClick={() => {
-                  onNavigateSettings();
-                  setShowProfileMenu(false);
-                }}
-              >
-                <HiCog /> Cài đặt hồ sơ
-              </button>
-            )}
             <button
               className="dropdown-item"
               onClick={() => {

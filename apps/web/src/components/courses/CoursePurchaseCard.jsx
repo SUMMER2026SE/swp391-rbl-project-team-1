@@ -15,9 +15,9 @@ export default function CoursePurchaseCard({ course, isOwned, onEnroll }) {
     <div
       style={{
         background: '#ffffff',
-        border: '1px solid rgba(139, 92, 26, 0.08)',
+        border: '1.5px solid var(--border-warm)',
         borderRadius: 'var(--radius-2xl)',
-        boxShadow: '0 20px 32px -8px rgba(139, 92, 26, 0.08), 0 4px 12px -2px rgba(139, 92, 26, 0.03)',
+        boxShadow: 'var(--shadow-warm-md)',
         overflow: 'hidden',
       }}
     >
@@ -25,8 +25,7 @@ export default function CoursePurchaseCard({ course, isOwned, onEnroll }) {
       <div
         style={{
           position: 'relative',
-          aspectRatio: '16 / 9',
-          height: 'auto',
+          height: '180px',
           background: 'linear-gradient(135deg, #FAF6EE, #EAE6DF)',
           display: 'flex',
           alignItems: 'center',
@@ -123,17 +122,9 @@ export default function CoursePurchaseCard({ course, isOwned, onEnroll }) {
               fontSize: '14.5px',
               fontWeight: '800',
               borderRadius: '12px',
-              marginBottom: '16px',
-              background: 'linear-gradient(135deg, var(--emerald-primary), var(--emerald-hover))',
-              boxShadow: '0 4px 14px rgba(5, 150, 105, 0.25)',
-              border: 'none',
-              color: '#ffffff',
-              cursor: 'pointer',
-              transition: 'transform 0.2s'
+              marginBottom: '16px'
             }}
             onClick={() => onEnroll('learn')}
-            onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; }}
-            onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; }}
           >
             VÀO LỚP HỌC NGAY
           </button>
@@ -146,17 +137,9 @@ export default function CoursePurchaseCard({ course, isOwned, onEnroll }) {
                 padding: '14px',
                 fontSize: '14.5px',
                 fontWeight: '800',
-                borderRadius: '12px',
-                background: 'linear-gradient(135deg, var(--emerald-primary), #10B981)',
-                boxShadow: '0 4px 14px rgba(5, 150, 105, 0.25)',
-                border: 'none',
-                color: '#ffffff',
-                cursor: 'pointer',
-                transition: 'all 0.2s'
+                borderRadius: '12px'
               }}
               onClick={() => onEnroll('buy')}
-              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; }}
-              onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; }}
             >
               ĐĂNG KÝ HỌC NGAY
             </button>
@@ -169,7 +152,7 @@ export default function CoursePurchaseCard({ course, isOwned, onEnroll }) {
                 fontSize: '13.5px',
                 fontWeight: '800',
                 borderRadius: '12px',
-                border: '2px solid var(--emerald-primary)',
+                border: '2.5px solid var(--emerald-primary)',
                 background: 'var(--emerald-light)',
                 color: 'var(--emerald-primary)',
                 cursor: 'pointer',
@@ -180,12 +163,10 @@ export default function CoursePurchaseCard({ course, isOwned, onEnroll }) {
                 gap: '6px'
               }}
               onClick={() => onEnroll('demo')}
-              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(5, 150, 105, 0.08)'; }}
-              onMouseLeave={e => { e.currentTarget.style.background = 'var(--emerald-light)'; }}
             >
               🚀 VÀO HỌC DEMO (TRẢI NGHIỆM)
             </button>
- 
+
             <button
               className="cc-btn"
               style={{
@@ -196,13 +177,9 @@ export default function CoursePurchaseCard({ course, isOwned, onEnroll }) {
                 borderRadius: '12px',
                 border: '1.5px solid var(--border-warm)',
                 background: '#ffffff',
-                color: 'var(--stone-text-secondary)',
-                cursor: 'pointer',
-                transition: 'all 0.2s'
+                color: 'var(--stone-text-secondary)'
               }}
               onClick={() => onEnroll('cart')}
-              onMouseEnter={e => { e.currentTarget.style.background = '#FBFBFA'; }}
-              onMouseLeave={e => { e.currentTarget.style.background = '#ffffff'; }}
             >
               Thêm vào giỏ hàng
             </button>

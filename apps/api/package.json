@@ -9,7 +9,8 @@
     "start": "node dist/index.js",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
-    "prisma:seed": "npx tsx prisma/seed.ts"
+    "prisma:seed": "npx tsx prisma/seed.ts",
+    "prisma:seed:courses": "npx tsx prisma/seed-courses.ts"
   },
   "dependencies": {
     "@prisma/client": "^5.14.0",

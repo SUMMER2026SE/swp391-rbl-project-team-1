@@ -43,7 +43,7 @@ import ExamBankPage from './pages/ExamBankPage';
 import './styles/exambank.css';
 
 
-import { HiPlay, HiDocumentDownload, HiBeaker, HiX, HiBookOpen } from 'react-icons/hi';
+import { HiPlay, HiDocumentDownload, HiBeaker, HiX } from 'react-icons/hi';
 import { api } from './api';
 
 // Initial Database preloads
@@ -681,23 +681,6 @@ export default function App() {
   const [settingsNewPass, setSettingsNewPass] = useState('');
   const [settingsConfirmNewPass, setSettingsConfirmNewPass] = useState('');
 
-  // Toast notifications
-  const [toasts, setToasts] = useState([]);
-  const showToast = useRef(null);
-  showToast.current = (message, type = 'success') => {
-    const id = Date.now() + Math.random();
-    setToasts(prev => [...prev, { id, message, type }]);
-    setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 4200);
-  };
-  useEffect(() => {
-    const handler = (e) => showToast.current(e.detail.message, e.detail.type);
-    window.addEventListener('app:toast', handler);
-    return () => window.removeEventListener('app:toast', handler);
-  }, []);
-
-  // AI feedback modal
-  const [aiFeedbackModal, setAiFeedbackModal] = useState(null);
-
   // Sync settings states when current user changes or tab is settings
   const [resetToken, setResetToken] = useState(null);
 
@@ -711,15 +694,6 @@ export default function App() {
       setRole('guest');
     }
   }, []);
-
-  // Redirect guest users away from mock exams
-  useEffect(() => {
-    if ((role === 'guest' || !currentUser) && parsedRoute.route.startsWith('mock-')) {
-      showToast.current?.('Vui lòng đăng nhập để sử dụng chức năng thi thử!', 'warning');
-      navigateTo('/');
-      setActiveTab('login');
-    }
-  }, [currentUser, role, parsedRoute.route]);
 
   useEffect(() => {
     if (currentUser) {
@@ -895,9 +869,9 @@ export default function App() {
       setCurrentUser(updatedUser);
       
       addLog(`Người dùng "${currentUser.name}" đổi mật khẩu tài khoản thành công (UC-04)`, 'sys');
-      showToast.current('Đổi mật khẩu thành công!', 'success');
+      alert('Đổi mật khẩu thành công!');
     } catch (err) {
-      showToast.current(err.message || 'Đổi mật khẩu thất bại!', 'error');
+      alert(err.message || 'Đổi mật khẩu thất bại!');
     }
   };
 
@@ -906,39 +880,39 @@ export default function App() {
     const updatedList = usersList.map(u => u.email === updatedProfile.email ? updatedProfile : u);
     setUsersList(updatedList);
     addLog(`Người dùng "${updatedProfile.name}" cập nhật thông tin cá nhân thành công`, 'sys');
-    showToast.current('Lưu thông tin cá nhân thành công!', 'success');
+    alert('Lưu thông tin cá nhân thành công!');
   };
 
   const handleSettingsPasswordChange = async (oldPass, newPass, confirmPass) => {
     if (!oldPass || !newPass || !confirmPass) {
-      showToast.current('Vui lòng nhập đầy đủ các trường đổi mật khẩu!', 'warning');
+      alert('Vui lòng nhập đầy đủ các trường đổi mật khẩu!');
       return;
     }
     if (newPass.length < 6) {
-      showToast.current('Mật khẩu mới phải từ 6 ký tự trở lên!', 'warning');
+      alert('Mật khẩu mới phải từ 6 ký tự trở lên!');
       return;
     }
     if (newPass !== confirmPass) {
-      showToast.current('Xác nhận mật khẩu mới không trùng khớp!', 'warning');
+      alert('Xác nhận mật khẩu mới không trùng khớp!');
       return;
     }
 
     try {
       await api.changePassword(oldPass, newPass);
-
+      
       const updatedList = usersList.map(u => u.email === currentUser.email ? { ...u, password: newPass } : u);
       setUsersList(updatedList);
-
+      
       const updatedUser = { ...currentUser, password: newPass };
       setCurrentUser(updatedUser);
-
+      
       addLog(`Người dùng "${currentUser.name}" đổi mật khẩu thành công từ cài đặt cá nhân`, 'sys');
-      showToast.current('Đổi mật khẩu thành công!', 'success');
+      alert('Đổi mật khẩu thành công!');
       setSettingsOldPass('');
       setSettingsNewPass('');
       setSettingsConfirmNewPass('');
     } catch (err) {
-      showToast.current(err.message || 'Đổi mật khẩu thất bại!', 'error');
+      alert(err.message || 'Đổi mật khẩu thất bại!');
     }
   };
 
@@ -973,6 +947,35 @@ export default function App() {
     });
 
     setCheckoutCourse(null);
+  };
+
+  const handleCheckoutCourse = async (course) => {
+    if (course.priceSale === 0) {
+      if (currentUser) {
+        try {
+          await enrollmentService.enrollCourse(currentUser.id, Number(course.id), 0);
+          
+          const activeUnlocked = currentUser.unlockedCourses || [];
+          const updatedUser = {
+            ...currentUser,
+            unlockedCourses: [...activeUnlocked, Number(course.id), String(course.id)]
+          };
+          setCurrentUser(updatedUser);
+          setUsersList(prev => prev.map(u => u.email === currentUser.email ? updatedUser : u));
+          
+          alert(`Đăng ký khóa học miễn phí "${course.title}" thành công!`);
+          navigateTo(`/learn/${course.id}`);
+        } catch (err) {
+          console.error(err);
+          alert('Không thể đăng ký khóa học vào lúc này, vui lòng thử lại sau.');
+        }
+      } else {
+        alert('Vui lòng đăng nhập hoặc đăng ký tài khoản để bắt đầu học tập!');
+        setActiveTab('signup');
+      }
+    } else {
+      setCheckoutCourse(course);
+    }
   };
 
   // Student upgrades to PRO membership success
@@ -1134,8 +1137,8 @@ export default function App() {
 
   return (
     <div className="app-layout">
-      {/* Sidebar - Guarded against guest visitors and focused exam sessions */}
-      {role !== 'guest' && activeTab !== 'landing' && parsedRoute.route !== 'mock-exam-taking' && !parsedRoute.route.startsWith('mock-') && (
+      {/* Sidebar - Guarded against guest visitors */}
+      {role !== 'guest' && activeTab !== 'landing' && (
         <Sidebar
           role={role}
           active={parsedRoute.route !== 'legacy' ? (parsedRoute.route.startsWith('mock-') ? 'tests' : (parsedRoute.route === 'ai-tutor' ? 'ai-qa' : (parsedRoute.route === 'exam-bank' ? 'library' : 'courses'))) : activeTab}
@@ -1162,48 +1165,29 @@ export default function App() {
         />
       )}
 
-      <div className="main-wrapper" style={{ marginLeft: (role === 'guest' || activeTab === 'landing' || parsedRoute.route.startsWith('mock-')) ? 0 : 'var(--sidebar-width)' }}>
-        <main className="main-content" style={(role === 'guest' || activeTab === 'landing' || parsedRoute.route.startsWith('mock-')) ? { maxWidth: '100%', padding: 0 } : { maxWidth: '100%' }}>
-          {currentUser && parsedRoute.route.startsWith('mock-') && parsedRoute.route !== 'mock-exam-taking' && (
-            <div className="mock-exams-simple-header">
-              <button onClick={() => navigateTo('/')} className="mock-exams-back-btn">
-                ← Quay lại Trang chủ
-              </button>
-              <div className="mock-exams-user-profile">
-                <div className="mock-exams-user-avatar">
-                  {currentUser.avatar || currentUser.name?.substring(0, 2).toUpperCase() || 'HS'}
-                </div>
-                <span className="mock-exams-user-name">{currentUser.name}</span>
-              </div>
-            </div>
-          )}
-
+      <div className="main-wrapper" style={{ marginLeft: (role === 'guest' || activeTab === 'landing') ? 0 : 'var(--sidebar-width)' }}>
+        <main className="main-content" style={(role === 'guest' || activeTab === 'landing') ? { maxWidth: '100%', padding: 0 } : { maxWidth: '100%' }}>
           {role !== 'guest' && activeTab !== 'landing' ? (
-            !parsedRoute.route.startsWith('mock-') && (
-              <Header
-                role={role}
-                userProfile={currentUser}
-                theme={theme}
-                onToggleTheme={handleToggleTheme}
-                notifications={notifications}
-                onClearNotifications={() => setNotifications(prev => prev.map(n => ({ ...n, read: true })))}
-                onLogout={handleLogout}
-                onChangePassword={handleChangePassword}
-                onNavigateSettings={() => { navigateTo('/'); setActiveTab('settings'); setActiveCourseDetails(null); setActiveTestSimulator(null); setActiveOCRScanner(null); }}
-                addLog={addLog}
-              />
-            )
+            <Header
+              role={role}
+              userProfile={currentUser}
+              theme={theme}
+              onToggleTheme={handleToggleTheme}
+              notifications={notifications}
+              onClearNotifications={() => setNotifications(prev => prev.map(n => ({ ...n, read: true })))}
+              onLogout={handleLogout}
+              onChangePassword={handleChangePassword}
+              addLog={addLog}
+            />
           ) : (
             // Minimal Header for Guests
-            <>
-              {theme === 'dark' && parsedRoute.route !== 'mock-exam-taking' && (
-                <div style={{ position: 'fixed', top: '16px', right: '16px', zIndex: 100 }}>
-                  <button className="header-icon-btn" onClick={handleToggleTheme}>
-                    ☀️
-                  </button>
-                </div>
-              )}
-            </>
+            theme === 'dark' && (
+              <div style={{ position: 'fixed', top: '16px', right: '16px', zIndex: 100 }}>
+                <button className="header-icon-btn" onClick={handleToggleTheme}>
+                  ☀️
+                </button>
+              </div>
+            )
           )}
 
           {/* ================= PUBLIC OR PREVIEW LANDING PAGE ================= */}
@@ -1222,20 +1206,20 @@ export default function App() {
                         const password = e.target.password.value;
                         const confirm = e.target.confirm.value;
                         if (password.length < 6) {
-                          showToast.current('Mật khẩu mới phải có tối thiểu 6 ký tự!', 'warning');
+                          alert('Mật khẩu mới phải có tối thiểu 6 ký tự!');
                           return;
                         }
                         if (password !== confirm) {
-                          showToast.current('Mật khẩu xác nhận không khớp! Vui lòng nhập lại.', 'warning');
+                          alert('Mật khẩu xác nhận không khớp! Vui lòng nhập lại.');
                           return;
                         }
                         try {
                           await api.resetPassword(resetToken, password);
-                          showToast.current('Đặt lại mật khẩu thành công! Hãy đăng nhập bằng mật khẩu mới.', 'success');
+                          alert('Đặt lại mật khẩu thành công! Em có thể đăng nhập bằng mật khẩu mới.');
                           setResetToken(null);
                           setActiveTab('login');
                         } catch (err) {
-                          showToast.current(err.message || 'Lỗi đặt lại mật khẩu.', 'error');
+                          alert(err.message || 'Lỗi đặt lại mật khẩu.');
                         }
                       }}>
                         <div className="form-group" style={{ marginBottom: '16px' }}>
@@ -1283,7 +1267,7 @@ export default function App() {
                   onLikePost={handleForumLikePost}
                   onAddComment={handleForumAddComment}
                   onAcceptCommentSolution={handleForumAcceptCommentSolution}
-                  onCheckoutCourse={(course) => setCheckoutCourse(course)}
+                  onCheckoutCourse={handleCheckoutCourse}
                   onNavigateToLearn={(courseId, lessonId) => {
                     if (currentUser) {
                       setActiveTab('home');
@@ -1350,7 +1334,7 @@ export default function App() {
                 <CoursesPage
                   currentUser={currentUser}
                   onSelectCourse={(course) => navigateTo(`/courses/${course.id}`)}
-                  onCheckoutCourse={(course) => setCheckoutCourse(course)}
+                  onCheckoutCourse={handleCheckoutCourse}
                   navigateTo={navigateTo}
                 />
               )}
@@ -1369,6 +1353,7 @@ export default function App() {
                     setUsersList(updatedList);
                   }}
                   navigateTo={navigateTo}
+                  onCheckoutCourse={handleCheckoutCourse}
                 />
               )}
             </div>
@@ -1436,7 +1421,7 @@ export default function App() {
                   courses={courses}
                   currentUser={currentUser}
                   onSelectCourse={setActiveCourseDetails}
-                  onCheckoutCourse={setCheckoutCourse}
+                  onCheckoutCourse={handleCheckoutCourse}
                 />
               )}
 
@@ -1645,7 +1630,7 @@ export default function App() {
                                         <button
                                           onClick={() => {
                                             const feedback = typeof att.aiFeedback === 'string' ? JSON.parse(att.aiFeedback) : att.aiFeedback;
-                                            setAiFeedbackModal({ feedback, exam: att.exam });
+                                            alert(`🤖 [CHẨN ĐOÁN AI - Đề: ${att.exam?.title}]\n\n📝 Đánh giá chung: ${feedback.assessment || 'Chưa có đánh giá.'}\n\n⚠️ Lỗ hổng kiến thức: ${(feedback.knowledgeGaps || []).join(', ') || 'Không phát hiện lỗ hổng lớn.'}\n\n💡 Lời khuyên: \n${(feedback.advice || []).map(a => `- ${a}`).join('\n')}`);
                                           }}
                                           style={{
                                             padding: '4px 10px',
@@ -2186,7 +2171,7 @@ export default function App() {
                                   const file = e.target.files[0];
                                   if (file) {
                                     if (file.size > 2 * 1024 * 1024) {
-                                      showToast.current('Dung lượng ảnh tối đa là 2MB!', 'warning');
+                                      alert('Dung lượng ảnh tối đa là 2MB!');
                                       return;
                                     }
                                     const reader = new FileReader();
@@ -2627,63 +2612,6 @@ export default function App() {
       {/* Public Chatbot AI floating button and chat dialog */}
       <ChatbotWidget />
 
-      {/* ── Toast Notifications ── */}
-      <div className="app-toasts-container">
-        {toasts.map(t => (
-          <div key={t.id} className={`app-toast app-toast-${t.type}`}>
-            <span className="app-toast-icon">
-              {t.type === 'success' ? '✅' : t.type === 'error' ? '❌' : '⚠️'}
-            </span>
-            <span>{t.message}</span>
-          </div>
-        ))}
-      </div>
-
-      {/* ── AI Feedback Modal ── */}
-      {aiFeedbackModal && (
-        <div className="ai-feedback-modal-overlay" onClick={() => setAiFeedbackModal(null)}>
-          <div className="ai-feedback-modal" onClick={e => e.stopPropagation()}>
-            <h3>🤖 Chẩn đoán AI — {aiFeedbackModal.exam?.title || 'Đề tự luyện'}</h3>
-
-            <div className="ai-feedback-section">
-              <div className="ai-feedback-section-label">📝 Đánh giá chung</div>
-              <div className="ai-feedback-section-body">
-                {aiFeedbackModal.feedback.assessment || 'Chưa có đánh giá.'}
-              </div>
-            </div>
-
-            <div className="ai-feedback-section">
-              <div className="ai-feedback-section-label">⚠️ Lỗ hổng kiến thức</div>
-              <div className="ai-feedback-section-body">
-                {(aiFeedbackModal.feedback.knowledgeGaps || []).length > 0
-                  ? (aiFeedbackModal.feedback.knowledgeGaps).map((gap, i) => (
-                      <span key={i} className="ai-feedback-gap-tag">{gap}</span>
-                    ))
-                  : <span style={{ color: 'var(--accent-green)' }}>Không phát hiện lỗ hổng lớn ✓</span>
-                }
-              </div>
-            </div>
-
-            {(aiFeedbackModal.feedback.advice || []).length > 0 && (
-              <div className="ai-feedback-section">
-                <div className="ai-feedback-section-label">💡 Lời khuyên cải thiện</div>
-                <div className="ai-feedback-section-body" style={{ padding: '6px 14px' }}>
-                  {(aiFeedbackModal.feedback.advice).map((item, i) => (
-                    <div key={i} className="ai-feedback-advice-item">
-                      <span style={{ color: 'var(--primary)', fontWeight: 800 }}>→</span>
-                      <span>{item}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <button className="ai-feedback-close-btn" onClick={() => setAiFeedbackModal(null)}>
-              Đã hiểu, đóng lại
-            </button>
-          </div>
-        </div>
-      )}
 
     </div>
   );

@@ -59,7 +59,7 @@ function AnimatedCounter({ end, suffix = '', duration = 1800 }) {
 // ============================================================
 const SUBJECTS_DATA = [
   {
-    id: 'toan', name: 'Toán Học', nameEn: 'Mathematics',
+    id: 'toan', name: 'Toán học', nameEn: 'Mathematics',
     color: '#5b75f3', emoji: '🦉', symbol: '∫', tagline: 'Cốt lõi của 4/5 khối thi',
     short: 'Môn thi bắt buộc, kiểm tra tư duy logic, đại số và hình học không gian.',
     combos: ['A00', 'A01', 'B00', 'D01'],
@@ -122,7 +122,7 @@ const SUBJECTS_DATA = [
     ]
   },
   {
-    id: 'van', name: 'Ngữ Văn', nameEn: 'Literature',
+    id: 'van', name: 'Ngữ văn', nameEn: 'Literature',
     color: '#4598a7', emoji: '🦋', symbol: '✒', tagline: 'Môn duy nhất tự luận 100%',
     short: 'Đánh giá năng lực đọc - hiểu, nghị luận xã hội và cảm thụ văn học.',
     combos: ['C00', 'D01'],
@@ -242,7 +242,7 @@ const SUBJECTS_DATA = [
     ]
   },
   {
-    id: 'ly', name: 'Vật Lý', nameEn: 'Physics',
+    id: 'ly', name: 'Vật lý', nameEn: 'Physics',
     color: '#52ad58', emoji: '🦊', symbol: 'Φ', tagline: 'Khoa học của tự nhiên',
     short: 'Đánh giá tư duy logic, vận dụng công thức và giải bài tập tính toán.',
     combos: ['A00', 'A01'],
@@ -303,13 +303,13 @@ const SUBJECTS_DATA = [
     ]
   },
   {
-    id: 'hoa', name: 'Hóa Học', nameEn: 'Chemistry',
+    id: 'hoa', name: 'Hóa học', nameEn: 'Chemistry',
     color: '#cf6674', emoji: '🐙', symbol: '⚗', tagline: 'Hai vũ khí: lý thuyết + bài tập',
     short: 'Cân bằng giữa lý thuyết hóa học hữu cơ - vô cơ và bài toán hóa học.',
     combos: ['A00', 'B00'],
     stats: { yearAvg: 6.68, candidates: '345,000', maxScore: 10, passRate: '85%' },
     overview: {
-      description: 'Hóa Học gồm 3 phần: hóa vô cơ, hóa hữu cơ và bài toán hóa. Đề thi đánh giá khả năng cân bằng phương trình, tính toán theo định luật bảo toàn và áp dụng tính chất hóa học.',
+      description: 'Hóa học gồm 3 phần: hóa vô cơ, hóa hữu cơ và bài toán hóa. Đề thi đánh giá khả năng cân bằng phương trình, tính toán theo định luật bảo toàn và áp dụng tính chất hóa học.',
       outcomes: [
         'Cân bằng phương trình hóa học (oxi hóa - khử)',
         'Áp dụng định luật bảo toàn khối lượng, nguyên tố, electron',
@@ -339,10 +339,10 @@ const SUBJECTS_DATA = [
       grade12: ['★ Este - Lipit', '★ Cacbohiđrat', '★ Amin - Amino axit - Peptit', 'Polime', 'Đại cương kim loại', '★ Kim loại kiềm, kiềm thổ, nhôm', '★ Crom - Sắt - Đồng']
     },
     materials: [
-      { type: 'SGK', title: 'SGK Hóa Học 12 - Cánh Diều', author: 'NXB Giáo dục VN', year: 2024, size: '75 MB', pages: 260 },
+      { type: 'SGK', title: 'SGK Hóa học 12 - Cánh Diều', author: 'NXB Giáo dục VN', year: 2024, size: '75 MB', pages: 260 },
       { type: 'Tham khảo', title: 'Phương pháp giải nhanh Hóa hữu cơ', author: 'Lê Phạm Thành', year: 2024, size: '12 MB', pages: 220 },
       { type: 'Tham khảo', title: 'Tuyển tập câu hỏi VDC Hóa học', author: 'Nguyễn Văn Đậu', year: 2024, size: '15 MB', pages: 280 },
-      { type: 'Bộ đề', title: '40 đề thi thử Hóa Học 2024', author: 'EduPath Team', year: 2024, size: '20 MB', pages: 360 }
+      { type: 'Bộ đề', title: '40 đề thi thử Hóa học 2024', author: 'EduPath Team', year: 2024, size: '20 MB', pages: 360 }
     ],
     pastExams: [
       { year: 2024, avg: 6.68, downloads: '92K', difficulty: 'Trung bình' },
@@ -366,13 +366,13 @@ const SUBJECTS_DATA = [
     ]
   },
   {
-    id: 'sinh', name: 'Sinh Học', nameEn: 'Biology',
+    id: 'sinh', name: 'Sinh học', nameEn: 'Biology',
     color: '#6f4ab3', emoji: '🐢', symbol: '🧬', tagline: 'Khoa học sự sống',
     short: 'Đánh giá kiến thức di truyền, tiến hóa, sinh thái và sinh học cơ thể.',
     combos: ['B00'],
     stats: { yearAvg: 6.07, candidates: '298,000', maxScore: 10, passRate: '72%' },
     overview: {
-      description: 'Sinh Học là môn xét tuyển khối B00 - Y, Dược, Răng-hàm-mặt. Đề thi tập trung vào di truyền học (50%) và sinh thái - tiến hóa - sinh học cơ thể (50%).',
+      description: 'Sinh học là môn xét tuyển khối B00 - Y, Dược, Răng-hàm-mặt. Đề thi tập trung vào di truyền học (50%) và sinh thái - tiến hóa - sinh học cơ thể (50%).',
       outcomes: [
         'Áp dụng quy luật Mendel để giải bài tập di truyền',
         'Tính toán xác suất tổ hợp lai, di truyền liên kết, hoán vị gen',
@@ -401,10 +401,10 @@ const SUBJECTS_DATA = [
       grade12: ['★ Cơ chế di truyền và biến dị', '★ Tính quy luật của hiện tượng di truyền', '★ Di truyền học quần thể', 'Ứng dụng di truyền học', '★ Tiến hóa', '★ Sinh thái học']
     },
     materials: [
-      { type: 'SGK', title: 'SGK Sinh Học 12 - Cánh Diều', author: 'NXB Giáo dục VN', year: 2024, size: '80 MB', pages: 280 },
+      { type: 'SGK', title: 'SGK Sinh học 12 - Cánh Diều', author: 'NXB Giáo dục VN', year: 2024, size: '80 MB', pages: 280 },
       { type: 'Tham khảo', title: 'Bí kíp giải nhanh bài tập Di truyền', author: 'Phan Khắc Nghệ', year: 2024, size: '10 MB', pages: 200 },
       { type: 'Tham khảo', title: 'Atlat Sinh học - Sơ đồ tư duy', author: 'Đỗ Mạnh Hùng', year: 2024, size: '15 MB', pages: 150 },
-      { type: 'Bộ đề', title: '40 đề Sinh Học 2024 - chuẩn cấu trúc', author: 'EduPath Team', year: 2024, size: '18 MB', pages: 300 }
+      { type: 'Bộ đề', title: '40 đề Sinh học 2024 - chuẩn cấu trúc', author: 'EduPath Team', year: 2024, size: '18 MB', pages: 300 }
     ],
     pastExams: [
       { year: 2024, avg: 6.07, downloads: '78K', difficulty: 'Khó vừa' },
@@ -428,7 +428,7 @@ const SUBJECTS_DATA = [
     ]
   },
   {
-    id: 'su', name: 'Lịch Sử', nameEn: 'History',
+    id: 'su', name: 'Lịch sử', nameEn: 'History',
     color: '#c44747', emoji: '📜', symbol: '⚔', tagline: 'Hành trình dân tộc',
     short: 'Đánh giá kiến thức lịch sử Việt Nam và thế giới từ 1858 đến nay.',
     combos: ['C00'],
@@ -487,7 +487,7 @@ const SUBJECTS_DATA = [
     ]
   },
   {
-    id: 'dia', name: 'Địa Lý', nameEn: 'Geography',
+    id: 'dia', name: 'Địa lý', nameEn: 'Geography',
     color: '#2d8659', emoji: '🌍', symbol: '🗺', tagline: 'Hiểu Việt Nam và thế giới',
     short: 'Đánh giá kiến thức địa lý tự nhiên, kinh tế xã hội và kỹ năng sử dụng Atlat.',
     combos: ['C00'],
@@ -628,12 +628,12 @@ const TEACHER_DATA = {
 };
 
 const REVIEWS = [
-  { name: 'Nguyễn Minh Khôi', school: 'THPT Chuyên Hà Nội Amsterdam', score: '28.5 điểm', subject: 'Toán', text: 'Nhờ thầy Đức Anh hướng dẫn kỹ thuật Casio, em từ 7.5 lên 9.0 chỉ sau 2 tháng. Phương pháp phân loại đề thực sự rất hiệu quả.' },
+  { name: 'Nguyễn Minh Khôi', school: 'THPT Chuyên Hà Nội Amsterdam', score: '28.5 điểm', subject: 'Toán học', text: 'Nhờ thầy Đức Anh hướng dẫn kỹ thuật Casio, em từ 7.5 lên 9.0 chỉ sau 2 tháng. Phương pháp phân loại đề thực sự rất hiệu quả.' },
   { name: 'Trần Thị Bảo Châu', school: 'THPT Kim Liên, Hà Nội', score: '27.8 điểm', subject: 'Tiếng Anh', text: 'Phương pháp đọc hiểu của thầy Quang Chung rất khác biệt. Điểm Tiếng Anh tăng từ 6.4 lên 8.6 sau 3 tháng học.' },
-  { name: 'Phạm Văn Tuấn', school: 'THPT Lê Hồng Phong, TP.HCM', score: '26.5 điểm', subject: 'Hóa Học', text: 'Cô Phương giải thích bảo toàn electron cực kỳ dễ hiểu. Hóa từ môn sợ nhất trở thành điểm mạnh của em.' },
-  { name: 'Lê Hoàng Anh', school: 'THPT Chuyên Lam Sơn, Thanh Hóa', score: '29.0 điểm', subject: 'Vật Lý', text: 'Phương pháp giản đồ vector của thầy Nam giúp em giải bài mạch điện xoay chiều siêu nhanh. Từ 6.0 lên 8.8!' },
-  { name: 'Đặng Thị Thu Hương', school: 'THPT Chu Văn An, Hà Nội', score: '27.2 điểm', subject: 'Ngữ Văn', text: 'Cô Hà chữa bài rất tận tâm. Em học được cách dẫn dắt bài NLVH rất mượt, từ 6.5 lên 8.5 chỉ sau 4 tháng.' },
-  { name: 'Vũ Đức Minh', school: 'THPT Chuyên Bắc Ninh', score: '28.0 điểm', subject: 'Sinh Học', text: 'Sơ đồ tư duy di truyền của thầy Hùng giúp em nhớ rất lâu. Sinh từ 5.5 lên 9.0, vượt xa mong đợi!' },
+  { name: 'Phạm Văn Tuấn', school: 'THPT Lê Hồng Phong, TP.HCM', score: '26.5 điểm', subject: 'Hóa học', text: 'Cô Phương giải thích bảo toàn electron cực kỳ dễ hiểu. Hóa từ môn sợ nhất trở thành điểm mạnh của em.' },
+  { name: 'Lê Hoàng Anh', school: 'THPT Chuyên Lam Sơn, Thanh Hóa', score: '29.0 điểm', subject: 'Vật lý', text: 'Phương pháp giản đồ vector của thầy Nam giúp em giải bài mạch điện xoay chiều siêu nhanh. Từ 6.0 lên 8.8!' },
+  { name: 'Đặng Thị Thu Hương', school: 'THPT Chu Văn An, Hà Nội', score: '27.2 điểm', subject: 'Ngữ văn', text: 'Cô Hà chữa bài rất tận tâm. Em học được cách dẫn dắt bài NLVH rất mượt, từ 6.5 lên 8.5 chỉ sau 4 tháng.' },
+  { name: 'Vũ Đức Minh', school: 'THPT Chuyên Bắc Ninh', score: '28.0 điểm', subject: 'Sinh học', text: 'Sơ đồ tư duy di truyền của thầy Hùng giúp em nhớ rất lâu. Sinh từ 5.5 lên 9.0, vượt xa mong đợi!' },
 ];
 
 // ============================================================
@@ -1345,7 +1345,7 @@ function SubjectsListing({
             </div>
             <div className="subj-teacher-photo-info">
               <strong>Thầy Nguyễn Đức Anh</strong>
-              <span>Toán Học · Vật Lý</span>
+              <span>Toán học · Vật lý</span>
               <p>Thủ khoa Toán K60 ĐHQGHN, chuyên gia giải nhanh Casio, 5+ năm luyện thi chuyên sâu.</p>
               <div className="subj-teacher-photo-rating">
                 <span className="subj-stars">★★★★★</span> 4.9 · 3,240 đánh giá
@@ -1358,7 +1358,7 @@ function SubjectsListing({
             </div>
             <div className="subj-teacher-photo-info">
               <strong>Cô Lê Thị Phương</strong>
-              <span>Hóa Học · Sinh Học</span>
+              <span>Hóa học · Sinh học</span>
               <p>Tiến sĩ Hóa học, cựu GV THPT Chuyên, tác giả sách luyện thi được 50,000+ học sinh sử dụng.</p>
               <div className="subj-teacher-photo-rating">
                 <span className="subj-stars">★★★★★</span> 4.8 · 2,120 đánh giá

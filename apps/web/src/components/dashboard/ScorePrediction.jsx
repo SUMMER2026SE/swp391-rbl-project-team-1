@@ -4,20 +4,20 @@ export default function ScorePrediction({ currentUser }) {
 
   // Derive subjects from combo
   const subjectMap = {
-    'Toán': { color: '#7C3AED', icon: '📐' },
-    'Lý': { color: '#0EA5E9', icon: '⚡' },
-    'Hóa': { color: '#10B981', icon: '🧪' },
-    'Anh': { color: '#F59E0B', icon: '🌍' },
-    'Văn': { color: '#EF4444', icon: '📖' },
-    'Sinh': { color: '#06B6D4', icon: '🧬' },
-    'Sử': { color: '#8B5CF6', icon: '📜' },
-    'Địa': { color: '#F97316', icon: '🌏' },
+    'Toán học': { color: '#7C3AED', icon: '📐' },
+    'Vật lý': { color: '#0EA5E9', icon: '⚡' },
+    'Hóa học': { color: '#10B981', icon: '🧪' },
+    'Tiếng Anh': { color: '#F59E0B', icon: '🌍' },
+    'Ngữ văn': { color: '#EF4444', icon: '📖' },
+    'Sinh học': { color: '#06B6D4', icon: '🧬' },
+    'Lịch sử': { color: '#8B5CF6', icon: '📜' },
+    'Địa lý': { color: '#F97316', icon: '🌏' },
   };
 
   const subjects = [
-    { name: 'Toán', current: 7.2, target: 9.0 },
-    { name: 'Lý', current: 6.8, target: 8.5 },
-    { name: 'Anh', current: 7.5, target: 9.0 },
+    { name: 'Toán học', current: 7.2, target: 9.0 },
+    { name: 'Vật lý', current: 6.8, target: 8.5 },
+    { name: 'Tiếng Anh', current: 7.5, target: 9.0 },
   ];
 
   const totalCurrent = subjects.reduce((a, b) => a + b.current, 0).toFixed(1);

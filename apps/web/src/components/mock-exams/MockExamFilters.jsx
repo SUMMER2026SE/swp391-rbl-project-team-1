@@ -1,31 +1,12 @@
 import React from 'react';
-import { 
-  HiSearch, 
-  HiCalendar, 
-  HiBookOpen, 
-  HiX,
-  HiOutlineFolderOpen,
-  HiShieldCheck,
-  HiAcademicCap,
-  HiLightningBolt
-} from 'react-icons/hi';
-import { FaCalculator, FaGlobe, FaAtom, FaFlask } from 'react-icons/fa';
-
-const SUBJECT_ICONS = {
-  1: FaCalculator,
-  2: FaGlobe,
-  3: FaAtom,
-  4: FaFlask
-};
 
 export default function MockExamFilters({ filters, onFilterChange, subjects }) {
   const years = ['All', '2024', '2023', '2022', '2021', '2020'];
-  
   const categories = [
-    { value: 'All', label: 'Tất cả', icon: HiOutlineFolderOpen },
-    { value: 'official', label: 'Đề chính thức', icon: HiShieldCheck },
-    { value: 'mock', label: 'Đề Trường Chuyên', icon: HiAcademicCap },
-    { value: 'internal', label: 'Đề Nội bộ', icon: HiLightningBolt }
+    { value: 'All', label: '🗂️ Tất cả' },
+    { value: 'official', label: '📌 Đề chính thức' },
+    { value: 'mock', label: '🏫 Đề Trường Chuyên' },
+    { value: 'internal', label: '🎯 Đề Nội bộ' }
   ];
 
   const handleSearchChange = (e) => {
@@ -51,7 +32,7 @@ export default function MockExamFilters({ filters, onFilterChange, subjects }) {
         <div style={{ flex: '1', minWidth: '280px', position: 'relative' }}>
           <input 
             type="text" 
-            placeholder="Tìm kiếm tên đề thi, mã đề, năm học..." 
+            placeholder="🔍 Tìm kiếm tên đề thi, mã đề, năm học..." 
             value={filters.search || ''} 
             onChange={handleSearchChange}
             style={{
@@ -64,11 +45,10 @@ export default function MockExamFilters({ filters, onFilterChange, subjects }) {
               color: 'var(--text-primary)',
               boxShadow: 'var(--shadow-sm)',
               outline: 'none',
-              transition: 'all 0.2s ease',
-              boxSizing: 'border-box'
+              transition: 'all 0.2s ease'
             }}
           />
-          <HiSearch style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)', opacity: 0.6 }} />
+          <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', opacity: 0.6 }}>🔍</span>
           {filters.search && (
             <button 
               onClick={() => onFilterChange({ ...filters, search: '' })}
@@ -81,14 +61,10 @@ export default function MockExamFilters({ filters, onFilterChange, subjects }) {
                 background: 'none',
                 cursor: 'pointer',
                 color: 'var(--text-secondary)',
-                fontSize: '13px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: '4px'
+                fontSize: '13px'
               }}
             >
-              <HiX />
+              ✕
             </button>
           )}
         </div>
@@ -97,7 +73,6 @@ export default function MockExamFilters({ filters, onFilterChange, subjects }) {
         <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
           {categories.map(cat => {
             const isActive = filters.examType === cat.value;
-            const CatIcon = cat.icon;
             return (
               <button
                 key={cat.value}
@@ -111,13 +86,9 @@ export default function MockExamFilters({ filters, onFilterChange, subjects }) {
                   background: isActive ? 'var(--exams-purple)' : 'var(--bg-main)',
                   color: isActive ? '#fff' : 'var(--text-secondary)',
                   cursor: 'pointer',
-                  transition: 'all 0.2s',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px'
+                  transition: 'all 0.2s'
                 }}
               >
-                <CatIcon style={{ fontSize: '15px' }} />
                 {cat.label}
               </button>
             );
@@ -127,9 +98,7 @@ export default function MockExamFilters({ filters, onFilterChange, subjects }) {
 
       {/* Subject tags selection row */}
       <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
-        <span style={{ fontSize: '13px', fontWeight: 'bold', color: 'var(--text-primary)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-          <HiBookOpen /> Môn học:
-        </span>
+        <span style={{ fontSize: '13px', fontWeight: 'bold', color: 'var(--text-primary)' }}>📚 Môn học:</span>
         <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
           <button
             onClick={() => handleSubjectClick('All')}
@@ -150,7 +119,6 @@ export default function MockExamFilters({ filters, onFilterChange, subjects }) {
           </button>
           {subjects.map(sub => {
             const isSelected = String(filters.subjectId) === String(sub.id);
-            const SubIcon = SUBJECT_ICONS[sub.id] || HiBookOpen;
             return (
               <button
                 key={sub.id}
@@ -164,13 +132,10 @@ export default function MockExamFilters({ filters, onFilterChange, subjects }) {
                   color: isSelected ? '#fff' : 'var(--text-secondary)',
                   cursor: 'pointer',
                   fontWeight: 'bold',
-                  transition: 'all 0.2s',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px'
+                  transition: 'all 0.2s'
                 }}
               >
-                <SubIcon style={{ fontSize: '13px' }} /> {sub.name}
+                {sub.icon} {sub.name}
               </button>
             );
           })}
@@ -179,9 +144,7 @@ export default function MockExamFilters({ filters, onFilterChange, subjects }) {
 
       {/* Year selection tags */}
       <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
-        <span style={{ fontSize: '13px', fontWeight: 'bold', color: 'var(--text-primary)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-          <HiCalendar /> Năm thi:
-        </span>
+        <span style={{ fontSize: '13px', fontWeight: 'bold', color: 'var(--text-primary)' }}>🗓️ Năm thi:</span>
         <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
           {years.map(year => {
             const isActive = filters.year === year;
