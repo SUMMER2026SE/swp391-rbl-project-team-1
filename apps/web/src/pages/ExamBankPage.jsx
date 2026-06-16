@@ -86,6 +86,15 @@ export default function ExamBankPage({ currentUser, navigateTo }) {
   const [aiRecommendation, setAiRecommendation] = useState(null);
   const [isAiLoading, setIsAiLoading] = useState(false);
 
+  // States for quick document QA direct chat & autocomplete suggestions
+  const [selectedDirectDoc, setSelectedDirectDoc] = useState(null);
+  const [directChatHistory, setDirectChatHistory] = useState([]);
+  const [directChatInput, setDirectChatInput] = useState('');
+  const [isDirectChatTyping, setIsDirectChatTyping] = useState(false);
+  const [suggestedDocs, setSuggestedDocs] = useState([]);
+  const [isSuggesting, setIsSuggesting] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+
   const [modalTab, setModalTab] = useState('details'); // 'details' | 'chat' | 'discussion'
   const [chatHistory, setChatHistory] = useState([]);
   const [chatInput, setChatInput] = useState('');
@@ -316,6 +325,65 @@ export default function ExamBankPage({ currentUser, navigateTo }) {
     }, 1200);
   };
 
+  const handleAskDirectChat = (questionText) => {
+    const q = questionText || directChatInput;
+    if (!q.trim() || !selectedDirectDoc) return;
+
+    const newHistory = [...directChatHistory, { role: 'user', text: q }];
+    setDirectChatHistory(newHistory);
+    setDirectChatInput('');
+    setIsDirectChatTyping(true);
+
+    setTimeout(() => {
+      const response = generateLocalAiResponse(selectedDirectDoc, q);
+      setDirectChatHistory(prev => [...prev, {
+        role: 'assistant',
+        text: response.text,
+        list: response.list
+      }]);
+      setIsDirectChatTyping(false);
+    }, 800);
+  };
+
+  // Autocomplete document suggestions from database
+  useEffect(() => {
+    if (!aiSearchText || aiSearchText.length < 2) {
+      setSuggestedDocs([]);
+      return;
+    }
+
+    if (selectedDirectDoc) return;
+
+    const fetchSuggestions = async () => {
+      setIsSuggesting(true);
+      try {
+        const data = await api.getDocumentResources({ search: aiSearchText });
+        setSuggestedDocs(data.slice(0, 5));
+      } catch (err) {
+        console.error('Error fetching suggestions:', err);
+      } finally {
+        setIsSuggesting(false);
+      }
+    };
+
+    const timeoutId = setTimeout(fetchSuggestions, 300);
+    return () => clearTimeout(timeoutId);
+  }, [aiSearchText, selectedDirectDoc]);
+
+  // Set chat history when selecting a document for direct chat
+  useEffect(() => {
+    if (selectedDirectDoc) {
+      setDirectChatHistory([
+        {
+          role: 'assistant',
+          text: `Xin chào! Anh là Trợ lý Học tập AI của EduPath. Anh đã sẵn sàng trả lời các câu hỏi về tài liệu "${selectedDirectDoc.title}" mà em đã chọn. Em muốn tìm hiểu điều gì nào?`
+        }
+      ]);
+    } else {
+      setDirectChatHistory([]);
+    }
+  }, [selectedDirectDoc]);
+
   // Load documents from backend
   useEffect(() => {
     let active = true;
@@ -452,151 +520,7 @@ export default function ExamBankPage({ currentUser, navigateTo }) {
         </div>
       </div>
 
-      {/* AI Assistant Prompter Box */}
-      <div style={{ padding: '0 40px', marginBottom: '24px' }}>
-        <div className="exambank-ai-card">
-          <div className="exambank-ai-card__header">
-            <span style={{ fontSize: '24px' }}>🔮</span>
-            <h3 className="exambank-ai-card__title">
-              Cố vấn AI: Thiết lập Lộ trình & Tìm tài liệu Học tập
-            </h3>
-          </div>
-          <p className="exambank-ai-card__desc">
-            Nhập nhu cầu học tập của em (ví dụ: cấp lớp, môn học, kỳ thi muốn ôn, số ngày tự học...) để Trợ lý AI tự động đề xuất tài liệu tối ưu nhất từ thư viện và xây dựng lộ trình tuần tự.
-          </p>
 
-          <form onSubmit={handleAiSearchSubmit} className="exambank-ai-card__input-wrapper">
-            <input
-              type="text"
-              className="exambank-ai-card__input"
-              placeholder="Ví dụ: Em học lớp 12 muốn tìm tài liệu Toán thi ĐGNL và lộ trình học ôn trong 30 ngày..."
-              value={aiSearchText}
-              onChange={e => setAiSearchText(e.target.value)}
-              disabled={isAiLoading}
-            />
-            <button
-              type="submit"
-              className="exambank-ai-card__btn-submit"
-              disabled={isAiLoading}
-            >
-              <HiSparkles /> {isAiLoading ? 'Đang phân tích...' : 'Phân tích & Đề xuất'}
-            </button>
-          </form>
-
-          <div className="exambank-ai-card__quick-prompts">
-            <span style={{ fontSize: '12.5px', color: '#6b7280', fontWeight: '600', alignSelf: 'center', marginRight: '4px' }}>Gợi ý nhanh:</span>
-            <button
-              type="button"
-              className="exambank-ai-card__quick-prompt-btn"
-              onClick={() => {
-                setAiSearchText('Em cần tìm tài liệu ôn thi học sinh giỏi Tiếng Anh 11');
-                setTimeout(() => handleAiSearchSubmit(), 100);
-              }}
-            >
-              📝 HSG Tiếng Anh 11
-            </button>
-            <button
-              type="button"
-              className="exambank-ai-card__quick-prompt-btn"
-              onClick={() => {
-                setAiSearchText('Tìm tài liệu ôn thi tốt nghiệp THPT Quốc gia môn Toán lớp 12');
-                setTimeout(() => handleAiSearchSubmit(), 100);
-              }}
-            >
-              📐 Toán 12 thi THPTQG
-            </button>
-            <button
-              type="button"
-              className="exambank-ai-card__quick-prompt-btn"
-              onClick={() => {
-                setAiSearchText('Tài liệu ôn thi ĐGNL ĐHQG miễn phí có lộ trình');
-                setTimeout(() => handleAiSearchSubmit(), 100);
-              }}
-            >
-              ⚡ Đề thi ĐGNL miễn phí
-            </button>
-          </div>
-
-          {/* AI Loader */}
-          {isAiLoading && (
-            <div style={{ textAlign: 'center', padding: '30px 0' }}>
-              <div className="exambank-chat__dots" style={{ scale: '1.3' }}>
-                <span></span><span></span><span></span>
-              </div>
-              <p style={{ fontSize: '13px', color: '#7c3aed', fontWeight: '600', marginTop: '10px' }}>Trợ lý AI đang quét 2.259 tài liệu và lập lộ trình tự học dành riêng cho em...</p>
-            </div>
-          )}
-
-          {/* AI Result display */}
-          {aiRecommendation && (
-            <div className="exambank-ai-result">
-              <div className="exambank-ai-result__header">
-                <h4 className="exambank-ai-result__title">
-                  ✨ Kết quả đề xuất & lộ trình từ Cố vấn AI EduPath
-                </h4>
-                <button
-                  type="button"
-                  className="exambank-ai-result__btn-close"
-                  onClick={() => {
-                    setAiRecommendation(null);
-                    setAiSearchText('');
-                  }}
-                >
-                  Thu gọn
-                </button>
-              </div>
-
-              <p style={{ fontSize: '13.5px', color: '#4b5563', lineHeight: '1.6', marginBottom: '20px' }} dangerouslySetInnerHTML={{ __html: aiRecommendation.advice }}></p>
-
-              <div className="exambank-ai-result__body">
-                {/* Recommended documents list */}
-                <div>
-                  <h5 className="exambank-ai-result__section-title">
-                    📚 Tài liệu đề xuất tốt nhất ({aiRecommendation.recommendations.length})
-                  </h5>
-                  {aiRecommendation.recommendations.length === 0 ? (
-                    <p style={{ fontSize: '12.5px', color: '#94a3b8', fontStyle: 'italic' }}>Không tìm thấy tài liệu phù hợp trực tiếp, dưới đây là lộ trình tổng quan môn này.</p>
-                  ) : (
-                    <div className="exambank-ai-result__doc-list">
-                      {aiRecommendation.recommendations.map(doc => (
-                        <div
-                          key={doc.id}
-                          className="exambank-ai-result__doc-item"
-                          onClick={() => setPreviewDoc(doc)}
-                        >
-                          <div className="exambank-ai-result__doc-info">
-                            <h6 className="exambank-ai-result__doc-title" style={{ fontSize: '13px', fontWeight: '700', margin: '0 0 2px' }}>{doc.title}</h6>
-                            <span className="exambank-ai-result__doc-subject" style={{ fontSize: '11px', color: '#7c3aed' }}>✨ {doc.subject}</span>
-                          </div>
-                          <div className="exambank-ai-result__doc-btn">
-                            <HiEye />
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Customized Study Roadmap */}
-                <div>
-                  <h5 className="exambank-ai-result__section-title">
-                    🗺️ Lộ trình tự học tuần tự (4 Tuần)
-                  </h5>
-                  <div className="exambank-roadmap">
-                    {aiRecommendation.steps.map((step, idx) => (
-                      <div key={idx} className="exambank-roadmap__step">
-                        <div className="exambank-roadmap__dot" />
-                        <h6 className="exambank-roadmap__step-title">{step.title}</h6>
-                        <p className="exambank-roadmap__step-detail">{step.detail}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
 
       {/* Filters */}
       <div className="exambank-filters">

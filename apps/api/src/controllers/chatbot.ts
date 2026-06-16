@@ -8,7 +8,7 @@ export async function chatbotConsult(req: Request, res: Response) {
   }
 
   const apiKey = process.env.OPENROUTER_API_KEY;
-  const model = process.env.OPENROUTER_MODEL || 'google/gemini-2.5-flash';
+  const model = process.env.OPENROUTER_MODEL || 'openrouter/free';
 
   if (!apiKey) {
     console.error('[Chatbot Error] OPENROUTER_API_KEY is not configured in .env file!');

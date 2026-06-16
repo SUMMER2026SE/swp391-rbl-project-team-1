@@ -187,17 +187,21 @@ export default function MockExamTakingPage({ examId, currentUser, onFinished, na
           setSecondsRemaining(examData.duration_minutes * 60);
         }
       } else {
-        const examData = await mockExamService.getMockExamById(examId);
-        setExam(examData);
+        const savedAttemptId = localStorage.getItem(`exam_taking_attempt_id_${examId}`);
+        
+        let attPromise = Promise.resolve(null);
+        if (!savedAttemptId && currentUser) {
+          attPromise = mockExamService.startMockExam(currentUser.id, examId);
+        }
 
-        const qs = await mockExamService.getExamQuestions(examId);
-        const questionsWithOptions = await Promise.all(
-          qs.map(async (q) => {
-            const opts = await mockExamService.getExamOptions(q.id);
-            return { ...q, options: opts };
-          })
-        );
-        setQuestions(questionsWithOptions);
+        const [examData, qs, att] = await Promise.all([
+          mockExamService.getMockExamById(examId),
+          mockExamService.getExamQuestions(examId),
+          attPromise
+        ]);
+
+        setExam(examData);
+        setQuestions(qs);
 
         const savedAnswers = localStorage.getItem(`exam_taking_answers_${examId}`);
         if (savedAnswers) setAnswers(JSON.parse(savedAnswers));
@@ -205,11 +209,9 @@ export default function MockExamTakingPage({ examId, currentUser, onFinished, na
         const savedBookmarks = localStorage.getItem(`exam_taking_bookmarks_${examId}`);
         if (savedBookmarks) setBookmarks(JSON.parse(savedBookmarks));
 
-        const savedAttemptId = localStorage.getItem(`exam_taking_attempt_id_${examId}`);
         if (savedAttemptId) {
           setAttemptId(savedAttemptId);
-        } else if (currentUser) {
-          const att = await mockExamService.startMockExam(currentUser.id, examId);
+        } else if (att) {
           setAttemptId(att.id);
           localStorage.setItem(`exam_taking_attempt_id_${examId}`, att.id);
         } else {
@@ -222,7 +224,7 @@ export default function MockExamTakingPage({ examId, currentUser, onFinished, na
         if (savedSeconds) {
           setSecondsRemaining(parseInt(savedSeconds, 10));
         } else {
-          setSecondsRemaining((examData.duration_minutes || 90) * 60);
+          setSecondsRemaining(((examData && examData.duration_minutes) || 90) * 60);
         }
       }
     } catch (err) {

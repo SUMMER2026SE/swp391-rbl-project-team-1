@@ -50,7 +50,7 @@ const mapExam = (e) => {
     exam_type: isOfficial ? 'official' : 'mock',
     source: isOfficial ? 'Bộ GD&ĐT' : 'Trường chuyên',
     duration_minutes: e.duration,
-    total_questions: e.examQuestions?.length || 50,
+    total_questions: e.examQuestions ? e.examQuestions.length : (e.totalQuestions || 0),
     description: e.description || `Đề thi ôn luyện môn ${e.subject} thi tốt nghiệp THPT Quốc Gia.`,
     status: 'published',
     exam_subjects: {
@@ -65,6 +65,7 @@ const mapExam = (e) => {
 };
 
 const optionsCache = {};
+const examPromiseCache = {};
 
 const mapQuestion = (q, idx, examId) => {
   const options = typeof q.options === 'string' ? JSON.parse(q.options) : q.options;
@@ -89,7 +90,7 @@ const mapQuestion = (q, idx, examId) => {
     exam_id: String(examId),
     question_number: idx + 1,
     question_text: q.content,
-    question_image_url: null,
+    question_image_url: q.imageUrl || null,
     question_type: 'multiple_choice_single',
     difficulty: diffLabel,
     explanation: q.explanation || '',
@@ -153,7 +154,7 @@ export const mockExamService = {
 
       const list = await api.getExams(apiFilters);
       if (list && list.length > 0) {
-        let result = list.map(mapExam);
+        let result = list.map(mapExam).filter(e => e.total_questions > 0);
         if (filters.search) {
           const query = filters.search.toLowerCase();
           result = result.filter(e => e.title.toLowerCase().includes(query) || e.description?.toLowerCase().includes(query));
@@ -177,7 +178,7 @@ export const mockExamService = {
         exam_subjects: subject || null,
         attempts_count: examAttempts.length
       };
-    });
+    }).filter(e => e.total_questions > 0);
 
     if (filters.subjectId && filters.subjectId !== 'All') {
       result = result.filter(e => String(e.subject_id) === String(filters.subjectId));
@@ -199,8 +200,27 @@ export const mockExamService = {
   // ── Retrieve a single mock exam by ID ──
   async getMockExamById(examId) {
     try {
-      const exam = await api.getExamById(examId);
-      if (exam) return mapExam(exam);
+      let realExamId = examId;
+      if (parseInt(examId, 10) > 1000) {
+        const generatedList = getLocalData('supabase_mock_exams') || [];
+        const found = generatedList.find(e => String(e.id) === String(examId));
+        if (found && found.dbExamId) {
+          realExamId = found.dbExamId;
+        }
+      }
+
+      let examPromise = examPromiseCache[realExamId];
+      if (!examPromise) {
+        examPromise = api.getExamById(realExamId);
+        examPromiseCache[realExamId] = examPromise;
+      }
+      const exam = await examPromise;
+
+      if (exam) {
+        const mapped = mapExam(exam);
+        mapped.id = String(examId); // Preserve synthetic ID
+        return mapped;
+      }
     } catch (err) {
       console.warn('[mockExamService] API getMockExamById error, using fallback:', err);
     }
@@ -221,18 +241,45 @@ export const mockExamService = {
   // ── Retrieve all questions of an exam ──
   async getExamQuestions(examId) {
     try {
-      const exam = await api.getExamById(examId);
+      let realExamId = examId;
+      if (parseInt(examId, 10) > 1000) {
+        const generatedList = getLocalData('supabase_mock_exams') || [];
+        const found = generatedList.find(e => String(e.id) === String(examId));
+        if (found && found.dbExamId) {
+          realExamId = found.dbExamId;
+        }
+      }
+
+      let examPromise = examPromiseCache[realExamId];
+      if (!examPromise) {
+        examPromise = api.getExamById(realExamId);
+        examPromiseCache[realExamId] = examPromise;
+      }
+      const exam = await examPromise;
+
       if (exam && exam.questions) {
-        return exam.questions.map((q, idx) => mapQuestion(q, idx, examId));
+        return exam.questions.map((q, idx) => {
+          const mq = mapQuestion(q, idx, examId);
+          mq.options = optionsCache[mq.id] || [];
+          return mq;
+        });
       }
     } catch (err) {
       console.warn('[mockExamService] API getExamQuestions error, using fallback:', err);
     }
 
     const questions = getLocalData('supabase_mock_exam_questions') || [];
-    return questions
+    const filteredQs = questions
       .filter(q => String(q.exam_id) === String(examId))
       .sort((a, b) => a.question_number - b.question_number);
+
+    const options = getLocalData('supabase_mock_exam_options') || [];
+    return filteredQs.map(q => {
+      const qOptions = options
+        .filter(o => String(o.question_id) === String(q.id))
+        .sort((a, b) => a.option_label.localeCompare(b.option_label));
+      return { ...q, options: qOptions };
+    });
   },
 
   // ── Retrieve all options of a question ──
@@ -250,12 +297,21 @@ export const mockExamService = {
   // ── Initialize exam attempt log ──
   async startMockExam(userId, examId, retakeMode = null, questionIds = []) {
     try {
-      const res = await api.startAttempt(examId, retakeMode, questionIds);
+      let realExamId = examId;
+      if (parseInt(examId, 10) > 1000) {
+        const generatedList = getLocalData('supabase_mock_exams') || [];
+        const found = generatedList.find(e => String(e.id) === String(examId));
+        if (found && found.dbExamId) {
+          realExamId = found.dbExamId;
+        }
+      }
+
+      const res = await api.startAttempt(realExamId, retakeMode, questionIds);
       if (res && res.attempt) {
         return {
           id: String(res.attempt.id),
           user_id: String(res.attempt.studentId),
-          exam_id: String(res.attempt.examId),
+          exam_id: String(examId),
           started_at: res.attempt.startedAt,
           status: 'in_progress',
           score: 0
@@ -446,13 +502,22 @@ export const mockExamService = {
   // ── Retrieve all attempts by a user for an exam ──
   async getUserExamAttempts(userId, examId) {
     try {
+      let realExamId = examId;
+      if (parseInt(examId, 10) > 1000) {
+        const generatedList = getLocalData('supabase_mock_exams') || [];
+        const found = generatedList.find(e => String(e.id) === String(examId));
+        if (found && found.dbExamId) {
+          realExamId = found.dbExamId;
+        }
+      }
+
       const list = await api.getAttempts();
       if (list && list.length > 0) {
-        const filtered = list.filter(a => String(a.examId) === String(examId) && a.status === 'SUBMITTED');
+        const filtered = list.filter(a => String(a.examId) === String(realExamId) && a.status === 'SUBMITTED');
         return filtered.map(a => ({
           id: String(a.id),
           user_id: String(a.studentId),
-          exam_id: String(a.examId),
+          exam_id: String(examId),
           started_at: a.startedAt,
           submitted_at: a.submittedAt,
           duration_seconds: a.durationUsed || 0,
@@ -672,10 +737,115 @@ export const mockExamService = {
   // ── NEW: Generate AI coach plan for an attempt ──
   async generateAiCoach(attemptId) {
     try {
-      const coachPlan = await api.generateAiCoach(attemptId);
+      let bodyData = undefined;
+      const isLocal = String(attemptId).startsWith('attempt-');
+      if (isLocal) {
+        const results = getLocalData('supabase_mock_exam_results') || [];
+        const result = results.find(r => String(r.attempt_id) === String(attemptId));
+        if (result) {
+          const questions = result.questions || [];
+          const incorrectAnswers = [];
+          const topicStats = {};
+          const difficultyStats = {
+            EASY: { correct: 0, total: 0, accuracy: 0 },
+            MEDIUM: { correct: 0, total: 0, accuracy: 0 },
+            HARD: { correct: 0, total: 0, accuracy: 0 }
+          };
+
+          const savedAnswers = getLocalData('supabase_mock_exam_answers') || [];
+          
+          questions.forEach(q => {
+            const correctAnswer = q.options?.find(o => o.is_correct || o.isCorrect);
+            const ansObj = savedAnswers.find(a => String(a.attempt_id) === String(attemptId) && String(a.question_id) === String(q.id));
+            const selectedLabel = ansObj ? ansObj.selected_option_label : null;
+            const isCorrect = ansObj ? ansObj.is_correct : false;
+
+            const qDifficulty = q.difficulty === 'Dễ' ? 'EASY' : (q.difficulty === 'Khó' ? 'HARD' : 'MEDIUM');
+            const qTopic = q.topic || 'Chung';
+
+            if (!topicStats[qTopic]) {
+              topicStats[qTopic] = { correct: 0, total: 0, accuracy: 0 };
+            }
+            topicStats[qTopic].total++;
+            if (isCorrect) topicStats[qTopic].correct++;
+
+            if (difficultyStats[qDifficulty]) {
+              difficultyStats[qDifficulty].total++;
+              if (isCorrect) difficultyStats[qDifficulty].correct++;
+            }
+
+            if (!isCorrect) {
+              incorrectAnswers.push({
+                content: q.question_text || q.content,
+                topic: qTopic,
+                difficulty: qDifficulty,
+                options: q.options?.map(o => ({ label: o.option_label || o.label, text: o.option_text || o.text })) || [],
+                explanation: q.explanation || '',
+                correctAnswer: correctAnswer?.option_label || correctAnswer?.label || '',
+                selectedAnswer: selectedLabel || 'Bỏ qua'
+              });
+            }
+          });
+
+          Object.keys(topicStats).forEach(t => {
+            topicStats[t].accuracy = topicStats[t].correct / topicStats[t].total;
+          });
+          Object.keys(difficultyStats).forEach(d => {
+            if (difficultyStats[d].total > 0) {
+              difficultyStats[d].accuracy = difficultyStats[d].correct / difficultyStats[d].total;
+            }
+          });
+
+          bodyData = {
+            score: result.score,
+            examTitle: result.mock_exams?.title || 'Đề luyện thi',
+            subject: result.subject || result.mock_exams?.subject || 'Toán học',
+            topicStats,
+            difficultyStats,
+            incorrectAnswers
+          };
+        }
+      }
+
+      const coachPlan = await api.generateAiCoach(attemptId, bodyData);
+
+      if (coachPlan && isLocal) {
+        const results = getLocalData('supabase_mock_exam_results') || [];
+        const updated = results.map(r => {
+          if (String(r.attempt_id) === String(attemptId)) {
+            let existingFeedback = {};
+            if (r.ai_feedback) {
+              try {
+                existingFeedback = typeof r.ai_feedback === 'string' ? JSON.parse(r.ai_feedback) : r.ai_feedback;
+              } catch (_) {}
+            }
+            return {
+              ...r,
+              ai_feedback: JSON.stringify({ ...existingFeedback, coachPlan })
+            };
+          }
+          return r;
+        });
+        setLocalData('supabase_mock_exam_results', updated);
+      }
+
       return coachPlan;
     } catch (err) {
       console.warn('[mockExamService] generateAiCoach error:', err);
+      return null;
+    }
+  },
+
+  // ── NEW: Generate a similar question via AI ──
+  async generateSimilarQuestion(payload) {
+    try {
+      const res = await api.generateSimilarQuestion(payload);
+      if (res && res.success) {
+        return res.data;
+      }
+      return null;
+    } catch (err) {
+      console.error('[mockExamService] generateSimilarQuestion error:', err);
       return null;
     }
   },
@@ -702,7 +872,15 @@ export const mockExamService = {
   // ── NEW: Create a smart retake session ──
   async createSmartRetake(examId, mode, attemptId = null) {
     try {
-      const res = await api.createSmartRetake(examId, mode, attemptId);
+      let realExamId = examId;
+      if (parseInt(examId, 10) > 1000) {
+        const generatedList = getLocalData('supabase_mock_exams') || [];
+        const found = generatedList.find(e => String(e.id) === String(examId));
+        if (found && found.dbExamId) {
+          realExamId = found.dbExamId;
+        }
+      }
+      const res = await api.createSmartRetake(realExamId, mode, attemptId);
       return res;
     } catch (err) {
       console.error('[mockExamService] createSmartRetake error:', err);

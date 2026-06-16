@@ -100,6 +100,41 @@ export default function AITutorPage({ currentUser, navigateTo, addLog }) {
   const [editNodeDesc, setEditNodeDesc] = useState('');
   const [newChildName, setNewChildName] = useState('');
   const [newChildDesc, setNewChildDesc] = useState('');
+
+  // Sidebar resizing and node shapes states
+  const [sidebarWidth, setSidebarWidth] = useState(280);
+  const [editNodeShape, setEditNodeShape] = useState('oval');
+  const isDraggingSidebarRef = useRef(false);
+  const [blankMindmapTitle, setBlankMindmapTitle] = useState('Sơ đồ tư duy mới');
+
+  const handleSidebarMouseDown = (e) => {
+    e.preventDefault();
+    isDraggingSidebarRef.current = true;
+    document.body.style.cursor = 'col-resize';
+  };
+
+  useEffect(() => {
+    const handleMouseMove = (e) => {
+      if (!isDraggingSidebarRef.current) return;
+      const newWidth = Math.max(200, Math.min(600, e.clientX));
+      setSidebarWidth(newWidth);
+    };
+
+    const handleMouseUp = () => {
+      if (isDraggingSidebarRef.current) {
+        isDraggingSidebarRef.current = false;
+        document.body.style.cursor = '';
+      }
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, []);
   
   // Saved Mindmaps History List
   const [savedMindmaps, setSavedMindmaps] = useState([]);
@@ -180,6 +215,7 @@ export default function AITutorPage({ currentUser, navigateTo, addLog }) {
     if (selectedNode) {
       setEditNodeName(selectedNode.name || '');
       setEditNodeDesc(selectedNode.description || '');
+      setEditNodeShape(selectedNode.shape || 'oval');
       setNewChildName('');
       setNewChildDesc('');
     }
@@ -488,7 +524,8 @@ export default function AITutorPage({ currentUser, navigateTo, addLog }) {
         depth: layoutNode.depth,
         x: layoutNode.x,
         y: layoutNode.y,
-        hasChildren
+        hasChildren,
+        shape: rawNode?.shape || 'oval'
       });
 
       layoutNode.children.forEach(child => {
@@ -639,10 +676,11 @@ export default function AITutorPage({ currentUser, navigateTo, addLog }) {
     const nodeId = selectedNode.id;
     const name = editNodeName.trim();
     const desc = editNodeDesc.trim();
+    const shape = editNodeShape;
 
     const updateNodeInTree = (node) => {
       if (node.id === nodeId) {
-        return { ...node, name, description: desc };
+        return { ...node, name, description: desc, shape };
       }
       if (node.children) {
         return {
@@ -969,7 +1007,13 @@ export default function AITutorPage({ currentUser, navigateTo, addLog }) {
       )}
 
       {/* Main Workspace grid */}
-      <div className="aitutor-workspace">
+      <div 
+        className="aitutor-workspace"
+        style={{
+          gridTemplateColumns: `${sidebarWidth}px 6px 1fr`,
+          gap: '0px'
+        }}
+      >
         {/* Left sidebar: Control & history */}
         <aside className="aitutor-sidebar">
           {/* Tabs header */}
@@ -978,7 +1022,13 @@ export default function AITutorPage({ currentUser, navigateTo, addLog }) {
               className={`aitutor-tab-btn ${activeTab === 'create' ? 'aitutor-tab-btn--active' : ''}`}
               onClick={() => setActiveTab('create')}
             >
-              <HiSparkles /> Tạo sơ đồ
+              <HiSparkles /> Tạo sơ đồ AI
+            </button>
+            <button 
+              className={`aitutor-tab-btn ${activeTab === 'manual' ? 'aitutor-tab-btn--active' : ''}`}
+              onClick={() => setActiveTab('manual')}
+            >
+              <HiPlus /> Tự thiết kế
             </button>
             <button 
               className={`aitutor-tab-btn ${activeTab === 'history' ? 'aitutor-tab-btn--active' : ''}`}
@@ -987,7 +1037,7 @@ export default function AITutorPage({ currentUser, navigateTo, addLog }) {
                 if (currentUser) fetchHistory();
               }}
             >
-              <HiFolder /> Đã lưu
+              <HiFolder /> Thư viện
             </button>
           </div>
 
@@ -1094,6 +1144,156 @@ export default function AITutorPage({ currentUser, navigateTo, addLog }) {
             </div>
           )}
 
+          {/* Manual Design Panel */}
+          {activeTab === 'manual' && (
+            <div className="aitutor-panel-content">
+              {/* Section 1: Create Blank Mindmap */}
+              <div className="manual-section" style={{ borderBottom: '1px solid var(--border)', paddingBottom: '16px', marginBottom: '8px' }}>
+                <h5 style={{ color: 'var(--fc-gold)', fontSize: '11px', fontWeight: 'bold', margin: '0 0 10px 0', display: 'flex', alignItems: 'center', gap: '6px', letterSpacing: '0.5px', textTransform: 'uppercase' }}>
+                  🆕 Tạo sơ đồ trống mới
+                </h5>
+                <div style={{ display: 'flex', gap: '8px', flexDirection: 'column' }}>
+                  <input
+                    type="text"
+                    className="flashcard-modal-input"
+                    style={{ background: '#141410', width: '100%', fontSize: '12.5px', padding: '8px 10px', height: '36px', boxSizing: 'border-box' }}
+                    placeholder="Nhập tên sơ đồ..."
+                    value={blankMindmapTitle}
+                    onChange={(e) => setBlankMindmapTitle(e.target.value)}
+                  />
+                  <button 
+                    className="aitutor-action-btn"
+                    style={{ padding: '8px 12px', fontSize: '12px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                    onClick={() => {
+                      const finalName = blankMindmapTitle.trim() || 'Sơ đồ tư duy của tôi';
+                      const newRoot = {
+                        name: finalName,
+                        description: 'Chủ đề gốc. Chọn nút này để thêm nút con hoặc chỉnh sửa nội dung.',
+                        children: []
+                      };
+                      const structured = assignIds(newRoot);
+                      setMindmapData(structured);
+                      setActiveMindmapDbId(null);
+                      setSelectedNode(structured);
+                      const newExpanded = new Set();
+                      newExpanded.add(structured.id);
+                      setExpandedNodes(newExpanded);
+                      setZoom(1.0);
+                      setPan({ x: 150, y: 200 });
+                      toast('Đã khởi tạo sơ đồ tư duy trống mới!', 'success');
+                    }}
+                  >
+                    <HiPlus /> Khởi tạo ngay
+                  </button>
+                </div>
+              </div>
+
+              {/* Section 2: CRUD Selected Node */}
+              {selectedNode ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }} className="animate-in">
+                  <div className="manual-section">
+                    <h5 style={{ color: 'var(--fc-gold)', fontSize: '11px', fontWeight: 'bold', margin: '0 0 10px 0', display: 'flex', alignItems: 'center', gap: '6px', letterSpacing: '0.5px', textTransform: 'uppercase' }}>
+                      ✏️ Chỉnh sửa nút đã chọn
+                    </h5>
+                    
+                    <label className="flashcard-modal-label" style={{ marginBottom: '4px', display: 'block', fontSize: '10px', color: 'var(--text-secondary)' }}>Tên nút sơ đồ</label>
+                    <input 
+                      type="text"
+                      className="flashcard-modal-input"
+                      style={{ background: '#141410', width: '100%', marginBottom: '10px', fontSize: '13px', height: '36px', padding: '0 10px', boxSizing: 'border-box' }}
+                      value={editNodeName}
+                      onChange={(e) => setEditNodeName(e.target.value)}
+                    />
+
+                    <label className="flashcard-modal-label" style={{ marginBottom: '4px', display: 'block', fontSize: '10px', color: 'var(--text-secondary)' }}>Mô tả chi tiết</label>
+                    <textarea 
+                      className="flashcard-modal-textarea"
+                      style={{ background: '#141410', width: '100%', marginBottom: '10px', fontSize: '12px', padding: '8px 10px', boxSizing: 'border-box' }}
+                      value={editNodeDesc}
+                      onChange={(e) => setEditNodeDesc(e.target.value)}
+                      rows={2}
+                    />
+
+                    <label className="flashcard-modal-label" style={{ marginBottom: '4px', display: 'block', fontSize: '10px', color: 'var(--text-secondary)' }}>Hình dạng nút</label>
+                    <select 
+                      className="flashcard-modal-input"
+                      style={{ background: '#141410', width: '100%', marginBottom: '12px', fontSize: '12.5px', color: 'var(--text-primary)', border: '1px solid var(--border)', height: '36px', borderRadius: '10px', padding: '0 8px', boxSizing: 'border-box' }}
+                      value={editNodeShape}
+                      onChange={(e) => setEditNodeShape(e.target.value)}
+                    >
+                      <option value="oval">Hình Bầu Dục (Oval)</option>
+                      <option value="rectangle">Hình Chữ Nhật (Rectangle)</option>
+                      <option value="circle">Hình Tròn (Circle)</option>
+                      <option value="rhombus">Hình Thoi (Rhombus)</option>
+                    </select>
+
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button 
+                        className="flashcard-header-btn" 
+                        onClick={handleUpdateNode}
+                        style={{ background: 'var(--fc-gold)', color: '#12120e', border: 'none', padding: '8px 12px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer', flex: 1, borderRadius: '8px' }}
+                      >
+                        Cập nhật
+                      </button>
+                      {selectedNode.id !== '0' && (
+                        <button 
+                          className="flashcard-header-btn" 
+                          onClick={handleDeleteNode}
+                          style={{ background: 'rgba(239,68,68,0.1)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.2)', padding: '8px 12px', fontSize: '11px', cursor: 'pointer', flex: 1, borderRadius: '8px' }}
+                        >
+                          Xóa nút
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="manual-section" style={{ borderTop: '1px solid var(--border)', paddingTop: '14px' }}>
+                    <h5 style={{ color: 'var(--fc-gold)', fontSize: '11px', fontWeight: 'bold', margin: '0 0 10px 0', display: 'flex', alignItems: 'center', gap: '6px', letterSpacing: '0.5px', textTransform: 'uppercase' }}>
+                      ➕ Thêm ý con vào nhánh
+                    </h5>
+                    
+                    <input 
+                      type="text"
+                      className="flashcard-modal-input"
+                      style={{ background: '#141410', width: '100%', marginBottom: '8px', fontSize: '12px', padding: '8px 10px', height: '36px', boxSizing: 'border-box' }}
+                      placeholder="Nhập tiêu đề ý con..."
+                      value={newChildName}
+                      onChange={(e) => setNewChildName(e.target.value)}
+                    />
+                    <textarea 
+                      className="flashcard-modal-textarea"
+                      style={{ background: '#141410', width: '100%', marginBottom: '8px', fontSize: '12px', padding: '8px 10px', boxSizing: 'border-box' }}
+                      placeholder="Nhập tóm tắt mô tả..."
+                      value={newChildDesc}
+                      onChange={(e) => setNewChildDesc(e.target.value)}
+                      rows={2}
+                    />
+                    <button 
+                      className="flashcard-header-btn" 
+                      onClick={handleAddChildNode}
+                      style={{ background: 'transparent', borderColor: 'var(--border)', padding: '8px 12px', fontSize: '11.5px', cursor: 'pointer', width: '100%', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}
+                    >
+                      <HiPlus /> Thêm nút con
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div style={{
+                  textAlign: 'center',
+                  padding: '24px 12px',
+                  fontSize: '11.5px',
+                  color: 'var(--text-secondary)',
+                  border: '1px dashed var(--border)',
+                  borderRadius: '12px',
+                  background: 'rgba(0,0,0,0.1)',
+                  lineHeight: '1.5'
+                }}>
+                  🖱️ Hãy chọn một nút bất kỳ trên sơ đồ để bắt đầu chỉnh sửa hoặc thêm nhánh con mới.
+                </div>
+              )}
+            </div>
+          )}
+
           {/* History Saved Panel */}
           {activeTab === 'history' && (
             <div className="aitutor-panel-content" style={{ padding: '12px' }}>
@@ -1158,6 +1358,8 @@ export default function AITutorPage({ currentUser, navigateTo, addLog }) {
             </div>
           )}
         </aside>
+
+        <div className="aitutor-sidebar-resizer" onMouseDown={handleSidebarMouseDown} />
 
         {/* Center Canvas Workspace */}
         <main className="aitutor-chat-panel">
@@ -1279,29 +1481,61 @@ export default function AITutorPage({ currentUser, navigateTo, addLog }) {
                     const isLevel1 = node.depth === 1;
                     const isExpanded = expandedNodes.has(node.id);
 
+                    // Custom Shapes Styling
+                    let borderRadius = '14px';
+                    let borderLeft = isRoot ? 'none' : (isLevel1 ? '6px solid #8B5CF6' : '6px solid #0D9488');
+                    let border = isRoot ? 'none' : (isLevel1 ? '2px solid #8B5CF6' : '1px solid var(--border)');
+                    let clipPath = 'none';
+                    let width = '100%';
+                    let height = '100%';
+                    let margin = '0';
+                    let padding = '8px 12px';
+
+                    if (node.shape === 'rectangle') {
+                      borderRadius = '4px';
+                    } else if (node.shape === 'oval') {
+                      borderRadius = '100px';
+                    } else if (node.shape === 'circle') {
+                      borderRadius = '50%';
+                      width = '80px';
+                      height = '80px';
+                      margin = '0 auto';
+                      borderLeft = 'none';
+                      border = isRoot ? '2px solid #fff' : (isLevel1 ? '2px solid #8B5CF6' : '2px solid #0D9488');
+                      padding = '6px';
+                    } else if (node.shape === 'rhombus') {
+                      clipPath = 'polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)';
+                      borderRadius = '0px';
+                      borderLeft = 'none';
+                      border = isRoot ? '2px solid #fff' : (isLevel1 ? '2px solid #8B5CF6' : '2px solid #0D9488');
+                      padding = '12px 28px';
+                    }
+
                     return (
                       <g key={node.id} transform={`translate(${node.x}, ${node.y})`}>
                         {/* Interactive HTML inside SVG foreignObject */}
-                        <foreignObject x="-110" y="-35" width="220" height="70">
+                        <foreignObject x="-110" y="-40" width="220" height="80">
                           <div 
                             xmlns="http://www.w3.org/1999/xhtml"
                             onClick={() => handleNodeSelect(node)}
                             style={{
-                              width: '100%',
-                              height: '100%',
+                              width: width,
+                              height: height,
+                              margin: margin,
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
                               textAlign: 'center',
-                              padding: '8px 12px',
+                              padding: padding,
                               boxSizing: 'border-box',
                               background: isRoot 
                                 ? 'linear-gradient(135deg, #4F46E5, #7C3AED)' 
                                 : (isLevel1 ? 'var(--bg-card)' : 'var(--bg-main)'),
                               color: isRoot ? '#FFFFFF' : 'var(--text-primary)',
-                              border: isRoot ? 'none' : (isLevel1 ? '2px solid #8B5CF6' : '1px solid var(--border)'),
-                              borderLeft: isRoot ? 'none' : (isLevel1 ? '6px solid #8B5CF6' : '6px solid #0D9488'),
-                              borderRadius: '14px',
+                              border: border,
+                              borderLeft: borderLeft,
+                              borderRadius: borderRadius,
+                              clipPath: clipPath,
                               boxShadow: isSelected 
                                 ? '0 0 0 3px #FFA751, 0 8px 16px rgba(0,0,0,0.12)' 
                                 : '0 3px 8px rgba(0,0,0,0.06)',
@@ -1427,6 +1661,19 @@ export default function AITutorPage({ currentUser, navigateTo, addLog }) {
                   onChange={(e) => setEditNodeDesc(e.target.value)}
                   rows={3}
                 />
+
+                <label className="flashcard-modal-label" style={{ marginBottom: '4px', display: 'block', fontSize: '10px', color: 'var(--text-secondary)' }}>Hình dạng nút</label>
+                <select 
+                  className="flashcard-modal-input"
+                  style={{ background: '#141410', width: '100%', marginBottom: '12px', fontSize: '13.5px', color: 'var(--text-primary)', border: '1px solid var(--border)', height: '38px', borderRadius: '10px', padding: '0 10px' }}
+                  value={editNodeShape}
+                  onChange={(e) => setEditNodeShape(e.target.value)}
+                >
+                  <option value="oval">Hình Bầu Dục (Oval)</option>
+                  <option value="rectangle">Hình Chữ Nhật (Rectangle)</option>
+                  <option value="circle">Hình Tròn (Circle)</option>
+                  <option value="rhombus">Hình Thoi (Rhombus)</option>
+                </select>
 
                 <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
                   <button 

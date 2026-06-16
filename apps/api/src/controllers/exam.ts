@@ -608,43 +608,80 @@ export async function generateAiCoach(req: AuthRequest, res: Response) {
   if (!studentId) return res.status(401).json({ success: false, error: 'Chưa xác thực!' });
 
   try {
-    const attempt = await prisma.testAttempt.findFirst({
-      where: { id: Number(attemptId), studentId },
-      include: {
-        exam: true,
-        attemptAnswers: {
-          include: {
-            question: true
+    const isLocal = isNaN(Number(attemptId)) || String(attemptId).startsWith('attempt-');
+    let attempt: any = null;
+    let topicStats: any = {};
+    let difficultyStats: any = {};
+    let weakTopics: string[] = [];
+    let strongTopics: string[] = [];
+    let incorrectAnswers: any[] = [];
+    let examTitle = '';
+    let examSubject = '';
+    let score = 0;
+    let correctCount = 0;
+    let wrongCount = 0;
+    let skippedCount = 0;
+
+    if (isLocal) {
+      const { score: bodyScore, examTitle: bodyTitle, subject: bodySubject, topicStats: bodyTopics, difficultyStats: bodyDifficulty, incorrectAnswers: bodyIncorrect } = req.body;
+      score = bodyScore || 0;
+      examTitle = bodyTitle || 'Đề luyện thi';
+      examSubject = bodySubject || 'Toán học';
+      topicStats = bodyTopics || {};
+      difficultyStats = bodyDifficulty || {};
+      incorrectAnswers = bodyIncorrect || [];
+      
+      weakTopics = Object.keys(topicStats).filter(t => (topicStats[t].accuracy || 0) < 0.6);
+      strongTopics = Object.keys(topicStats).filter(t => (topicStats[t].accuracy || 0) >= 0.8);
+      
+      correctCount = Object.values(topicStats).reduce((acc: number, cur: any) => acc + (cur.correct || 0), 0);
+      wrongCount = incorrectAnswers.length;
+      skippedCount = Math.max(0, Object.values(topicStats).reduce((acc: number, cur: any) => acc + (cur.total || 0), 0) - correctCount - wrongCount);
+    } else {
+      attempt = await prisma.testAttempt.findFirst({
+        where: { id: Number(attemptId), studentId },
+        include: {
+          exam: true,
+          attemptAnswers: {
+            include: {
+              question: true
+            }
           }
         }
-      }
-    });
+      });
 
-    if (!attempt) return res.status(404).json({ success: false, error: 'Không tìm thấy lượt thi!' });
+      if (!attempt) return res.status(404).json({ success: false, error: 'Không tìm thấy lượt thi!' });
 
-    const topicStats = (attempt.topicStats as any) || {};
-    const difficultyStats = (attempt.difficultyStats as any) || {};
-    const weakTopics = Object.keys(topicStats).filter(t => (topicStats[t].accuracy || 0) < 0.6);
-    const strongTopics = Object.keys(topicStats).filter(t => (topicStats[t].accuracy || 0) >= 0.8);
+      topicStats = (attempt.topicStats as any) || {};
+      difficultyStats = (attempt.difficultyStats as any) || {};
+      weakTopics = Object.keys(topicStats).filter(t => (topicStats[t].accuracy || 0) < 0.6);
+      strongTopics = Object.keys(topicStats).filter(t => (topicStats[t].accuracy || 0) >= 0.8);
+      incorrectAnswers = attempt.attemptAnswers.filter(ans => !ans.isCorrect);
+      examTitle = attempt.exam.title;
+      examSubject = attempt.exam.subject;
+      score = attempt.score || 0;
+      correctCount = attempt.correctCount || 0;
+      wrongCount = attempt.wrongCount || 0;
+      skippedCount = attempt.skippedCount || 0;
+    }
 
     let coachPlan: any = null;
     const apiKey = process.env.OPENROUTER_API_KEY;
-    const model = process.env.OPENROUTER_MODEL || 'google/gemini-2.5-flash';
+    const model = process.env.OPENROUTER_MODEL || 'openrouter/free';
 
     if (apiKey) {
-      const incorrectAnswers = attempt.attemptAnswers.filter(ans => !ans.isCorrect);
-      
       const sampleIncorrect = incorrectAnswers.slice(0, 10).map((ans, idx) => {
-        const q = ans.question;
+        const q = isLocal ? ans : ans.question;
+        const studentAns = isLocal ? ans.selectedAnswer : ans.selectedAnswer;
         const opts = typeof q.options === 'string' ? JSON.parse(q.options) : q.options;
         const formattedOpts = Array.isArray(opts)
           ? opts.map((o: any) => `${o.label}. ${o.text}`).join(', ')
           : '';
         return `Câu hỏi ${idx + 1} (Chủ đề: ${q.topic || 'Chung'}, Độ khó: ${q.difficulty}):
-   Nội dung: "${q.content}"
+   Nội dung: "${q.content || q.question_text}"
    Các lựa chọn: [${formattedOpts}]
-   Đáp án đúng: ${q.correctAnswer}
-   Học sinh đã chọn: ${ans.selectedAnswer || 'Bỏ qua'}
+   Đáp án đúng: ${q.correctAnswer || q.correct_answer}
+   Học sinh đã chọn: ${studentAns || 'Bỏ qua'}
    Giải thích: ${q.explanation || 'Không có giải thích'}`;
       }).join('\n\n');
 
@@ -660,10 +697,10 @@ export async function generateAiCoach(req: AuthRequest, res: Response) {
       const prompt = `Bạn là một AI Coach, chuyên gia cố vấn học tập và luyện thi THPT Quốc gia hàng đầu. Nhiệm vụ của bạn là phân tích chi tiết kết quả bài thi thử của học sinh và xây dựng kế hoạch ôn tập cá nhân hóa 7 ngày tối ưu nhất bằng tiếng Việt.
 
 Thông tin kết quả bài thi thử:
-- Đề thi: "${attempt.exam.title}"
-- Môn học: "${attempt.exam.subject}"
-- Điểm số: ${attempt.score?.toFixed(2)}/10
-- Số câu đúng: ${attempt.correctCount} | Số câu sai: ${attempt.wrongCount} | Số câu bỏ qua: ${attempt.skippedCount}
+- Đề thi: "${examTitle}"
+- Môn học: "${examSubject}"
+- Điểm số: ${score?.toFixed(2)}/10
+- Số câu đúng: ${correctCount} | Số câu sai: ${wrongCount} | Số câu bỏ qua: ${skippedCount}
 
 Thống kê chi tiết theo chủ đề:
 ${topicLines}
@@ -678,7 +715,7 @@ ${sampleIncorrect || 'Không có câu hỏi sai.'}
 Yêu cầu phản hồi:
 Bạn chỉ được phép phản hồi dưới dạng một đối tượng JSON duy nhất, KHÔNG chứa bất kỳ văn bản giải thích nào trước hoặc sau khối JSON đó. Khối JSON phải tuân thủ chính xác cấu trúc sau:
 {
-  "summary": "Phân tích sư phạm chuyên sâu (150-200 từ) về kết quả thi. Hãy chỉ rõ học sinh đang hổng kiến thức ở phân môn nào, lỗi sai là do hiểu sai khái niệm (Thông hiểu) hay do chưa biết cách giải toán/áp dụng công thức nâng cao (Vận dụng/Vận dụng cao).",
+  "summary": "Phân tích sư phạm cực kỳ chuyên sâu và chi tiết (từ 250-400 từ) về kết quả thi. Hãy chỉ rõ học sinh đang hổng kiến thức ở phân môn nào, lỗi sai là do hiểu sai khái niệm (Thông hiểu) hay do chưa biết cách giải toán/áp dụng công thức nâng cao (Vận dụng/Vận dụng cao). Đồng thời phân tích sâu sắc nguyên nhân cụ thể dẫn đến các câu trả lời sai của học sinh từ danh sách câu hỏi sai ở trên (ví dụ: nhầm lẫn lý thuyết, tính toán sai số, hay chưa nắm vững phương pháp giải chuyên đề).",
   "strengths": ["Điểm mạnh cụ thể 1 kèm ví dụ chủ đề", "Điểm mạnh cụ thể 2"],
   "weaknesses": ["Lỗ hổng kiến thức cụ thể 1 kèm mức độ nhận thức", "Lỗ hổng cụ thể 2"],
   "priority_topics": ["Chủ đề ưu tiên số 1 phải học ngay", "Chủ đề ưu tiên số 2"],
@@ -688,12 +725,65 @@ Bạn chỉ được phép phản hồi dưới dạng một đối tượng JSO
       "focus": "Chủ đề học cụ thể ngày 1...",
       "tasks": [
         "Nhiệm vụ cụ thể 1: Đọc tài liệu trang/chủ đề nào...",
-        "Nhiệm vụ cụ thể 2: Luyện bao nhiêu câu bài tập tự luận/trắc nghiệm...",
+        "Nhiệm vụ cụ thể 2: Luyện bao nhiêu câu bài tập tự luyện/trắc nghiệm...",
         "Nhiệm vụ cụ thể 3: Ghi chép sổ tay hoặc sơ đồ tư duy..."
       ],
       "goal": "Mục tiêu cụ thể đạt được..."
     },
-    ... (lần lượt đến ngày 7)
+    {
+      "day": 2,
+      "focus": "Chủ đề học cụ thể ngày 2...",
+      "tasks": [
+        "Nhiệm vụ cụ thể 1...",
+        "Nhiệm vụ cụ thể 2..."
+      ],
+      "goal": "Mục tiêu cụ thể đạt được..."
+    },
+    {
+      "day": 3,
+      "focus": "Chủ đề học cụ thể ngày 3...",
+      "tasks": [
+        "Nhiệm vụ cụ thể 1...",
+        "Nhiệm vụ cụ thể 2..."
+      ],
+      "goal": "Mục tiêu cụ thể đạt được..."
+    },
+    {
+      "day": 4,
+      "focus": "Chủ đề học cụ thể ngày 4...",
+      "tasks": [
+        "Nhiệm vụ cụ thể 1...",
+        "Nhiệm vụ cụ thể 2..."
+      ],
+      "goal": "Mục tiêu cụ thể đạt được..."
+    },
+    {
+      "day": 5,
+      "focus": "Chủ đề học cụ thể ngày 5...",
+      "tasks": [
+        "Nhiệm vụ cụ thể 1...",
+        "Nhiệm vụ cụ thể 2..."
+      ],
+      "goal": "Mục tiêu cụ thể đạt được..."
+    },
+    {
+      "day": 6,
+      "focus": "Chủ đề học cụ thể ngày 6...",
+      "tasks": [
+        "Nhiệm vụ cụ thể 1...",
+        "Nhiệm vụ cụ thể 2..."
+      ],
+      "goal": "Mục tiêu cụ thể đạt được..."
+    },
+    {
+      "day": 7,
+      "focus": "Chủ đề ôn tập tổng hợp ngày 7...",
+      "tasks": [
+        "Nhiệm vụ cụ thể 1...",
+        "Nhiệm vụ cụ thể 2..."
+      ],
+      "goal": "Mục tiêu cụ thể đạt được..."
+    }
   ],
   "motivational_message": "Lời khuyên sư phạm và thông điệp truyền cảm hứng học tập mạnh mẽ..."
 }`;
@@ -712,7 +802,7 @@ Bạn chỉ được phép phản hồi dưới dạng một đối tượng JSO
             model: model,
             messages: [{ role: 'user', content: prompt }],
             temperature: 0.7,
-            max_tokens: 450
+            max_tokens: 3000
           })
         });
 
@@ -734,21 +824,23 @@ Bạn chỉ được phép phản hồi dưới dạng một đối tượng JSO
 
     if (!coachPlan) {
       coachPlan = buildRuleBasedCoachPlan(
-        attempt.score || 0,
+        score,
         weakTopics,
         strongTopics,
         topicStats,
         difficultyStats,
-        attempt.exam.title,
-        attempt.exam.subject
+        examTitle,
+        examSubject
       );
     }
 
-    const existingFeedback = (attempt.aiFeedback as any) || {};
-    await prisma.testAttempt.update({
-      where: { id: Number(attemptId) },
-      data: { aiFeedback: { ...existingFeedback, coachPlan } }
-    });
+    if (!isLocal && attempt) {
+      const existingFeedback = (attempt.aiFeedback as any) || {};
+      await prisma.testAttempt.update({
+        where: { id: Number(attemptId) },
+        data: { aiFeedback: { ...existingFeedback, coachPlan } }
+      });
+    }
 
     return res.status(200).json({ success: true, data: coachPlan });
   } catch (err: any) {
@@ -1095,6 +1187,162 @@ export async function createSmartRetake(req: AuthRequest, res: Response) {
 
     if (!exam) return res.status(404).json({ success: false, error: 'Không tìm thấy đề thi!' });
 
+    if (mode === 'ai_similar') {
+      const apiKey = process.env.OPENROUTER_API_KEY;
+      const model = process.env.OPENROUTER_MODEL || 'openrouter/free';
+      
+      let baseQuestions = exam.examQuestions;
+      if (attemptId) {
+        const prevAttempt = await prisma.testAttempt.findFirst({
+          where: { id: Number(attemptId), studentId, status: 'SUBMITTED' },
+          include: { attemptAnswers: { include: { question: true } } }
+        });
+        if (prevAttempt) {
+          const wrongAnswers = prevAttempt.attemptAnswers.filter(a => !a.isCorrect);
+          const rightAnswers = prevAttempt.attemptAnswers.filter(a => a.isCorrect);
+          const selectedWrong = wrongAnswers.slice(0, 7).map(a => exam.examQuestions.find(eq => eq.questionId === a.questionId)).filter(Boolean);
+          const selectedRight = rightAnswers.slice(0, 10 - selectedWrong.length).map(a => exam.examQuestions.find(eq => eq.questionId === a.questionId)).filter(Boolean);
+          baseQuestions = [...selectedWrong, ...selectedRight] as any;
+        }
+      }
+
+      if (baseQuestions.length === 0) {
+        baseQuestions = exam.examQuestions;
+      }
+      if (baseQuestions.length > 10) {
+        baseQuestions = baseQuestions.slice(0, 10);
+      }
+
+      const questionsDataPrompt = baseQuestions.map((eq, idx) => {
+        const q = eq.question;
+        const opts = typeof q.options === 'string' ? JSON.parse(q.options) : q.options;
+        const formattedOpts = Array.isArray(opts)
+          ? opts.map((o: any) => `${o.label}. ${o.text}`).join(', ')
+          : '';
+        return `Câu hỏi tham chiếu ${idx + 1}:
+- Nội dung: "${q.content}"
+- Chủ đề: "${q.topic || 'Chung'}"
+- Độ khó: "${q.difficulty}"
+- Các lựa chọn: [${formattedOpts}]
+- Đáp án đúng: "${q.correctAnswer}"
+- Giải thích chi tiết: "${q.explanation || ''}"`;
+      }).join('\n\n');
+
+      const systemPrompt = `Bạn là một AI chuyên gia biên soạn đề thi THPT Quốc gia hàng đầu Việt Nam. Nhiệm vụ của bạn là tạo ra 10 câu hỏi MỚI hoàn toàn TƯƠNG TỰ các câu hỏi tham chiếu được cung cấp.
+Với mỗi câu hỏi tham chiếu, hãy tạo một câu hỏi mới:
+1. Kiểm tra cùng một khái niệm, kiến thức, công thức toán học/vật lý/hóa học hoặc chủ đề ngữ pháp tiếng Anh.
+2. Có độ khó (EASY/MEDIUM/HARD) tương ứng.
+3. Sử dụng các con số mới, tình huống mới hoặc cách diễn đạt khác để học sinh không thể làm theo trí nhớ mà phải hiểu bản chất.
+4. Có 4 đáp án lựa chọn A, B, C, D rõ ràng, chỉ duy nhất một đáp án đúng.
+5. Giải thích pedagogical chi tiết từng bước.
+6. Các ký tự toán học, công thức vật lý, hóa học PHẢI sử dụng định dạng LaTeX chuẩn (ví dụ: $x^2 + 2x = 0$, $\\frac{a}{b}$) để trình duyệt render đẹp mắt.
+
+Bạn chỉ được phép trả về một mảng JSON duy nhất chứa 10 câu hỏi, KHÔNG có văn bản giải thích nào khác trước hoặc sau JSON.
+Cấu trúc mỗi câu hỏi trong JSON phải chính xác như sau:
+[
+  {
+    "content": "Nội dung câu hỏi mới chứa công thức LaTeX...",
+    "options": [
+      {"label": "A", "text": "Phương án A..."},
+      {"label": "B", "text": "Phương án B..."},
+      {"label": "C", "text": "Phương án C..."},
+      {"label": "D", "text": "Phương án D..."}
+    ],
+    "correctAnswer": "A", // hoặc B, C, D
+    "topic": "Tên chủ đề tương ứng câu hỏi tham chiếu",
+    "difficulty": "EASY", // EASY hoặc MEDIUM hoặc HARD
+    "explanation": "Lời giải chi tiết từng bước..."
+  }
+]`;
+
+      let generatedQuestions: any[] = [];
+      if (apiKey) {
+        try {
+          console.log(`[AI Similar Exam] Generating 10 similar questions with model: ${model}`);
+          const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${apiKey}`,
+              'Content-Type': 'application/json',
+              'HTTP-Referer': 'https://edupath.vn',
+              'X-Title': 'EduPath AI Similar Exam Generator'
+            },
+            body: JSON.stringify({
+              model: model,
+              messages: [
+                { role: 'system', content: systemPrompt },
+                { role: 'user', content: questionsDataPrompt }
+              ],
+              temperature: 0.7,
+              max_tokens: 3000
+            })
+          });
+
+          if (response.ok) {
+            const aiData = await response.json() as any;
+            const rawText = aiData?.choices?.[0]?.message?.content || '';
+            const jsonMatch = rawText.match(/\[\s*\{[\s\S]*\}\s*\]/);
+            if (jsonMatch) {
+              const parsed = JSON.parse(jsonMatch[0]);
+              if (Array.isArray(parsed) && parsed.length > 0) {
+                generatedQuestions = parsed;
+              }
+            }
+          } else {
+            const errText = await response.text();
+            console.error(`[AI Similar Exam Error] OpenRouter status ${response.status}: ${errText}`);
+          }
+        } catch (aiErr) {
+          console.error('[AI Similar Exam] API call failed:', aiErr);
+        }
+      }
+
+      if (generatedQuestions.length === 0) {
+        generatedQuestions = baseQuestions.map(eq => {
+          const q = eq.question;
+          const opts = typeof q.options === 'string' ? JSON.parse(q.options) : q.options;
+          return {
+            content: `[Tương tự] ${q.content}`,
+            options: opts,
+            correctAnswer: q.correctAnswer,
+            topic: q.topic,
+            difficulty: q.difficulty,
+            explanation: q.explanation
+          };
+        });
+      }
+
+      const mappedQuestions = generatedQuestions.map((q, idx) => {
+        return {
+          id: -100 - idx,
+          content: q.content,
+          options: typeof q.options === 'string' ? q.options : JSON.stringify(q.options),
+          subject: exam.subject,
+          topic: q.topic || 'Kiến thức cốt lõi',
+          difficulty: q.difficulty || 'MEDIUM',
+          imageUrl: null,
+          question_number: idx + 1
+        };
+      });
+
+      return res.status(200).json({
+        success: true,
+        data: {
+          exam: {
+            id: exam.id,
+            title: `${exam.title} — Đề tương tự AI 🤖`,
+            subject: exam.subject,
+            duration: Math.max(15, Math.ceil(mappedQuestions.length * 1.5)),
+            totalQuestions: mappedQuestions.length,
+            retakeMode: 'ai_similar',
+            sourceExamId: exam.id,
+            sourceAttemptId: attemptId || null
+          },
+          questions: mappedQuestions
+        }
+      });
+    }
+
     let filteredQuestions = exam.examQuestions;
 
     if (mode === 'wrong_only' && attemptId) {
@@ -1187,5 +1435,89 @@ export async function importExam(req: AuthRequest, res: Response) {
     return res.status(201).json({ success: true, data: { examId, message: 'Nhập đề thi thành công!' } });
   } catch (err: any) {
     return res.status(400).json({ success: false, error: err.message });
+  }
+}
+
+export async function generateSimilarQuestion(req: AuthRequest, res: Response) {
+  const { content, topic, difficulty, options, explanation, subject } = req.body;
+  const apiKey = process.env.OPENROUTER_API_KEY;
+  const model = process.env.OPENROUTER_MODEL || 'openrouter/free';
+
+  if (!apiKey) {
+    return res.status(500).json({ success: false, error: 'OpenRouter API key is not configured!' });
+  }
+
+  const opts = typeof options === 'string' ? JSON.parse(options) : options;
+  const formattedOpts = Array.isArray(opts)
+    ? opts.map((o: any) => `${o.label}. ${o.text}`).join(', ')
+    : '';
+
+  const questionPrompt = `Câu hỏi gốc:
+- Nội dung: "${content}"
+- Chủ đề: "${topic || 'Chung'}"
+- Môn học: "${subject || 'Toán học'}"
+- Độ khó: "${difficulty || 'MEDIUM'}"
+- Các lựa chọn: [${formattedOpts}]
+- Lời giải thích gốc: "${explanation || ''}"`;
+
+  const systemPrompt = `Bạn là một AI chuyên gia biên soạn đề thi tốt nghiệp THPT Quốc gia hàng đầu. Hãy tạo ra MỘT câu hỏi trắc nghiệm mới hoàn toàn TƯƠNG TỰ câu hỏi gốc được cung cấp.
+Yêu cầu câu hỏi mới:
+1. Kiểm tra cùng một khái niệm kiến thức, định lý, công thức hoặc điểm ngữ pháp với câu gốc.
+2. Thay đổi số liệu, thông số, tên nhân vật hoặc tình huống cụ thể (để học sinh không thể giải bằng cách nhớ đáp án).
+3. Sử dụng định dạng LaTeX chuẩn cho tất cả các ký tự toán học, vật lý, hóa học (ví dụ: $x = 2$, $\\Delta$, $\\frac{a}{b}$) để trình duyệt render đẹp mắt.
+4. Có 4 lựa chọn A, B, C, D rõ ràng, chỉ duy nhất một đáp án đúng.
+5. Có lời giải pedagogical chi tiết từng bước bằng tiếng Việt.
+
+Chỉ trả về duy nhất một đối tượng JSON đại diện cho câu hỏi mới, tuyệt đối không giải thích thêm trước hoặc sau khối JSON.
+Định dạng JSON:
+{
+  "content": "Nội dung câu hỏi mới chứa công thức LaTeX...",
+  "options": [
+    {"label": "A", "text": "Phương án A..."},
+    {"label": "B", "text": "Phương án B..."},
+    {"label": "C", "text": "Phương án C..."},
+    {"label": "D", "text": "Phương án D..."}
+  ],
+  "correctAnswer": "A", // Đáp án đúng A, B, C hoặc D
+  "explanation": "Hướng dẫn giải chi tiết từng bước bằng tiếng Việt...",
+  "topic": "Tên chủ đề tương ứng câu hỏi gốc",
+  "difficulty": "Độ khó tương ứng (EASY, MEDIUM, hoặc HARD)"
+}`;
+
+  try {
+    console.log(`[AI Similar Question] Generating single question with model: ${model}`);
+    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': 'https://edupath.vn',
+        'X-Title': 'EduPath AI Similar Question Generator'
+      },
+      body: JSON.stringify({
+        model: model,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: questionPrompt }
+        ],
+        temperature: 0.7,
+        max_tokens: 1000
+      })
+    });
+
+    if (response.ok) {
+      const aiData = await response.json() as any;
+      const rawText = aiData?.choices?.[0]?.message?.content || '';
+      const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0]);
+        return res.status(200).json({ success: true, data: parsed });
+      }
+    }
+    
+    const errText = await response.text();
+    return res.status(400).json({ success: false, error: `OpenRouter error: ${errText}` });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message });
   }
 }

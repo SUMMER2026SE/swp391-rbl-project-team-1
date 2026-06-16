@@ -64,6 +64,11 @@ export default function FlashcardPage({ currentUser, navigateTo, addLog }) {
   const [editingCardIdx, setEditingCardIdx] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
 
+  // New deck creation modal states
+  const [isCreatingDeckModal, setIsCreatingDeckModal] = useState(false);
+  const [newDeckTitle, setNewDeckTitle] = useState('');
+  const [newDeckHashtag, setNewDeckHashtag] = useState('# Tự tạo');
+
   // Attendance state loaded from localStorage
   const [attendance, setAttendance] = useState(() => {
     try {
@@ -868,23 +873,50 @@ export default function FlashcardPage({ currentUser, navigateTo, addLog }) {
   };
 
   const handleCreateNewDeck = () => {
-    const today = new Date();
-    const dateStr = today.toLocaleDateString('vi-VN');
-    const finalName = `Bộ thẻ mới ${dateStr}`;
+    setNewDeckTitle('');
+    setNewDeckHashtag('# Tự tạo');
+    setIsCreatingDeckModal(true);
+  };
 
-    const newCard = {
-      front: 'Thuật ngữ mới',
-      back: 'Giải thích định nghĩa',
-      image: null,
-      partOfSpeech: 'Khái niệm',
-      hashtag: '# Tự tạo'
-    };
+  const handleConfirmCreateDeck = () => {
+    if (!newDeckTitle.trim()) {
+      toast('Tên bộ thẻ không được bỏ trống!', 'warning');
+      return;
+    }
+
+    const finalName = newDeckTitle.trim();
+    const rawHashtag = newDeckHashtag.trim();
+    const finalHashtag = rawHashtag ? (rawHashtag.startsWith('#') ? rawHashtag : `# ${rawHashtag}`) : '# Tự tạo';
+
+    const newCards = [
+      {
+        front: 'Khái niệm 1',
+        back: 'Giải thích chi tiết khái niệm 1',
+        image: null,
+        partOfSpeech: 'Khái niệm',
+        hashtag: finalHashtag
+      },
+      {
+        front: 'Khái niệm 2',
+        back: 'Giải thích chi tiết khái niệm 2',
+        image: null,
+        partOfSpeech: 'Khái niệm',
+        hashtag: finalHashtag
+      },
+      {
+        front: 'Khái niệm 3',
+        back: 'Giải thích chi tiết khái niệm 3',
+        image: null,
+        partOfSpeech: 'Khái niệm',
+        hashtag: finalHashtag
+      }
+    ];
 
     const newId = Date.now().toString();
     const newDeck = {
       id: newId,
       title: finalName,
-      cards: [newCard],
+      cards: newCards,
       createdAt: new Date().toISOString()
     };
 
@@ -903,7 +935,7 @@ export default function FlashcardPage({ currentUser, navigateTo, addLog }) {
     localStorage.setItem('edupath_saved_flashcard_decks', JSON.stringify(nextDecks));
 
     setDeckTitle(finalName);
-    setCards([newCard]);
+    setCards(newCards);
     setActiveDeckId(newId);
     setCurrentIdx(0);
     setIsFlipped(false);
@@ -912,17 +944,12 @@ export default function FlashcardPage({ currentUser, navigateTo, addLog }) {
     setReviewCards(new Set());
     setCurrentView('study');
 
-    // Auto start editing the first card
-    setEditFront(newCard.front);
-    setEditBack(newCard.back);
-    setEditImage(null);
-    setEditPartOfSpeech(newCard.partOfSpeech);
-    setEditHashtag(newCard.hashtag);
-    setEditingCardIdx(0);
+    // Do not auto-open the editing modal, show the folder/deck workspace
     setIsAddingCard(false);
-    setIsEditingCurrent(true);
+    setIsEditingCurrent(false);
+    setIsCreatingDeckModal(false);
 
-    toast(`Đã tạo bộ thẻ "${finalName}". Bạn có thể đổi tên bộ thẻ học ở trên!`, 'success');
+    toast(`Đã tạo bộ thẻ "${finalName}" gồm ${newCards.length} thẻ học!`, 'success');
   };
 
   const handleDeleteCardAtIndex = (idx) => {
@@ -1318,7 +1345,7 @@ export default function FlashcardPage({ currentUser, navigateTo, addLog }) {
                 >
                   <div>
                     <div className="flashcard-doc-icon-container">
-                      <HiDocumentText className="flashcard-doc-large-icon" />
+                      <HiFolder className="flashcard-doc-large-icon" />
                       <span className="flashcard-doc-meta-badge flashcard-doc-meta-badge--default">
                         Mặc định
                       </span>
@@ -1365,7 +1392,7 @@ export default function FlashcardPage({ currentUser, navigateTo, addLog }) {
                   >
                     <div>
                       <div className="flashcard-doc-icon-container">
-                        <HiDocumentText className="flashcard-doc-large-icon" style={{ color: 'var(--fc-gold)' }} />
+                        <HiFolder className="flashcard-doc-large-icon" style={{ color: 'var(--fc-gold)' }} />
                         <span className="flashcard-doc-meta-badge flashcard-doc-meta-badge--saved">
                           Đã lưu
                         </span>
@@ -2012,6 +2039,76 @@ export default function FlashcardPage({ currentUser, navigateTo, addLog }) {
                 style={{ background: 'var(--fc-gold)', color: '#12120e', border: 'none' }}
               >
                 Lưu thẻ
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal for Creating New Deck */}
+      {isCreatingDeckModal && (
+        <div className="flashcard-modal-overlay" onClick={() => setIsCreatingDeckModal(false)}>
+          <div className="flashcard-modal-card animate-in" onClick={e => e.stopPropagation()}>
+            <div className="flashcard-modal-header">
+              <h3 className="flashcard-modal-title">Tạo bộ thẻ mới</h3>
+              <button className="flashcard-modal-close-btn" onClick={() => setIsCreatingDeckModal(false)}>
+                <HiX />
+              </button>
+            </div>
+            
+            <div className="flashcard-modal-body">
+              <div className="flashcard-modal-field">
+                <label className="flashcard-modal-label">Tên bộ thẻ</label>
+                <input 
+                  type="text" 
+                  className="flashcard-modal-input"
+                  value={newDeckTitle}
+                  onChange={(e) => setNewDeckTitle(e.target.value)}
+                  placeholder="Ví dụ: Từ vựng IELTS - Topic Travel"
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleConfirmCreateDeck();
+                    }
+                  }}
+                />
+              </div>
+
+              <div className="flashcard-modal-field">
+                <label className="flashcard-modal-label">Chủ đề / Hashtag mặc định</label>
+                <input 
+                  type="text" 
+                  className="flashcard-modal-input"
+                  value={newDeckHashtag}
+                  onChange={(e) => setNewDeckHashtag(e.target.value)}
+                  placeholder="Ví dụ: # Tiếng Anh, # Vật lý..."
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleConfirmCreateDeck();
+                    }
+                  }}
+                />
+              </div>
+            </div>
+
+            <div className="flashcard-modal-footer">
+              <button 
+                type="button"
+                className="flashcard-header-btn" 
+                onClick={() => setIsCreatingDeckModal(false)}
+                style={{ background: 'transparent', borderColor: 'var(--fc-border-dark)' }}
+              >
+                Hủy bỏ
+              </button>
+              <button 
+                type="button"
+                className="flashcard-header-btn" 
+                onClick={handleConfirmCreateDeck}
+                style={{ background: 'var(--fc-gold)', color: '#12120e', border: 'none' }}
+              >
+                Tạo bộ thẻ
               </button>
             </div>
           </div>

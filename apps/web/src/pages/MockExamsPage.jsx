@@ -28,7 +28,7 @@ const SUBJECT_ICONS = {
   4: FaFlask
 };
 
-export default function MockExamsPage({ currentUser, onSelectExam, navigateTo }) {
+export default function MockExamsPage({ currentUser, onSelectExam, navigateTo, examsList }) {
   const [exams, setExams] = useState([]);
   const [subjects, setSubjects] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -61,8 +61,27 @@ export default function MockExamsPage({ currentUser, onSelectExam, navigateTo })
   const loadExams = async () => {
     setLoading(true);
     try {
-      const data = await mockExamService.getMockExams(filters);
-      setExams(data || []);
+      if (examsList && examsList.length > 0) {
+        let result = [...examsList];
+        
+        if (filters.subjectId && filters.subjectId !== 'All') {
+          result = result.filter(e => String(e.subject_id) === String(filters.subjectId));
+        }
+        if (filters.year && filters.year !== 'All') {
+          result = result.filter(e => String(e.year) === String(filters.year));
+        }
+        if (filters.examType && filters.examType !== 'All') {
+          result = result.filter(e => e.exam_type === filters.examType);
+        }
+        if (filters.search) {
+          const query = filters.search.toLowerCase();
+          result = result.filter(e => e.title.toLowerCase().includes(query) || e.description?.toLowerCase().includes(query));
+        }
+        setExams(result);
+      } else {
+        const data = await mockExamService.getMockExams(filters);
+        setExams(data || []);
+      }
     } catch (err) {
       console.error('Lỗi tải danh sách đề thi:', err);
     } finally {
@@ -71,7 +90,7 @@ export default function MockExamsPage({ currentUser, onSelectExam, navigateTo })
   };
 
   useEffect(() => { loadSubjects(); }, []);
-  useEffect(() => { loadExams(); }, [filters]);
+  useEffect(() => { loadExams(); }, [filters, examsList]);
 
   const handleStartExam = (examId) => {
     navigateTo(`/mock-exams/${examId}/start`);

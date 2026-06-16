@@ -37,7 +37,7 @@ export async function streamAIChat(req: AuthRequest, res: Response) {
   res.flushHeaders();
 
   const apiKey = process.env.OPENROUTER_API_KEY;
-  const model = process.env.OPENROUTER_MODEL || 'google/gemini-2.5-flash';
+  const model = process.env.OPENROUTER_MODEL || 'openrouter/free';
 
   if (!apiKey) {
     res.write(`data: ${JSON.stringify({ text: "Hệ thống AI Gia sư đang bảo trì (thiếu cấu hình API Key)." })}\n\n`);
@@ -520,7 +520,7 @@ export async function generateMindmap(req: AuthRequest, res: Response) {
   }
 
   const apiKey = process.env.OPENROUTER_API_KEY;
-  const model = process.env.OPENROUTER_MODEL || 'google/gemini-2.5-flash';
+  const model = process.env.OPENROUTER_MODEL || 'openrouter/free';
 
   if (!apiKey) {
     return res.status(500).json({ success: false, error: 'Hệ thống AI chưa được cấu hình API Key.' });
@@ -770,7 +770,7 @@ export async function generateFlashcards(req: AuthRequest, res: Response) {
   }
 
   const apiKey = process.env.OPENROUTER_API_KEY;
-  const model = process.env.OPENROUTER_MODEL || 'google/gemini-2.5-flash';
+  const model = process.env.OPENROUTER_MODEL || 'openrouter/free';
 
   if (!apiKey) {
     return res.status(500).json({ success: false, error: 'Hệ thống AI chưa được cấu hình API Key.' });

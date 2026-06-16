@@ -41,13 +41,7 @@ export default function MockExamResultPage({ examId, attemptId, currentUser, nav
         setQuestions(resultData.questions);
       } else {
         const qs = await mockExamService.getExamQuestions(examId);
-        const withOpts = await Promise.all(
-          qs.map(async (q) => {
-            const opts = await mockExamService.getExamOptions(q.id);
-            return { ...q, options: opts };
-          })
-        );
-        setQuestions(withOpts);
+        setQuestions(qs);
       }
 
       const answersList = await mockExamService.getAttemptAnswers(attemptId);
@@ -356,7 +350,11 @@ export default function MockExamResultPage({ examId, attemptId, currentUser, nav
               <div style={{ fontSize: '13px', fontWeight: '800', color: 'var(--text-primary)', marginBottom: '16px' }}>
                 🔍 Xem lại từng câu hỏi
               </div>
-              <ExamReviewList questions={questions} userAnswers={userAnswers} />
+              <ExamReviewList 
+                questions={questions} 
+                userAnswers={userAnswers} 
+                subject={result?.mock_exams?.subject || result?.subject} 
+              />
             </div>
           )}
 

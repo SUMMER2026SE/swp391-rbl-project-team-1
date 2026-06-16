@@ -199,8 +199,11 @@ export const api = {
   getExamEvents: (attemptId) =>
     request(`/exam-attempts/${attemptId}/events`),
 
-  generateAiCoach: (attemptId) =>
-    request(`/exam-attempts/${attemptId}/ai-coach`, { method: 'POST' }),
+  generateAiCoach: (attemptId, body = undefined) =>
+    request(`/exam-attempts/${attemptId}/ai-coach`, { method: 'POST', body }),
+
+  generateSimilarQuestion: (payload) =>
+    request('/exam-attempts/generate-similar-question', { method: 'POST', body: payload }),
 
   createSmartRetake: (examId, mode, attemptId) =>
     request(`/exams/${examId}/smart-retake`, { method: 'POST', body: { mode, attemptId } }),

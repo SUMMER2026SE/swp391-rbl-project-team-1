@@ -377,12 +377,71 @@ function LibraryCabinet({ addLog }) {
 const generateMassiveExamsList = (backendExams) => {
   if (!backendExams || backendExams.length === 0) return [];
 
-  const mathExams = backendExams.filter(e => e.subject === 'Toán học');
-  const physicsExams = backendExams.filter(e => e.subject === 'Vật lý');
-  const chemistryExams = backendExams.filter(e => e.subject === 'Hóa học');
-  const biologyExams = backendExams.filter(e => e.subject === 'Sinh học');
-  const englishExams = backendExams.filter(e => e.subject === 'Tiếng Anh');
-  const aptitudeExams = backendExams.filter(e => e.subject.includes('Đánh giá năng lực') || e.title.includes('HSA') || e.title.includes('ĐGNL'));
+  const getSlug = (subject) => {
+    if (subject === 'Toán học') return 'toan';
+    if (subject === 'Tiếng Anh') return 'anh';
+    if (subject === 'Vật lý') return 'ly';
+    if (subject === 'Hóa học') return 'hoa';
+    return 'toan';
+  };
+
+  const getIcon = (subject) => {
+    if (subject === 'Toán học') return '📐';
+    if (subject === 'Tiếng Anh') return '🗣️';
+    if (subject === 'Vật lý') return '⚛️';
+    if (subject === 'Hóa học') return '🧪';
+    return '🎯';
+  };
+
+  const getSubjectId = (subject) => {
+    if (subject === 'Toán học') return 1;
+    if (subject === 'Tiếng Anh') return 2;
+    if (subject === 'Vật lý') return 3;
+    if (subject === 'Hóa học') return 4;
+    return 1;
+  };
+
+  const mapBackendExam = (e) => {
+    const years = [2026, 2025, 2024, 2023, 2022, 2021, 2020];
+    const matchedYear = years.find(y => e.title.includes(String(y))) || 2024;
+    const matchedCode = e.title.match(/Mã đề (\d+)/)?.[1] || '101';
+    const isOfficial = e.title.toLowerCase().includes('chính thức');
+    const subjectSlug = getSlug(e.subject);
+    const subjectIcon = getIcon(e.subject);
+    const subjectId = getSubjectId(e.subject);
+
+    return {
+      id: String(e.id),
+      subject_id: subjectId,
+      title: e.title,
+      year: matchedYear,
+      exam_code: matchedCode,
+      exam_type: isOfficial ? 'official' : 'mock',
+      source: isOfficial ? 'Bộ GD&ĐT' : 'Trường chuyên',
+      duration_minutes: e.duration,
+      total_questions: e.examQuestions ? e.examQuestions.length : (e.totalQuestions || 0),
+      description: e.description || `Đề thi ôn luyện môn ${e.subject} thi tốt nghiệp THPT Quốc Gia.`,
+      status: 'published',
+      exam_subjects: {
+        id: subjectId,
+        name: e.subject,
+        slug: subjectSlug,
+        icon: subjectIcon,
+        description: `Môn ${e.subject} ôn thi THPT Quốc Gia`
+      },
+      attempts_count: 0,
+      examQuestions: e.examQuestions || []
+    };
+  };
+
+  const mappedBackend = backendExams.map(mapBackendExam);
+
+  const mathExams = mappedBackend.filter(e => e.exam_subjects?.name === 'Toán học');
+  const physicsExams = mappedBackend.filter(e => e.exam_subjects?.name === 'Vật lý');
+  const chemistryExams = mappedBackend.filter(e => e.exam_subjects?.name === 'Hóa học');
+  const biologyExams = mappedBackend.filter(e => e.exam_subjects?.name === 'Sinh học');
+  const englishExams = mappedBackend.filter(e => e.exam_subjects?.name === 'Tiếng Anh');
+  const aptitudeExams = mappedBackend.filter(e => e.exam_subjects?.name.includes('Đánh giá năng lực') || e.title.includes('HSA') || e.title.includes('ĐGNL'));
 
   const getMappedId = (subject) => {
     let list = [];
@@ -393,12 +452,12 @@ const generateMassiveExamsList = (backendExams) => {
     else if (subject === 'Tiếng Anh') list = englishExams;
     else list = aptitudeExams;
 
-    if (list.length === 0) return backendExams[0]?.id;
+    if (list.length === 0) return mappedBackend[0]?.id;
     const randomIndex = Math.floor(Math.random() * list.length);
     return list[randomIndex]?.id;
   };
 
-  const list = [...backendExams];
+  const list = [...mappedBackend];
 
   const schools = [
     'Chuyên Hà Nội - Amsterdam', 'Chuyên Lam Sơn Thanh Hóa', 'Chuyên Phan Bội Châu Nghệ An',
@@ -431,14 +490,32 @@ const generateMassiveExamsList = (backendExams) => {
       for (let subject of subjects) {
         count++;
         const mappedId = getMappedId(subject);
-        const examObj = backendExams.find(e => e.id === mappedId);
+        const examObj = mappedBackend.find(e => e.id === mappedId);
+        
+        const subjectSlug = getSlug(subject);
+        const subjectIcon = getIcon(subject);
+        const subjectId = getSubjectId(subject);
+
         list.push({
-          id: count,
+          id: String(count),
           title: `Đề thi thử ${subject} THPTQG ${year} - ${school}`,
-          subject,
-          subjectGroup: subject === 'Tiếng Anh' ? 'D01' : (subject === 'Sinh học' ? 'B00' : 'A01'),
-          duration: subject === 'Toán học' ? 90 : (subject === 'Tiếng Anh' ? 60 : 50),
-          isPublic: true,
+          subject_id: subjectId,
+          year: Number(year),
+          exam_code: String(count % 100 + 101),
+          exam_type: 'mock',
+          source: 'Trường chuyên',
+          duration_minutes: subject === 'Toán học' ? 90 : (subject === 'Tiếng Anh' ? 60 : 50),
+          total_questions: examObj?.total_questions || 50,
+          description: `Đề thi ôn luyện môn ${subject} thi tốt nghiệp THPT Quốc Gia.`,
+          status: 'published',
+          exam_subjects: {
+            id: subjectId,
+            name: subject,
+            slug: subjectSlug,
+            icon: subjectIcon,
+            description: `Môn ${subject} ôn thi THPT Quốc Gia`
+          },
+          attempts_count: 0,
           isGenerated: true,
           dbExamId: mappedId,
           examQuestions: examObj?.examQuestions || []
@@ -451,14 +528,33 @@ const generateMassiveExamsList = (backendExams) => {
   for (let i = 0; i < aptitudeTitles.length; i++) {
     count++;
     const mappedId = getMappedId('Đánh giá năng lực');
-    const examObj = backendExams.find(e => e.id === mappedId);
+    const examObj = mappedBackend.find(e => e.id === mappedId);
+    
+    const subject = 'Đánh giá năng lực';
+    const subjectSlug = getSlug(subject);
+    const subjectIcon = getIcon(subject);
+    const subjectId = getSubjectId(subject);
+
     list.push({
-      id: count,
+      id: String(count),
       title: aptitudeTitles[i],
-      subject: 'Đánh giá năng lực',
-      subjectGroup: 'A01',
-      duration: 150,
-      isPublic: true,
+      subject_id: subjectId,
+      year: 2024,
+      exam_code: String(count % 100 + 101),
+      exam_type: 'mock',
+      source: 'Trường chuyên',
+      duration_minutes: 150,
+      total_questions: examObj?.total_questions || 50,
+      description: `Đề thi ôn luyện môn ${subject} thi tốt nghiệp THPT Quốc Gia.`,
+      status: 'published',
+      exam_subjects: {
+        id: subjectId,
+        name: subject,
+        slug: subjectSlug,
+        icon: subjectIcon,
+        description: `Môn ${subject} ôn thi THPT Quốc Gia`
+      },
+      attempts_count: 0,
       isGenerated: true,
       dbExamId: mappedId,
       examQuestions: examObj?.examQuestions || []
@@ -475,14 +571,32 @@ const generateMassiveExamsList = (backendExams) => {
       for (let code of codes) {
         count++;
         const mappedId = getMappedId(subject);
-        const examObj = backendExams.find(e => e.id === mappedId);
+        const examObj = mappedBackend.find(e => e.id === mappedId);
+        
+        const subjectSlug = getSlug(subject);
+        const subjectIcon = getIcon(subject);
+        const subjectId = getSubjectId(subject);
+
         list.push({
-          id: count,
+          id: String(count),
           title: `Đề thi chính thức THPT QG Môn ${subject} ${year} - Mã đề ${code}`,
-          subject,
-          subjectGroup: subject === 'Tiếng Anh' ? 'D01' : (subject === 'Sinh học' ? 'B00' : 'A01'),
-          duration: subject === 'Toán học' ? 90 : (subject === 'Tiếng Anh' ? 60 : 50),
-          isPublic: true,
+          subject_id: subjectId,
+          year: Number(year),
+          exam_code: code,
+          exam_type: 'official',
+          source: 'Bộ GD&ĐT',
+          duration_minutes: subject === 'Toán học' ? 90 : (subject === 'Tiếng Anh' ? 60 : 50),
+          total_questions: examObj?.total_questions || 50,
+          description: `Đề thi chính thức môn ${subject} năm ${year} của Bộ Giáo dục và Đào tạo.`,
+          status: 'published',
+          exam_subjects: {
+            id: subjectId,
+            name: subject,
+            slug: subjectSlug,
+            icon: subjectIcon,
+            description: `Môn ${subject} ôn thi THPT Quốc Gia`
+          },
+          attempts_count: 0,
           isGenerated: true,
           dbExamId: mappedId,
           examQuestions: examObj?.examQuestions || []
@@ -954,7 +1068,10 @@ export default function App() {
       // 3. Fetch exams from backend
       const backendExams = await api.getExams();
       if (backendExams && backendExams.length > 0) {
-        setExamsList(generateMassiveExamsList(backendExams));
+        const validExams = backendExams.filter(e => e.examQuestions && e.examQuestions.length > 0);
+        const massiveList = generateMassiveExamsList(validExams);
+        setExamsList(massiveList);
+        localStorage.setItem('supabase_mock_exams', JSON.stringify(massiveList));
       }
     } catch (err) {
       console.warn("Không thể tải danh sách đề thi từ backend API.");
@@ -1550,6 +1667,7 @@ export default function App() {
                   currentUser={currentUser}
                   onSelectExam={(examId) => navigateTo(`/mock-exams/${examId}`)}
                   navigateTo={navigateTo}
+                  examsList={examsList}
                 />
               )}
 

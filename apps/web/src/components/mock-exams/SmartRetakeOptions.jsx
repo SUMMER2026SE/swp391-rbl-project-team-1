@@ -32,6 +32,16 @@ const RETAKE_MODES = [
     badge: null
   },
   {
+    mode: 'ai_similar',
+    icon: '🤖',
+    title: 'Đề tương tự AI',
+    desc: 'Hệ thống AI tự động soạn thảo đề thi mới bám sát cấu trúc đề này',
+    color: '#00b894',
+    bg: '#00b89410',
+    border: '#00b89430',
+    badge: 'Mới'
+  },
+  {
     mode: 'full',
     icon: '📝',
     title: 'Thi lại full đề',
