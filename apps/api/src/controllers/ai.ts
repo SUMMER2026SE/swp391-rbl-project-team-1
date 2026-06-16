@@ -534,15 +534,15 @@ Văn bản cần phân tích:
 
 Yêu cầu định dạng JSON trả về PHẢI tuân thủ chính xác cấu trúc sau:
 {
-  "name": "Tiêu đề gốc/Chủ đề chính (viết ngắn gọn, tối đa 5 từ)",
+  "name": "Tiêu đề gốc (tối đa 5 từ)",
   "children": [
     {
-      "name": "Chủ đề con cấp 1 (ngắn gọn)",
-      "description": "Tóm tắt ngắn gọn chủ đề con này",
+      "name": "Chủ đề con cấp 1 (ngắn gọn, tối đa 6 từ)",
+      "description": "Tóm tắt ngắn gọn (tối đa 12 từ)",
       "children": [
         {
-          "name": "Ý chi tiết cấp 2 (ngắn gọn)",
-          "description": "Chi tiết mở rộng"
+          "name": "Ý chi tiết cấp 2 (tối đa 6 từ)",
+          "description": "Chi tiết (tối đa 12 từ)"
         }
       ]
     }
@@ -550,8 +550,9 @@ Yêu cầu định dạng JSON trả về PHẢI tuân thủ chính xác cấu t
 }
 
 Lưu ý quan trọng:
-1. Hãy trích xuất từ 3 đến 6 chủ đề con cấp 1. Mỗi chủ đề con cấp 1 nên có các ý chi tiết cấp 2 đi kèm.
-2. Trả về DUY NHẤT một chuỗi JSON hợp lệ, không bọc trong thẻ markdown \`\`\`json hay bất kỳ ký tự nào khác ngoài chuỗi JSON để frontend có thể parse được ngay.`;
+1. Hãy trích xuất từ 2 đến 4 chủ đề con cấp 1. Mỗi chủ đề con cấp 1 chỉ nên có tối đa 2 ý chi tiết cấp 2 đi kèm để sơ đồ gọn gàng và tiết kiệm token.
+2. Mô tả (description) của mỗi nút phải cực kỳ ngắn gọn, tuyệt đối không vượt quá 12 từ.
+3. Trả về DUY NHẤT một chuỗi JSON hợp lệ, không bọc trong thẻ markdown \`\`\`json hay bất kỳ ký tự nào khác ngoài chuỗi JSON để frontend có thể parse được ngay.`;
 
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
@@ -567,7 +568,7 @@ Lưu ý quan trọng:
           { role: 'user', content: prompt }
         ],
         temperature: 0.3,
-        max_tokens: 450
+        max_tokens: 580
       })
     });
 
@@ -762,7 +763,7 @@ export async function generateFlashcards(req: AuthRequest, res: Response) {
 
   try {
     const prompt = `Bạn là một chuyên gia giáo dục và thiết kế thẻ ghi nhớ (flashcard) chuyên nghiệp.
-Hãy phân tích nội dung/yêu cầu sau đây và tạo ra từ 6 đến 12 cặp flashcard chất lượng cao (thuật ngữ/định nghĩa hoặc câu hỏi/trả lời) dưới dạng mảng JSON.
+Hãy phân tích nội dung/yêu cầu sau đây và tạo ra từ 5 đến 8 cặp flashcard chất lượng cao (thuật ngữ/định nghĩa hoặc câu hỏi/trả lời) dưới dạng mảng JSON.
 
 Nội dung hoặc Yêu cầu nhận được từ người dùng:
 "${text.substring(0, 8000)}"
@@ -800,7 +801,7 @@ Lưu ý quan trọng: Trả về DUY NHẤT một chuỗi JSON hợp lệ, khôn
           { role: 'user', content: prompt }
         ],
         temperature: 0.3,
-        max_tokens: 450
+        max_tokens: 580
       })
     });
 
