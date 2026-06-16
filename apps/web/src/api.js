@@ -251,10 +251,10 @@ export const api = {
       body: { text },
     }),
 
-  saveMindmap: (title, content) =>
+  saveMindmap: (title, content, id = null) =>
     request('/mindmaps', {
       method: 'POST',
-      body: { title, content },
+      body: { title, content, id },
     }),
 
   getMindmaps: () =>

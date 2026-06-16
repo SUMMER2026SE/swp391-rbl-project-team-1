@@ -76,7 +76,7 @@ export async function streamAIChat(req: AuthRequest, res: Response) {
         ],
         stream: true,
         temperature: 0.7,
-        max_tokens: 800
+        max_tokens: 450
       }),
       signal: abortController.signal
     });
@@ -567,7 +567,7 @@ Lưu ý quan trọng:
           { role: 'user', content: prompt }
         ],
         temperature: 0.3,
-        max_tokens: 800
+        max_tokens: 450
       })
     });
 
@@ -605,7 +605,7 @@ Lưu ý quan trọng:
 
 export async function saveMindmap(req: AuthRequest, res: Response) {
   const userId = req.user?.id;
-  const { title, content } = req.body;
+  const { title, content, id } = req.body;
 
   if (!userId) {
     return res.status(401).json({ success: false, error: 'Bạn cần đăng nhập để lưu sơ đồ tư duy.' });
@@ -618,7 +618,26 @@ export async function saveMindmap(req: AuthRequest, res: Response) {
   }
 
   try {
-    const mindmap = await prisma.mindmap.create({
+    let mindmap;
+    if (id) {
+      const existing = await prisma.mindmap.findFirst({
+        where: { id: Number(id), userId }
+      });
+
+      if (existing) {
+        mindmap = await prisma.mindmap.update({
+          where: { id: Number(id) },
+          data: {
+            title: title.trim(),
+            content: content,
+            updatedAt: new Date()
+          }
+        });
+        return res.status(200).json({ success: true, data: mindmap });
+      }
+    }
+
+    mindmap = await prisma.mindmap.create({
       data: {
         userId,
         title: title.trim(),
@@ -781,7 +800,7 @@ Lưu ý quan trọng: Trả về DUY NHẤT một chuỗi JSON hợp lệ, khôn
           { role: 'user', content: prompt }
         ],
         temperature: 0.3,
-        max_tokens: 800
+        max_tokens: 450
       })
     });
 
