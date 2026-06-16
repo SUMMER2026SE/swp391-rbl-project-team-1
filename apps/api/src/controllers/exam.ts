@@ -3,6 +3,8 @@ import type { AuthRequest } from '../middleware/auth.js';
 import { prisma } from '../lib/prisma.js';
 import { Difficulty } from '@prisma/client';
 import { importExamFromObject } from '../utils/examImporter.js';
+import { logUserActivity } from './gamification.js';
+
 
 export async function getExams(req: AuthRequest, res: Response) {
   const { subject, year, source, difficulty } = req.query;
@@ -299,6 +301,15 @@ export async function submitAttempt(req: AuthRequest, res: Response) {
       },
       include: { attemptAnswers: true }
     });
+
+    // Log daily user activity and calculate streaks
+    try {
+      const subject = attempt.exam?.subject || 'Chung';
+      const studyMinutes = Math.max(1, Math.round(durationUsed / 60));
+      await logUserActivity(studentId, 'exam', subject, 100, studyMinutes);
+    } catch (err) {
+      console.error('[submitAttempt Activity Log Error]', err);
+    }
 
     return res.status(200).json({ success: true, data: updatedAttempt });
   } catch (err: any) {

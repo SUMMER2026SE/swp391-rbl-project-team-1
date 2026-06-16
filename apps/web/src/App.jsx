@@ -25,6 +25,7 @@ import CourseMall from './components/CourseMall';
 import ChatbotWidget from './components/ChatbotWidget.jsx';
 import OCRScanner from './components/OCRScanner.jsx';
 import StudentDashboard from './components/dashboard/StudentDashboard';
+import ContributionHeatmap from './components/ContributionHeatmap';
 
 import CoursesPage from './pages/CoursesPage';
 import CourseDetailPage from './pages/CourseDetailPage';
@@ -607,6 +608,372 @@ const generateMassiveExamsList = (backendExams) => {
 
   return list;
 };
+
+function LeaderboardTab({ currentUser }) {
+  const [grade, setGrade] = useState('');
+  const [subject, setSubject] = useState('');
+  const [province, setProvince] = useState('');
+  const [search, setSearch] = useState('');
+  const [rankings, setRankings] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+
+  useEffect(() => {
+    let active = true;
+    const fetchRankings = async () => {
+      setLoading(true);
+      try {
+        const filters = { page, limit: 10 };
+        if (grade) filters.grade = grade;
+        if (subject) filters.subject = subject;
+        if (province) filters.province = province;
+        if (search) filters.search = search;
+
+        const res = await api.getAdvancedLeaderboard(filters);
+        if (active && res) {
+          setRankings(res.rankings || []);
+          setTotalPages(res.pagination?.totalPages || 1);
+        }
+      } catch (err) {
+        console.error('Lỗi tải bảng xếp hạng:', err);
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
+    fetchRankings();
+    return () => { active = false; };
+  }, [grade, subject, province, search, page]);
+
+  const top3 = rankings.slice(0, 3);
+  const rest = rankings.slice(3);
+
+  const getStreakDisplay = (student) => {
+    if (subject) {
+      return `🔥 ${student.subjectStreak || 0} ngày (${subject.toUpperCase()})`;
+    }
+    return `🔥 ${student.streak || 0} ngày`;
+  };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+      {/* Search and Filters Section */}
+      <div className="card" style={{
+        border: '3px solid #000',
+        boxShadow: '4px 4px 0px #000',
+        padding: '20px',
+        background: 'var(--bg-card)',
+        display: 'flex',
+        flexWrap: 'wrap',
+        gap: '12px',
+        alignItems: 'center'
+      }}>
+        <div style={{ flex: '1 1 200px' }}>
+          <input
+            type="text"
+            className="form-control"
+            placeholder="🔍 Tìm học sinh bằng họ tên..."
+            value={search}
+            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+            style={{
+              width: '100%',
+              border: '2px solid #000',
+              padding: '10px 14px',
+              borderRadius: '8px',
+              fontSize: '13px',
+              background: 'var(--bg-main)'
+            }}
+          />
+        </div>
+
+        <div style={{ flex: '1 1 150px' }}>
+          <input
+            type="text"
+            className="form-control"
+            placeholder="📍 Tìm kiếm tỉnh thành..."
+            value={province}
+            onChange={(e) => { setProvince(e.target.value); setPage(1); }}
+            style={{
+              width: '100%',
+              border: '2px solid #000',
+              padding: '10px 14px',
+              borderRadius: '8px',
+              fontSize: '13px',
+              background: 'var(--bg-main)'
+            }}
+          />
+        </div>
+
+        <div style={{ flex: '0 0 120px' }}>
+          <select
+            value={grade}
+            onChange={(e) => { setGrade(e.target.value); setPage(1); }}
+            style={{
+              width: '100%',
+              border: '2px solid #000',
+              padding: '10px',
+              borderRadius: '8px',
+              fontSize: '13px',
+              fontWeight: 'bold',
+              background: 'var(--bg-main)',
+              cursor: 'pointer'
+            }}
+          >
+            <option value="">Khối lớp</option>
+            <option value="10">Khối 10</option>
+            <option value="11">Khối 11</option>
+            <option value="12">Khối 12</option>
+          </select>
+        </div>
+
+        <div style={{ flex: '0 0 140px' }}>
+          <select
+            value={subject}
+            onChange={(e) => { setSubject(e.target.value); setPage(1); }}
+            style={{
+              width: '100%',
+              border: '2px solid #000',
+              padding: '10px',
+              borderRadius: '8px',
+              fontSize: '13px',
+              fontWeight: 'bold',
+              background: 'var(--bg-main)',
+              cursor: 'pointer'
+            }}
+          >
+            <option value="">Tất cả môn</option>
+            <option value="toán học">Toán học</option>
+            <option value="vật lý">Vật lý</option>
+            <option value="hóa học">Hóa học</option>
+            <option value="sinh học">Sinh học</option>
+            <option value="tiếng anh">Tiếng Anh</option>
+          </select>
+        </div>
+      </div>
+
+      {loading ? (
+        <div style={{ textAlign: 'center', padding: '50px 0', fontSize: '15px', fontWeight: 'bold' }}>
+          Đang tải bảng xếp hạng chiến thần học tập... 🏆
+        </div>
+      ) : (
+        <>
+          {/* Top 3 High-contrast Cards */}
+          {top3.length > 0 && (
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+              gap: '24px'
+            }}>
+              {top3.map((student, index) => {
+                const colors = [
+                  { bg: 'linear-gradient(135deg, #fef9c3, #fef08a)', medal: '🥇', label: 'Thủ khoa', text: '#854d0e' },
+                  { bg: 'linear-gradient(135deg, #f1f5f9, #e2e8f0)', medal: '🥈', label: 'Á khoa', text: '#475569' },
+                  { bg: 'linear-gradient(135deg, #ffedd5, #fed7aa)', medal: '🥉', label: 'Tam khoa', text: '#c2410c' }
+                ][index] || { bg: '#fff', medal: '⭐', label: 'Vinh danh', text: '#000' };
+
+                return (
+                  <div
+                    key={student.userId}
+                    style={{
+                      background: colors.bg,
+                      border: '3px solid #000',
+                      borderRadius: '16px',
+                      padding: '24px 16px',
+                      textAlign: 'center',
+                      boxShadow: '4px 4px 0px #000',
+                      position: 'relative'
+                    }}
+                  >
+                    <span style={{
+                      position: 'absolute',
+                      top: '12px',
+                      right: '16px',
+                      fontSize: '11px',
+                      fontWeight: '900',
+                      background: '#000',
+                      color: '#fff',
+                      padding: '2px 8px',
+                      borderRadius: '10px'
+                    }}>
+                      Hạng {student.rank}
+                    </span>
+                    <span style={{ fontSize: '36px', display: 'block', marginBottom: '8px' }}>{colors.medal}</span>
+                    <h3 style={{ fontSize: '15px', fontWeight: '955', textTransform: 'uppercase', color: colors.text, margin: 0 }}>
+                      {colors.label} {subject ? subject.toUpperCase() : 'Toàn sàn'}
+                    </h3>
+                    
+                    <div style={{
+                      width: '64px',
+                      height: '64px',
+                      borderRadius: '50%',
+                      background: '#000',
+                      color: '#fff',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontWeight: 'bold',
+                      fontSize: '18px',
+                      border: '3px solid #000',
+                      margin: '14px 0'
+                    }}>
+                      {student.avatar || student.name?.substring(0, 2).toUpperCase() || 'HS'}
+                    </div>
+
+                    <h4 style={{ fontSize: '16px', fontWeight: '900', color: '#000', margin: '0 0 4px 0' }}>{student.name}</h4>
+                    <p style={{ fontSize: '12px', color: '#4b5563', margin: '0 0 6px 0' }}>
+                      Khối {student.grade || 'Chưa rõ'} • Tỉnh: {student.province || 'Chưa cập nhật'}
+                    </p>
+                    <p style={{ fontSize: '13px', fontWeight: '900', color: colors.text, margin: 0 }}>
+                      XP: <strong>{student.xp.toLocaleString()}</strong> • {getStreakDisplay(student)}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Table rankings */}
+          <div className="card" style={{
+            border: '3px solid #000',
+            boxShadow: '4px 4px 0px #000',
+            padding: '24px',
+            background: 'var(--bg-card)',
+            overflowX: 'auto'
+          }}>
+            {rankings.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '20px 0', fontSize: '14px', color: 'var(--text-secondary)' }}>
+                Không tìm thấy học sinh nào phù hợp với bộ lọc hiện tại. 🔍
+              </div>
+            ) : (
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                <thead>
+                  <tr style={{ borderBottom: '3.5px solid #000', color: '#000' }}>
+                    <th style={{ padding: '12px 10px', fontWeight: '950', fontSize: '13px', textTransform: 'uppercase' }}>Hạng</th>
+                    <th style={{ padding: '12px 10px', fontWeight: '950', fontSize: '13px', textTransform: 'uppercase' }}>Học sinh</th>
+                    <th style={{ padding: '12px 10px', fontWeight: '950', fontSize: '13px', textTransform: 'uppercase' }}>Khối lớp</th>
+                    <th style={{ padding: '12px 10px', fontWeight: '950', fontSize: '13px', textTransform: 'uppercase' }}>Tỉnh thành</th>
+                    <th style={{ padding: '12px 10px', fontWeight: '950', fontSize: '13px', textTransform: 'uppercase' }}>Chuỗi học</th>
+                    <th style={{ padding: '12px 10px', fontWeight: '950', fontSize: '13px', textTransform: 'uppercase', textAlign: 'right' }}>Tổng điểm XP</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rankings.map((student) => (
+                    <tr
+                      key={student.userId}
+                      style={{
+                        borderBottom: '2.5px solid #000',
+                        background: student.userId === currentUser?.id ? 'rgba(108, 92, 231, 0.08)' : 'transparent',
+                        fontWeight: student.userId === currentUser?.id ? 'bold' : 'normal'
+                      }}
+                    >
+                      <td style={{ padding: '12px 10px' }}>
+                        <span style={{
+                          fontWeight: '900',
+                          fontSize: '13px',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          width: '28px',
+                          height: '28px',
+                          borderRadius: '50%',
+                          border: '2px solid #000',
+                          background: student.rank === 1 ? '#fef08a' : (student.rank === 2 ? '#e2e8f0' : (student.rank === 3 ? '#fed7aa' : 'transparent')),
+                          boxShadow: '1.5px 1.5px 0px #000'
+                        }}>
+                          {student.rank}
+                        </span>
+                      </td>
+                      <td style={{ padding: '12px 10px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <div style={{
+                            width: '32px',
+                            height: '32px',
+                            borderRadius: '50%',
+                            background: '#000',
+                            color: '#fff',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontWeight: 'bold',
+                            fontSize: '11px',
+                            border: '2px solid #000'
+                          }}>
+                            {student.avatar || student.name?.substring(0, 2).toUpperCase() || 'HS'}
+                          </div>
+                          <div>
+                            <div style={{ fontWeight: '900', fontSize: '13.5px' }}>{student.name}</div>
+                            {student.userId === currentUser?.id && (
+                              <span style={{ fontSize: '10px', background: '#00b894', color: '#fff', padding: '1px 6px', borderRadius: '4px', fontWeight: '900' }}>BẠN</span>
+                            )}
+                          </div>
+                        </div>
+                      </td>
+                      <td style={{ padding: '12px 10px', fontSize: '13px', fontWeight: '800' }}>
+                        Khối {student.grade || 'Chưa cập nhật'}
+                      </td>
+                      <td style={{ padding: '12px 10px', color: 'var(--text-secondary)', fontSize: '13px' }}>
+                        📍 {student.province || 'Chưa rõ'}
+                      </td>
+                      <td style={{ padding: '12px 10px', fontWeight: '800', color: '#d97706', fontSize: '13px' }}>
+                        {getStreakDisplay(student)}
+                      </td>
+                      <td style={{ padding: '12px 10px', textAlign: 'right', fontWeight: '955', fontSize: '14px' }}>
+                        {student.xp.toLocaleString()} XP
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginTop: '20px' }}>
+                <button
+                  disabled={page === 1}
+                  onClick={() => setPage(page - 1)}
+                  style={{
+                    border: '2px solid #000',
+                    background: page === 1 ? 'var(--border)' : 'var(--bg-card)',
+                    color: '#000',
+                    fontWeight: '800',
+                    padding: '8px 16px',
+                    borderRadius: '8px',
+                    fontSize: '13px',
+                    cursor: page === 1 ? 'not-allowed' : 'pointer',
+                    boxShadow: page === 1 ? 'none' : '2px 2px 0px #000'
+                  }}
+                >
+                  ◀ Trang trước
+                </button>
+                <span style={{ display: 'inline-flex', alignItems: 'center', padding: '0 12px', fontWeight: '900', fontSize: '13px' }}>
+                  {page} / {totalPages}
+                </span>
+                <button
+                  disabled={page === totalPages}
+                  onClick={() => setPage(page + 1)}
+                  style={{
+                    border: '2px solid #000',
+                    background: page === totalPages ? 'var(--border)' : 'var(--bg-card)',
+                    color: '#000',
+                    fontWeight: '800',
+                    padding: '8px 16px',
+                    borderRadius: '8px',
+                    fontSize: '13px',
+                    cursor: page === totalPages ? 'not-allowed' : 'pointer',
+                    boxShadow: page === totalPages ? 'none' : '2px 2px 0px #000'
+                  }}
+                >
+                  Trang sau ▶
+                </button>
+              </div>
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
 
 export default function App() {
   // Global Application States
@@ -1845,63 +2212,7 @@ export default function App() {
                     <span style={{ fontSize: '32px' }}>🏆</span>
                   </div>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px', marginBottom: '28px' }}>
-                    <div style={{ background: 'linear-gradient(135deg, #fef9c3, #fef08a)', border: '2px solid #000', borderRadius: '16px', padding: '16px', textAlign: 'center', boxShadow: '3px 3px 0px #000' }}>
-                      <span style={{ fontSize: '24px' }}>🥇 Thủ khoa Tuần</span>
-                      <h4 style={{ fontSize: '16px', fontWeight: '900', margin: '8px 0 2px 0' }}>Nguyễn Lâm Vy</h4>
-                      <p style={{ fontSize: '12px', color: '#854d0e', margin: 0 }}>Khối A01 – Điểm trung bình: <strong>9.8</strong></p>
-                    </div>
-                    <div style={{ background: 'linear-gradient(135deg, #f1f5f9, #e2e8f0)', border: '2px solid #000', borderRadius: '16px', padding: '16px', textAlign: 'center', boxShadow: '3px 3px 0px #000' }}>
-                      <span style={{ fontSize: '24px' }}>🥈 Á khoa Tuần</span>
-                      <h4 style={{ fontSize: '16px', fontWeight: '900', margin: '8px 0 2px 0' }}>Trần Minh Đức</h4>
-                      <p style={{ fontSize: '12px', color: '#475569', margin: 0 }}>Khối B00 – Điểm trung bình: <strong>9.6</strong></p>
-                    </div>
-                    <div style={{ background: 'linear-gradient(135deg, #ffedd5, #fed7aa)', border: '2px solid #000', borderRadius: '16px', padding: '16px', textAlign: 'center', boxShadow: '3px 3px 0px #000' }}>
-                      <span style={{ fontSize: '24px' }}>🥉 Tam khoa Tuần</span>
-                      <h4 style={{ fontSize: '16px', fontWeight: '900', margin: '8px 0 2px 0' }}>Lê Quỳnh Chi</h4>
-                      <p style={{ fontSize: '12px', color: '#c2410c', margin: 0 }}>Khối D01 – Điểm trung bình: <strong>9.4</strong></p>
-                    </div>
-                  </div>
-
-                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }} className="exams-sidebar-table">
-                    <thead>
-                      <tr style={{ borderBottom: '2px solid #000' }}>
-                        <th style={{ padding: '12px 8px', fontWeight: '900' }}>Hạng</th>
-                        <th style={{ padding: '12px 8px', fontWeight: '900' }}>Học sinh</th>
-                        <th style={{ padding: '12px 8px', fontWeight: '900' }}>Tổ hợp môn</th>
-                        <th style={{ padding: '12px 8px', fontWeight: '900' }}>Chuỗi học (Streak)</th>
-                        <th style={{ padding: '12px 8px', fontWeight: '900', textAlign: 'right' }}>Điểm số</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {[
-                        { rank: 1, name: "Nguyễn Lâm Vy", combo: "A01 (Toán - Lý - Anh)", streak: 42, score: "9.8", avatar: "LV" },
-                        { rank: 2, name: "Trần Minh Đức", combo: "B00 (Toán - Hóa - Sinh)", streak: 35, score: "9.6", avatar: "MĐ" },
-                        { rank: 3, name: "Lê Quỳnh Chi", combo: "D01 (Toán - Văn - Anh)", streak: 28, score: "9.4", avatar: "QC" },
-                        { rank: 4, name: "Phạm Minh Hoàng", combo: "A01 (Toán - Lý - Anh)", streak: 21, score: "9.0", avatar: "MH" },
-                        { rank: 5, name: "Đỗ Gia Bảo", combo: "B00 (Toán - Hóa - Sinh)", streak: 17, score: "8.8", avatar: "GB" }
-                      ].map(student => (
-                        <tr key={student.rank} style={{ borderBottom: '1px solid #e2e8f0' }}>
-                          <td style={{ padding: '12px 8px' }}>
-                            <span className={student.rank <= 3 ? `rank-${student.rank}` : 'rank-other'}>
-                              {student.rank}
-                            </span>
-                          </td>
-                          <td style={{ padding: '12px 8px' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                              <div style={{ width: '30px', height: '30px', borderRadius: '50%', background: '#6c5ce7', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '11px' }}>
-                                {student.avatar}
-                              </div>
-                              <strong>{student.name}</strong>
-                            </div>
-                          </td>
-                          <td style={{ padding: '12px 8px', color: '#4b5563', fontSize: '13px' }}>{student.combo}</td>
-                          <td style={{ padding: '12px 8px', fontWeight: '700', color: '#d97706' }}>🔥 {student.streak} ngày</td>
-                          <td style={{ padding: '12px 8px', textAlign: 'right', fontWeight: '900', fontSize: '15px' }}>{student.score}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                  <LeaderboardTab currentUser={currentUser} />
                 </div>
               )}
 
