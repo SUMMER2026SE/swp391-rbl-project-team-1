@@ -1,0 +1,12 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "/api/index.js"
+    }
+  ],
+  "buildCommand": "pnpm --filter @edupath/api build && pnpm --filter @edupath/web build",
+  "outputDirectory": "apps/web/dist",
+  "installCommand": "pnpm install && pnpm --filter @edupath/api prisma:generate",
+  "framework": "vite"
+}

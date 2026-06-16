@@ -1,0 +1,146 @@
+{
+  "title": "Đề thi chính thức THPT Quốc Gia 2024 - Môn Toán học",
+  "subject_slug": "toan",
+  "subject_name": "Toán học",
+  "year": 2024,
+  "exam_code": "101",
+  "exam_type": "official",
+  "source": "Bộ GD&ĐT",
+  "duration_minutes": 90,
+  "total_questions": 10,
+  "description": "Đề thi chính thức môn Toán học kỳ thi tốt nghiệp THPT Quốc Gia năm 2024 từ Bộ Giáo dục và Đào tạo (Phiên bản Demo 10 câu hỏi trắc nghiệm).",
+  "pdf_url": "https://moet.gov.vn/toan-2024.pdf",
+  "official_answer_key_url": "https://moet.gov.vn/toan-2024-key.pdf",
+  "questions": [
+    {
+      "question_number": 1,
+      "question_text": "Cho hàm số $y = f(x)$ có bảng xét dấu đạo hàm như sau. Số điểm cực trị của hàm số đã cho là:",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Dễ",
+      "explanation": "Đạo hàm $f'(x)$ đổi dấu khi đi qua các điểm $x = -1$, $x = 0$ và $x = 1$. Do đó hàm số có 3 điểm cực trị.",
+      "options": [
+        { "option_label": "A", "option_text": "1", "is_correct": false },
+        { "option_label": "B", "option_text": "2", "is_correct": false },
+        { "option_label": "C", "option_text": "3", "is_correct": true },
+        { "option_label": "D", "option_text": "4", "is_correct": false }
+      ]
+    },
+    {
+      "question_number": 2,
+      "question_text": "Cho khối chóp có diện tích đáy $B = 6a^2$ và chiều cao $h = 2a$. Thể tích của khối chóp đã cho bằng:",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Dễ",
+      "explanation": "Công thức thể tích khối chóp: $V = \\frac{1}{3}Bh = \\frac{1}{3} \\cdot 6a^2 \\cdot 2a = 4a^3$.",
+      "options": [
+        { "option_label": "A", "option_text": "4a^3", "is_correct": true },
+        { "option_label": "B", "option_text": "12a^3", "is_correct": false },
+        { "option_label": "C", "option_text": "2a^3", "is_correct": false },
+        { "option_label": "D", "option_text": "6a^3", "is_correct": false }
+      ]
+    },
+    {
+      "question_number": 3,
+      "question_text": "Tập nghiệm của bất phương trình $2^{x-1} < 8$ là:",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Dễ",
+      "explanation": "Ta có: $2^{x-1} < 2^3 \\Leftrightarrow x-1 < 3 \\Leftrightarrow x < 4$. Vậy tập nghiệm là $(-\\infty; 4)$.",
+      "options": [
+        { "option_label": "A", "option_text": "(-\\infty; 4)", "is_correct": true },
+        { "option_label": "B", "option_text": "(4; +\\infty)", "is_correct": false },
+        { "option_label": "C", "option_text": "(-\\infty; 3)", "is_correct": false },
+        { "option_label": "D", "option_text": "(3; +\\infty)", "is_correct": false }
+      ]
+    },
+    {
+      "question_number": 4,
+      "question_text": "Trong không gian $Oxyz$, cho mặt phẳng $(P): 2x - 3y + z - 2 = 0$. Vectơ nào dưới đây là một vectơ pháp tuyến của $(P)$?",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Dễ",
+      "explanation": "Vectơ pháp tuyến của mặt phẳng $Ax + By + Cz + D = 0$ là $\\vec{n} = (A; B; C)$. Ở đây $\\vec{n} = (2; -3; 1)$.",
+      "options": [
+        { "option_label": "A", "option_text": "\\vec{n} = (2; 3; 1)", "is_correct": false },
+        { "option_label": "B", "option_text": "\\vec{n} = (2; -3; 1)", "is_correct": true },
+        { "option_label": "C", "option_text": "\\vec{n} = (2; -3; -2)", "is_correct": false },
+        { "option_label": "D", "option_text": "\\vec{n} = (-2; 3; 1)", "is_correct": false }
+      ]
+    },
+    {
+      "question_number": 5,
+      "question_text": "Cho hàm số $y = a^x$ với $0 < a \\neq 1$. Khẳng định nào sau đây là SAI?",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Trung bình",
+      "explanation": "Đồ thị hàm số mũ $y=a^x$ luôn đi qua điểm $(0; 1)$, không phải $(1; 0)$.",
+      "options": [
+        { "option_label": "A", "option_text": "Hàm số đồng biến trên $\\mathbb{R}$ khi $a > 1$", "is_correct": false },
+        { "option_label": "B", "option_text": "Hàm số luôn dương với mọi $x \\in \\mathbb{R}$", "is_correct": false },
+        { "option_label": "C", "option_text": "Đồ thị hàm số đi qua điểm $(1; 0)$", "is_correct": true },
+        { "option_label": "D", "option_text": "Đồ thị hàm số nhận trục hoành làm tiệm cận ngang", "is_correct": false }
+      ]
+    },
+    {
+      "question_number": 6,
+      "question_text": "Tìm họ nguyên hàm của hàm số $f(x) = \\cos(2x)$?",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Trung bình",
+      "explanation": "Ta có: $\\int \\cos(2x) dx = \\frac{1}{2}\\sin(2x) + C$.",
+      "options": [
+        { "option_label": "A", "option_text": "-\\frac{1}{2}\\sin(2x) + C", "is_correct": false },
+        { "option_label": "B", "option_text": "\\frac{1}{2}\\sin(2x) + C", "is_correct": true },
+        { "option_label": "C", "option_text": "2\\sin(2x) + C", "is_correct": false },
+        { "option_label": "D", "option_text": "-2\\sin(2x) + C", "is_correct": false }
+      ]
+    },
+    {
+      "question_number": 7,
+      "question_text": "Cho số phức $z = 3 - 4i$. Môđun của số phức $w = z + 1 + 2i$ bằng:",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Trung bình",
+      "explanation": "Ta có: $w = (3-4i) + 1 + 2i = 4 - 2i$. Môđun $|w| = \\sqrt{4^2 + (-2)^2} = \\sqrt{20} = 2\\sqrt{5}$.",
+      "options": [
+        { "option_label": "A", "option_text": "2\\sqrt{5}", "is_correct": true },
+        { "option_label": "B", "option_text": "5", "is_correct": false },
+        { "option_label": "C", "option_text": "\\sqrt{10}", "is_correct": false },
+        { "option_label": "D", "option_text": "4", "is_correct": false }
+      ]
+    },
+    {
+      "question_number": 8,
+      "question_text": "Cho cấp số cộng $(u_n)$ có $u_1 = 3$ và công sai $d = 2$. Giá trị của $u_5$ bằng:",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Trung bình",
+      "explanation": "Theo công thức: $u_5 = u_1 + 4d = 3 + 4 \\cdot 2 = 11$.",
+      "options": [
+        { "option_label": "A", "option_text": "9", "is_correct": false },
+        { "option_label": "B", "option_text": "11", "is_correct": true },
+        { "option_label": "C", "option_text": "13", "is_correct": false },
+        { "option_label": "D", "option_text": "15", "is_correct": false }
+      ]
+    },
+    {
+      "question_number": 9,
+      "question_text": "Một hộp chứa 5 quả cầu màu đỏ và 7 quả cầu màu xanh. Lấy ngẫu nhiên đồng thời 2 quả cầu từ hộp đó. Xác suất để lấy được 2 quả cầu có cùng màu là:",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Khó",
+      "explanation": "Số cách chọn 2 quả từ 12 quả: $n(\\Omega) = C_{12}^2 = 66$. Số cách chọn 2 quả cùng đỏ: $C_5^2 = 10$. Số cách chọn 2 quả cùng xanh: $C_7^2 = 21$. Số cách chọn 2 quả cùng màu: $10+21=31$. Xác suất: $P = \\frac{31}{66}$.",
+      "options": [
+        { "option_label": "A", "option_text": "35/66", "is_correct": false },
+        { "option_label": "B", "option_text": "31/66", "is_correct": true },
+        { "option_label": "C", "option_text": "5/12", "is_correct": false },
+        { "option_label": "D", "option_text": "7/12", "is_correct": false }
+      ]
+    },
+    {
+      "question_number": 10,
+      "question_text": "Cho hàm số $y=f(x)$ liên tục trên $\\mathbb{R}$ và thỏa mãn $\\int_0^2 f(x)dx = 4$. Tính tích phân $I = \\int_0^1 f(2x)dx$?",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Khó",
+      "explanation": "Đặt $t = 2x \\Rightarrow dt = 2dx \\Rightarrow dx = \\frac{1}{2}dt$. Đổi cận: $x=0 \\Rightarrow t=0$; $x=1 \\Rightarrow t=2$. Khi đó $I = \\int_0^2 f(t) \\frac{1}{2}dt = \\frac{1}{2} \\int_0^2 f(x)dx = \\frac{1}{2} \\cdot 4 = 2$.",
+      "options": [
+        { "option_label": "A", "option_text": "8", "is_correct": false },
+        { "option_label": "B", "option_text": "4", "is_correct": false },
+        { "option_label": "C", "option_text": "2", "is_correct": true },
+        { "option_label": "D", "option_text": "1", "is_correct": false }
+      ]
+    }
+  ]
+}
