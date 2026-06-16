@@ -69,7 +69,7 @@ export default function AiCoachCard({ onNavigateTo }) {
               onClick={() => onNavigateTo && onNavigateTo('ai-qa')}
               id="ai-coach-ask-btn"
             >
-              💬 Hỏi AI Tutor
+              🧠 Sơ đồ tư duy AI
             </button>
           </div>
         </div>

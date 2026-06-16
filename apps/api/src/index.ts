@@ -7,7 +7,7 @@ import { initSocket } from './lib/socket.js';
 import { login, logout, sendOtp, resendOtp, verifyOtpRegister, googleAuth, googleCompleteOnboarding, changePassword, forgotPassword, verifyResetOtp, resetPassword, requestRoleChange, getRoleChangeRequests, reviewRoleChange } from './controllers/auth.js';
 import { getCourses, getCourseById, createCourse, getCourseStats } from './controllers/course.js';
 import { getExams, getExamById, startAttempt, saveAnswer, submitAttempt, getAttempts, getExamQuestionsPublic, getAttemptById, getAttemptResult, getExamHistory, recordViolation, recordExamEvent, getExamEvents, recordViolationDetail, generateAiCoach, createSmartRetake, importExam } from './controllers/exam.js';
-import { streamAIChat, refreshRoadmap, generateAIQuestions } from './controllers/ai.js';
+import { streamAIChat, refreshRoadmap, generateAIQuestions, generateMindmap, saveMindmap, getMindmaps, getMindmapById, deleteMindmap, generateFlashcards, getPublicMindmapById } from './controllers/ai.js';
 import { chatbotConsult } from './controllers/chatbot.js';
 import { getDocumentResources, getDocumentComments, addDocumentComment } from './controllers/document.js';
 import { createVNPayPayment, vnpayWebhook, sepayWebhook, checkEnrollmentStatus, checkUserProStatus } from './controllers/payment.js';
@@ -119,6 +119,28 @@ app.post('/ai/chat', (req, res, next) => {
 }, streamAIChat);
 app.post('/ai/roadmap/refresh', authenticateJWT, requireRole(['STUDENT']), refreshRoadmap);
 app.post('/ai/generate-questions', authenticateJWT, requireRole(['TEACHER', 'ADMIN']), generateAIQuestions);
+
+// AI Mindmap Routes
+app.post('/ai/mindmap', (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    return authenticateJWT(req as any, res, next);
+  }
+  next();
+}, generateMindmap);
+
+app.post('/ai/flashcards', (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    return authenticateJWT(req as any, res, next);
+  }
+  next();
+}, generateFlashcards);
+app.post('/mindmaps', authenticateJWT, saveMindmap);
+app.get('/mindmaps', authenticateJWT, getMindmaps);
+app.get('/mindmaps/:id', authenticateJWT, getMindmapById);
+app.get('/mindmaps/public/:id', getPublicMindmapById);
+app.delete('/mindmaps/:id', authenticateJWT, deleteMindmap);
 
 // Public AI Chatbot Route (No Auth required so landing page guests can use it!)
 app.post('/chatbot', chatbotConsult);

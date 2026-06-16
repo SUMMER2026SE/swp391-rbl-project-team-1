@@ -44,6 +44,7 @@ model User {
   reportsResolved    ForumReport[]       @relation("Resolver")
   auditLogs          ForumAuditLog[]
   documentComments   DocumentComment[]
+  mindmaps           Mindmap[]
 }
 
 model Student {
@@ -636,5 +637,19 @@ model DocumentComment {
 
   @@map("document_comments")
 }
+
+model Mindmap {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  title     String
+  content   Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("mindmaps")
+}
+
 
 

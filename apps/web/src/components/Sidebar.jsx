@@ -12,7 +12,7 @@ const navGroups = {
       items: [
         { label: 'Trang chủ', id: 'home', icon: HiHome },
         { label: 'Khóa học', id: 'courses', icon: HiAcademicCap },
-        { label: 'Lộ trình AI', id: 'path', icon: HiMap },
+        { label: 'Flashcard AI', id: 'path', icon: HiCollection },
       ],
     },
     {
@@ -25,7 +25,7 @@ const navGroups = {
     {
       groupLabel: '🌐 Cộng đồng',
       items: [
-        { label: 'AI Gia sư', id: 'ai-qa', icon: HiLightBulb },
+        { label: 'Mindmap', id: 'ai-qa', icon: HiMap },
         { label: 'Cộng đồng', id: 'forum', icon: HiChat },
       ],
     },

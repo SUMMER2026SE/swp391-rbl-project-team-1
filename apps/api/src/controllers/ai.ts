@@ -1,4 +1,4 @@
-import type { Response } from 'express';
+import type { Request, Response } from 'express';
 import type { AuthRequest } from '../middleware/auth.js';
 import { prisma } from '../lib/prisma.js';
 
@@ -76,7 +76,7 @@ export async function streamAIChat(req: AuthRequest, res: Response) {
         ],
         stream: true,
         temperature: 0.7,
-        max_tokens: 2000
+        max_tokens: 800
       }),
       signal: abortController.signal
     });
@@ -504,6 +504,314 @@ export async function generateAIQuestions(req: AuthRequest, res: Response) {
     ];
 
     return res.status(200).json({ success: true, data: mockQuestions });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+}
+
+// =========================================================================
+// AI MINDMAP CONTROLLERS
+// =========================================================================
+
+export async function generateMindmap(req: AuthRequest, res: Response) {
+  const { text } = req.body;
+  if (!text || !text.trim()) {
+    return res.status(400).json({ success: false, error: 'Nội dung văn bản để lập sơ đồ tư duy không được để trống.' });
+  }
+
+  const apiKey = process.env.OPENROUTER_API_KEY;
+  const model = process.env.OPENROUTER_MODEL || 'google/gemini-2.5-flash';
+
+  if (!apiKey) {
+    return res.status(500).json({ success: false, error: 'Hệ thống AI chưa được cấu hình API Key.' });
+  }
+
+  try {
+    const prompt = `Bạn là một chuyên gia phân tích và tóm tắt kiến thức. Hãy đọc đoạn văn bản sau và trích xuất cấu trúc kiến thức của nó để tạo ra một sơ đồ tư duy dạng hình cây (mindmap) bằng định dạng JSON.
+
+Văn bản cần phân tích:
+"${text.substring(0, 8000)}"
+
+Yêu cầu định dạng JSON trả về PHẢI tuân thủ chính xác cấu trúc sau:
+{
+  "name": "Tiêu đề gốc/Chủ đề chính (viết ngắn gọn, tối đa 5 từ)",
+  "children": [
+    {
+      "name": "Chủ đề con cấp 1 (ngắn gọn)",
+      "description": "Tóm tắt ngắn gọn chủ đề con này",
+      "children": [
+        {
+          "name": "Ý chi tiết cấp 2 (ngắn gọn)",
+          "description": "Chi tiết mở rộng"
+        }
+      ]
+    }
+  ]
+}
+
+Lưu ý quan trọng:
+1. Hãy trích xuất từ 3 đến 6 chủ đề con cấp 1. Mỗi chủ đề con cấp 1 nên có các ý chi tiết cấp 2 đi kèm.
+2. Trả về DUY NHẤT một chuỗi JSON hợp lệ, không bọc trong thẻ markdown \`\`\`json hay bất kỳ ký tự nào khác ngoài chuỗi JSON để frontend có thể parse được ngay.`;
+
+    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': 'https://edupath.vn',
+        'X-Title': 'EduPath AI Mindmap'
+      },
+      body: JSON.stringify({
+        model: model,
+        messages: [
+          { role: 'user', content: prompt }
+        ],
+        temperature: 0.3,
+        max_tokens: 800
+      })
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`OpenRouter error: ${errText}`);
+    }
+
+    const data = await response.json() as any;
+    let content = data.choices?.[0]?.message?.content || '';
+
+    content = content.trim();
+    if (content.startsWith('```json')) {
+      content = content.slice(7);
+    }
+    if (content.startsWith('```')) {
+      content = content.slice(3);
+    }
+    if (content.endsWith('```')) {
+      content = content.slice(0, -3);
+    }
+    content = content.trim();
+
+    try {
+      const parsedMindmap = JSON.parse(content);
+      return res.status(200).json({ success: true, data: parsedMindmap });
+    } catch (parseErr) {
+      console.error("Failed to parse AI mindmap response:", content);
+      return res.status(500).json({ success: false, error: 'Không thể parse kết quả sơ đồ tư duy từ AI dưới dạng JSON. Vui lòng thử lại với đoạn văn bản khác nhé!', raw: content });
+    }
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+}
+
+export async function saveMindmap(req: AuthRequest, res: Response) {
+  const userId = req.user?.id;
+  const { title, content } = req.body;
+
+  if (!userId) {
+    return res.status(401).json({ success: false, error: 'Bạn cần đăng nhập để lưu sơ đồ tư duy.' });
+  }
+  if (!title || !title.trim()) {
+    return res.status(400).json({ success: false, error: 'Tiêu đề sơ đồ tư duy không được để trống.' });
+  }
+  if (!content) {
+    return res.status(400).json({ success: false, error: 'Nội dung sơ đồ tư duy không được để trống.' });
+  }
+
+  try {
+    const mindmap = await prisma.mindmap.create({
+      data: {
+        userId,
+        title: title.trim(),
+        content: content,
+      }
+    });
+
+    return res.status(201).json({ success: true, data: mindmap });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+}
+
+export async function getMindmaps(req: AuthRequest, res: Response) {
+  const userId = req.user?.id;
+  if (!userId) {
+    return res.status(401).json({ success: false, error: 'Chưa xác thực!' });
+  }
+
+  try {
+    const mindmaps = await prisma.mindmap.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    return res.status(200).json({ success: true, data: mindmaps });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+}
+
+export async function getMindmapById(req: AuthRequest, res: Response) {
+  const userId = req.user?.id;
+  const id = Number(req.params.id);
+
+  if (!userId) {
+    return res.status(401).json({ success: false, error: 'Chưa xác thực!' });
+  }
+  if (isNaN(id)) {
+    return res.status(400).json({ success: false, error: 'Mã sơ đồ tư duy không hợp lệ.' });
+  }
+
+  try {
+    const mindmap = await prisma.mindmap.findFirst({
+      where: { id, userId }
+    });
+
+    if (!mindmap) {
+      return res.status(404).json({ success: false, error: 'Không tìm thấy sơ đồ tư duy này.' });
+    }
+
+    return res.status(200).json({ success: true, data: mindmap });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+}
+
+export async function getPublicMindmapById(req: Request, res: Response) {
+  const id = Number(req.params.id);
+  if (isNaN(id)) {
+    return res.status(400).json({ success: false, error: 'Mã sơ đồ tư duy không hợp lệ.' });
+  }
+
+  try {
+    const mindmap = await prisma.mindmap.findFirst({
+      where: { id }
+    });
+
+    if (!mindmap) {
+      return res.status(404).json({ success: false, error: 'Không tìm thấy sơ đồ tư duy này.' });
+    }
+
+    return res.status(200).json({ success: true, data: mindmap });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+}
+
+
+export async function deleteMindmap(req: AuthRequest, res: Response) {
+  const userId = req.user?.id;
+  const id = Number(req.params.id);
+
+  if (!userId) {
+    return res.status(401).json({ success: false, error: 'Chưa xác thực!' });
+  }
+  if (isNaN(id)) {
+    return res.status(400).json({ success: false, error: 'Mã sơ đồ tư duy không hợp lệ.' });
+  }
+
+  try {
+    const mindmap = await prisma.mindmap.findFirst({
+      where: { id, userId }
+    });
+
+    if (!mindmap) {
+      return res.status(404).json({ success: false, error: 'Không tìm thấy sơ đồ tư duy này hoặc bạn không có quyền xóa.' });
+    }
+
+    await prisma.mindmap.delete({
+      where: { id }
+    });
+
+    return res.status(200).json({ success: true, message: 'Đã xóa sơ đồ tư duy thành công.' });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+}
+
+export async function generateFlashcards(req: AuthRequest, res: Response) {
+  const { text } = req.body;
+  if (!text || !text.trim()) {
+    return res.status(400).json({ success: false, error: 'Nội dung văn bản để tạo flashcard không được để trống.' });
+  }
+
+  const apiKey = process.env.OPENROUTER_API_KEY;
+  const model = process.env.OPENROUTER_MODEL || 'google/gemini-2.5-flash';
+
+  if (!apiKey) {
+    return res.status(500).json({ success: false, error: 'Hệ thống AI chưa được cấu hình API Key.' });
+  }
+
+  try {
+    const prompt = `Bạn là một chuyên gia giáo dục và thiết kế thẻ ghi nhớ (flashcard) chuyên nghiệp.
+Hãy phân tích nội dung/yêu cầu sau đây và tạo ra từ 6 đến 12 cặp flashcard chất lượng cao (thuật ngữ/định nghĩa hoặc câu hỏi/trả lời) dưới dạng mảng JSON.
+
+Nội dung hoặc Yêu cầu nhận được từ người dùng:
+"${text.substring(0, 8000)}"
+
+HƯỚNG DẪN XỬ LÝ QUAN TRỌNG:
+1. NẾU YÊU CẦU LÀ CÂU LỆNH YÊU CẦU TẠO BỘ THẺ THEO CHỦ ĐỀ (ví dụ: "Tạo bộ thẻ về từ vựng IELTS", "Tạo bộ thẻ các cột mốc lịch sử Việt Nam thế kỷ 20", "tạo flashcard công thức vật lý", v.v.):
+   - Hãy đóng vai là chuyên gia xuất sắc trong lĩnh vực đó, tự động soạn thảo ra kiến thức cốt lõi, hữu ích và chính xác nhất cho chủ đề được yêu cầu.
+   - Tuyệt đối KHÔNG tạo các câu hỏi giới thiệu hoặc thẻ meta chung chung như "Mục tiêu bộ thẻ là gì?" hay "Đoạn văn này nói về cái gì?".
+   - Các thẻ học phải chứa các sự kiện, số liệu, từ vựng thực tế và định nghĩa/câu trả lời cụ thể của chủ đề đó. Ví dụ lịch sử Việt Nam thế kỷ 20: Mặt trước: "Chiến dịch Điện Biên Phủ (1954)", Mặt sau: "Chiến thắng lừng lẫy năm châu chấn động địa cầu, kết thúc chiến tranh Đông Dương chống thực dân Pháp."
+   
+2. NẾU NỘI DUNG LÀ MỘT ĐOẠN VĂN BẢN KIẾN THỨC DÀI (Tài liệu học tập được dán hoặc tải lên):
+   - Hãy trích xuất các thuật ngữ/giải thích hoặc khái niệm quan trọng nhất bám sát trực tiếp từ chính văn bản đó để người dùng ôn luyện.
+
+Yêu cầu định dạng JSON trả về PHẢI tuân thủ chính xác cấu trúc sau:
+[
+  {
+    "front": "Thuật ngữ, Từ khóa hoặc Câu hỏi ngắn gọn (mặt trước)",
+    "back": "Định nghĩa hoặc Câu trả lời ngắn gọn, chính xác, súc tích (mặt sau, tối đa 40 từ)"
+  }
+]
+
+Lưu ý quan trọng: Trả về DUY NHẤT một chuỗi JSON hợp lệ, không bọc trong thẻ markdown \`\`\`json hay bất kỳ ký tự nào khác ngoài chuỗi JSON để frontend có thể parse được ngay.`;
+
+    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': 'https://edupath.vn',
+        'X-Title': 'EduPath AI Flashcard'
+      },
+      body: JSON.stringify({
+        model: model,
+        messages: [
+          { role: 'user', content: prompt }
+        ],
+        temperature: 0.3,
+        max_tokens: 800
+      })
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`OpenRouter error: ${errText}`);
+    }
+
+    const data = await response.json() as any;
+    let content = data.choices?.[0]?.message?.content || '';
+
+    content = content.trim();
+    if (content.startsWith('```json')) {
+      content = content.slice(7);
+    }
+    if (content.startsWith('```')) {
+      content = content.slice(3);
+    }
+    if (content.endsWith('```')) {
+      content = content.slice(0, -3);
+    }
+    content = content.trim();
+
+    try {
+      const parsedFlashcards = JSON.parse(content);
+      return res.status(200).json({ success: true, data: parsedFlashcards });
+    } catch (parseErr) {
+      console.error("Failed to parse AI flashcard response:", content);
+      return res.status(500).json({ success: false, error: 'Không thể parse kết quả flashcards từ AI dưới dạng JSON. Vui lòng thử lại!', raw: content });
+    }
   } catch (err: any) {
     return res.status(500).json({ success: false, error: err.message });
   }

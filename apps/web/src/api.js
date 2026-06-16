@@ -4,17 +4,36 @@ export const API_BASE = import.meta.env.VITE_API_URL ||
     : '/api');
 
 async function request(path, options = {}) {
-  const token = localStorage.getItem('access_token');
+  let token = localStorage.getItem('access_token');
   const headers = {
     'Content-Type': 'application/json',
     ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
     ...(options.headers || {})
   };
-  const res = await fetch(`${API_BASE}${path}`, {
+  
+  let res = await fetch(`${API_BASE}${path}`, {
     headers,
     ...options,
     body: options.body ? JSON.stringify(options.body) : undefined
   });
+
+  // Handle expired/invalid JWT token by clearing and retrying as guest
+  if ((res.status === 401 || res.status === 403) && token) {
+    localStorage.removeItem('access_token');
+    // Clear authorization header and retry
+    const retryHeaders = {
+      'Content-Type': 'application/json',
+      ...(options.headers || {})
+    };
+    delete retryHeaders['Authorization'];
+    
+    res = await fetch(`${API_BASE}${path}`, {
+      headers: retryHeaders,
+      ...options,
+      body: options.body ? JSON.stringify(options.body) : undefined
+    });
+  }
+
   const data = await res.json().catch(() => ({}));
   if (!res.ok || !data.success) {
     const err = new Error(data.error || `Lỗi ${res.status}`);
@@ -92,8 +111,7 @@ export const api = {
   getDocumentComments: (documentId) => request(`/document-resources/${documentId}/comments`),
   addDocumentComment: (documentId, content) => request(`/document-resources/${documentId}/comments`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ content }),
+    body: { content },
   }),
 
   getExamById: (examId) => request(`/exams/${examId}`),
@@ -219,6 +237,36 @@ export const api = {
     request('/forum/moderation/reports', { method: 'POST', body: { postId, commentId, reason } }),
 
   importExam: (examData) =>
-    request('/admin/exams/import', { method: 'POST', body: examData })
+    request('/admin/exams/import', { method: 'POST', body: examData }),
+
+  generateMindmap: (text) =>
+    request('/ai/mindmap', {
+      method: 'POST',
+      body: { text },
+    }),
+
+  generateFlashcards: (text) =>
+    request('/ai/flashcards', {
+      method: 'POST',
+      body: { text },
+    }),
+
+  saveMindmap: (title, content) =>
+    request('/mindmaps', {
+      method: 'POST',
+      body: { title, content },
+    }),
+
+  getMindmaps: () =>
+    request('/mindmaps', { method: 'GET' }),
+
+  getMindmapById: (id) =>
+    request(`/mindmaps/${id}`, { method: 'GET' }),
+
+  deleteMindmap: (id) =>
+    request(`/mindmaps/${id}`, { method: 'DELETE' }),
+
+  getPublicMindmapById: (id) =>
+    request(`/mindmaps/public/${id}`, { method: 'GET' }),
 };
 

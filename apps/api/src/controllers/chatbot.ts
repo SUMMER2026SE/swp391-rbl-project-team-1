@@ -60,7 +60,7 @@ export async function chatbotConsult(req: Request, res: Response) {
         model: model,
         messages: formattedMessages,
         temperature: 0.7,
-        max_tokens: 1500
+        max_tokens: 800
       })
     });
 
