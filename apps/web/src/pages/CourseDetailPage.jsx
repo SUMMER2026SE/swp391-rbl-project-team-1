@@ -7,7 +7,7 @@ import CoursePurchaseCard from '../components/courses/CoursePurchaseCard';
 import { MOCK_COURSES } from '../data/courses';
 import { enrollmentService } from '../services/enrollmentService';
 
-export default function CourseDetailPage({ courseId, currentUser, onNavigateToLearn, onUpdateUser, navigateTo }) {
+export default function CourseDetailPage({ courseId, currentUser, onNavigateToLearn, onUpdateUser, navigateTo, onAddToCart, onCheckoutCourse }) {
   const [course, setCourse] = useState(null);
   const [isOwned, setIsOwned] = useState(false);
   const [completedLessons, setCompletedLessons] = useState([]);
@@ -67,7 +67,11 @@ export default function CourseDetailPage({ courseId, currentUser, onNavigateToLe
     }
 
     if (action === 'cart') {
-      toast(`Đã thêm khóa học "${course.title}" vào giỏ hàng của bạn!`, 'success');
+      if (onAddToCart) {
+        onAddToCart(course);
+      } else {
+        toast(`Đã thêm khóa học "${course.title}" vào giỏ hàng của bạn!`, 'success');
+      }
       return;
     }
 
@@ -76,24 +80,31 @@ export default function CourseDetailPage({ courseId, currentUser, onNavigateToLe
       return;
     }
 
-    // Purchase / Enroll flow
-    try {
-      if (currentUser) {
-        await enrollmentService.enrollCourse(currentUser.id, course.id, course.priceSale);
-        setIsOwned(true);
+    if (action === 'buy') {
+      if (onCheckoutCourse) {
+        onCheckoutCourse(course);
+      } else {
+        // Purchase / Enroll flow
+        try {
+          if (currentUser) {
+            await enrollmentService.enrollCourse(currentUser.id, course.id, course.priceSale);
+            setIsOwned(true);
 
-        if (onUpdateUser) {
-          const activeUnlocked = currentUser.unlockedCourses || [];
-          onUpdateUser({
-            ...currentUser,
-            unlockedCourses: [...activeUnlocked, Number(course.id), course.id.toString()]
-          });
+            if (onUpdateUser) {
+              const activeUnlocked = currentUser.unlockedCourses || [];
+              onUpdateUser({
+                ...currentUser,
+                unlockedCourses: [...activeUnlocked, Number(course.id), course.id.toString()]
+              });
+            }
+            toast('Đăng ký khóa học thành công! Tất cả bài giảng đã được mở khóa.', 'success');
+          }
+        } catch (err) {
+          console.error(err);
+          toast('Không thể đăng ký khóa học vào lúc này, vui lòng thử lại sau.', 'error');
         }
-        toast('Đăng ký khóa học thành công! Tất cả bài giảng đã được mở khóa.', 'success');
       }
-    } catch (err) {
-      console.error(err);
-      toast('Không thể đăng ký khóa học vào lúc này, vui lòng thử lại sau.', 'error');
+      return;
     }
   };
 

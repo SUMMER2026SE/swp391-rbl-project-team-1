@@ -28,6 +28,7 @@ import StudentDashboard from './components/dashboard/StudentDashboard';
 
 import CoursesPage from './pages/CoursesPage';
 import CourseDetailPage from './pages/CourseDetailPage';
+import { MOCK_COURSES } from './data/courses';
 import LearningPage from './pages/LearningPage';
 import MockExamsPage from './pages/MockExamsPage';
 import MockExamDetailPage from './pages/MockExamDetailPage';
@@ -49,49 +50,20 @@ import ConfirmEmailPage from './pages/ConfirmEmailPage';
 import { HiPlay, HiDocumentDownload, HiBeaker, HiX, HiBookOpen } from 'react-icons/hi';
 import { api } from './api';
 
-// Initial Database preloads
-const initialCourses = [
-  {
-    id: 1,
-    title: "Ứng dụng đạo hàm khảo sát đồ thị hàm số",
-    subject: "Toán học",
-    price: "499.000",
-    teacherName: "Thầy Thế Anh",
-    isUnlocked: true,
-    lessons: [
-      { id: 101, name: "Bài 1: Sự đồng biến, nghịch biến của hàm số", duration: "18:45" },
-      { id: 102, name: "Bài 2: Cực trị của hàm số và kỹ thuật bấm máy Casio", duration: "25:30" },
-      { id: 103, name: "Bài 3: Giá trị lớn nhất, nhỏ nhất trên đoạn", duration: "22:15" },
-      { id: 104, name: "Bài 4: Khảo sát sự biến thiên và vẽ đồ thị nâng cao", duration: "32:10" }
-    ]
-  },
-  {
-    id: 2,
-    title: "Chinh phục toàn diện Dao động cơ & Sóng cơ học",
-    subject: "Vật lý",
-    price: "599.000",
-    teacherName: "Cô Thu Hương",
-    isUnlocked: false,
-    lessons: [
-      { id: 201, name: "Bài 1: Khái niệm Dao động điều hòa và các phương trình cốt lõi", duration: "20:15" },
-      { id: 202, name: "Bài 2: Con lắc lò xo và bài toán năng lượng", duration: "26:40" },
-      { id: 203, name: "Bài 3: Con lắc đơn và sự biến thiên chu kỳ", duration: "18:30" }
-    ]
-  },
-  {
-    id: 3,
-    title: "Ngữ pháp Tiếng Anh trọng tâm thi THPTQG 2026",
-    subject: "Tiếng Anh",
-    price: "399.000",
-    teacherName: "Cô Quỳnh Chi",
-    isUnlocked: false,
-    lessons: [
-      { id: 301, name: "Bài 1: Trọn bộ 12 thì trong Tiếng Anh và dấu hiệu nhận biết", duration: "15:45" },
-      { id: 302, name: "Bài 2: Câu bị động và các dạng đặc biệt thường gặp", duration: "22:20" },
-      { id: 303, name: "Bài 3: Câu điều kiện và Mệnh đề giả định", duration: "20:10" }
-    ]
-  }
-];
+const initialCourses = MOCK_COURSES.map(c => ({
+  ...c,
+  id: Number(c.id),
+  title: c.title,
+  subject: c.subject === 'Toán' ? 'Toán học' : c.subject,
+  price: c.priceSale ? (c.priceSale / 1000).toFixed(3) : "499.000",
+  teacherName: c.instructor?.name || 'Thầy Thế Anh',
+  isUnlocked: false,
+  lessons: c.curriculum?.flatMap(chap => chap.lessons.map(l => ({
+    id: Number(l.id),
+    name: l.title,
+    duration: `${l.durationMin}:00`
+  }))) || []
+}));
 
 const initialUsers = [
   {
@@ -104,7 +76,8 @@ const initialUsers = [
     grade: '12',
     avatar: 'MA',
     isBanned: false,
-    unlockedCourses: [1]
+    unlockedCourses: [1],
+    registeredDate: '2026-06-12'
   },
   {
     id: 102,
@@ -114,7 +87,8 @@ const initialUsers = [
     role: 'teacher',
     avatar: 'TA',
     isBanned: false,
-    status: 'active'
+    status: 'active',
+    registeredDate: '2026-06-10'
   },
   {
     id: 103,
@@ -124,9 +98,11 @@ const initialUsers = [
     role: 'admin',
     avatar: 'AD',
     isBanned: false,
-    status: 'active'
+    status: 'active',
+    registeredDate: '2026-06-08'
   }
 ];
+
 
 const initialQuestions = [
   {
@@ -555,6 +531,9 @@ export default function App() {
   };
 
   const getParsedRoute = () => {
+    if (currentPath === '/admin' || currentPath.startsWith('/admin/')) {
+      return { route: 'admin' };
+    }
     if (currentPath === '/courses') {
       return { route: 'courses-list' };
     }
@@ -627,14 +606,134 @@ export default function App() {
     }
     return list;
   });
-  const [courses, setCourses] = useState(() => JSON.parse(localStorage.getItem('app_courses')) || initialCourses);
+  const [courses, setCourses] = useState(() => {
+    const stored = localStorage.getItem('app_courses');
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      if (Array.isArray(parsed) && parsed.length === 12) {
+        return parsed;
+      }
+    }
+    return initialCourses;
+  });
   const [examsList, setExamsList] = useState([]);
   const [attemptsHistory, setAttemptsHistory] = useState([]);
   const [questionBank, setQuestionBank] = useState(() => JSON.parse(localStorage.getItem('app_questions')) || initialQuestions);
-  const [submissions, setSubmissions] = useState(() => JSON.parse(localStorage.getItem('app_submissions')) || []);
+  const [submissions, setSubmissions] = useState(() => {
+    const saved = localStorage.getItem('app_submissions');
+    if (saved) return JSON.parse(saved);
+    
+    // Generate dynamic pre-seeded submissions for the last 7 days relative to today
+    const list = [];
+    const topics = [
+      { name: "Đề thi thử Toán THPTQG 2026", subject: "Toán học", failed: ["Hàm số Mũ & Lôgarit", "Hàm số & Đồ thị"] },
+      { name: "Đề thi thử Vật Lý THPTQG 2026", subject: "Vật lý", failed: ["Chương I: Dao động cơ học"] },
+      { name: "Đề thi thử Hóa học THPTQG 2026", subject: "Hóa học", failed: ["Chương I: Este - Lipit"] },
+      { name: "Đề thi thử Tiếng Anh THPTQG 2026", subject: "Tiếng Anh", failed: ["Ngữ pháp cốt lõi"] }
+    ];
+
+    for (let i = 0; i < 20; i++) {
+      const d = new Date();
+      d.setDate(d.getDate() - Math.floor(i / 3)); // 2-3 attempts per day
+      const dateStr = d.toISOString().split('T')[0];
+      const topicInfo = topics[i % topics.length];
+      const score = parseFloat((6.0 + Math.random() * 3.5).toFixed(1)); // score between 6.0 and 9.5
+      const total = 50;
+      const correct = Math.round((score / 10) * total);
+      
+      list.push({
+        id: 1000 + i,
+        email: "student@gmail.com",
+        testName: topicInfo.name,
+        score: score,
+        correct: correct,
+        total: total,
+        failedTopics: score < 8 ? topicInfo.failed : [],
+        date: dateStr
+      });
+    }
+    return list;
+  });
+
+  // Dynamic Leads List state lifted from AdminDashboard
+  const [leadsList, setLeadsList] = useState(() => {
+    return JSON.parse(localStorage.getItem('admin_leads')) || [
+      {
+        id: 1,
+        name: "Lê Tuấn Tú",
+        phone: "0912345678",
+        email: "tuantu@gmail.com",
+        target: "Toán - Lý - Hóa (A00) • Mục tiêu 27 điểm",
+        registeredDate: "2026-06-15",
+        status: "Chờ tư vấn"
+      },
+      {
+        id: 2,
+        name: "Nguyễn Hương Giang",
+        phone: "0987654321",
+        email: "giangnguyen@gmail.com",
+        target: "Toán - Lý - Anh (A01) • Mục tiêu 26.5 điểm",
+        registeredDate: "2026-06-14",
+        status: "Đã liên hệ"
+      },
+      {
+        id: 3,
+        name: "Trần Minh Anh",
+        phone: "0905678912",
+        email: "minhanh@gmail.com",
+        target: "Toán - Văn - Anh (D01) • Mục tiêu 28 điểm",
+        registeredDate: "2026-06-13",
+        status: "Thành công"
+      },
+      {
+        id: 4,
+        name: "Phạm Quốc Bảo",
+        phone: "0971223344",
+        email: "baopq@gmail.com",
+        target: "Toán - Hóa - Sinh (B00) • Mục tiêu Y Hà Nội",
+        registeredDate: "2026-06-12",
+        status: "Chờ tư vấn"
+      }
+    ];
+  });
+
+  // Dynamic Recommended Books List state lifted from AdminDashboard
+  const [booksList, setBooksList] = useState(() => {
+    return JSON.parse(localStorage.getItem('admin_books_rec')) || [
+      {
+        id: 1,
+        title: "Bộ đề ôn luyện THPTQG môn Toán 2026",
+        author: "Thầy Thế Anh",
+        coverUrl: "https://images.unsplash.com/photo-1543002588-bfa74002ed7e?auto=format&fit=crop&q=80&w=200",
+        description: "Tổng hợp 20 đề thi thử bám sát cấu trúc mới nhất của Bộ GD&ĐT kèm giải chi tiết và kỹ thuật bấm máy nhanh.",
+        price: "129.000đ",
+        link: "https://shopee.vn"
+      },
+      {
+        id: 2,
+        title: "Chinh phục Ngữ pháp Tiếng Anh THPTQG",
+        author: "Cô Quỳnh Chi",
+        coverUrl: "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&q=80&w=200",
+        description: "Hệ thống hóa toàn bộ kiến thức ngữ pháp trọng tâm và các phương pháp giải nhanh điểm 9+.",
+        price: "99.000đ",
+        link: "https://tiki.vn"
+      },
+      {
+        id: 3,
+        title: "Sổ tay công thức nhanh Vật Lý 12",
+        author: "Cô Thu Hương",
+        coverUrl: "https://images.unsplash.com/photo-1506880018603-83d5b814b5a6?auto=format&fit=crop&q=80&w=200",
+        description: "Tóm gọn toàn bộ công thức cốt lõi và các dạng bài tập chuyên đề dao động, sóng cơ, sóng điện từ.",
+        price: "79.000đ",
+        link: "https://shopee.vn"
+      }
+    ];
+  });
+
   const [notifications, setNotifications] = useState(() => JSON.parse(localStorage.getItem('app_notifications')) || [
     { id: 1, text: "Chào mừng bạn gia nhập EduPath AI! Hãy bắt đầu khám phá lộ trình của bạn.", time: "Vừa xong", read: false }
   ]);
+
 
   const [systemLogs, setSystemLogs] = useState(() => JSON.parse(localStorage.getItem('app_logs')) || [
     { id: 1, time: new Date().toLocaleTimeString(), tag: 'sys', text: "Hệ thống Adaptive AI-Assisted Learning khởi động thành công..." },
@@ -656,6 +755,7 @@ export default function App() {
   ]);
 
   const [forumPosts, setForumPosts] = useState(() => JSON.parse(localStorage.getItem('app_forum_posts')) || initialForumPosts);
+  const [featureFlags, setFeatureFlags] = useState([]);
 
   // View state controllers
   const [activeCourseDetails, setActiveCourseDetails] = useState(null);
@@ -676,7 +776,14 @@ export default function App() {
   }, [examFilterSubject, examFilterYear, examSearchQuery, examCategory]);
 
   const [checkoutCourse, setCheckoutCourse] = useState(null);
+  const [cartCourse, setCartCourse] = useState(() => JSON.parse(localStorage.getItem('app_cart_course')) || null);
   const [showUpgradePRO, setShowUpgradePRO] = useState(false);
+
+  const handleAddToCart = (course) => {
+    setCartCourse(course);
+    localStorage.setItem('app_cart_course', JSON.stringify(course));
+    showToast.current?.(`Đã thêm khóa học "${course.title}" vào giỏ hàng!`, 'success');
+  };
 
   // Settings-specific local states
   const [settingsName, setSettingsName] = useState('');
@@ -756,6 +863,26 @@ export default function App() {
     }
   }, [currentUser, activeTab]);
 
+  // Guard admin routes and redirect to login if not authenticated with real credentials
+  useEffect(() => {
+    if (currentPath === '/admin') {
+      const token = localStorage.getItem('access_token');
+      const savedUser = JSON.parse(localStorage.getItem('current_user') || 'null');
+      
+      if (!token || !savedUser || savedUser.role.toLowerCase() !== 'admin') {
+        toast('Vui lòng đăng nhập tài khoản Quản trị viên để truy cập cơ sở dữ liệu thực!', 'warning');
+        navigateTo('/');
+        setActiveTab('login');
+      } else {
+        setCurrentUser(savedUser);
+        setRole('admin');
+        setActiveTab('home');
+      }
+    } else if (currentPath === '/' && role === 'admin') {
+      setActiveTab('landing');
+    }
+  }, [currentPath, role]);
+
   // Sync state data to localStorage
   useEffect(() => {
     localStorage.setItem('current_user', JSON.stringify(currentUser));
@@ -769,7 +896,9 @@ export default function App() {
     localStorage.setItem('app_logs', JSON.stringify(systemLogs));
     localStorage.setItem('app_approvals', JSON.stringify(courseApprovals));
     localStorage.setItem('app_forum_posts', JSON.stringify(forumPosts));
-  }, [currentUser, role, theme, usersList, courses, questionBank, submissions, notifications, systemLogs, courseApprovals, forumPosts]);
+    localStorage.setItem('admin_leads', JSON.stringify(leadsList));
+    localStorage.setItem('admin_books_rec', JSON.stringify(booksList));
+  }, [currentUser, role, theme, usersList, courses, questionBank, submissions, notifications, systemLogs, courseApprovals, forumPosts, leadsList, booksList]);
 
   // Dark theme trigger
   useEffect(() => {
@@ -783,6 +912,15 @@ export default function App() {
   // Sync live backend data if logged in
   const fetchInitialData = async () => {
     if (!currentUser) return;
+
+    // Fetch feature flags for routing controls
+    try {
+      const flags = await api.getFeatureFlags();
+      if (flags) setFeatureFlags(flags);
+    } catch (err) {
+      console.warn('[App] Không thể tải Feature Flags:', err);
+    }
+
     try {
       // 1. Fetch courses from backend
       const backendCourses = await api.getCourses();
@@ -790,16 +928,16 @@ export default function App() {
         const mapped = backendCourses.map(c => ({
           id: c.id,
           title: c.title,
+          description: c.description,
           subject: c.subject,
-          price: c.price.toLocaleString('vi-VN'),
-          teacherName: c.teacher?.user?.fullName || c.teacherName || 'Giảng viên',
-          isUnlocked: c.isUnlocked || currentUser?.unlockedCourses?.includes(c.id) || false,
+          price: c.price.toLocaleString(),
+          teacherName: c.teacher?.user?.fullName || 'Giáo viên',
           lessons: c.lessons || []
         }));
         setCourses(mapped);
       }
     } catch (err) {
-      console.warn("Không thể tải danh sách khóa học từ backend API, sử dụng mock thay thế.");
+      console.warn('[App] Không thể fetch courses:', err);
     }
 
     try {
@@ -831,6 +969,23 @@ export default function App() {
     } catch (err) {
       console.warn("Không thể tải lịch sử thi thử từ backend API.");
     }
+
+    // Dynamic loading of admin lists from PostgreSQL / Supabase
+    if (role === 'admin' || currentUser.role === 'admin') {
+      try {
+        const dbUsers = await api.getAdminUsers();
+        if (dbUsers) setUsersList(dbUsers);
+      } catch (err) {
+        console.warn('[App] Không thể tải danh sách user từ DB:', err);
+      }
+
+      try {
+        const dbLeads = await api.getAdminLeads();
+        if (dbLeads) setLeadsList(dbLeads);
+      } catch (err) {
+        console.warn('[App] Không thể tải danh sách Lead từ DB:', err);
+      }
+    }
   };
 
   useEffect(() => {
@@ -855,6 +1010,21 @@ export default function App() {
     setSystemLogs(prev => [newLog, ...prev]);
   };
 
+  // Register dynamic student leads
+  const handleRegisterLead = (leadInfo) => {
+    const newLead = {
+      id: Date.now(),
+      name: leadInfo.name,
+      phone: leadInfo.phone || 'Chưa cung cấp',
+      email: leadInfo.email,
+      target: leadInfo.target || 'Tư vấn lộ trình thích ứng',
+      registeredDate: new Date().toISOString().split('T')[0],
+      status: 'Chờ tư vấn'
+    };
+    setLeadsList(prev => [newLead, ...prev]);
+    addLog(`Lead đăng ký tư vấn mới: "${leadInfo.name}" (${leadInfo.email})`, 'sys');
+  };
+
   const handleToggleTheme = () => {
     const nextTheme = theme === 'dark' ? 'light' : 'dark';
     setTheme(nextTheme);
@@ -863,18 +1033,32 @@ export default function App() {
 
   // Safe Authentication Handlers
   const handleAuthSuccess = (user, newlyRegisteredUser = null) => {
-    if (newlyRegisteredUser) {
+    const targetUser = newlyRegisteredUser || user;
+    if (targetUser) {
       setUsersList(prev => {
-        const filtered = prev.filter(u => u.email !== newlyRegisteredUser.email);
-        return [...filtered, newlyRegisteredUser];
+        const exists = prev.some(u => u.email.toLowerCase() === targetUser.email.toLowerCase());
+        if (!exists) {
+          const userWithDate = {
+            ...targetUser,
+            registeredDate: targetUser.registeredDate || new Date().toISOString().split('T')[0]
+          };
+          return [...prev, userWithDate];
+        }
+        return prev;
       });
-      return;
     }
 
     setCurrentUser(user);
-    setRole(user.role);
-    setActiveTab('landing');
+    const lowercaseRole = user.role.toLowerCase();
+    setRole(lowercaseRole);
+    if (lowercaseRole === 'admin') {
+      navigateTo('/admin');
+      setActiveTab('home');
+    } else {
+      setActiveTab('landing');
+    }
   };
+
 
   const handleBackToDashboard = (targetTab) => {
     if (targetTab === 'courses') {
@@ -892,6 +1076,8 @@ export default function App() {
     addLog(`Người dùng "${currentUser?.name}" đăng xuất an toàn khỏi hệ thống`, 'sys');
     localStorage.removeItem('access_token');
     localStorage.removeItem('refresh_token');
+    localStorage.removeItem('current_user');
+    localStorage.removeItem('user_role');
     navigateTo('/');
     setCurrentUser(null);
     setRole('guest');
@@ -966,8 +1152,10 @@ export default function App() {
     // Write payment & enrollment rows into local storage db / Supabase tables
     if (currentUser) {
       try {
-        const targetCourse = courses.find(c => c.id === courseId);
-        const priceNum = targetCourse ? parseFloat(String(targetCourse.price).replace(/\D/g, '')) : 499000;
+        const targetCourse = courses.find(c => c.id.toString() === courseId.toString());
+        const priceNum = targetCourse 
+          ? parseFloat(String(targetCourse.priceSale || targetCourse.price || targetCourse.priceOriginal).replace(/\D/g, '')) 
+          : 499000;
         await enrollmentService.enrollCourse(currentUser.id, courseId, priceNum);
       } catch (err) {
         console.error('Failed to log payment enrollment data:', err);
@@ -978,7 +1166,8 @@ export default function App() {
     const updatedUsers = usersList.map(u => {
       if (u.email === currentUser.email) {
         const unlocked = u.unlockedCourses || [];
-        return { ...u, unlockedCourses: [...unlocked, courseId] };
+        const newUnlocked = Array.from(new Set([...unlocked, courseId, Number(courseId), courseId.toString()]));
+        return { ...u, unlockedCourses: newUnlocked };
       }
       return u;
     });
@@ -986,12 +1175,15 @@ export default function App() {
 
     // Sync active session unlockedCourses
     const activeUnlocked = currentUser?.unlockedCourses || [];
+    const newActiveUnlocked = Array.from(new Set([...activeUnlocked, courseId, Number(courseId), courseId.toString()]));
     setCurrentUser({
       ...currentUser,
-      unlockedCourses: [...activeUnlocked, courseId]
+      unlockedCourses: newActiveUnlocked
     });
 
     setCheckoutCourse(null);
+    setCartCourse(null);
+    localStorage.removeItem('app_cart_course');
   };
 
   // Student upgrades to PRO membership success
@@ -1104,9 +1296,18 @@ export default function App() {
     setQuestionBank(prev => [newQ, ...prev]);
   };
 
-  // Admin Workspace Actions
-  const handleToggleUserBan = (userId) => {
-    setUsersList(prev => prev.map(u => u.id === userId ? { ...u, isBanned: !u.isBanned } : u));
+  const handleToggleUserBan = async (userId) => {
+    try {
+      const res = await api.banAdminUser(userId);
+      if (res) {
+        setUsersList(prev => prev.map(u => u.id === userId ? { ...u, isBanned: res.isBanned } : u));
+        addLog(`Cập nhật trạng thái tài khoản ID ${userId}: ${res.isBanned ? 'Khóa' : 'Hoạt động'} thành công`, 'sys');
+      }
+    } catch (err) {
+      console.error('[App] Lỗi toggle ban user in DB:', err);
+      // fallback
+      setUsersList(prev => prev.map(u => u.id === userId ? { ...u, isBanned: !u.isBanned } : u));
+    }
   };
 
   const handleApproveTeacher = (teacherName, subject) => {
@@ -1154,9 +1355,10 @@ export default function App() {
   return (
     <div className="app-layout">
       {/* Sidebar - Guarded against guest visitors and focused exam sessions */}
-      {role !== 'guest' && activeTab !== 'landing' && parsedRoute.route !== 'mock-exam-taking' && !parsedRoute.route.startsWith('mock-') && (
+      {role !== 'guest' && role !== 'admin' && activeTab !== 'landing' && parsedRoute.route !== 'mock-exam-taking' && !parsedRoute.route.startsWith('mock-') && parsedRoute.route !== 'learn' && parsedRoute.route !== 'admin' && (
         <Sidebar
           role={role}
+          featureFlags={featureFlags}
           active={parsedRoute.route !== 'legacy' ? (parsedRoute.route.startsWith('mock-') ? 'tests' : (parsedRoute.route === 'ai-tutor' ? 'ai-qa' : (parsedRoute.route === 'flashcards' ? 'path' : (parsedRoute.route === 'exam-bank' ? 'library' : 'courses')))) : activeTab}
           setActive={(tab) => {
             if (tab === 'courses') {
@@ -1183,8 +1385,8 @@ export default function App() {
         />
       )}
 
-      <div className="main-wrapper" style={{ marginLeft: (role === 'guest' || activeTab === 'landing' || parsedRoute.route.startsWith('mock-')) ? 0 : 'var(--sidebar-width)' }}>
-        <main className="main-content" style={(role === 'guest' || activeTab === 'landing' || parsedRoute.route.startsWith('mock-') || parsedRoute.route === 'flashcards' || parsedRoute.route === 'ai-tutor') ? { maxWidth: '100%', padding: 0 } : { maxWidth: '100%' }}>
+      <div className="main-wrapper" style={{ marginLeft: (role === 'guest' || role === 'admin' || activeTab === 'landing' || parsedRoute.route.startsWith('mock-') || parsedRoute.route === 'learn' || parsedRoute.route === 'admin') ? 0 : 'var(--sidebar-width)' }}>
+        <main className="main-content" style={(role === 'guest' || role === 'admin' || activeTab === 'landing' || parsedRoute.route.startsWith('mock-') || parsedRoute.route === 'learn' || parsedRoute.route === 'flashcards' || parsedRoute.route === 'ai-tutor' || parsedRoute.route === 'admin') ? { maxWidth: '100%', padding: 0 } : { maxWidth: '100%' }}>
           {currentUser && parsedRoute.route.startsWith('mock-') && parsedRoute.route !== 'mock-exam-taking' && (
             <div className="mock-exams-simple-header">
               <button onClick={() => navigateTo('/')} className="mock-exams-back-btn">
@@ -1200,7 +1402,7 @@ export default function App() {
           )}
 
           {role !== 'guest' && activeTab !== 'landing' ? (
-            !parsedRoute.route.startsWith('mock-') && parsedRoute.route !== 'flashcards' && parsedRoute.route !== 'ai-tutor' && (
+            !parsedRoute.route.startsWith('mock-') && parsedRoute.route !== 'flashcards' && parsedRoute.route !== 'ai-tutor' && parsedRoute.route !== 'learn' && (
               <Header
                 role={role}
                 userProfile={currentUser}
@@ -1212,6 +1414,8 @@ export default function App() {
                 onChangePassword={handleChangePassword}
                 onNavigateSettings={() => { navigateTo('/'); setActiveTab('settings'); setActiveCourseDetails(null); setActiveTestSimulator(null); setActiveOCRScanner(null); }}
                 addLog={addLog}
+                cartCourse={cartCourse}
+                onCheckoutCourse={(course) => setCheckoutCourse(course)}
               />
             )
           ) : (
@@ -1228,7 +1432,7 @@ export default function App() {
           )}
 
           {/* ================= PUBLIC OR PREVIEW LANDING PAGE ================= */}
-          {(role === 'guest' || activeTab === 'landing') && !parsedRoute.route.startsWith('mock-') && parsedRoute.route !== 'ai-tutor' && parsedRoute.route !== 'exam-bank' && parsedRoute.route !== 'flashcards' && (
+          {(role === 'guest' || role === 'admin' || activeTab === 'landing') && parsedRoute.route !== 'admin' && !parsedRoute.route.startsWith('mock-') && parsedRoute.route !== 'ai-tutor' && parsedRoute.route !== 'exam-bank' && parsedRoute.route !== 'flashcards' && (
             <div>
               {role === 'guest' && activeTab === 'reset-password' ? (
                 <div className="auth-page-layout" style={{ position: 'relative', display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '80vh', padding: '20px' }}>
@@ -1319,6 +1523,8 @@ export default function App() {
                   }}
                   currentPath={currentPath}
                   navigateTo={navigateTo}
+                  cartCourse={cartCourse}
+                  onAddToCart={handleAddToCart}
                 />
               )}
             </div>
@@ -1380,12 +1586,27 @@ export default function App() {
           {role !== 'guest' && activeTab !== 'landing' && (parsedRoute.route === 'courses-list' || parsedRoute.route === 'course-detail') && (
             <div style={{ padding: '20px 0' }}>
               {parsedRoute.route === 'courses-list' && (
-                <CoursesPage
-                  currentUser={currentUser}
-                  onSelectCourse={(course) => navigateTo(`/courses/${course.id}`)}
-                  onCheckoutCourse={(course) => setCheckoutCourse(course)}
-                  navigateTo={navigateTo}
-                />
+                role === 'student' ? (
+                  <div className="cp-page-container">
+                    <div className="cp-page animate-in">
+                      <CourseMall
+                        courses={courses}
+                        currentUser={currentUser}
+                        onSelectCourse={(course) => navigateTo(`/courses/${course.id}`)}
+                        onLearnCourse={(course) => navigateTo(`/learn/${course.id}`)}
+                        onCheckoutCourse={(course) => setCheckoutCourse(course)}
+                        onRegisterLead={handleRegisterLead}
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <CoursesPage
+                    currentUser={currentUser}
+                    onSelectCourse={(course) => navigateTo(`/courses/${course.id}`)}
+                    onCheckoutCourse={(course) => setCheckoutCourse(course)}
+                    navigateTo={navigateTo}
+                  />
+                )
               )}
 
               {parsedRoute.route === 'course-detail' && (
@@ -1402,6 +1623,8 @@ export default function App() {
                     setUsersList(updatedList);
                   }}
                   navigateTo={navigateTo}
+                  onAddToCart={handleAddToCart}
+                  onCheckoutCourse={(course) => setCheckoutCourse(course)}
                 />
               )}
             </div>
@@ -1447,7 +1670,7 @@ export default function App() {
                 lessonId={parsedRoute.lessonId}
                 currentUser={currentUser}
                 onSelectLesson={(courseId, lessonId) => navigateTo(`/learn/${courseId}/lesson/${lessonId}${window.location.search}`)}
-                onBackToCourse={() => navigateTo(`/courses/${parsedRoute.courseId}`)}
+                onBackToCourse={(targetPath) => navigateTo(targetPath || `/courses/${parsedRoute.courseId}`)}
               />
             </div>
           )}
@@ -1480,6 +1703,7 @@ export default function App() {
                   currentUser={currentUser}
                   onSelectCourse={setActiveCourseDetails}
                   onCheckoutCourse={setCheckoutCourse}
+                  onRegisterLead={handleRegisterLead}
                 />
               )}
 
@@ -2616,7 +2840,7 @@ export default function App() {
           )}
 
           {/* ================= ADMIN WORKSPACE ================= */}
-          {role === 'admin' && activeTab !== 'landing' && (
+          {parsedRoute.route === 'admin' && role === 'admin' && activeTab !== 'landing' && (
             activeTab === 'forum' ? (
               <Forum currentUser={currentUser} />
             ) : (
@@ -2632,6 +2856,14 @@ export default function App() {
                 addLog={addLog}
                 activeTab={activeTab}
                 setActiveTab={setActiveTab}
+                navigateTo={navigateTo}
+                submissions={submissions}
+                leadsList={leadsList}
+                setLeadsList={setLeadsList}
+                booksList={booksList}
+                setBooksList={setBooksList}
+                featureFlags={featureFlags}
+                setFeatureFlags={setFeatureFlags}
               />
             )
           )}

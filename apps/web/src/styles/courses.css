@@ -45,7 +45,7 @@
 
 /* ── 1. PAGE LAYOUT ── */
 .cp-page {
-  max-width: 1200px;
+  max-width: 1440px;
   margin: 0 auto;
   display: flex;
   flex-direction: column;
@@ -1751,5 +1751,118 @@
     top: 0 !important;
     width: 100%;
   }
+}
+
+/* ── 17. CUSTOM DROPDOWN FILTERS ── */
+.cf-dropdown-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  width: 100%;
+}
+
+@media (max-width: 768px) {
+  .cf-dropdown-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .cf-dropdown-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Base styles for second-row custom selects */
+.cf-custom-select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  background-size: 16px;
+  padding: 11px 36px 11px 16px;
+  font-size: 14px;
+  font-weight: 700;
+  border-radius: 12px;
+  border-width: 1.5px;
+  border-style: solid;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.2s ease;
+  width: 100%;
+}
+
+/* Purple select style */
+.cf-custom-select--purple {
+  color: #4F46E5;
+  border-color: #DDD6FE;
+  background-color: #F5F3FF;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%234F46E5'%3E%3Cpath fill-rule='evenodd' d='M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z' clip-rule='evenodd'/%3E%3C/svg%3E");
+}
+.cf-custom-select--purple:focus {
+  border-color: #4F46E5;
+  box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.12);
+}
+
+/* Green select style */
+.cf-custom-select--green {
+  color: #059669;
+  border-color: #A7F3D0;
+  background-color: #ECFDF5;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%23059669'%3E%3Cpath fill-rule='evenodd' d='M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z' clip-rule='evenodd'/%3E%3C/svg%3E");
+}
+.cf-custom-select--green:focus {
+  border-color: #059669;
+  box-shadow: 0 0 0 4px rgba(5, 150, 105, 0.12);
+}
+
+/* Yellow/Orange select style */
+.cf-custom-select--orange {
+  color: #D97706;
+  border-color: #FDE68A;
+  background-color: #FEF3C7;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%23D97706'%3E%3Cpath fill-rule='evenodd' d='M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z' clip-rule='evenodd'/%3E%3C/svg%3E");
+}
+.cf-custom-select--orange:focus {
+  border-color: #D97706;
+  box-shadow: 0 0 0 4px rgba(217, 119, 6, 0.12);
+}
+
+/* Blue select style */
+.cf-custom-select--blue {
+  color: #2563EB;
+  border-color: #BFDBFE;
+  background-color: #EFF6FF;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%232563EB'%3E%3Cpath fill-rule='evenodd' d='M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z' clip-rule='evenodd'/%3E%3C/svg%3E");
+}
+.cf-custom-select--blue:focus {
+  border-color: #2563EB;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+}
+
+/* Custom Sort select styling */
+.cf-sort-select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  background-size: 16px;
+  padding: 11px 36px 11px 16px;
+  font-size: 14px;
+  font-weight: 700;
+  border-radius: 12px;
+  border: 1.5px solid var(--border-warm);
+  background-color: #ffffff;
+  color: var(--stone-text-main);
+  cursor: pointer;
+  outline: none;
+  transition: all 0.2s ease;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%2357534E'%3E%3Cpath fill-rule='evenodd' d='M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z' clip-rule='evenodd'/%3E%3C/svg%3E");
+}
+.cf-sort-select:focus {
+  border-color: var(--emerald-primary);
+  box-shadow: 0 0 0 4px rgba(5, 150, 105, 0.12);
 }
 

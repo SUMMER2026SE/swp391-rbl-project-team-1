@@ -651,5 +651,23 @@ model Mindmap {
   @@map("mindmaps")
 }
 
+model Lead {
+  id             Int      @id @default(autoincrement())
+  name           String
+  phone          String
+  email          String
+  target         String
+  registeredDate DateTime @default(now())
+  status         String   @default("Chờ tư vấn")
+}
+
+model FeatureFlag {
+  id        String   @id
+  name      String
+  isEnabled Boolean  @default(true)
+  updatedAt DateTime @updatedAt
+}
+
+
 
 

@@ -1,7 +1,16 @@
 import { HiX } from 'react-icons/hi';
 
+const BLOCKS = [
+  { value: 'All', label: 'Khối thi (Tất cả)' },
+  { value: 'Khối A00', label: 'Khối A00 (Toán, Lý, Hóa)' },
+  { value: 'Khối A01', label: 'Khối A01 (Toán, Lý, Anh)' },
+  { value: 'Khối B00', label: 'Khối B00 (Toán, Hóa, Sinh)' },
+  { value: 'Khối C00', label: 'Khối C00 (Văn, Sử, Địa)' },
+  { value: 'Khối D01', label: 'Khối D01 (Toán, Văn, Anh)' },
+];
+
 const SUBJECTS = [
-  { value: 'All', label: 'Tất cả môn' },
+  { value: 'All', label: 'Môn học (Tất cả)' },
   { value: 'Toán', label: 'Toán học' },
   { value: 'Ngữ văn', label: 'Ngữ văn' },
   { value: 'Tiếng Anh', label: 'Tiếng Anh' },
@@ -13,20 +22,19 @@ const SUBJECTS = [
   { value: 'GDCD', label: 'GDCD' },
 ];
 
-const BLOCKS = [
-  { value: 'All', label: 'Tất cả khối' },
-  { value: 'Khối A00', label: 'Khối A00 (Toán, Lý, Hóa)' },
-  { value: 'Khối A01', label: 'Khối A01 (Toán, Lý, Anh)' },
-  { value: 'Khối B00', label: 'Khối B00 (Toán, Hóa, Sinh)' },
-  { value: 'Khối C00', label: 'Khối C00 (Văn, Sử, Địa)' },
-  { value: 'Khối D01', label: 'Khối D01 (Toán, Văn, Anh)' },
-];
-
 const LEVELS = [
-  { value: 'All', label: 'Tất cả trình độ' },
+  { value: 'All', label: 'Trình độ (Tất cả)' },
   { value: 'Cơ bản', label: 'Cơ bản' },
   { value: 'Nâng cao', label: 'Nâng cao' },
   { value: 'Cấp tốc', label: 'Cấp tốc' },
+];
+
+const BADGES = [
+  { value: 'All', label: 'Phân loại (Tất cả)' },
+  { value: 'BÁN CHẠY', label: 'Bán chạy' },
+  { value: 'HOT', label: 'Hot' },
+  { value: 'ĐỀ XUẤT', label: 'Đề xuất' },
+  { value: 'MỚI', label: 'Mới' },
 ];
 
 const SORT_OPTIONS = [
@@ -48,6 +56,8 @@ export default function CourseFilter({
   setLevel,
   sortBy,
   setSortBy,
+  badgeFilter,
+  setBadgeFilter,
 }) {
   return (
     <div className="cf-bar">
@@ -88,9 +98,9 @@ export default function CourseFilter({
         </div>
 
         <div className="cf-sort-wrap">
-          <label className="cf-label">Sắp xếp:</label>
+          <label className="cf-label" style={{ letterSpacing: '1px' }}>SẮP XẾP:</label>
           <select
-            className="cf-select"
+            className="cf-sort-select"
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
           >
@@ -101,53 +111,49 @@ export default function CourseFilter({
         </div>
       </div>
 
-      {/* Row 2: Subject selectors */}
-      <div className="cf-section">
-        <span className="cf-label">Môn học</span>
-        <div className="cf-pills">
-          {SUBJECTS.map((s) => (
-            <button
-              key={s.value}
-              className={`cf-pill ${subject === s.value ? 'cf-pill--active' : ''}`}
-              onClick={() => setSubject(s.value)}
-            >
-              {s.label}
-            </button>
+      <div style={{ height: '1.5px', background: 'var(--border-warm)', margin: '0 0' }} />
+
+      {/* Row 2: Four dropdown selectors styled in a grid */}
+      <div className="cf-dropdown-grid">
+        <select
+          className="cf-custom-select cf-custom-select--purple"
+          value={block}
+          onChange={(e) => setBlock(e.target.value)}
+        >
+          {BLOCKS.map((b) => (
+            <option key={b.value} value={b.value}>{b.label}</option>
           ))}
-        </div>
-      </div>
+        </select>
 
-      {/* Row 3: Block Selectors & Level Selectors */}
-      <div className="cf-row cf-row--filters">
-        <div className="cf-section" style={{ flex: 1, minWidth: '240px' }}>
-          <span className="cf-label">Khối thi THPT</span>
-          <div className="cf-pills">
-            {BLOCKS.map((b) => (
-              <button
-                key={b.value}
-                className={`cf-pill ${block === b.value ? 'cf-pill--active' : ''}`}
-                onClick={() => setBlock(b.value)}
-              >
-                {b.label}
-              </button>
-            ))}
-          </div>
-        </div>
+        <select
+          className="cf-custom-select cf-custom-select--green"
+          value={subject}
+          onChange={(e) => setSubject(e.target.value)}
+        >
+          {SUBJECTS.map((s) => (
+            <option key={s.value} value={s.value}>{s.label}</option>
+          ))}
+        </select>
 
-        <div className="cf-section" style={{ flex: 1, minWidth: '240px' }}>
-          <span className="cf-label">Mức độ học tập</span>
-          <div className="cf-pills">
-            {LEVELS.map((l) => (
-              <button
-                key={l.value}
-                className={`cf-pill ${level === l.value ? 'cf-pill--active' : ''}`}
-                onClick={() => setLevel(l.value)}
-              >
-                {l.label}
-              </button>
-            ))}
-          </div>
-        </div>
+        <select
+          className="cf-custom-select cf-custom-select--orange"
+          value={level}
+          onChange={(e) => setLevel(e.target.value)}
+        >
+          {LEVELS.map((l) => (
+            <option key={l.value} value={l.value}>{l.label}</option>
+          ))}
+        </select>
+
+        <select
+          className="cf-custom-select cf-custom-select--blue"
+          value={badgeFilter}
+          onChange={(e) => setBadgeFilter(e.target.value)}
+        >
+          {BADGES.map((bg) => (
+            <option key={bg.value} value={bg.value}>{bg.label}</option>
+          ))}
+        </select>
       </div>
     </div>
   );

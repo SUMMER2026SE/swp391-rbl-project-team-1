@@ -58,6 +58,125 @@ export default function FlashcardPage({ currentUser, navigateTo, addLog }) {
   const [reviewCards, setReviewCards] = useState(new Set());
   const [isFinished, setIsFinished] = useState(false);
 
+  // View mode state: 'decks' (dashboard/selection) or 'study' (cards interface)
+  const [currentView, setCurrentView] = useState('decks');
+  const [activeDeckId, setActiveDeckId] = useState('default');
+  const [editingCardIdx, setEditingCardIdx] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Attendance state loaded from localStorage
+  const [attendance, setAttendance] = useState(() => {
+    try {
+      const stored = localStorage.getItem('edupath_flashcard_attendance');
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  // Study history state loaded from localStorage
+  const [studyHistory, setStudyHistory] = useState(() => {
+    try {
+      const stored = localStorage.getItem('edupath_flashcard_history');
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const saveAttendance = (newAttendance) => {
+    setAttendance(newAttendance);
+    localStorage.setItem('edupath_flashcard_attendance', JSON.stringify(newAttendance));
+  };
+
+  const saveStudyHistory = (newHistory) => {
+    setStudyHistory(newHistory);
+    localStorage.setItem('edupath_flashcard_history', JSON.stringify(newHistory));
+  };
+
+  const getTodayString = () => {
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const dd = String(today.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  };
+
+  const isTodayCheckedIn = attendance.includes(getTodayString());
+
+  const calculateStreak = () => {
+    if (attendance.length === 0) return 0;
+    const uniqueDates = [...new Set(attendance)].sort((a, b) => new Date(b) - new Date(a));
+    const todayStr = getTodayString();
+    
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, '0')}-${String(yesterday.getDate()).padStart(2, '0')}`;
+    
+    const latest = uniqueDates[0];
+    if (latest !== todayStr && latest !== yesterdayStr) {
+      return 0;
+    }
+    
+    let streak = 0;
+    let currentCheckDate = new Date(latest);
+    
+    for (let i = 0; i < uniqueDates.length; i++) {
+      const d = new Date(uniqueDates[i]);
+      const diffTime = Math.abs(currentCheckDate - d);
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      
+      if (i === 0) {
+        streak = 1;
+      } else if (diffDays === 1) {
+        streak += 1;
+        currentCheckDate = d;
+      } else if (diffDays > 1) {
+        break;
+      }
+    }
+    return streak;
+  };
+
+  const streakDays = calculateStreak();
+
+  const handleCheckIn = () => {
+    const todayStr = getTodayString();
+    if (attendance.includes(todayStr)) {
+      toast('Hôm nay bạn đã điểm danh rồi!', 'info');
+      return;
+    }
+    const nextAttendance = [...attendance, todayStr];
+    saveAttendance(nextAttendance);
+    toast('Điểm danh ngày hôm nay thành công! +1 chuỗi học lửa 🔥', 'success');
+    if (addLog) addLog('Đã điểm danh học tập hôm nay', 'sys');
+  };
+
+  // Automatically record a log when the user completes a study session (isFinished becomes true)
+  useEffect(() => {
+    if (isFinished && cards.length > 0) {
+      const today = new Date();
+      const timeStr = today.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) + ' ' + today.toLocaleDateString('vi-VN');
+      const newLog = {
+        id: Date.now().toString(),
+        deckTitle: deckTitle,
+        learnedCount: learnedCards.size,
+        totalCount: cards.length,
+        timestamp: timeStr
+      };
+
+      setStudyHistory(prev => {
+        const exists = prev.some(log => log.deckTitle === deckTitle && log.timestamp === timeStr);
+        if (exists) return prev;
+        const next = [newLog, ...prev];
+        localStorage.setItem('edupath_flashcard_history', JSON.stringify(next));
+        return next;
+      });
+
+      if (addLog) addLog(`Hoàn thành buổi ôn tập bộ thẻ: ${deckTitle}`, 'sys');
+    }
+  }, [isFinished]);
+
   // Active study filter state (all / learned / remaining / review)
   const [studyFilter, setStudyFilter] = useState('all');
 
@@ -76,6 +195,7 @@ export default function FlashcardPage({ currentUser, navigateTo, addLog }) {
     setCurrentIdx(0);
     setIsFlipped(false);
     setIsFinished(false);
+    setCurrentView('study');
     toast(`Đã chuyển sang nhóm: ${filterType === 'learned' ? 'Đã thuộc' : filterType === 'remaining' ? 'Chưa thuộc' : filterType === 'review' ? 'Cần ôn tập' : 'Tất cả'}`, 'info');
   };
 
@@ -136,6 +256,136 @@ export default function FlashcardPage({ currentUser, navigateTo, addLog }) {
     { label: '🧪 Nguyên tố Hóa học', prompt: 'Tạo bộ thẻ về tính chất các nguyên tố hóa học nhóm halogen' }
   ];
 
+  const processAgentCommand = (messageText) => {
+    const cleanText = messageText.toLowerCase().trim();
+    
+    // 1. DELETE DECK COMMAND
+    const deleteMatch = cleanText.match(/(?:xóa|delete|remove|hủy)\s+(?:bộ\s+thẻ|bộ\s+card|flashcard|bộ\s+từ\s+vựng|bộ)?\s*(.+)/i);
+    if (deleteMatch && deleteMatch[1]) {
+      const targetName = deleteMatch[1].trim().toLowerCase();
+      if (targetName.length >= 2) {
+        let latestDecks = [];
+        try {
+          const stored = localStorage.getItem('edupath_saved_flashcard_decks');
+          if (stored) latestDecks = JSON.parse(stored);
+        } catch (e) {
+          console.error(e);
+        }
+
+        const deckToDelete = latestDecks.find(d => 
+          d.title.toLowerCase() === targetName ||
+          d.title.toLowerCase().includes(targetName) || 
+          targetName.includes(d.title.toLowerCase())
+        );
+
+        if (deckToDelete) {
+          const nextDecks = latestDecks.filter(d => d.id !== deckToDelete.id);
+          setSavedDecks(nextDecks);
+          localStorage.setItem('edupath_saved_flashcard_decks', JSON.stringify(nextDecks));
+          
+          if (activeDeckId === deckToDelete.id) {
+            setCurrentView('decks');
+            setActiveDeckId(null);
+          }
+          
+          toast(`Đã xóa bộ thẻ "${deckToDelete.title}"!`, 'success');
+          return {
+            handled: true,
+            reply: `Anh đã xóa thành công bộ thẻ "${deckToDelete.title}" theo yêu cầu của em rồi nhé! 🗑`
+          };
+        }
+      }
+    }
+
+    // 2. RENAME DECK COMMAND
+    const renameMatch = cleanText.match(/(?:đổi\s+tên|sửa\s+tên|rename)\s+(?:bộ\s+thẻ|bộ\s+card|flashcard|bộ)?\s*(.+?)\s+(?:thành|sang|to)\s+(.+)/i);
+    if (renameMatch && renameMatch[1] && renameMatch[2]) {
+      const oldNameQuery = renameMatch[1].trim().toLowerCase();
+      const newName = renameMatch[2].trim();
+      
+      let latestDecks = [];
+      try {
+        const stored = localStorage.getItem('edupath_saved_flashcard_decks');
+        if (stored) latestDecks = JSON.parse(stored);
+      } catch (e) {
+        console.error(e);
+      }
+
+      const deckToRename = latestDecks.find(d => 
+        d.title.toLowerCase() === oldNameQuery ||
+        d.title.toLowerCase().includes(oldNameQuery) || 
+        oldNameQuery.includes(d.title.toLowerCase())
+      );
+
+      if (deckToRename) {
+        const nextDecks = latestDecks.map(d => {
+          if (d.id === deckToRename.id) {
+            return { ...d, title: newName };
+          }
+          return d;
+        });
+        setSavedDecks(nextDecks);
+        localStorage.setItem('edupath_saved_flashcard_decks', JSON.stringify(nextDecks));
+        
+        if (activeDeckId === deckToRename.id) {
+          setDeckTitle(newName);
+        }
+        
+        toast(`Đã đổi tên bộ thẻ thành "${newName}"!`, 'success');
+        return {
+          handled: true,
+          reply: `Anh đã đổi tên bộ thẻ từ "${deckToRename.title}" thành "${newName}" thành công rồi nhé! ✏️`
+        };
+      }
+    }
+
+    // 3. STUDY/OPEN DECK COMMAND
+    const studyMatch = cleanText.match(/(?:học|mở|open|study)\s+(?:bộ\s+thẻ|bộ\s+card|flashcard|bộ)?\s*(.+)/i);
+    if (studyMatch && studyMatch[1]) {
+      const targetName = studyMatch[1].trim().toLowerCase();
+      
+      if (targetName.includes('mặc định') || targetName.includes('lịch sử') || targetName.includes('khảo cổ')) {
+        setCards(DEFAULT_DECK);
+        setDeckTitle('Chủ đề Lịch sử & Khảo cổ học');
+        setActiveDeckId('default');
+        setCurrentIdx(0);
+        setIsFlipped(false);
+        setIsFinished(false);
+        setLearnedCards(new Set());
+        setReviewCards(new Set());
+        setCurrentView('study');
+        return {
+          handled: true,
+          reply: `Anh đã mở bộ thẻ Mặc định "Chủ đề Lịch sử & Khảo cổ học" để em bắt đầu học rồi đấy! 📖`
+        };
+      }
+      
+      let latestDecks = [];
+      try {
+        const stored = localStorage.getItem('edupath_saved_flashcard_decks');
+        if (stored) latestDecks = JSON.parse(stored);
+      } catch (e) {
+        console.error(e);
+      }
+
+      const deckToStudy = latestDecks.find(d => 
+        d.title.toLowerCase() === targetName ||
+        d.title.toLowerCase().includes(targetName) || 
+        targetName.includes(d.title.toLowerCase())
+      );
+
+      if (deckToStudy) {
+        handleLoadDeck(deckToStudy);
+        return {
+          handled: true,
+          reply: `Anh đã mở bộ thẻ "${deckToStudy.title}" để em bắt đầu học rồi nhé! 📖`
+        };
+      }
+    }
+
+    return { handled: false };
+  };
+
   const handleSendChatMessage = async (e, overrideText) => {
     if (e) e.preventDefault();
     const textToSend = overrideText || chatInput;
@@ -149,6 +399,14 @@ export default function FlashcardPage({ currentUser, navigateTo, addLog }) {
     }
     setIsChatTyping(true);
 
+    // Check for agent CRUD commands first
+    const cmdResult = processAgentCommand(message);
+    if (cmdResult.handled) {
+      setChatMessages(prev => [...prev, { sender: 'bot', text: cmdResult.reply }]);
+      setIsChatTyping(false);
+      return;
+    }
+
     const cleanText = message.toLowerCase();
     const isGen = cleanText.includes("tạo bộ thẻ") || 
                   cleanText.includes("tạo flashcard") || 
@@ -158,7 +416,8 @@ export default function FlashcardPage({ currentUser, navigateTo, addLog }) {
                   cleanText.includes("thiết kế flashcard") || 
                   cleanText.includes("làm bộ thẻ") || 
                   cleanText.includes("làm flashcard") ||
-                  cleanText.includes("generate flashcard");
+                  cleanText.includes("generate flashcard") ||
+                  /(?:tạo|làm|sinh|thiết kế|generate|create|make|build)\s+(?:cho\s+tôi\s+)?(?:một\s+)?(?:bộ\s+)?(?:thẻ|flashcard|card|bộ từ vựng|thẻ học)/i.test(cleanText);
 
     if (isGen) {
       // Add standard loading message from bot
@@ -181,17 +440,9 @@ export default function FlashcardPage({ currentUser, navigateTo, addLog }) {
           hashtag: "# Học tập"
         }));
 
-        setCards(formatted);
-        setCurrentIdx(0);
-        setIsFlipped(false);
-        setIsFinished(false);
-        setIsEditingCurrent(false);
-        setLearnedCards(new Set());
-        setReviewCards(new Set());
-
         // Infer a nice deck title from the user prompt
         let extractedTitle = '';
-        const match = message.match(/(?:tạo|thiết kế|làm)\s+(?:bộ\s+thẻ|bộ\s+card|flashcard|thẻ\s+học|thẻ|bộ\s+thẻ\s+học)\s+(?:về|chủ đề|cho)?\s*(.+)/i);
+        const match = message.match(/(?:tạo|làm|sinh|thiết kế|generate|create)\s+(?:cho\s+tôi\s+)?(?:một\s+)?(?:bộ\s+)?(?:thẻ|flashcard|card|bộ từ vựng|thẻ học)(?:\s+mới)?(?:\s+(?:về|chủ đề|cho|có\s+tên|tên\s+là))?\s*(.+)/i);
         if (match && match[1]) {
           extractedTitle = match[1].trim();
           extractedTitle = extractedTitle.charAt(0).toUpperCase() + extractedTitle.slice(1);
@@ -199,7 +450,29 @@ export default function FlashcardPage({ currentUser, navigateTo, addLog }) {
           extractedTitle = 'Flashcard AI - ' + new Date().toLocaleDateString('vi-VN');
         }
 
+        const newId = Date.now().toString();
+        const newDeck = {
+          id: newId,
+          title: extractedTitle,
+          cards: formatted,
+          createdAt: new Date().toISOString()
+        };
+
+        const nextDecks = [newDeck, ...savedDecks];
+        setSavedDecks(nextDecks);
+        localStorage.setItem('edupath_saved_flashcard_decks', JSON.stringify(nextDecks));
+
+        setCards(formatted);
         setDeckTitle(extractedTitle);
+        setActiveDeckId(newId);
+        setCurrentIdx(0);
+        setIsFlipped(false);
+        setIsFinished(false);
+        setIsEditingCurrent(false);
+        setLearnedCards(new Set());
+        setReviewCards(new Set());
+        setCurrentView('study');
+
         toast(`Đã tạo thành công bộ thẻ "${extractedTitle}" với ${formatted.length} thẻ!`, 'success');
         if (addLog) addLog(`Đã tạo bộ thẻ AI: ${extractedTitle}`, 'ai');
 
@@ -307,6 +580,47 @@ export default function FlashcardPage({ currentUser, navigateTo, addLog }) {
       }
     } catch (e) {
       console.error(e);
+    }
+  };
+
+  const saveActiveDeckChanges = (updatedCards, updatedTitle) => {
+    const titleToUse = updatedTitle !== undefined ? updatedTitle : deckTitle;
+    let nextDecks = [];
+    try {
+      const stored = localStorage.getItem('edupath_saved_flashcard_decks');
+      if (stored) {
+        nextDecks = JSON.parse(stored);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+
+    if (activeDeckId === 'default' || !activeDeckId) {
+      const newId = Date.now().toString();
+      const newDeck = {
+        id: newId,
+        title: titleToUse.trim() || 'Chủ đề Lịch sử & Khảo cổ học',
+        cards: updatedCards,
+        createdAt: new Date().toISOString()
+      };
+      const finalDecks = [newDeck, ...nextDecks];
+      setActiveDeckId(newId);
+      setSavedDecks(finalDecks);
+      localStorage.setItem('edupath_saved_flashcard_decks', JSON.stringify(finalDecks));
+      toast('Đã lưu các chỉnh sửa thành bộ thẻ mới của bạn!', 'success');
+    } else {
+      const finalDecks = nextDecks.map(d => {
+        if (d.id === activeDeckId) {
+          return {
+            ...d,
+            title: titleToUse.trim() || d.title,
+            cards: updatedCards
+          };
+        }
+        return d;
+      });
+      setSavedDecks(finalDecks);
+      localStorage.setItem('edupath_saved_flashcard_decks', JSON.stringify(finalDecks));
     }
   };
 
@@ -438,9 +752,30 @@ export default function FlashcardPage({ currentUser, navigateTo, addLog }) {
         hashtag: selectedFile ? `# ${selectedFile.name.substring(0, 8)}` : "# Học tập"
       }));
       
+      const generatedTitle = selectedFile ? selectedFile.name.replace(/\.[^/.]+$/, "") : `Flashcard ${new Date().toLocaleDateString('vi-VN')}`;
+      const newId = Date.now().toString();
+      const newDeck = {
+        id: newId,
+        title: generatedTitle,
+        cards: formatted,
+        createdAt: new Date().toISOString()
+      };
+
+      const nextDecks = [newDeck, ...savedDecks];
+      setSavedDecks(nextDecks);
+      localStorage.setItem('edupath_saved_flashcard_decks', JSON.stringify(nextDecks));
+
       setCards(formatted);
+      setDeckTitle(generatedTitle);
+      setActiveDeckId(newId);
       setCurrentIdx(0);
-      setDeckTitle(selectedFile ? selectedFile.name.replace(/\.[^/.]+$/, "") : `Flashcard ${new Date().toLocaleDateString('vi-VN')}`);
+      setIsFlipped(false);
+      setIsFinished(false);
+      setIsEditingCurrent(false);
+      setLearnedCards(new Set());
+      setReviewCards(new Set());
+      setCurrentView('study');
+
       toast(`Đã tạo thành công ${formatted.length} thẻ ghi nhớ AI!`, 'success');
       if (addLog) addLog('Đã tạo thành công bộ flashcard AI', 'ai');
     } catch (err) {
@@ -462,6 +797,20 @@ export default function FlashcardPage({ currentUser, navigateTo, addLog }) {
     setEditImage(cur.image || null);
     setEditPartOfSpeech(cur.partOfSpeech || 'Khái niệm');
     setEditHashtag(cur.hashtag || '# Ôn tập');
+    setEditingCardIdx(activeCards[currentIdx]?.originalIdx);
+    setIsAddingCard(false);
+    setIsEditingCurrent(true);
+  };
+
+  const handleStartEditCardAtIndex = (idx) => {
+    const cur = cards[idx];
+    if (!cur) return;
+    setEditFront(cur.front || '');
+    setEditBack(cur.back || '');
+    setEditImage(cur.image || null);
+    setEditPartOfSpeech(cur.partOfSpeech || 'Khái niệm');
+    setEditHashtag(cur.hashtag || '# Ôn tập');
+    setEditingCardIdx(idx);
     setIsAddingCard(false);
     setIsEditingCurrent(true);
   };
@@ -472,6 +821,7 @@ export default function FlashcardPage({ currentUser, navigateTo, addLog }) {
       return;
     }
 
+    let nextCards;
     if (isAddingCard) {
       const newCard = {
         front: editFront.trim(),
@@ -480,16 +830,16 @@ export default function FlashcardPage({ currentUser, navigateTo, addLog }) {
         partOfSpeech: editPartOfSpeech.trim(),
         hashtag: editHashtag.trim()
       };
-      const nextCards = [...cards, newCard];
+      nextCards = [...cards, newCard];
       setCards(nextCards);
       setCurrentIdx(nextCards.length - 1);
       setIsAddingCard(false);
       toast('Đã thêm thẻ mới thành công!', 'success');
     } else {
-      const origIdx = activeCards[currentIdx]?.originalIdx;
-      if (origIdx === undefined) return;
-      const nextCards = [...cards];
-      nextCards[origIdx] = {
+      const editIdx = editingCardIdx !== null ? editingCardIdx : activeCards[currentIdx]?.originalIdx;
+      if (editIdx === undefined || editIdx === null) return;
+      nextCards = [...cards];
+      nextCards[editIdx] = {
         front: editFront.trim(),
         back: editBack.trim(),
         image: editImage,
@@ -499,7 +849,11 @@ export default function FlashcardPage({ currentUser, navigateTo, addLog }) {
       setCards(nextCards);
       toast('Đã cập nhật thẻ thành công!', 'success');
     }
+    
+    // Auto-save changes
+    saveActiveDeckChanges(nextCards);
     setIsEditingCurrent(false);
+    setEditingCardIdx(null);
   };
 
   const handleAddCard = () => {
@@ -508,28 +862,55 @@ export default function FlashcardPage({ currentUser, navigateTo, addLog }) {
     setEditImage(null);
     setEditPartOfSpeech('Khái niệm');
     setEditHashtag('# Tự tạo');
+    setEditingCardIdx(null);
     setIsAddingCard(true);
     setIsEditingCurrent(true);
   };
 
   const handleCreateNewDeck = () => {
-    const name = prompt('Nhập tên bộ thẻ mới:', 'Bộ thẻ học mới');
-    if (name === null) return;
-    const finalName = name.trim() || 'Bộ thẻ học mới';
+    const today = new Date();
+    const dateStr = today.toLocaleDateString('vi-VN');
+    const finalName = `Bộ thẻ mới ${dateStr}`;
 
     const newCard = {
-      front: 'Từ / Khái niệm mới',
-      back: 'Định nghĩa / Giải thích mới',
+      front: 'Thuật ngữ mới',
+      back: 'Giải thích định nghĩa',
       image: null,
       partOfSpeech: 'Khái niệm',
       hashtag: '# Tự tạo'
     };
 
+    const newId = Date.now().toString();
+    const newDeck = {
+      id: newId,
+      title: finalName,
+      cards: [newCard],
+      createdAt: new Date().toISOString()
+    };
+
+    let latestDecks = [];
+    try {
+      const stored = localStorage.getItem('edupath_saved_flashcard_decks');
+      if (stored) {
+        latestDecks = JSON.parse(stored);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+
+    const nextDecks = [newDeck, ...latestDecks];
+    setSavedDecks(nextDecks);
+    localStorage.setItem('edupath_saved_flashcard_decks', JSON.stringify(nextDecks));
+
     setDeckTitle(finalName);
     setCards([newCard]);
+    setActiveDeckId(newId);
     setCurrentIdx(0);
     setIsFlipped(false);
     setIsFinished(false);
+    setLearnedCards(new Set());
+    setReviewCards(new Set());
+    setCurrentView('study');
 
     // Auto start editing the first card
     setEditFront(newCard.front);
@@ -537,26 +918,35 @@ export default function FlashcardPage({ currentUser, navigateTo, addLog }) {
     setEditImage(null);
     setEditPartOfSpeech(newCard.partOfSpeech);
     setEditHashtag(newCard.hashtag);
+    setEditingCardIdx(0);
+    setIsAddingCard(false);
     setIsEditingCurrent(true);
 
-    toast('Đã khởi tạo bộ thẻ mới. Vui lòng đặt lại từ và định nghĩa cho thẻ đầu tiên!', 'success');
+    toast(`Đã tạo bộ thẻ "${finalName}". Bạn có thể đổi tên bộ thẻ học ở trên!`, 'success');
   };
 
-  const handleDeleteCard = () => {
-    if (activeCards.length === 0) return;
+  const handleDeleteCardAtIndex = (idx) => {
     if (cards.length <= 1) {
       toast('Không thể xóa vì bộ phải có ít nhất 1 thẻ!', 'warning');
       return;
     }
     if (!confirm('Bạn có chắc chắn muốn xóa thẻ này khỏi bộ?')) return;
     
+    const nextCards = cards.filter((_, i) => i !== idx);
+    setCards(nextCards);
+    
+    // Auto-save changes
+    saveActiveDeckChanges(nextCards);
+    
+    setCurrentIdx(prev => Math.max(0, Math.min(prev, nextCards.length - 1)));
+    toast('Đã xóa thẻ khỏi bộ thành công!', 'success');
+  };
+
+  const handleDeleteCard = () => {
+    if (activeCards.length === 0) return;
     const origIdx = activeCards[currentIdx]?.originalIdx;
     if (origIdx === undefined) return;
-    const nextCards = cards.filter((_, idx) => idx !== origIdx);
-    setCards(nextCards);
-    setIsEditingCurrent(false);
-    setCurrentIdx(prev => Math.max(0, prev - 1));
-    toast('Đã xóa thẻ khỏi bộ thành công!', 'success');
+    handleDeleteCardAtIndex(origIdx);
   };
 
   const handleCardImageUpload = (e) => {
@@ -674,6 +1064,7 @@ export default function FlashcardPage({ currentUser, navigateTo, addLog }) {
     setIsEditingCurrent(false);
     setLearnedCards(new Set());
     setReviewCards(new Set());
+    setCurrentView('study');
     toast(`Đã tải bộ thẻ: ${deck.title}`, 'success');
   };
 
@@ -708,6 +1099,18 @@ export default function FlashcardPage({ currentUser, navigateTo, addLog }) {
             <h4 className="flashcard-menu-title">HỌC TẬP</h4>
 
             <button 
+              className="flashcard-menu-item"
+              onClick={() => navigateTo('/')}
+              style={{ marginBottom: '10px', borderBottom: '1px solid var(--fc-border-dark)', paddingBottom: '10px', borderRadius: 0 }}
+              title="Quay lại Dashboard Trang chủ chính"
+            >
+              <span className="flashcard-menu-item-left">
+                <span className="flashcard-menu-item-icon"><HiChevronLeft style={{ fontSize: '16px', color: 'var(--fc-gold)' }} /></span>
+                <span style={{ fontWeight: '800', color: 'var(--fc-gold)' }}>Về Trang chủ</span>
+              </span>
+            </button>
+
+            <button 
               className="flashcard-btn-create-deck" 
               onClick={handleCreateNewDeck} 
               title="Khởi tạo một bộ thẻ ghi nhớ hoàn toàn mới"
@@ -716,35 +1119,26 @@ export default function FlashcardPage({ currentUser, navigateTo, addLog }) {
               <span>Tạo bộ thẻ mới</span>
             </button>
             
-            <button className="flashcard-menu-item" onClick={() => navigateTo('/')}>
-              <span className="flashcard-menu-item-left">
-                <span className="flashcard-menu-item-icon">📊</span>
-                <span>Tổng quan</span>
-              </span>
-            </button>
-            
-            <button className="flashcard-menu-item" style={{ cursor: 'default' }}>
-              <span className="flashcard-menu-item-left">
-                <span className="flashcard-menu-item-icon">📁</span>
-                <span style={{ fontSize: '11.5px', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', maxWidth: '140px' }}>
-                  {deckTitle}
-                </span>
-              </span>
-            </button>
-
             <button 
-              className={`flashcard-menu-item ${studyFilter === 'all' ? 'flashcard-menu-item--active' : ''}`}
-              onClick={() => handleFilterStudy('all')}
+              className={`flashcard-menu-item ${currentView === 'decks' ? 'flashcard-menu-item--active' : ''}`}
+              onClick={() => {
+                setCurrentView('decks');
+                setIsFinished(false);
+              }}
             >
               <span className="flashcard-menu-item-left">
                 <span className="flashcard-menu-item-icon">🗂️</span>
-                <span>Flashcard</span>
+                <span>Bộ thẻ của tôi</span>
               </span>
             </button>
 
             <button 
-              className={`flashcard-menu-item ${studyFilter === 'learned' ? 'flashcard-menu-item--active' : ''}`}
-              onClick={() => handleFilterStudy('learned')}
+              className={`flashcard-menu-item ${currentView === 'study' && !isFinished && studyFilter === 'learned' ? 'flashcard-menu-item--active' : ''}`}
+              onClick={() => {
+                setCurrentView('study');
+                setIsFinished(false);
+                handleFilterStudy('learned');
+              }}
             >
               <span className="flashcard-menu-item-left">
                 <span className="flashcard-menu-item-icon" style={{ color: '#10b981' }}>✓</span>
@@ -754,8 +1148,12 @@ export default function FlashcardPage({ currentUser, navigateTo, addLog }) {
             </button>
 
             <button 
-              className={`flashcard-menu-item ${studyFilter === 'remaining' ? 'flashcard-menu-item--active' : ''}`}
-              onClick={() => handleFilterStudy('remaining')}
+              className={`flashcard-menu-item ${currentView === 'study' && !isFinished && studyFilter === 'remaining' ? 'flashcard-menu-item--active' : ''}`}
+              onClick={() => {
+                setCurrentView('study');
+                setIsFinished(false);
+                handleFilterStudy('remaining');
+              }}
             >
               <span className="flashcard-menu-item-left">
                 <span className="flashcard-menu-item-icon" style={{ color: '#ef4444' }}>✕</span>
@@ -765,8 +1163,12 @@ export default function FlashcardPage({ currentUser, navigateTo, addLog }) {
             </button>
 
             <button 
-              className={`flashcard-menu-item ${studyFilter === 'review' ? 'flashcard-menu-item--active' : ''}`}
-              onClick={() => handleFilterStudy('review')}
+              className={`flashcard-menu-item ${currentView === 'study' && !isFinished && studyFilter === 'review' ? 'flashcard-menu-item--active' : ''}`}
+              onClick={() => {
+                setCurrentView('study');
+                setIsFinished(false);
+                handleFilterStudy('review');
+              }}
             >
               <span className="flashcard-menu-item-left">
                 <span className="flashcard-menu-item-icon" style={{ color: '#f59e0b' }}>↺</span>
@@ -775,19 +1177,17 @@ export default function FlashcardPage({ currentUser, navigateTo, addLog }) {
               <span className="flashcard-menu-item-counter">{reviewCards.size}</span>
             </button>
 
-            <button className="flashcard-menu-item" onClick={() => setIsFinished(true)}>
+            <button 
+              className={`flashcard-menu-item ${currentView === 'study' && isFinished ? 'flashcard-menu-item--active' : ''}`}
+              onClick={() => {
+                setCurrentView('study');
+                setIsFinished(true);
+              }}
+            >
               <span className="flashcard-menu-item-left">
                 <span className="flashcard-menu-item-icon">📈</span>
                 <span>Thống kê</span>
               </span>
-            </button>
-
-            <button className="flashcard-menu-item" onClick={() => setActiveTab(activeTab === 'history' ? 'create' : 'history')}>
-              <span className="flashcard-menu-item-left">
-                <span className="flashcard-menu-item-icon">⏱️</span>
-                <span>Lịch sử làm bài</span>
-              </span>
-              <span className="flashcard-menu-item-counter" style={{ fontSize: '9px' }}>{savedDecks.length}</span>
             </button>
           </div>
 
@@ -877,7 +1277,7 @@ export default function FlashcardPage({ currentUser, navigateTo, addLog }) {
           <div className="flashcard-streak-card">
             <span className="flashcard-streak-icon">🔥</span>
             <div className="flashcard-streak-text">
-              <span className="flashcard-streak-value">1 ngày</span>
+              <span className="flashcard-streak-value">{streakDays} ngày</span>
               <span className="flashcard-streak-label">Chuỗi học liên tục</span>
             </div>
           </div>
@@ -885,258 +1285,509 @@ export default function FlashcardPage({ currentUser, navigateTo, addLog }) {
 
         {/* ================= CENTER WORKSPACE ================= */}
         <main className="flashcard-center-workspace">
-          <div className="flashcard-center-header">
-            <div>
-              <div className="flashcard-header-breadcrumb">ĐANG HỌC · BỘ THẺ</div>
-              <div className="flashcard-header-title-row">
-                <input 
-                  type="text" 
-                  className="flashcard-title-creator-input"
-                  value={deckTitle}
-                  onChange={(e) => setDeckTitle(e.target.value)}
-                  placeholder="Nhập tên bộ thẻ học..."
-                  style={{ width: '420px', fontSize: '18px', fontWeight: 'bold' }}
-                />
-                <span className="flashcard-header-tag">Academic</span>
+          {currentView === 'decks' ? (
+            /* ================= DECKS SELECTOR VIEW ================= */
+            <div className="flashcard-decks-selector animate-in" style={{ padding: '8px 4px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <div>
+                  <h2 style={{ fontSize: '20px', fontWeight: '900', color: 'var(--fc-gold)', margin: 0 }}>Bộ thẻ của tôi 🗂️</h2>
+                  <p style={{ fontSize: '12.5px', color: 'var(--fc-text-secondary)', margin: '4px 0 0 0' }}>
+                    Chọn một bộ từ vựng dưới đây để bắt đầu ôn luyện. Bạn có thể tự tạo hoặc dùng AI để sinh bộ thẻ mới.
+                  </p>
+                </div>
               </div>
-            </div>
 
-            <div className="flashcard-header-actions">
-              <button className="flashcard-header-btn" onClick={handleShuffleDeck} title="Trộn thẻ ngẫu nhiên">
-                Trộn thẻ
-              </button>
-              <button 
-                className="flashcard-header-btn" 
-                onClick={() => setAutoPronounce(!autoPronounce)}
-                style={{ borderColor: autoPronounce ? 'var(--fc-gold)' : '', color: autoPronounce ? 'var(--fc-gold)' : '' }}
-                title="Tự động đọc nội dung thẻ bằng giọng nói"
-              >
-                🔊 Tự động phát âm: {autoPronounce ? 'BẬT' : 'TẮT'}
-              </button>
-              <button className="flashcard-header-btn" onClick={handleAddCard}>
-                <HiPlus /> Thêm thẻ mới
-              </button>
-              {cards.length > 0 && (
-                <button className="flashcard-header-btn" onClick={handleSaveDeck} style={{ background: 'var(--fc-gold)', color: '#12120e' }}>
-                  <HiSave /> Lưu bộ thẻ
-                </button>
+              {/* Decks Grid */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px', marginTop: '16px' }}>
+                
+                {/* Default Deck */}
+                <div 
+                  className="flashcard-document-deck-item flashcard-document-deck-item--default animate-in"
+                  onClick={() => {
+                    setCards(DEFAULT_DECK);
+                    setDeckTitle('Chủ đề Lịch sử & Khảo cổ học');
+                    setActiveDeckId('default');
+                    setCurrentIdx(0);
+                    setIsFlipped(false);
+                    setIsFinished(false);
+                    setLearnedCards(new Set());
+                    setReviewCards(new Set());
+                    setCurrentView('study');
+                    toast('Đã tải bộ thẻ: Chủ đề Lịch sử & Khảo cổ học', 'success');
+                  }}
+                >
+                  <div>
+                    <div className="flashcard-doc-icon-container">
+                      <HiDocumentText className="flashcard-doc-large-icon" />
+                      <span className="flashcard-doc-meta-badge flashcard-doc-meta-badge--default">
+                        Mặc định
+                      </span>
+                    </div>
+                    <span className="flashcard-doc-card-count">5 thẻ học</span>
+                    <h4 className="flashcard-doc-title">
+                      Chủ đề Lịch sử & Khảo cổ học
+                    </h4>
+                    <div className="flashcard-doc-lines-preview">
+                      <div className="flashcard-doc-line" />
+                      <div className="flashcard-doc-line" />
+                      <div className="flashcard-doc-line" />
+                    </div>
+                  </div>
+                  
+                  <div className="flashcard-doc-actions">
+                    <button 
+                      className="flashcard-doc-btn-study"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setCards(DEFAULT_DECK);
+                        setDeckTitle('Chủ đề Lịch sử & Khảo cổ học');
+                        setActiveDeckId('default');
+                        setCurrentIdx(0);
+                        setIsFlipped(false);
+                        setIsFinished(false);
+                        setLearnedCards(new Set());
+                        setReviewCards(new Set());
+                        setCurrentView('study');
+                        toast('Đã tải bộ thẻ: Chủ đề Lịch sử & Khảo cổ học', 'success');
+                      }}
+                    >
+                      Học ngay
+                    </button>
+                  </div>
+                </div>
+
+                {/* Saved Decks */}
+                {savedDecks.map(deck => (
+                  <div 
+                    key={deck.id} 
+                    className="flashcard-document-deck-item animate-in"
+                    onClick={() => handleLoadDeck(deck)}
+                  >
+                    <div>
+                      <div className="flashcard-doc-icon-container">
+                        <HiDocumentText className="flashcard-doc-large-icon" style={{ color: 'var(--fc-gold)' }} />
+                        <span className="flashcard-doc-meta-badge flashcard-doc-meta-badge--saved">
+                          Đã lưu
+                        </span>
+                      </div>
+                      <span className="flashcard-doc-card-count">{deck.cards?.length || 0} thẻ học</span>
+                      <h4 className="flashcard-doc-title">
+                        {deck.title}
+                      </h4>
+                      <div className="flashcard-doc-lines-preview">
+                        <div className="flashcard-doc-line" />
+                        <div className="flashcard-doc-line" />
+                        <div className="flashcard-doc-line" />
+                      </div>
+                    </div>
+
+                    <div className="flashcard-doc-actions">
+                      <button 
+                        onClick={(e) => handleDeleteDeck(e, deck.id)}
+                        className="flashcard-doc-btn-delete"
+                        title="Xóa bộ thẻ này"
+                      >
+                        Xóa
+                      </button>
+                      
+                      <button 
+                        className="flashcard-doc-btn-study" 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleLoadDeck(deck);
+                        }}
+                      >
+                        Học ngay
+                      </button>
+                    </div>
+                  </div>
+                ))}
+
+              </div>
+              
+              {savedDecks.length === 0 && (
+                <div style={{ textAlign: 'center', background: 'rgba(255,255,255,0.01)', border: '1px dashed var(--fc-border-dark)', borderRadius: '20px', padding: '40px', marginTop: '24px' }}>
+                  <p style={{ color: 'var(--fc-text-secondary)', fontSize: '13px', margin: 0 }}>
+                    Bạn chưa tạo thêm bộ thẻ nào khác. Hãy dán tài liệu vào khung nhập bên trái hoặc sử dụng EduBot chat để tạo thẻ học tự động!
+                  </p>
+                </div>
               )}
             </div>
-          </div>
-
-          {/* Flashcard Render Canvas */}
-          <div className="flashcard-canvas-card-area">
-            {!isFinished && activeCards.length > 0 ? (
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', width: '100%' }}>
-                
-                {/* 3D Starry Flippable Card */}
-                <div 
-                  className={`flashcard-3d-card-wrapper ${isFlipped ? 'flashcard-3d-card-wrapper--flipped' : ''}`}
-                  onClick={() => setIsFlipped(!isFlipped)}
-                >
-                  
-                  {/* Front Side */}
-                  <div className="flashcard-night-face">
-                    <div className="flashcard-star-particles" />
-                    
-                    <span className="flashcard-card-part-of-speech">
-                      {activeCards[currentIdx]?.card?.partOfSpeech || 'Khái niệm'} (Mặt trước)
-                    </span>
-
-                    <div className="flashcard-card-top-actions" onClick={e => e.stopPropagation()}>
-                      <button 
-                        className="flashcard-card-action-circle"
-                        onClick={() => speakText(activeCards[currentIdx]?.card?.front)}
-                        title="Đọc từ vựng"
-                      >
-                        <HiVolumeUp />
-                      </button>
-                      <button 
-                        className="flashcard-card-action-circle"
-                        onClick={handleStartEditCurrent}
-                        title="Sửa nội dung thẻ này"
-                      >
-                        ✏️
-                      </button>
-                      <button 
-                        className="flashcard-card-action-circle"
-                        onClick={handleDeleteCard}
-                        title="Xóa thẻ này"
-                        style={{ color: '#ef4444' }}
-                      >
-                        <HiTrash />
-                      </button>
-                    </div>
-
-                    <div className="flashcard-card-word-title">
-                      {activeCards[currentIdx]?.card?.front}
-                    </div>
-
-                    {activeCards[currentIdx]?.card?.image && (
-                      <div className="flashcard-uploaded-img-wrapper">
-                        <img src={activeCards[currentIdx].card.image} alt="Card illustration" />
-                      </div>
-                    )}
-
-                    <span className="flashcard-card-hashtag">
-                      {activeCards[currentIdx]?.card?.hashtag || '# Học tập'}
-                    </span>
-
-                    <span className="flashcard-card-prompt-bottom">
-                      Nhấp vào thẻ để xem nghĩa ↺
-                    </span>
-
-                    {/* Cartoon happy mascot bouncing */}
-                    <svg className="moon-mascot" width="48" height="48" viewBox="0 0 64 64" fill="none">
-                      <circle cx="32" cy="32" r="28" fill="#FFFFFF" />
-                      <circle cx="24" cy="28" r="2.5" fill="#1E1E18" />
-                      <circle cx="40" cy="28" r="2.5" fill="#1E1E18" />
-                      <path d="M 28 36 Q 32 40 36 36" stroke="#1E1E18" strokeWidth="2.5" strokeLinecap="round" fill="none" />
-                      <circle cx="19" cy="32" r="3" fill="#FFB4B4" opacity="0.6" />
-                      <circle cx="45" cy="32" r="3" fill="#FFB4B4" opacity="0.6" />
-                    </svg>
+          ) : (
+            /* ================= REGULAR STUDY CANVAS ================= */
+            <>
+              <div className="flashcard-center-header">
+                <div>
+                  <div className="flashcard-header-breadcrumb" style={{ cursor: 'pointer', color: 'var(--fc-gold)', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px' }} onClick={() => setCurrentView('decks')}>
+                    <span>← Bộ thẻ của tôi</span> · <span>{deckTitle}</span>
                   </div>
-
-                  {/* Back Side */}
-                  <div className="flashcard-night-face flashcard-night-face--back">
-                    <div className="flashcard-star-particles" />
-                    
-                    <span className="flashcard-card-part-of-speech" style={{ color: 'var(--fc-gold)' }}>
-                      GIẢI THÍCH (Mặt sau)
-                    </span>
-
-                    <div className="flashcard-card-top-actions" onClick={e => e.stopPropagation()}>
-                      <button 
-                        className="flashcard-card-action-circle"
-                        onClick={() => speakText(activeCards[currentIdx]?.card?.back)}
-                        title="Đọc giải thích"
-                      >
-                        <HiVolumeUp />
-                      </button>
-                      <button 
-                        className="flashcard-card-action-circle"
-                        onClick={handleStartEditCurrent}
-                        title="Sửa nội dung thẻ này"
-                      >
-                        ✏️
-                      </button>
-                    </div>
-
-                    <div className="flashcard-card-word-title" style={{ fontSize: '16px', fontWeight: '500', padding: '0 12px', lineHeight: '1.6' }}>
-                      {activeCards[currentIdx]?.card?.back}
-                    </div>
-
-                    {activeCards[currentIdx]?.card?.image && (
-                      <div className="flashcard-uploaded-img-wrapper">
-                        <img src={activeCards[currentIdx].card.image} alt="Card illustration" />
-                      </div>
-                    )}
-
-                    <span className="flashcard-card-hashtag" style={{ color: 'var(--fc-gold)', background: 'rgba(255, 226, 89, 0.05)' }}>
-                      {activeCards[currentIdx]?.card?.hashtag || '# Học tập'}
-                    </span>
-
-                    <span className="flashcard-card-prompt-bottom">
-                      Nhấp vào thẻ để xem lại câu hỏi ↺
-                    </span>
-
-                    {/* Cartoon happy mascot bouncing */}
-                    <svg className="moon-mascot" width="48" height="48" viewBox="0 0 64 64" fill="none">
-                      <circle cx="32" cy="32" r="28" fill="#FFFFFF" />
-                      <circle cx="24" cy="28" r="2.5" fill="#1E1E18" />
-                      <circle cx="40" cy="28" r="2.5" fill="#1E1E18" />
-                      <path d="M 28 36 Q 32 40 36 36" stroke="#1E1E18" strokeWidth="2.5" strokeLinecap="round" fill="none" />
-                      <circle cx="19" cy="32" r="3" fill="#FFB4B4" opacity="0.6" />
-                      <circle cx="45" cy="32" r="3" fill="#FFB4B4" opacity="0.6" />
-                    </svg>
+                  <div className="flashcard-header-title-row" style={{ marginTop: '4px' }}>
+                    <input 
+                      type="text" 
+                      className="flashcard-title-creator-input"
+                      value={deckTitle}
+                      onChange={(e) => {
+                        const newTitle = e.target.value;
+                        setDeckTitle(newTitle);
+                        saveActiveDeckChanges(cards, newTitle);
+                      }}
+                      placeholder="Nhập tên bộ thẻ học..."
+                      style={{ width: '420px', fontSize: '18px', fontWeight: 'bold' }}
+                    />
+                    <span className="flashcard-header-tag">Academic</span>
                   </div>
                 </div>
 
-                {/* Progress indicators under card */}
-                <div style={{ display: 'flex', width: '100%', maxWidth: '580px', justifyContent: 'space-between', fontSize: '11.5px', color: 'var(--fc-text-secondary)' }}>
-                  <span>Thẻ {currentIdx + 1} / {activeCards.length}</span>
-                  <div style={{ width: '150px', background: 'var(--fc-border-dark)', height: '6px', borderRadius: '3px', marginTop: '6px', overflow: 'hidden' }}>
-                    <div style={{ background: 'var(--fc-gold)', height: '100%', width: `${((currentIdx + 1) / activeCards.length) * 100}%`, transition: 'width 0.2s' }} />
-                  </div>
-                  <span>Đã thuộc: {learnedCards.size} / {cards.length}</span>
-                </div>
-              </div>
-            ) : activeCards.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '40px' }}>
-                <p style={{ color: 'var(--fc-text-secondary)', fontSize: '13px' }}>
-                  {studyFilter === 'all' 
-                    ? 'Bộ thẻ ghi nhớ trống. Hãy nhập kiến thức bên trái để tạo thẻ tự động, hoặc bấm "Thêm thẻ mới"!'
-                    : `Không có thẻ nào trong nhóm "${studyFilter === 'learned' ? 'Đã thuộc' : studyFilter === 'remaining' ? 'Chưa thuộc' : 'Cần ôn tập'}". Hãy chọn nhóm học khác hoặc tiếp tục học nhé!`
-                  }
-                </p>
-                {studyFilter !== 'all' && (
+                <div className="flashcard-header-actions">
+                  <button className="flashcard-header-btn" onClick={handleShuffleDeck} title="Trộn thẻ ngẫu nhiên">
+                    Trộn thẻ
+                  </button>
                   <button 
                     className="flashcard-header-btn" 
-                    onClick={() => setStudyFilter('all')}
-                    style={{ marginTop: '16px', background: 'var(--fc-gold)', color: '#12120e', border: 'none', padding: '8px 16px' }}
+                    onClick={() => setAutoPronounce(!autoPronounce)}
+                    style={{ borderColor: autoPronounce ? 'var(--fc-gold)' : '', color: autoPronounce ? 'var(--fc-gold)' : '' }}
+                    title="Tự động đọc nội dung thẻ bằng giọng nói"
                   >
-                    Xem tất cả thẻ
+                    🔊 Tự động phát âm: {autoPronounce ? 'BẬT' : 'TẮT'}
                   </button>
+                  <button className="flashcard-header-btn" onClick={handleAddCard}>
+                    <HiPlus /> Thêm thẻ mới
+                  </button>
+                  {cards.length > 0 && (
+                    <button className="flashcard-header-btn" onClick={handleSaveDeck} style={{ background: 'var(--fc-gold)', color: '#12120e' }}>
+                      <HiSave /> Lưu bộ thẻ
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Flashcard Render Canvas */}
+              <div className="flashcard-canvas-card-area">
+                {!isFinished && activeCards.length > 0 ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', width: '100%' }}>
+                    
+                    {/* 3D Starry Flippable Card */}
+                    <div 
+                      className={`flashcard-3d-card-wrapper ${isFlipped ? 'flashcard-3d-card-wrapper--flipped' : ''}`}
+                      onClick={() => setIsFlipped(!isFlipped)}
+                    >
+                      
+                      {/* Front Side */}
+                      <div className="flashcard-night-face">
+                        <div className="flashcard-star-particles" />
+                        
+                        <span className="flashcard-card-part-of-speech">
+                          {activeCards[currentIdx]?.card?.partOfSpeech || 'Khái niệm'} (Mặt trước)
+                        </span>
+
+                        <div className="flashcard-card-top-actions" onClick={e => e.stopPropagation()}>
+                          <button 
+                            className="flashcard-card-action-circle"
+                            onClick={() => speakText(activeCards[currentIdx]?.card?.front)}
+                            title="Đọc từ vựng"
+                          >
+                            <HiVolumeUp />
+                          </button>
+                          <button 
+                            className="flashcard-card-action-circle"
+                            onClick={handleStartEditCurrent}
+                            title="Sửa nội dung thẻ này"
+                          >
+                            ✏️
+                          </button>
+                          <button 
+                            className="flashcard-card-action-circle"
+                            onClick={handleDeleteCard}
+                            title="Xóa thẻ này"
+                            style={{ color: '#ef4444' }}
+                          >
+                            <HiTrash />
+                          </button>
+                        </div>
+
+                        <div className="flashcard-card-word-title">
+                          {activeCards[currentIdx]?.card?.front}
+                        </div>
+
+                        {activeCards[currentIdx]?.card?.image && (
+                          <div className="flashcard-uploaded-img-wrapper">
+                            <img src={activeCards[currentIdx].card.image} alt="Card illustration" />
+                          </div>
+                        )}
+
+                        <span className="flashcard-card-hashtag">
+                          {activeCards[currentIdx]?.card?.hashtag || '# Học tập'}
+                        </span>
+
+                        <span className="flashcard-card-prompt-bottom">
+                          Nhấp vào thẻ để xem nghĩa ↺
+                        </span>
+
+                        {/* Cartoon happy mascot bouncing */}
+                        <svg className="moon-mascot" width="48" height="48" viewBox="0 0 64 64" fill="none">
+                          <circle cx="32" cy="32" r="28" fill="#FFFFFF" />
+                          <circle cx="24" cy="28" r="2.5" fill="#1E1E18" />
+                          <circle cx="40" cy="28" r="2.5" fill="#1E1E18" />
+                          <path d="M 28 36 Q 32 40 36 36" stroke="#1E1E18" strokeWidth="2.5" strokeLinecap="round" fill="none" />
+                          <circle cx="19" cy="32" r="3" fill="#FFB4B4" opacity="0.6" />
+                          <circle cx="45" cy="32" r="3" fill="#FFB4B4" opacity="0.6" />
+                        </svg>
+                      </div>
+
+                      {/* Back Side */}
+                      <div className="flashcard-night-face flashcard-night-face--back">
+                        <div className="flashcard-star-particles" />
+                        
+                        <span className="flashcard-card-part-of-speech" style={{ color: 'var(--fc-gold)' }}>
+                          GIẢI THÍCH (Mặt sau)
+                        </span>
+
+                        <div className="flashcard-card-top-actions" onClick={e => e.stopPropagation()}>
+                          <button 
+                            className="flashcard-card-action-circle"
+                            onClick={() => speakText(activeCards[currentIdx]?.card?.back)}
+                            title="Đọc giải thích"
+                          >
+                            <HiVolumeUp />
+                          </button>
+                          <button 
+                            className="flashcard-card-action-circle"
+                            onClick={handleStartEditCurrent}
+                            title="Sửa nội dung thẻ này"
+                          >
+                            ✏️
+                          </button>
+                        </div>
+
+                        <div className="flashcard-card-word-title" style={{ fontSize: '22px', fontWeight: '500', padding: '0 12px', lineHeight: '1.6' }}>
+                          {activeCards[currentIdx]?.card?.back}
+                        </div>
+
+                        {activeCards[currentIdx]?.card?.image && (
+                          <div className="flashcard-uploaded-img-wrapper">
+                            <img src={activeCards[currentIdx].card.image} alt="Card illustration" />
+                          </div>
+                        )}
+
+                        <span className="flashcard-card-hashtag" style={{ color: 'var(--fc-gold)', background: 'rgba(255, 226, 89, 0.05)' }}>
+                          {activeCards[currentIdx]?.card?.hashtag || '# Học tập'}
+                        </span>
+
+                        <span className="flashcard-card-prompt-bottom">
+                          Nhấp vào thẻ để xem lại câu hỏi ↺
+                        </span>
+
+                        {/* Cartoon happy mascot bouncing */}
+                        <svg className="moon-mascot" width="48" height="48" viewBox="0 0 64 64" fill="none">
+                          <circle cx="32" cy="32" r="28" fill="#FFFFFF" />
+                          <circle cx="24" cy="28" r="2.5" fill="#1E1E18" />
+                          <circle cx="40" cy="28" r="2.5" fill="#1E1E18" />
+                          <path d="M 28 36 Q 32 40 36 36" stroke="#1E1E18" strokeWidth="2.5" strokeLinecap="round" fill="none" />
+                          <circle cx="19" cy="32" r="3" fill="#FFB4B4" opacity="0.6" />
+                          <circle cx="45" cy="32" r="3" fill="#FFB4B4" opacity="0.6" />
+                        </svg>
+                      </div>
+                    </div>
+
+                    {/* Progress indicators under card */}
+                    <div style={{ display: 'flex', width: '100%', maxWidth: '740px', justifyContent: 'space-between', fontSize: '11.5px', color: 'var(--fc-text-secondary)' }}>
+                      <span>Thẻ {currentIdx + 1} / {activeCards.length}</span>
+                      <div style={{ width: '150px', background: 'var(--fc-border-dark)', height: '6px', borderRadius: '3px', marginTop: '6px', overflow: 'hidden' }}>
+                        <div style={{ background: 'var(--fc-gold)', height: '100%', width: `${((currentIdx + 1) / activeCards.length) * 100}%`, transition: 'width 0.2s' }} />
+                      </div>
+                      <span>Đã thuộc: {learnedCards.size} / {cards.length}</span>
+                    </div>
+                  </div>
+                ) : activeCards.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '40px' }}>
+                    <p style={{ color: 'var(--fc-text-secondary)', fontSize: '13px' }}>
+                      {studyFilter === 'all' 
+                        ? 'Bộ thẻ ghi nhớ trống. Hãy nhập kiến thức bên trái để tạo thẻ tự động, hoặc bấm "Thêm thẻ mới"!'
+                        : `Không có thẻ nào trong nhóm "${studyFilter === 'learned' ? 'Đã thuộc' : studyFilter === 'remaining' ? 'Chưa thuộc' : 'Cần ôn tập'}". Hãy chọn nhóm học khác hoặc tiếp tục học nhé!`
+                      }
+                    </p>
+                    {studyFilter !== 'all' && (
+                      <button 
+                        className="flashcard-header-btn" 
+                        onClick={() => setStudyFilter('all')}
+                        style={{ marginTop: '16px', background: 'var(--fc-gold)', color: '#12120e', border: 'none', padding: '8px 16px' }}
+                      >
+                        Xem tất cả thẻ
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  /* Finish summary screen */
+                  <div className="flashcard-finish-screen animate-in" style={{ background: 'var(--fc-starry-bg)', border: '1px solid var(--fc-border-dark)', borderRadius: '28px', padding: '40px', width: '100%', maxWidth: '740px', textAlign: 'center' }}>
+                    <div className="finish-emoji" style={{ fontSize: '48px', animation: 'float-moon 2s infinite' }}>🏆</div>
+                    <h3 className="finish-title" style={{ fontSize: '20px', fontWeight: '900', color: 'var(--fc-gold)' }}>Hoàn thành buổi ôn tập!</h3>
+                    <p className="finish-desc" style={{ fontSize: '13px', color: 'var(--fc-text-secondary)' }}>Bạn đã hoàn thành việc ôn luyện bộ thẻ học <strong>{deckTitle}</strong>.</p>
+                    
+                    {/* Result Statistics */}
+                    <div className="finish-stats-card" style={{ background: 'rgba(0,0,0,0.2)', border: '1px solid var(--fc-border-dark)', borderRadius: '16px', display: 'grid', gridTemplateColumns: '1fr 1fr', padding: '16px', margin: '20px 0' }}>
+                      <div style={{ textAlign: 'center' }}>
+                        <span style={{ display: 'block', fontSize: '28px', fontWeight: '900', color: '#10b981' }}>{learnedCards.size}</span>
+                        <span style={{ fontSize: '11px', color: 'var(--fc-text-secondary)' }}>Thẻ đã nhớ</span>
+                      </div>
+                      <div style={{ textAlign: 'center', borderLeft: '1px solid var(--fc-border-dark)' }}>
+                        <span style={{ display: 'block', fontSize: '28px', fontWeight: '900', color: '#f59e0b' }}>{reviewCards.size}</span>
+                        <span style={{ fontSize: '11px', color: 'var(--fc-text-secondary)' }}>Cần ôn tập lại</span>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+                      <button className="flashcard-header-btn" onClick={restartReview} style={{ background: 'var(--fc-gold)', color: '#12120e', border: 'none' }}>
+                        <HiRefresh /> Ôn lại từ đầu
+                      </button>
+                      <button className="flashcard-header-btn" onClick={() => setCurrentView('decks')}>
+                        Quay lại danh sách bộ thẻ
+                      </button>
+                    </div>
+                  </div>
                 )}
               </div>
-            ) : (
-              /* Finish summary screen */
-              <div className="flashcard-finish-screen animate-in" style={{ background: 'var(--fc-starry-bg)', border: '1px solid var(--fc-border-dark)', borderRadius: '28px', padding: '40px', width: '100%', maxWidth: '580px', textAlign: 'center' }}>
-                <div className="finish-emoji" style={{ fontSize: '48px', animation: 'float-moon 2s infinite' }}>🏆</div>
-                <h3 className="finish-title" style={{ fontSize: '20px', fontWeight: '900', color: 'var(--fc-gold)' }}>Hoàn thành buổi ôn tập!</h3>
-                <p className="finish-desc" style={{ fontSize: '13px', color: 'var(--fc-text-secondary)' }}>Bạn đã hoàn thành việc ôn luyện bộ thẻ học <strong>{deckTitle}</strong>.</p>
-                
-                {/* Result Statistics */}
-                <div className="finish-stats-card" style={{ background: 'rgba(0,0,0,0.2)', border: '1px solid var(--fc-border-dark)', borderRadius: '16px', display: 'grid', gridTemplateColumns: '1fr 1fr', padding: '16px', margin: '20px 0' }}>
-                  <div style={{ textAlign: 'center' }}>
-                    <span style={{ display: 'block', fontSize: '28px', fontWeight: '900', color: '#10b981' }}>{learnedCards.size}</span>
-                    <span style={{ fontSize: '11px', color: 'var(--fc-text-secondary)' }}>Thẻ đã nhớ</span>
-                  </div>
-                  <div style={{ textAlign: 'center', borderLeft: '1px solid var(--fc-border-dark)' }}>
-                    <span style={{ display: 'block', fontSize: '28px', fontWeight: '900', color: '#f59e0b' }}>{reviewCards.size}</span>
-                    <span style={{ fontSize: '11px', color: 'var(--fc-text-secondary)' }}>Cần ôn tập lại</span>
-                  </div>
-                </div>
 
-                <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
-                  <button className="flashcard-header-btn" onClick={restartReview} style={{ background: 'var(--fc-gold)', color: '#12120e', border: 'none' }}>
-                    <HiRefresh /> Ôn lại từ đầu
+              {/* Bottom review actions buttons */}
+              {!isFinished && activeCards.length > 0 && (
+                <div className="flashcard-bottom-actions-bar">
+                  <button 
+                    className="flashcard-bottom-btn flashcard-bottom-btn--review" 
+                    onClick={markForReview}
+                    title="Đánh dấu thẻ này chưa thuộc (Phím mũi tên Trái)"
+                  >
+                    ✕ Chưa nhớ <span className="flashcard-bottom-btn-count">{reviewCards.size}</span>
                   </button>
-                  <button className="flashcard-header-btn" onClick={() => navigateTo('/')}>
-                    Về Trang chủ
+                  
+                  <button 
+                    className="flashcard-bottom-btn flashcard-bottom-btn--flip" 
+                    onClick={() => setIsFlipped(!isFlipped)}
+                    title="Lật thẻ qua lại (Phím cách Space)"
+                  >
+                    Lật thẻ <span className="flashcard-bottom-btn-count" style={{ fontSize: '9px' }}>Space</span>
+                  </button>
+                  
+                  <button 
+                    className="flashcard-bottom-btn flashcard-bottom-btn--learned" 
+                    onClick={markAsLearned}
+                    title="Đánh dấu thẻ này đã thuộc lòng (Phím mũi tên Phải)"
+                  >
+                    ✓ Đã nhớ <span className="flashcard-bottom-btn-count">{learnedCards.size}</span>
                   </button>
                 </div>
-              </div>
-            )}
-          </div>
+              )}
 
-          {/* Bottom review actions buttons */}
-          {!isFinished && activeCards.length > 0 && (
-            <div className="flashcard-bottom-actions-bar">
-              <button 
-                className="flashcard-bottom-btn flashcard-bottom-btn--review" 
-                onClick={markForReview}
-                title="Đánh dấu thẻ này chưa thuộc (Phím mũi tên Trái)"
-              >
-                ✕ Chưa nhớ <span className="flashcard-bottom-btn-count">{reviewCards.size}</span>
-              </button>
-              
-              <button 
-                className="flashcard-bottom-btn flashcard-bottom-btn--flip" 
-                onClick={() => setIsFlipped(!isFlipped)}
-                title="Lật thẻ qua lại (Phím cách Space)"
-              >
-                Lật thẻ <span className="flashcard-bottom-btn-count" style={{ fontSize: '9px' }}>Space</span>
-              </button>
-              
-              <button 
-                className="flashcard-bottom-btn flashcard-bottom-btn--learned" 
-                onClick={markAsLearned}
-                title="Đánh dấu thẻ này đã thuộc lòng (Phím mũi tên Phải)"
-              >
-                ✓ Đã nhớ <span className="flashcard-bottom-btn-count">{learnedCards.size}</span>
-              </button>
-            </div>
+              {/* Card List Manager */}
+              {(() => {
+                const filteredManagerCards = cards.map((card, index) => ({ card, index })).filter(({ card }) => {
+                  if (!searchQuery) return true;
+                  const query = searchQuery.toLowerCase();
+                  const frontText = (card.front || '').toLowerCase();
+                  const backText = (card.back || '').toLowerCase();
+                  const hashtagText = (card.hashtag || '').toLowerCase();
+                  return frontText.includes(query) || backText.includes(query) || hashtagText.includes(query);
+                });
+
+                return (
+                  <div className="flashcard-list-manager-section">
+                    <div className="flashcard-list-manager-header">
+                      <div className="flashcard-list-manager-title-row">
+                        <h3 className="flashcard-list-manager-title">
+                          Danh sách thẻ trong bộ ({cards.length})
+                        </h3>
+                      </div>
+                      
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <div className="flashcard-list-search-wrapper">
+                          <span className="flashcard-list-search-icon">🔍</span>
+                          <input 
+                            type="text" 
+                            className="flashcard-list-search-input" 
+                            placeholder="Tìm kiếm thẻ học..." 
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                          />
+                        </div>
+                        <button 
+                          className="flashcard-header-btn" 
+                          onClick={handleAddCard}
+                          style={{ background: 'rgba(255, 226, 89, 0.08)', color: 'var(--fc-gold)', borderColor: 'rgba(255, 226, 89, 0.3)' }}
+                        >
+                          <HiPlus /> Thêm thẻ mới
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="flashcard-list-table-container">
+                      {filteredManagerCards.length === 0 ? (
+                        <div className="flashcard-list-empty">
+                          Không tìm thấy thẻ nào khớp với từ khóa.
+                        </div>
+                      ) : (
+                        <table className="flashcard-list-table">
+                          <thead>
+                            <tr className="flashcard-list-header-row">
+                              <th className="flashcard-list-header-cell" style={{ width: '60px', textAlign: 'center' }}>STT</th>
+                              <th className="flashcard-list-header-cell" style={{ width: '220px' }}>Khái niệm (Mặt trước)</th>
+                              <th className="flashcard-list-header-cell">Định nghĩa (Mặt sau)</th>
+                              <th className="flashcard-list-header-cell" style={{ width: '130px' }}>Chủ đề</th>
+                              <th className="flashcard-list-header-cell" style={{ width: '100px', textAlign: 'right' }}>Thao tác</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {filteredManagerCards.map(({ card, index }) => (
+                              <tr key={index} className="flashcard-list-row">
+                                <td className="flashcard-list-cell" style={{ textAlign: 'center', color: 'var(--fc-text-secondary)', fontWeight: 'bold' }}>
+                                  {index + 1}
+                                </td>
+                                <td className="flashcard-list-cell flashcard-list-cell--front">
+                                  {card.front}
+                                  {card.partOfSpeech && (
+                                    <span style={{ display: 'block', fontSize: '10px', color: 'var(--fc-gold)', marginTop: '4px', fontWeight: 'normal' }}>
+                                      ({card.partOfSpeech})
+                                    </span>
+                                  )}
+                                </td>
+                                <td className="flashcard-list-cell flashcard-list-cell--back">
+                                  {card.back}
+                                  {card.image && (
+                                    <div style={{ marginTop: '6px' }}>
+                                      <img src={card.image} alt="illustration" style={{ maxHeight: '40px', borderRadius: '4px', border: '1px solid var(--fc-border-dark)' }} />
+                                    </div>
+                                  )}
+                                </td>
+                                <td className="flashcard-list-cell">
+                                  <span className="flashcard-list-badge">
+                                    {card.hashtag || '# Học tập'}
+                                  </span>
+                                </td>
+                                <td className="flashcard-list-cell" style={{ textAlign: 'right' }}>
+                                  <div className="flashcard-list-actions">
+                                    <button 
+                                      className="flashcard-list-action-btn flashcard-list-action-btn--edit" 
+                                      onClick={() => handleStartEditCardAtIndex(index)}
+                                      title="Sửa thẻ này"
+                                    >
+                                      ✏️
+                                    </button>
+                                    <button 
+                                      className="flashcard-list-action-btn flashcard-list-action-btn--delete" 
+                                      onClick={() => handleDeleteCardAtIndex(index)}
+                                      title="Xóa thẻ này"
+                                    >
+                                      <HiTrash />
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
+            </>
           )}
         </main>
 

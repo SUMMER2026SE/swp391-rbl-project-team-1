@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { toast } from '../utils/toast';
 import { api } from '../api';
-import { HiArrowRight, HiCheck, HiStar, HiLightningBolt, HiMenuAlt3, HiX, HiTrendingUp, HiSparkles, HiLockClosed, HiClock, HiPlay } from 'react-icons/hi';
+import { HiArrowRight, HiCheck, HiStar, HiLightningBolt, HiMenuAlt3, HiX, HiTrendingUp, HiSparkles, HiLockClosed, HiClock, HiPlay, HiShoppingCart } from 'react-icons/hi';
 import FooterSunMascot from './FooterSunMascot';
 import Forum from './Forum';
 import SubjectsPage from './SubjectsPage';
@@ -637,7 +637,9 @@ export default function LandingPage({
   onNavigateToLearn,
   onUpdateUser,
   currentPath,
-  navigateTo
+  navigateTo,
+  cartCourse,
+  onAddToCart
 }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -1257,7 +1259,6 @@ export default function LandingPage({
           </div>
 
           <div className="lp-nav__links">
-            <a href="#home" className={activeLandingView === 'home' ? 'lp-link--active' : ''} onClick={(e) => { e.preventDefault(); setActiveLandingView('home'); }}>Trang chủ</a>
             <a href="/courses" className={activeLandingView === 'courses' ? 'lp-link--active' : ''} onClick={(e) => { e.preventDefault(); if (navigateTo) { navigateTo('/courses'); } else { setActiveLandingView('courses'); } }}>Khóa học</a>
             <a href="/mock-exams" className={currentPath?.startsWith('/mock-exams') ? 'lp-link--active' : ''} onClick={(e) => { e.preventDefault(); if (!currentUser) { toast("Vui lòng đăng nhập để sử dụng chức năng thi thử!", 'warning'); if (onNavigateToAuth) onNavigateToAuth('login'); } else { if (navigateTo) { navigateTo('/mock-exams'); } else { setActiveLandingView('exams'); } } }}>Thi thử</a>
             <a href="/flashcards" className={currentPath === '/flashcards' ? 'lp-link--active' : ''} onClick={(e) => { e.preventDefault(); if (navigateTo) { navigateTo('/flashcards'); } else { setActiveLandingView('features'); } }}>Flashcard</a>
@@ -1268,6 +1269,67 @@ export default function LandingPage({
           </div>
 
           <div className="lp-nav__cta">
+            {/* Desktop Cart Button */}
+            <button
+              onClick={() => {
+                if (cartCourse) {
+                  onCheckoutCourse(cartCourse);
+                } else {
+                  toast('Giỏ hàng trống! Hãy chọn một khóa học để thêm vào giỏ.', 'warning');
+                }
+              }}
+              style={{
+                background: 'rgba(255, 255, 255, 0.1)',
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                borderRadius: '50%',
+                width: '40px',
+                height: '40px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                color: '#ffffff',
+                position: 'relative',
+                transition: 'all 0.2s ease',
+                marginRight: '8px',
+                outline: 'none'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)';
+                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.3)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+              }}
+              title="Giỏ hàng"
+            >
+              <HiShoppingCart style={{ fontSize: '20px' }} />
+              {cartCourse && (
+                <span
+                  style={{
+                    position: 'absolute',
+                    top: '-4px',
+                    right: '-4px',
+                    backgroundColor: '#ef4444',
+                    color: '#ffffff',
+                    fontSize: '10px',
+                    fontWeight: 'bold',
+                    borderRadius: '50%',
+                    width: '18px',
+                    height: '18px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    border: '2px solid var(--lp-bg, #0f172a)',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                  }}
+                >
+                  1
+                </span>
+              )}
+            </button>
+
             {currentUser ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: '16px', position: 'relative' }}>
                 <button 
@@ -1491,6 +1553,57 @@ export default function LandingPage({
             )}
           </div>
 
+          {/* Mobile Cart Button */}
+          <button
+            onClick={() => {
+              if (cartCourse) {
+                onCheckoutCourse(cartCourse);
+              } else {
+                toast('Giỏ hàng trống! Hãy chọn một khóa học để thêm vào giỏ.', 'warning');
+              }
+            }}
+            className="lp-mobile-cart-btn"
+            style={{
+              background: 'rgba(255, 255, 255, 0.1)',
+              border: '1px solid rgba(255, 255, 255, 0.2)',
+              borderRadius: '50%',
+              width: '38px',
+              height: '38px',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              color: '#ffffff',
+              position: 'relative',
+              marginRight: '8px',
+              outline: 'none'
+            }}
+            title="Giỏ hàng"
+          >
+            <HiShoppingCart style={{ fontSize: '18px' }} />
+            {cartCourse && (
+              <span
+                style={{
+                  position: 'absolute',
+                  top: '-3px',
+                  right: '-3px',
+                  backgroundColor: '#ef4444',
+                  color: '#ffffff',
+                  fontSize: '9px',
+                  fontWeight: 'bold',
+                  borderRadius: '50%',
+                  width: '16px',
+                  height: '16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  border: '1.5px solid var(--lp-bg, #0f172a)'
+                }}
+              >
+                1
+              </span>
+            )}
+          </button>
+
           <button className="lp-nav__hamburger" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
             {mobileMenuOpen ? <HiX /> : <HiMenuAlt3 />}
           </button>
@@ -1498,7 +1611,6 @@ export default function LandingPage({
 
         {mobileMenuOpen && (
           <div className="lp-mobile-menu">
-            <a href="#home" onClick={(e) => { e.preventDefault(); setActiveLandingView('home'); setMobileMenuOpen(false); }}>Trang chủ</a>
             <a href="/courses" onClick={(e) => { e.preventDefault(); if (navigateTo) { navigateTo('/courses'); } else { setActiveLandingView('courses'); } setMobileMenuOpen(false); }}>Khóa học</a>
             <a href="/mock-exams" onClick={(e) => { e.preventDefault(); if (!currentUser) { toast("Vui lòng đăng nhập để sử dụng chức năng thi thử!", 'warning'); if (onNavigateToAuth) onNavigateToAuth('login'); } else { if (navigateTo) { navigateTo('/mock-exams'); } else { setActiveLandingView('exams'); } } setMobileMenuOpen(false); }}>Thi thử</a>
             <a href="/flashcards" onClick={(e) => { e.preventDefault(); if (navigateTo) { navigateTo('/flashcards'); } else { setActiveLandingView('features'); } setMobileMenuOpen(false); }}>Flashcard</a>
@@ -1954,8 +2066,8 @@ export default function LandingPage({
 
         {/* ================= 2. SUBJECTS DEDICATED PAGE ================= */}
         {activeLandingView === 'courses' && (
-          <div className="lp-container animate-in" style={{ padding: '40px 16px 80px', minHeight: '60vh' }}>
-            <div style={{ marginBottom: '24px', maxWidth: '1100px', margin: '0 auto 24px auto', padding: '0 16px' }}>
+          <div className="animate-in" style={{ background: '#F5F1E8', minHeight: '100vh', padding: '40px 0 80px' }}>
+            <div style={{ marginBottom: '24px', maxWidth: '1440px', margin: '0 auto', padding: '0 24px' }}>
               <button
                 onClick={() => {
                   if (selectedCourseId) {
@@ -1967,7 +2079,7 @@ export default function LandingPage({
                 style={{
                   background: 'none',
                   border: 'none',
-                  color: 'var(--primary, #6c5ce7)',
+                  color: 'var(--emerald-primary, #059669)',
                   fontWeight: 'bold',
                   cursor: 'pointer',
                   display: 'flex',
@@ -1987,6 +2099,8 @@ export default function LandingPage({
                 currentUser={currentUser}
                 onNavigateToLearn={onNavigateToLearn}
                 onUpdateUser={onUpdateUser}
+                onAddToCart={onAddToCart}
+                onCheckoutCourse={onCheckoutCourse}
               />
             ) : (
               <CoursesPage

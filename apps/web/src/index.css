@@ -8245,3 +8245,16 @@ body {
   transition: background 0.2s;
 }
 .ai-feedback-close-btn:hover { background: var(--primary-dark); }
+
+/* Mobile Cart Button Visibility Rules */
+@media (max-width: 768px) {
+  .lp-mobile-cart-btn {
+    display: flex !important;
+  }
+}
+@media (min-width: 769px) {
+  .lp-mobile-cart-btn {
+    display: none !important;
+  }
+}
+

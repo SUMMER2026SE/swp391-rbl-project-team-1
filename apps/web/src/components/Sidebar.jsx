@@ -8,37 +8,38 @@ import {
 const navGroups = {
   student: [
     {
-      groupLabel: '📖 Học tập',
+      groupLabel: '📊 Tổng quan',
       items: [
-        { label: 'Trang chủ', id: 'home', icon: HiHome },
-        { label: 'Khóa học', id: 'courses', icon: HiAcademicCap },
-        { label: 'Flashcard AI', id: 'path', icon: HiCollection },
+        { label: 'Bảng điều khiển', id: 'home', icon: HiHome },
+        { label: 'Về trang chủ', id: 'landing', icon: HiArrowUp },
       ],
     },
     {
-      groupLabel: '✏️ Luyện tập',
+      groupLabel: '📚 Học tập & Luyện thi',
       items: [
-        { label: 'Ngân hàng đề thi', id: 'tests', icon: HiClipboardCheck },
+        { label: 'Khóa học của tôi', id: 'courses', icon: HiAcademicCap },
+        { label: 'Luyện thi thử', id: 'tests', icon: HiClipboardCheck },
         { label: 'Ngân hàng tài liệu', id: 'library', icon: HiBookOpen },
       ],
     },
     {
-      groupLabel: '🌐 Cộng đồng',
+      groupLabel: '🤖 Trợ lý học thuật AI',
       items: [
-        { label: 'Mindmap', id: 'ai-qa', icon: HiMap },
-        { label: 'Cộng đồng', id: 'forum', icon: HiChat },
+        { label: 'Flashcard thông minh', id: 'path', icon: HiCollection },
+        { label: 'Sơ đồ tư duy AI', id: 'ai-qa', icon: HiMap },
       ],
     },
     {
-      groupLabel: '🏆 Thành tích',
+      groupLabel: '👥 Kết nối & Kết quả',
       items: [
+        { label: 'Cộng đồng học tập', id: 'forum', icon: HiChat },
         { label: 'Bảng xếp hạng', id: 'leaderboard', icon: HiChartBar },
       ],
     },
     {
       groupLabel: '⚙️ Tài khoản',
       items: [
-        { label: 'Cài đặt hồ sơ', id: 'settings', icon: HiCog },
+        { label: 'Cài đặt cá nhân', id: 'settings', icon: HiCog },
       ],
     },
   ],
@@ -81,20 +82,36 @@ const navGroups = {
   ],
 };
 
-export default function Sidebar({ role, active, setActive, userProfile, onLogout, onUpgradePRO }) {
+export default function Sidebar({ role, active, setActive, userProfile, onLogout, onUpgradePRO, featureFlags = [] }) {
   if (role === 'guest') return null;
 
-  const groups = navGroups[role] || [];
+  const baseGroups = navGroups[role] || [];
   const isPro = userProfile?.isPro;
+
+  // Filter items dynamically based on feature flags (for student role)
+  const groups = role === 'student' ? baseGroups.map(group => {
+    const filteredItems = group.items.filter(item => {
+      let flagId = item.id;
+      if (item.id === 'tests') flagId = 'mockExams';
+      if (item.id === 'ai-qa') flagId = 'mindmaps';
+      if (item.id === 'path') flagId = 'flashcards';
+      if (item.id === 'library') flagId = 'documents';
+      if (item.id === 'forum') flagId = 'forum';
+
+      const flag = featureFlags.find(f => f.id === flagId);
+      return flag ? flag.isEnabled : true;
+    });
+    return { ...group, items: filteredItems };
+  }).filter(group => group.items.length > 0) : baseGroups;
 
   return (
     <aside className="sidebar sidebar--v2">
       {/* Logo */}
       <div
         className="sidebar-logo sidebar-logo--v2"
-        onClick={() => setActive('landing')}
+        onClick={() => setActive('home')}
         style={{ cursor: 'pointer' }}
-        title="Quay lại Trang chủ"
+        title="Bảng điều khiển học tập"
       >
         <div className="logo-icon logo-icon--v2">E</div>
         <div className="logo-text">
