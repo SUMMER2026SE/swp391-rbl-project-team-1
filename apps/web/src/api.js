@@ -346,5 +346,22 @@ export const api = {
   updateAdminLeadStatus: (id, status) => request(`/admin/leads/${id}/status`, { method: 'PUT', body: { status } }),
   getFeatureFlags: () => request('/admin/features'),
   toggleFeatureFlag: (id, isEnabled) => request(`/admin/features/${id}/toggle`, { method: 'POST', body: { isEnabled } }),
+
+  getAdvancedLeaderboard: (filters = {}) => {
+    const query = new URLSearchParams();
+    Object.entries(filters).forEach(([k, v]) => {
+      if (v !== undefined && v !== null && v !== '') {
+        query.append(k, String(v));
+      }
+    });
+    return request(`/v1/leaderboard?${query.toString()}`);
+  },
+
+  getActivityHeatmap: (userId, year) => {
+    const url = userId 
+      ? `/v1/users/${userId}/activity-heatmap${year ? `?year=${year}` : ''}`
+      : `/v1/users/me/activity-heatmap${year ? `?year=${year}` : ''}`;
+    return request(url);
+  }
 };
 

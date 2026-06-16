@@ -18,6 +18,7 @@ import { getDocumentResources, getDocumentComments, addDocumentComment } from '.
 import { createVNPayPayment, vnpayWebhook, sepayWebhook, checkEnrollmentStatus, checkUserProStatus } from './controllers/payment.js';
 import { authenticateJWT, requireRole } from './middleware/auth.js';
 import { getAdminStats, getAdminUsers, toggleUserBan, getAdminLeads, createAdminLead, updateAdminLeadStatus, getFeatureFlags, toggleFeatureFlag } from './controllers/admin.js';
+import { getLeaderboardRankings, getActivityHeatmap } from './controllers/gamification.js';
 import {
   getCategories, createCategory, deleteCategory,
   getPosts, getPostById, createPost, deletePost, togglePinPost, reactPost,
@@ -212,6 +213,9 @@ app.post('/forum/study-groups/:id/announcements', authenticateJWT, createGroupAn
 
 app.get('/forum/leaderboard', getLeaderboard);
 app.get('/forum/gamification/profile', authenticateJWT, getUserGamificationProfile);
+
+app.get('/v1/leaderboard', authenticateJWT, getLeaderboardRankings);
+app.get('/v1/users/:id/activity-heatmap', authenticateJWT, getActivityHeatmap);
 
 app.post('/forum/resources/:id/download', downloadResource);
 app.post('/forum/moderation/reports', authenticateJWT, createReport);

@@ -45,17 +45,21 @@ model User {
   auditLogs          ForumAuditLog[]
   documentComments   DocumentComment[]
   mindmaps           Mindmap[]
+  dailyContributions DailyContribution[]
+  subjectStreaks     SubjectStreak[]
+  leaderboardSnapshots LeaderboardSnapshot[]
 }
 
 model Student {
-  userId       Int           @id
+  userId       Int             @id
   subjectGroup String
   chatMessages ChatMessage[]
   enrollments  Enrollment[]
   reviews      Review[]
   roadmap      Roadmap?
-  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user         User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   testAttempts TestAttempt[]
+  profile      StudentProfile?
 }
 
 model Teacher {
@@ -666,6 +670,55 @@ model FeatureFlag {
   name      String
   isEnabled Boolean  @default(true)
   updatedAt DateTime @updatedAt
+}
+
+model StudentProfile {
+  studentId  Int      @id
+  grade      Int      // 10, 11, 12
+  province   String   // "Hà Nội", "Đà Nẵng", etc.
+  student    Student  @relation(fields: [studentId], references: [userId], onDelete: Cascade)
+}
+
+model DailyContribution {
+  id              Int      @id @default(autoincrement())
+  userId          Int
+  date            DateTime // Normalized YYYY-MM-DD
+  exerciseCount   Int      @default(0)
+  examsCompleted  Int      @default(0)
+  lessonsCompleted Int     @default(0)
+  studyMinutes    Int      @default(0)
+  xpEarned        Int      @default(0)
+  subjectsStudied Json     // Array of subject tags e.g. ["math", "physics"]
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+  @@index([userId, date])
+}
+
+model SubjectStreak {
+  id           Int      @id @default(autoincrement())
+  userId       Int
+  subject      String   // "math", "physics", etc.
+  currentStreak Int     @default(0)
+  longestStreak Int     @default(0)
+  lastActive   DateTime?
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, subject])
+}
+
+model LeaderboardSnapshot {
+  id           Int      @id @default(autoincrement())
+  dimensionKey String   // e.g. "grade_12_math_danang"
+  rank         Int
+  userId       Int
+  score        Float
+  xp           Int
+  streakDays   Int
+  updatedAt    DateTime @default(now())
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([dimensionKey, rank])
 }
 
 
