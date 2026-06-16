@@ -12,20 +12,20 @@ const navGroups = {
       items: [
         { label: 'Trang chủ', id: 'home', icon: HiHome },
         { label: 'Khóa học', id: 'courses', icon: HiAcademicCap },
-        { label: 'Lộ trình AI', id: 'path', icon: HiMap },
+        { label: 'Flashcard AI', id: 'path', icon: HiCollection },
       ],
     },
     {
       groupLabel: '✏️ Luyện tập',
       items: [
-        { label: 'Thi thử THPTQG', id: 'tests', icon: HiClipboardCheck },
-        { label: 'Ngân hàng đề', id: 'library', icon: HiBookOpen },
+        { label: 'Ngân hàng đề thi', id: 'tests', icon: HiClipboardCheck },
+        { label: 'Ngân hàng tài liệu', id: 'library', icon: HiBookOpen },
       ],
     },
     {
       groupLabel: '🌐 Cộng đồng',
       items: [
-        { label: 'AI Gia sư', id: 'ai-qa', icon: HiLightBulb },
+        { label: 'Mindmap', id: 'ai-qa', icon: HiMap },
         { label: 'Cộng đồng', id: 'forum', icon: HiChat },
       ],
     },

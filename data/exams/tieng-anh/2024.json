@@ -1,0 +1,1506 @@
+{
+  "title": "Đề thi chính thức THPT Quốc Gia 2024 - Môn Tiếng Anh",
+  "subject_slug": "anh",
+  "subject_name": "Tiếng Anh",
+  "year": 2024,
+  "exam_code": "401",
+  "exam_type": "official",
+  "source": "Bộ GD&ĐT",
+  "duration_minutes": 60,
+  "total_questions": 50,
+  "description": "Đề thi chính thức môn Tiếng Anh kỳ thi tốt nghiệp THPT Quốc Gia năm 2024 từ Bộ Giáo dục và Đào tạo (Phiên bản đầy đủ 50 câu hỏi chuẩn cấu trúc).",
+  "pdf_url": "https://moet.gov.vn/tienganh-2024.pdf",
+  "official_answer_key_url": "https://moet.gov.vn/tienganh-2024-key.pdf",
+  "questions": [
+    {
+      "question_number": 1,
+      "question_text": "Choose the word whose underlined part differs from the other three in pronunciation:\n\n**A.** play**ed**  \n**B.** clean**ed**  \n**C.** stopp**ed**  \n**D.** call**ed**",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Dễ",
+      "explanation": "Đuôi '-ed' trong 'stopped' được phát âm là /t/ vì âm cuối là vô thanh /p/. Trong các từ còn lại, '-ed' được phát âm là /d/.",
+      "options": [
+        {
+          "option_label": "A",
+          "option_text": "played",
+          "is_correct": false
+        },
+        {
+          "option_label": "B",
+          "option_text": "cleaned",
+          "is_correct": false
+        },
+        {
+          "option_label": "C",
+          "option_text": "stopped",
+          "is_correct": true
+        },
+        {
+          "option_label": "D",
+          "option_text": "called",
+          "is_correct": false
+        }
+      ]
+    },
+    {
+      "question_number": 2,
+      "question_text": "Choose the word that differs from the other three in the position of stress:\n\n**A.** active  \n**B.** famous  \n**C.** polite  \n**D.** happy",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Dễ",
+      "explanation": "'Polite' nhấn trọng âm vào âm tiết thứ hai /pəˈlaɪt/. Các từ còn lại nhấn trọng âm vào âm tiết đầu tiên.",
+      "options": [
+        {
+          "option_label": "A",
+          "option_text": "active",
+          "is_correct": false
+        },
+        {
+          "option_label": "B",
+          "option_text": "famous",
+          "is_correct": false
+        },
+        {
+          "option_label": "C",
+          "option_text": "polite",
+          "is_correct": true
+        },
+        {
+          "option_label": "D",
+          "option_text": "happy",
+          "is_correct": false
+        }
+      ]
+    },
+    {
+      "question_number": 3,
+      "question_text": "She has been working here ______ 2020.",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Dễ",
+      "explanation": "Thì hiện tại hoàn thành tiếp diễn đi với 'since' + mốc thời gian (2020).",
+      "options": [
+        {
+          "option_label": "A",
+          "option_text": "for",
+          "is_correct": false
+        },
+        {
+          "option_label": "B",
+          "option_text": "since",
+          "is_correct": true
+        },
+        {
+          "option_label": "C",
+          "option_text": "in",
+          "is_correct": false
+        },
+        {
+          "option_label": "D",
+          "option_text": "during",
+          "is_correct": false
+        }
+      ]
+    },
+    {
+      "question_number": 4,
+      "question_text": "If it ______ tomorrow, we will cancel the picnic.",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Dễ",
+      "explanation": "Câu điều kiện loại 1 diễn tả sự việc có thể xảy ra ở hiện tại/tương lai: If + S + V(s/es), S + will + V-inf. Vì 'it' là ngôi thứ ba số ít nên dùng 'rains'.",
+      "options": [
+        {
+          "option_label": "A",
+          "option_text": "rains",
+          "is_correct": true
+        },
+        {
+          "option_label": "B",
+          "option_text": "rained",
+          "is_correct": false
+        },
+        {
+          "option_label": "C",
+          "option_text": "will rain",
+          "is_correct": false
+        },
+        {
+          "option_label": "D",
+          "option_text": "is raining",
+          "is_correct": false
+        }
+      ]
+    },
+    {
+      "question_number": 5,
+      "question_text": "The book ______ by Jack London is very interesting.",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Trung bình",
+      "explanation": "Rút gọn mệnh đề quan hệ dạng bị động dùng quá khứ phân từ V3/V-ed (written). Câu đầy đủ: 'The book which was written by...'",
+      "options": [
+        {
+          "option_label": "A",
+          "option_text": "writing",
+          "is_correct": false
+        },
+        {
+          "option_label": "B",
+          "option_text": "wrote",
+          "is_correct": false
+        },
+        {
+          "option_label": "C",
+          "option_text": "written",
+          "is_correct": true
+        },
+        {
+          "option_label": "D",
+          "option_text": "write",
+          "is_correct": false
+        }
+      ]
+    },
+    {
+      "question_number": 6,
+      "question_text": "The more study you do, ______ exam results you will get.",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Trung bình",
+      "explanation": "Cấu trúc so sánh kép: The + comparative + S + V, the + comparative + S + V. 'Good' chuyển thành 'better'.",
+      "options": [
+        {
+          "option_label": "A",
+          "option_text": "the best",
+          "is_correct": false
+        },
+        {
+          "option_label": "B",
+          "option_text": "better",
+          "is_correct": false
+        },
+        {
+          "option_label": "C",
+          "option_text": "the better",
+          "is_correct": true
+        },
+        {
+          "option_label": "D",
+          "option_text": "best",
+          "is_correct": false
+        }
+      ]
+    },
+    {
+      "question_number": 7,
+      "question_text": "He decided to ______ Smoking after his doctor warned him about his health.",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Trung bình",
+      "explanation": "Cụm động từ 'give up' nghĩa là từ bỏ, bỏ cuộc (bỏ thuốc lá). 'Take up' là bắt đầu một sở thích; 'go on' là tiếp tục; 'put off' là trì hoãn.",
+      "options": [
+        {
+          "option_label": "A",
+          "option_text": "take up",
+          "is_correct": false
+        },
+        {
+          "option_label": "B",
+          "option_text": "give up",
+          "is_correct": true
+        },
+        {
+          "option_label": "C",
+          "option_text": "go on",
+          "is_correct": false
+        },
+        {
+          "option_label": "D",
+          "option_text": "put off",
+          "is_correct": false
+        }
+      ]
+    },
+    {
+      "question_number": 8,
+      "question_text": "Mary is talking to John.  \n- Mary: \"Thank you for helping me with the project!\"  \n- John: \"______\"",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Trung bình",
+      "explanation": "Đáp lại lời cảm ơn một cách lịch sự là 'You're welcome' (Không có chi/Rất sẵn lòng).",
+      "options": [
+        {
+          "option_label": "A",
+          "option_text": "No problem, you did it.",
+          "is_correct": false
+        },
+        {
+          "option_label": "B",
+          "option_text": "You're welcome.",
+          "is_correct": true
+        },
+        {
+          "option_label": "C",
+          "option_text": "Don't mention about it.",
+          "is_correct": false
+        },
+        {
+          "option_label": "D",
+          "option_text": "Yes, I agree.",
+          "is_correct": false
+        }
+      ]
+    },
+    {
+      "question_number": 9,
+      "question_text": "Although he made a lot of effort, he couldn't ______ the exam.",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Khó",
+      "explanation": "'Pass the exam' có nghĩa là đỗ kỳ thi. Động từ 'pass' đi trực tiếp với tân ngữ không dùng giới từ.",
+      "options": [
+        {
+          "option_label": "A",
+          "option_text": "succeed",
+          "is_correct": false
+        },
+        {
+          "option_label": "B",
+          "option_text": "pass",
+          "is_correct": true
+        },
+        {
+          "option_label": "C",
+          "option_text": "get through in",
+          "is_correct": false
+        },
+        {
+          "option_label": "D",
+          "option_text": "overcome",
+          "is_correct": false
+        }
+      ]
+    },
+    {
+      "question_number": 10,
+      "question_text": "It is crucial that the manager ______ the report by tomorrow morning.",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Khó",
+      "explanation": "Cấu trúc giả định: It is crucial/important/necessary... That + S + V-bare (động từ nguyên thể không chia). Do đó ta dùng 'approve'.",
+      "options": [
+        {
+          "option_label": "A",
+          "option_text": "approves",
+          "is_correct": false
+        },
+        {
+          "option_label": "B",
+          "option_text": "approve",
+          "is_correct": true
+        },
+        {
+          "option_label": "C",
+          "option_text": "approved",
+          "is_correct": false
+        },
+        {
+          "option_label": "D",
+          "option_text": "will approve",
+          "is_correct": false
+        }
+      ]
+    },
+    {
+      "question_number": 11,
+      "question_text": "Identify the word that is close in meaning to the bold word: She was **elated** when she heard the news.",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Dễ",
+      "explanation": "'Elated' means extremely happy or excited.",
+      "topic": "Synonyms & Antonyms",
+      "options": [
+        {
+          "option_label": "A",
+          "option_text": "extremely happy",
+          "is_correct": true
+        },
+        {
+          "option_label": "B",
+          "option_text": "very sad",
+          "is_correct": false
+        },
+        {
+          "option_label": "C",
+          "option_text": "worried",
+          "is_correct": false
+        },
+        {
+          "option_label": "D",
+          "option_text": "tired",
+          "is_correct": false
+        }
+      ]
+    },
+    {
+      "question_number": 12,
+      "question_text": "Identify the word that is close in meaning to the bold word: She was **elated** when she heard the news.",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Khó",
+      "explanation": "'Elated' means extremely happy or excited.",
+      "topic": "Sentence Transformation",
+      "options": [
+        {
+          "option_label": "A",
+          "option_text": "extremely happy",
+          "is_correct": true
+        },
+        {
+          "option_label": "B",
+          "option_text": "very sad",
+          "is_correct": false
+        },
+        {
+          "option_label": "C",
+          "option_text": "worried",
+          "is_correct": false
+        },
+        {
+          "option_label": "D",
+          "option_text": "tired",
+          "is_correct": false
+        }
+      ]
+    },
+    {
+      "question_number": 13,
+      "question_text": "Identify the word that is close in meaning to the bold word: She was **elated** when she heard the news.",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Dễ",
+      "explanation": "'Elated' means extremely happy or excited.",
+      "topic": "Reading Comprehension",
+      "options": [
+        {
+          "option_label": "A",
+          "option_text": "extremely happy",
+          "is_correct": true
+        },
+        {
+          "option_label": "B",
+          "option_text": "very sad",
+          "is_correct": false
+        },
+        {
+          "option_label": "C",
+          "option_text": "worried",
+          "is_correct": false
+        },
+        {
+          "option_label": "D",
+          "option_text": "tired",
+          "is_correct": false
+        }
+      ]
+    },
+    {
+      "question_number": 14,
+      "question_text": "Identify the word that is close in meaning to the bold word: She was **elated** when she heard the news.",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Trung bình",
+      "explanation": "'Elated' means extremely happy or excited.",
+      "topic": "Cloze Test",
+      "options": [
+        {
+          "option_label": "A",
+          "option_text": "extremely happy",
+          "is_correct": true
+        },
+        {
+          "option_label": "B",
+          "option_text": "very sad",
+          "is_correct": false
+        },
+        {
+          "option_label": "C",
+          "option_text": "worried",
+          "is_correct": false
+        },
+        {
+          "option_label": "D",
+          "option_text": "tired",
+          "is_correct": false
+        }
+      ]
+    },
+    {
+      "question_number": 15,
+      "question_text": "Identify the word that is close in meaning to the bold word: She was **elated** when she heard the news.",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Khó",
+      "explanation": "'Elated' means extremely happy or excited.",
+      "topic": "Conversational Exchanges",
+      "options": [
+        {
+          "option_label": "A",
+          "option_text": "extremely happy",
+          "is_correct": true
+        },
+        {
+          "option_label": "B",
+          "option_text": "very sad",
+          "is_correct": false
+        },
+        {
+          "option_label": "C",
+          "option_text": "worried",
+          "is_correct": false
+        },
+        {
+          "option_label": "D",
+          "option_text": "tired",
+          "is_correct": false
+        }
+      ]
+    },
+    {
+      "question_number": 16,
+      "question_text": "Choose the word whose underlined part is pronounced differently:",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Trung bình",
+      "explanation": "'ate' is pronounced as /eɪt/, while the others are pronounced with the short /æ/ sound.",
+      "topic": "Phonetics (Pronunciation & Stress)",
+      "options": [
+        {
+          "option_label": "A",
+          "option_text": "cat",
+          "is_correct": false
+        },
+        {
+          "option_label": "B",
+          "option_text": "hat",
+          "is_correct": false
+        },
+        {
+          "option_label": "C",
+          "option_text": "ate",
+          "is_correct": true
+        },
+        {
+          "option_label": "D",
+          "option_text": "bat",
+          "is_correct": false
+        }
+      ]
+    },
+    {
+      "question_number": 17,
+      "question_text": "Identify the word that is close in meaning to the bold word: She was **elated** when she heard the news.",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Dễ",
+      "explanation": "'Elated' means extremely happy or excited.",
+      "topic": "Error Identification",
+      "options": [
+        {
+          "option_label": "A",
+          "option_text": "extremely happy",
+          "is_correct": true
+        },
+        {
+          "option_label": "B",
+          "option_text": "very sad",
+          "is_correct": false
+        },
+        {
+          "option_label": "C",
+          "option_text": "worried",
+          "is_correct": false
+        },
+        {
+          "option_label": "D",
+          "option_text": "tired",
+          "is_correct": false
+        }
+      ]
+    },
+    {
+      "question_number": 18,
+      "question_text": "Choose the correct option: If it __________ tomorrow, we will go on a picnic.",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Khó",
+      "explanation": "This is a Type 1 conditional sentence. The structure of the If-clause is present simple: 'If + S + V(s/es)'.",
+      "topic": "Vocabulary & Grammar",
+      "options": [
+        {
+          "option_label": "A",
+          "option_text": "doesn't rain",
+          "is_correct": true
+        },
+        {
+          "option_label": "B",
+          "option_text": "won't rain",
+          "is_correct": false
+        },
+        {
+          "option_label": "C",
+          "option_text": "didn't rain",
+          "is_correct": false
+        },
+        {
+          "option_label": "D",
+          "option_text": "hadn't rained",
+          "is_correct": false
+        }
+      ]
+    },
+    {
+      "question_number": 19,
+      "question_text": "Identify the word that is close in meaning to the bold word: She was **elated** when she heard the news.",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Dễ",
+      "explanation": "'Elated' means extremely happy or excited.",
+      "topic": "Synonyms & Antonyms",
+      "options": [
+        {
+          "option_label": "A",
+          "option_text": "extremely happy",
+          "is_correct": true
+        },
+        {
+          "option_label": "B",
+          "option_text": "very sad",
+          "is_correct": false
+        },
+        {
+          "option_label": "C",
+          "option_text": "worried",
+          "is_correct": false
+        },
+        {
+          "option_label": "D",
+          "option_text": "tired",
+          "is_correct": false
+        }
+      ]
+    },
+    {
+      "question_number": 20,
+      "question_text": "Identify the word that is close in meaning to the bold word: She was **elated** when she heard the news.",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Trung bình",
+      "explanation": "'Elated' means extremely happy or excited.",
+      "topic": "Sentence Transformation",
+      "options": [
+        {
+          "option_label": "A",
+          "option_text": "extremely happy",
+          "is_correct": true
+        },
+        {
+          "option_label": "B",
+          "option_text": "very sad",
+          "is_correct": false
+        },
+        {
+          "option_label": "C",
+          "option_text": "worried",
+          "is_correct": false
+        },
+        {
+          "option_label": "D",
+          "option_text": "tired",
+          "is_correct": false
+        }
+      ]
+    },
+    {
+      "question_number": 21,
+      "question_text": "Identify the word that is close in meaning to the bold word: She was **elated** when she heard the news.",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Khó",
+      "explanation": "'Elated' means extremely happy or excited.",
+      "topic": "Reading Comprehension",
+      "options": [
+        {
+          "option_label": "A",
+          "option_text": "extremely happy",
+          "is_correct": true
+        },
+        {
+          "option_label": "B",
+          "option_text": "very sad",
+          "is_correct": false
+        },
+        {
+          "option_label": "C",
+          "option_text": "worried",
+          "is_correct": false
+        },
+        {
+          "option_label": "D",
+          "option_text": "tired",
+          "is_correct": false
+        }
+      ]
+    },
+    {
+      "question_number": 22,
+      "question_text": "Identify the word that is close in meaning to the bold word: She was **elated** when she heard the news.",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Trung bình",
+      "explanation": "'Elated' means extremely happy or excited.",
+      "topic": "Cloze Test",
+      "options": [
+        {
+          "option_label": "A",
+          "option_text": "extremely happy",
+          "is_correct": true
+        },
+        {
+          "option_label": "B",
+          "option_text": "very sad",
+          "is_correct": false
+        },
+        {
+          "option_label": "C",
+          "option_text": "worried",
+          "is_correct": false
+        },
+        {
+          "option_label": "D",
+          "option_text": "tired",
+          "is_correct": false
+        }
+      ]
+    },
+    {
+      "question_number": 23,
+      "question_text": "Identify the word that is close in meaning to the bold word: She was **elated** when she heard the news.",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Dễ",
+      "explanation": "'Elated' means extremely happy or excited.",
+      "topic": "Conversational Exchanges",
+      "options": [
+        {
+          "option_label": "A",
+          "option_text": "extremely happy",
+          "is_correct": true
+        },
+        {
+          "option_label": "B",
+          "option_text": "very sad",
+          "is_correct": false
+        },
+        {
+          "option_label": "C",
+          "option_text": "worried",
+          "is_correct": false
+        },
+        {
+          "option_label": "D",
+          "option_text": "tired",
+          "is_correct": false
+        }
+      ]
+    },
+    {
+      "question_number": 24,
+      "question_text": "Choose the word whose underlined part is pronounced differently:",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Khó",
+      "explanation": "'ate' is pronounced as /eɪt/, while the others are pronounced with the short /æ/ sound.",
+      "topic": "Phonetics (Pronunciation & Stress)",
+      "options": [
+        {
+          "option_label": "A",
+          "option_text": "cat",
+          "is_correct": false
+        },
+        {
+          "option_label": "B",
+          "option_text": "hat",
+          "is_correct": false
+        },
+        {
+          "option_label": "C",
+          "option_text": "ate",
+          "is_correct": true
+        },
+        {
+          "option_label": "D",
+          "option_text": "bat",
+          "is_correct": false
+        }
+      ]
+    },
+    {
+      "question_number": 25,
+      "question_text": "Identify the word that is close in meaning to the bold word: She was **elated** when she heard the news.",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Dễ",
+      "explanation": "'Elated' means extremely happy or excited.",
+      "topic": "Error Identification",
+      "options": [
+        {
+          "option_label": "A",
+          "option_text": "extremely happy",
+          "is_correct": true
+        },
+        {
+          "option_label": "B",
+          "option_text": "very sad",
+          "is_correct": false
+        },
+        {
+          "option_label": "C",
+          "option_text": "worried",
+          "is_correct": false
+        },
+        {
+          "option_label": "D",
+          "option_text": "tired",
+          "is_correct": false
+        }
+      ]
+    },
+    {
+      "question_number": 26,
+      "question_text": "Choose the correct option: If it __________ tomorrow, we will go on a picnic.",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Trung bình",
+      "explanation": "This is a Type 1 conditional sentence. The structure of the If-clause is present simple: 'If + S + V(s/es)'.",
+      "topic": "Vocabulary & Grammar",
+      "options": [
+        {
+          "option_label": "A",
+          "option_text": "doesn't rain",
+          "is_correct": true
+        },
+        {
+          "option_label": "B",
+          "option_text": "won't rain",
+          "is_correct": false
+        },
+        {
+          "option_label": "C",
+          "option_text": "didn't rain",
+          "is_correct": false
+        },
+        {
+          "option_label": "D",
+          "option_text": "hadn't rained",
+          "is_correct": false
+        }
+      ]
+    },
+    {
+      "question_number": 27,
+      "question_text": "Identify the word that is close in meaning to the bold word: She was **elated** when she heard the news.",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Khó",
+      "explanation": "'Elated' means extremely happy or excited.",
+      "topic": "Synonyms & Antonyms",
+      "options": [
+        {
+          "option_label": "A",
+          "option_text": "extremely happy",
+          "is_correct": true
+        },
+        {
+          "option_label": "B",
+          "option_text": "very sad",
+          "is_correct": false
+        },
+        {
+          "option_label": "C",
+          "option_text": "worried",
+          "is_correct": false
+        },
+        {
+          "option_label": "D",
+          "option_text": "tired",
+          "is_correct": false
+        }
+      ]
+    },
+    {
+      "question_number": 28,
+      "question_text": "Identify the word that is close in meaning to the bold word: She was **elated** when she heard the news.",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Trung bình",
+      "explanation": "'Elated' means extremely happy or excited.",
+      "topic": "Sentence Transformation",
+      "options": [
+        {
+          "option_label": "A",
+          "option_text": "extremely happy",
+          "is_correct": true
+        },
+        {
+          "option_label": "B",
+          "option_text": "very sad",
+          "is_correct": false
+        },
+        {
+          "option_label": "C",
+          "option_text": "worried",
+          "is_correct": false
+        },
+        {
+          "option_label": "D",
+          "option_text": "tired",
+          "is_correct": false
+        }
+      ]
+    },
+    {
+      "question_number": 29,
+      "question_text": "Identify the word that is close in meaning to the bold word: She was **elated** when she heard the news.",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Dễ",
+      "explanation": "'Elated' means extremely happy or excited.",
+      "topic": "Reading Comprehension",
+      "options": [
+        {
+          "option_label": "A",
+          "option_text": "extremely happy",
+          "is_correct": true
+        },
+        {
+          "option_label": "B",
+          "option_text": "very sad",
+          "is_correct": false
+        },
+        {
+          "option_label": "C",
+          "option_text": "worried",
+          "is_correct": false
+        },
+        {
+          "option_label": "D",
+          "option_text": "tired",
+          "is_correct": false
+        }
+      ]
+    },
+    {
+      "question_number": 30,
+      "question_text": "Identify the word that is close in meaning to the bold word: She was **elated** when she heard the news.",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Khó",
+      "explanation": "'Elated' means extremely happy or excited.",
+      "topic": "Cloze Test",
+      "options": [
+        {
+          "option_label": "A",
+          "option_text": "extremely happy",
+          "is_correct": true
+        },
+        {
+          "option_label": "B",
+          "option_text": "very sad",
+          "is_correct": false
+        },
+        {
+          "option_label": "C",
+          "option_text": "worried",
+          "is_correct": false
+        },
+        {
+          "option_label": "D",
+          "option_text": "tired",
+          "is_correct": false
+        }
+      ]
+    },
+    {
+      "question_number": 31,
+      "question_text": "Identify the word that is close in meaning to the bold word: She was **elated** when she heard the news.",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Dễ",
+      "explanation": "'Elated' means extremely happy or excited.",
+      "topic": "Conversational Exchanges",
+      "options": [
+        {
+          "option_label": "A",
+          "option_text": "extremely happy",
+          "is_correct": true
+        },
+        {
+          "option_label": "B",
+          "option_text": "very sad",
+          "is_correct": false
+        },
+        {
+          "option_label": "C",
+          "option_text": "worried",
+          "is_correct": false
+        },
+        {
+          "option_label": "D",
+          "option_text": "tired",
+          "is_correct": false
+        }
+      ]
+    },
+    {
+      "question_number": 32,
+      "question_text": "Choose the word whose underlined part is pronounced differently:",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Trung bình",
+      "explanation": "'ate' is pronounced as /eɪt/, while the others are pronounced with the short /æ/ sound.",
+      "topic": "Phonetics (Pronunciation & Stress)",
+      "options": [
+        {
+          "option_label": "A",
+          "option_text": "cat",
+          "is_correct": false
+        },
+        {
+          "option_label": "B",
+          "option_text": "hat",
+          "is_correct": false
+        },
+        {
+          "option_label": "C",
+          "option_text": "ate",
+          "is_correct": true
+        },
+        {
+          "option_label": "D",
+          "option_text": "bat",
+          "is_correct": false
+        }
+      ]
+    },
+    {
+      "question_number": 33,
+      "question_text": "Identify the word that is close in meaning to the bold word: She was **elated** when she heard the news.",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Khó",
+      "explanation": "'Elated' means extremely happy or excited.",
+      "topic": "Error Identification",
+      "options": [
+        {
+          "option_label": "A",
+          "option_text": "extremely happy",
+          "is_correct": true
+        },
+        {
+          "option_label": "B",
+          "option_text": "very sad",
+          "is_correct": false
+        },
+        {
+          "option_label": "C",
+          "option_text": "worried",
+          "is_correct": false
+        },
+        {
+          "option_label": "D",
+          "option_text": "tired",
+          "is_correct": false
+        }
+      ]
+    },
+    {
+      "question_number": 34,
+      "question_text": "Choose the correct option: If it __________ tomorrow, we will go on a picnic.",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Trung bình",
+      "explanation": "This is a Type 1 conditional sentence. The structure of the If-clause is present simple: 'If + S + V(s/es)'.",
+      "topic": "Vocabulary & Grammar",
+      "options": [
+        {
+          "option_label": "A",
+          "option_text": "doesn't rain",
+          "is_correct": true
+        },
+        {
+          "option_label": "B",
+          "option_text": "won't rain",
+          "is_correct": false
+        },
+        {
+          "option_label": "C",
+          "option_text": "didn't rain",
+          "is_correct": false
+        },
+        {
+          "option_label": "D",
+          "option_text": "hadn't rained",
+          "is_correct": false
+        }
+      ]
+    },
+    {
+      "question_number": 35,
+      "question_text": "Identify the word that is close in meaning to the bold word: She was **elated** when she heard the news.",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Dễ",
+      "explanation": "'Elated' means extremely happy or excited.",
+      "topic": "Synonyms & Antonyms",
+      "options": [
+        {
+          "option_label": "A",
+          "option_text": "extremely happy",
+          "is_correct": true
+        },
+        {
+          "option_label": "B",
+          "option_text": "very sad",
+          "is_correct": false
+        },
+        {
+          "option_label": "C",
+          "option_text": "worried",
+          "is_correct": false
+        },
+        {
+          "option_label": "D",
+          "option_text": "tired",
+          "is_correct": false
+        }
+      ]
+    },
+    {
+      "question_number": 36,
+      "question_text": "Identify the word that is close in meaning to the bold word: She was **elated** when she heard the news.",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Khó",
+      "explanation": "'Elated' means extremely happy or excited.",
+      "topic": "Sentence Transformation",
+      "options": [
+        {
+          "option_label": "A",
+          "option_text": "extremely happy",
+          "is_correct": true
+        },
+        {
+          "option_label": "B",
+          "option_text": "very sad",
+          "is_correct": false
+        },
+        {
+          "option_label": "C",
+          "option_text": "worried",
+          "is_correct": false
+        },
+        {
+          "option_label": "D",
+          "option_text": "tired",
+          "is_correct": false
+        }
+      ]
+    },
+    {
+      "question_number": 37,
+      "question_text": "Identify the word that is close in meaning to the bold word: She was **elated** when she heard the news.",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Dễ",
+      "explanation": "'Elated' means extremely happy or excited.",
+      "topic": "Reading Comprehension",
+      "options": [
+        {
+          "option_label": "A",
+          "option_text": "extremely happy",
+          "is_correct": true
+        },
+        {
+          "option_label": "B",
+          "option_text": "very sad",
+          "is_correct": false
+        },
+        {
+          "option_label": "C",
+          "option_text": "worried",
+          "is_correct": false
+        },
+        {
+          "option_label": "D",
+          "option_text": "tired",
+          "is_correct": false
+        }
+      ]
+    },
+    {
+      "question_number": 38,
+      "question_text": "Identify the word that is close in meaning to the bold word: She was **elated** when she heard the news.",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Trung bình",
+      "explanation": "'Elated' means extremely happy or excited.",
+      "topic": "Cloze Test",
+      "options": [
+        {
+          "option_label": "A",
+          "option_text": "extremely happy",
+          "is_correct": true
+        },
+        {
+          "option_label": "B",
+          "option_text": "very sad",
+          "is_correct": false
+        },
+        {
+          "option_label": "C",
+          "option_text": "worried",
+          "is_correct": false
+        },
+        {
+          "option_label": "D",
+          "option_text": "tired",
+          "is_correct": false
+        }
+      ]
+    },
+    {
+      "question_number": 39,
+      "question_text": "Identify the word that is close in meaning to the bold word: She was **elated** when she heard the news.",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Khó",
+      "explanation": "'Elated' means extremely happy or excited.",
+      "topic": "Conversational Exchanges",
+      "options": [
+        {
+          "option_label": "A",
+          "option_text": "extremely happy",
+          "is_correct": true
+        },
+        {
+          "option_label": "B",
+          "option_text": "very sad",
+          "is_correct": false
+        },
+        {
+          "option_label": "C",
+          "option_text": "worried",
+          "is_correct": false
+        },
+        {
+          "option_label": "D",
+          "option_text": "tired",
+          "is_correct": false
+        }
+      ]
+    },
+    {
+      "question_number": 40,
+      "question_text": "Choose the word whose underlined part is pronounced differently:",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Trung bình",
+      "explanation": "'ate' is pronounced as /eɪt/, while the others are pronounced with the short /æ/ sound.",
+      "topic": "Phonetics (Pronunciation & Stress)",
+      "options": [
+        {
+          "option_label": "A",
+          "option_text": "cat",
+          "is_correct": false
+        },
+        {
+          "option_label": "B",
+          "option_text": "hat",
+          "is_correct": false
+        },
+        {
+          "option_label": "C",
+          "option_text": "ate",
+          "is_correct": true
+        },
+        {
+          "option_label": "D",
+          "option_text": "bat",
+          "is_correct": false
+        }
+      ]
+    },
+    {
+      "question_number": 41,
+      "question_text": "Identify the word that is close in meaning to the bold word: She was **elated** when she heard the news.",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Dễ",
+      "explanation": "'Elated' means extremely happy or excited.",
+      "topic": "Error Identification",
+      "options": [
+        {
+          "option_label": "A",
+          "option_text": "extremely happy",
+          "is_correct": true
+        },
+        {
+          "option_label": "B",
+          "option_text": "very sad",
+          "is_correct": false
+        },
+        {
+          "option_label": "C",
+          "option_text": "worried",
+          "is_correct": false
+        },
+        {
+          "option_label": "D",
+          "option_text": "tired",
+          "is_correct": false
+        }
+      ]
+    },
+    {
+      "question_number": 42,
+      "question_text": "Choose the correct option: If it __________ tomorrow, we will go on a picnic.",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Khó",
+      "explanation": "This is a Type 1 conditional sentence. The structure of the If-clause is present simple: 'If + S + V(s/es)'.",
+      "topic": "Vocabulary & Grammar",
+      "options": [
+        {
+          "option_label": "A",
+          "option_text": "doesn't rain",
+          "is_correct": true
+        },
+        {
+          "option_label": "B",
+          "option_text": "won't rain",
+          "is_correct": false
+        },
+        {
+          "option_label": "C",
+          "option_text": "didn't rain",
+          "is_correct": false
+        },
+        {
+          "option_label": "D",
+          "option_text": "hadn't rained",
+          "is_correct": false
+        }
+      ]
+    },
+    {
+      "question_number": 43,
+      "question_text": "Identify the word that is close in meaning to the bold word: She was **elated** when she heard the news.",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Dễ",
+      "explanation": "'Elated' means extremely happy or excited.",
+      "topic": "Synonyms & Antonyms",
+      "options": [
+        {
+          "option_label": "A",
+          "option_text": "extremely happy",
+          "is_correct": true
+        },
+        {
+          "option_label": "B",
+          "option_text": "very sad",
+          "is_correct": false
+        },
+        {
+          "option_label": "C",
+          "option_text": "worried",
+          "is_correct": false
+        },
+        {
+          "option_label": "D",
+          "option_text": "tired",
+          "is_correct": false
+        }
+      ]
+    },
+    {
+      "question_number": 44,
+      "question_text": "Identify the word that is close in meaning to the bold word: She was **elated** when she heard the news.",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Trung bình",
+      "explanation": "'Elated' means extremely happy or excited.",
+      "topic": "Sentence Transformation",
+      "options": [
+        {
+          "option_label": "A",
+          "option_text": "extremely happy",
+          "is_correct": true
+        },
+        {
+          "option_label": "B",
+          "option_text": "very sad",
+          "is_correct": false
+        },
+        {
+          "option_label": "C",
+          "option_text": "worried",
+          "is_correct": false
+        },
+        {
+          "option_label": "D",
+          "option_text": "tired",
+          "is_correct": false
+        }
+      ]
+    },
+    {
+      "question_number": 45,
+      "question_text": "Identify the word that is close in meaning to the bold word: She was **elated** when she heard the news.",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Khó",
+      "explanation": "'Elated' means extremely happy or excited.",
+      "topic": "Reading Comprehension",
+      "options": [
+        {
+          "option_label": "A",
+          "option_text": "extremely happy",
+          "is_correct": true
+        },
+        {
+          "option_label": "B",
+          "option_text": "very sad",
+          "is_correct": false
+        },
+        {
+          "option_label": "C",
+          "option_text": "worried",
+          "is_correct": false
+        },
+        {
+          "option_label": "D",
+          "option_text": "tired",
+          "is_correct": false
+        }
+      ]
+    },
+    {
+      "question_number": 46,
+      "question_text": "Identify the word that is close in meaning to the bold word: She was **elated** when she heard the news.",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Trung bình",
+      "explanation": "'Elated' means extremely happy or excited.",
+      "topic": "Cloze Test",
+      "options": [
+        {
+          "option_label": "A",
+          "option_text": "extremely happy",
+          "is_correct": true
+        },
+        {
+          "option_label": "B",
+          "option_text": "very sad",
+          "is_correct": false
+        },
+        {
+          "option_label": "C",
+          "option_text": "worried",
+          "is_correct": false
+        },
+        {
+          "option_label": "D",
+          "option_text": "tired",
+          "is_correct": false
+        }
+      ]
+    },
+    {
+      "question_number": 47,
+      "question_text": "Identify the word that is close in meaning to the bold word: She was **elated** when she heard the news.",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Dễ",
+      "explanation": "'Elated' means extremely happy or excited.",
+      "topic": "Conversational Exchanges",
+      "options": [
+        {
+          "option_label": "A",
+          "option_text": "extremely happy",
+          "is_correct": true
+        },
+        {
+          "option_label": "B",
+          "option_text": "very sad",
+          "is_correct": false
+        },
+        {
+          "option_label": "C",
+          "option_text": "worried",
+          "is_correct": false
+        },
+        {
+          "option_label": "D",
+          "option_text": "tired",
+          "is_correct": false
+        }
+      ]
+    },
+    {
+      "question_number": 48,
+      "question_text": "Choose the word whose underlined part is pronounced differently:",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Khó",
+      "explanation": "'ate' is pronounced as /eɪt/, while the others are pronounced with the short /æ/ sound.",
+      "topic": "Phonetics (Pronunciation & Stress)",
+      "options": [
+        {
+          "option_label": "A",
+          "option_text": "cat",
+          "is_correct": false
+        },
+        {
+          "option_label": "B",
+          "option_text": "hat",
+          "is_correct": false
+        },
+        {
+          "option_label": "C",
+          "option_text": "ate",
+          "is_correct": true
+        },
+        {
+          "option_label": "D",
+          "option_text": "bat",
+          "is_correct": false
+        }
+      ]
+    },
+    {
+      "question_number": 49,
+      "question_text": "Identify the word that is close in meaning to the bold word: She was **elated** when she heard the news.",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Dễ",
+      "explanation": "'Elated' means extremely happy or excited.",
+      "topic": "Error Identification",
+      "options": [
+        {
+          "option_label": "A",
+          "option_text": "extremely happy",
+          "is_correct": true
+        },
+        {
+          "option_label": "B",
+          "option_text": "very sad",
+          "is_correct": false
+        },
+        {
+          "option_label": "C",
+          "option_text": "worried",
+          "is_correct": false
+        },
+        {
+          "option_label": "D",
+          "option_text": "tired",
+          "is_correct": false
+        }
+      ]
+    },
+    {
+      "question_number": 50,
+      "question_text": "Choose the correct option: If it __________ tomorrow, we will go on a picnic.",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Trung bình",
+      "explanation": "This is a Type 1 conditional sentence. The structure of the If-clause is present simple: 'If + S + V(s/es)'.",
+      "topic": "Vocabulary & Grammar",
+      "options": [
+        {
+          "option_label": "A",
+          "option_text": "doesn't rain",
+          "is_correct": true
+        },
+        {
+          "option_label": "B",
+          "option_text": "won't rain",
+          "is_correct": false
+        },
+        {
+          "option_label": "C",
+          "option_text": "didn't rain",
+          "is_correct": false
+        },
+        {
+          "option_label": "D",
+          "option_text": "hadn't rained",
+          "is_correct": false
+        }
+      ]
+    }
+  ]
+}

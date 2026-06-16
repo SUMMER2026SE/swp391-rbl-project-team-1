@@ -138,19 +138,22 @@ export const mockExamService = {
   // ── Retrieve list of mock exams ──
   async getMockExams(filters = {}) {
     try {
-      const list = await api.getExams();
+      const apiFilters = {};
+      if (filters.subjectId && filters.subjectId !== 'All') {
+        const subjects = getLocalData('supabase_mock_exam_subjects') || [];
+        const subjectName = subjects.find(s => String(s.id) === String(filters.subjectId))?.name;
+        if (subjectName) apiFilters.subject = subjectName;
+      }
+      if (filters.year && filters.year !== 'All') {
+        apiFilters.year = Number(filters.year);
+      }
+      if (filters.examType && filters.examType !== 'All') {
+        apiFilters.source = filters.examType === 'official' ? 'Bộ GD&ĐT' : 'Trường chuyên';
+      }
+
+      const list = await api.getExams(apiFilters);
       if (list && list.length > 0) {
         let result = list.map(mapExam);
-
-        if (filters.subjectId && filters.subjectId !== 'All') {
-          result = result.filter(e => String(e.subject_id) === String(filters.subjectId));
-        }
-        if (filters.year && filters.year !== 'All') {
-          result = result.filter(e => String(e.year) === String(filters.year));
-        }
-        if (filters.examType && filters.examType !== 'All') {
-          result = result.filter(e => e.exam_type === filters.examType);
-        }
         if (filters.search) {
           const query = filters.search.toLowerCase();
           result = result.filter(e => e.title.toLowerCase().includes(query) || e.description?.toLowerCase().includes(query));
@@ -196,11 +199,8 @@ export const mockExamService = {
   // ── Retrieve a single mock exam by ID ──
   async getMockExamById(examId) {
     try {
-      const list = await api.getExams();
-      if (list && list.length > 0) {
-        const exam = list.find(e => String(e.id) === String(examId));
-        if (exam) return mapExam(exam);
-      }
+      const exam = await api.getExamById(examId);
+      if (exam) return mapExam(exam);
     } catch (err) {
       console.warn('[mockExamService] API getMockExamById error, using fallback:', err);
     }
@@ -221,9 +221,9 @@ export const mockExamService = {
   // ── Retrieve all questions of an exam ──
   async getExamQuestions(examId) {
     try {
-      const qs = await api.getExamQuestionsPublic(examId);
-      if (qs && qs.length > 0) {
-        return qs.map((q, idx) => mapQuestion(q, idx, examId));
+      const exam = await api.getExamById(examId);
+      if (exam && exam.questions) {
+        return exam.questions.map((q, idx) => mapQuestion(q, idx, examId));
       }
     } catch (err) {
       console.warn('[mockExamService] API getExamQuestions error, using fallback:', err);
@@ -248,9 +248,9 @@ export const mockExamService = {
   },
 
   // ── Initialize exam attempt log ──
-  async startMockExam(userId, examId) {
+  async startMockExam(userId, examId, retakeMode = null, questionIds = []) {
     try {
-      const res = await api.startAttempt(examId);
+      const res = await api.startAttempt(examId, retakeMode, questionIds);
       if (res && res.attempt) {
         return {
           id: String(res.attempt.id),
@@ -284,17 +284,30 @@ export const mockExamService = {
     return newAttempt;
   },
 
+  // ── Auto-save selected answer on the fly ──
+  async saveAttemptAnswer(attemptId, questionId, selectedAnswer) {
+    try {
+      await api.saveAttemptAnswer(attemptId, questionId, selectedAnswer);
+      return true;
+    } catch (err) {
+      console.warn('[mockExamService] API saveAttemptAnswer error:', err);
+      return false;
+    }
+  },
+
   // ── Grade and submit exam paper ──
-  async submitMockExam(userId, examId, attemptId, answers, durationSeconds) {
+  async submitMockExam(userId, examId, attemptId, answers, durationSeconds, retakeMode = null, questionIds = []) {
     try {
       const answersArray = Object.entries(answers).map(([qId, val]) => ({
         questionId: parseInt(qId, 10) || qId,
         selectedAnswer: val
       }));
-      const attempt = await api.submitAttempt(examId, attemptId, answersArray);
+      const attempt = await api.submitAttempt(attemptId, answersArray, retakeMode, questionIds);
       if (attempt) {
-        const correctCount = attempt.attemptAnswers?.filter(a => a.isCorrect).length || 0;
-        const totalQuestions = attempt.attemptAnswers?.length || 1;
+        const correctCount = attempt.correctCount || 0;
+        const wrongCount = attempt.wrongCount || 0;
+        const blankCount = attempt.skippedCount || 0;
+        const totalQuestions = (correctCount + wrongCount + blankCount) || 1;
         const percentage = Math.round((correctCount / totalQuestions) * 10000) / 100;
         
         let rankLabel = 'Cần cải thiện';
@@ -309,8 +322,8 @@ export const mockExamService = {
           attempt_id: String(attempt.id),
           score: attempt.score,
           correct_count: correctCount,
-          wrong_count: totalQuestions - correctCount - (attempt.attemptAnswers?.filter(a => !a.selectedAnswer).length || 0),
-          blank_count: attempt.attemptAnswers?.filter(a => !a.selectedAnswer).length || 0,
+          wrong_count: wrongCount,
+          blank_count: blankCount,
           total_questions: totalQuestions,
           percentage,
           rank_label: rankLabel,
@@ -435,18 +448,18 @@ export const mockExamService = {
     try {
       const list = await api.getAttempts();
       if (list && list.length > 0) {
-        const filtered = list.filter(a => String(a.examId) === String(examId) && a.submittedAt);
+        const filtered = list.filter(a => String(a.examId) === String(examId) && a.status === 'SUBMITTED');
         return filtered.map(a => ({
           id: String(a.id),
           user_id: String(a.studentId),
           exam_id: String(a.examId),
           started_at: a.startedAt,
           submitted_at: a.submittedAt,
-          duration_seconds: a.durationSeconds || 0,
+          duration_seconds: a.durationUsed || 0,
           score: a.score,
           correct_count: a.correctCount || 0,
           wrong_count: a.wrongCount || 0,
-          blank_count: a.blankCount || 0,
+          blank_count: a.skippedCount || 0,
           status: 'completed'
         }));
       }
@@ -463,7 +476,7 @@ export const mockExamService = {
   // ── Retrieve result details of an attempt ──
   async getExamResult(attemptId) {
     try {
-      const attempt = await api.getAttemptById(attemptId);
+      const attempt = await api.getAttemptResult(attemptId);
       if (attempt) {
         let rankLabel = 'Cần cải thiện';
         if (attempt.score >= 9) rankLabel = 'Xuất sắc';
@@ -471,9 +484,36 @@ export const mockExamService = {
         else if (attempt.score >= 6.5) rankLabel = 'Khá';
         else if (attempt.score >= 5) rankLabel = 'Trung bình';
 
-        const correctCount = attempt.attemptAnswers?.filter(a => a.isCorrect).length || 0;
-        const totalQuestions = attempt.attemptAnswers?.length || 1;
+        const correctCount = attempt.correctCount || 0;
+        const wrongCount = attempt.wrongCount || 0;
+        const blankCount = attempt.skippedCount || 0;
+        const totalQuestions = (correctCount + wrongCount + blankCount) || 1;
         const percentage = Math.round((correctCount / totalQuestions) * 10000) / 100;
+
+        const mappedQuestions = (attempt.exam?.examQuestions || []).map((eq) => {
+          const q = eq.question;
+          const options = typeof q.options === 'string' ? JSON.parse(q.options) : q.options;
+          const mappedOptions = (options || []).map((opt) => ({
+            id: `opt-${q.id}-${opt.label}`,
+            question_id: String(q.id),
+            option_label: opt.label,
+            option_text: opt.text,
+            is_correct: opt.label === q.correctAnswer
+          }));
+
+          return {
+            id: String(q.id),
+            exam_id: String(attempt.examId),
+            question_number: eq.order,
+            question_text: q.content,
+            question_image_url: q.imageUrl || null,
+            question_type: 'multiple_choice_single',
+            difficulty: q.difficulty === 'EASY' ? 'Dễ' : (q.difficulty === 'HARD' ? 'Khó' : 'Trung bình'),
+            explanation: q.explanation || '',
+            topic: q.topic || 'Kiến thức cốt lõi',
+            options: mappedOptions
+          };
+        }).sort((a, b) => a.question_number - b.question_number);
 
         return {
           id: String(attempt.id),
@@ -482,17 +522,19 @@ export const mockExamService = {
           attempt_id: String(attempt.id),
           score: attempt.score,
           correct_count: correctCount,
-          wrong_count: totalQuestions - correctCount - (attempt.attemptAnswers?.filter(a => !a.selectedAnswer).length || 0),
-          blank_count: attempt.attemptAnswers?.filter(a => !a.selectedAnswer).length || 0,
+          wrong_count: wrongCount,
+          blank_count: blankCount,
           total_questions: totalQuestions,
           percentage,
           rank_label: rankLabel,
           ai_feedback: typeof attempt.aiFeedback === 'string' ? attempt.aiFeedback : JSON.stringify(attempt.aiFeedback),
+          duration_seconds: attempt.durationUsed || 0,
           mock_exams: attempt.exam ? {
             title: attempt.exam.title,
             duration_minutes: attempt.exam.duration,
             total_questions: totalQuestions
-          } : null
+          } : null,
+          questions: mappedQuestions
         };
       }
     } catch (err) {
@@ -519,7 +561,7 @@ export const mockExamService = {
   // ── Retrieve answers selected during an attempt ──
   async getAttemptAnswers(attemptId) {
     try {
-      const attempt = await api.getAttemptById(attemptId);
+      const attempt = await api.getAttemptResult(attemptId);
       if (attempt && attempt.attemptAnswers) {
         return attempt.attemptAnswers.map(ans => ({
           question_id: String(ans.questionId),
@@ -576,5 +618,105 @@ export const mockExamService = {
           mock_exam_questions: q || null
         };
       });
+  },
+
+  async recordViolation(attemptId) {
+    try {
+      await api.recordViolation(attemptId);
+      return true;
+    } catch (err) {
+      console.warn('[mockExamService] recordViolation error:', err);
+      return false;
+    }
+  },
+
+  // ── NEW: Record a specific violation type and get updated trust score ──
+  async recordViolationDetail(attemptId, violationType) {
+    if (!attemptId || attemptId.toString().startsWith('guest')) return { autoSubmit: false };
+    try {
+      const res = await api.recordViolationDetail(attemptId, violationType);
+      return {
+        autoSubmit: res?.autoSubmit || false,
+        examTrustScore: res?.examTrustScore ?? null,
+        tabSwitchCount: res?.tabSwitchCount ?? 0,
+        copyPasteCount: res?.copyPasteCount ?? 0,
+        fullscreenExitCount: res?.fullscreenExitCount ?? 0
+      };
+    } catch (err) {
+      console.warn('[mockExamService] recordViolationDetail error:', err);
+      return { autoSubmit: false };
+    }
+  },
+
+  // ── NEW: Record an exam event for replay ──
+  async recordExamEvent(attemptId, eventType, questionId = null, payload = null) {
+    if (!attemptId || attemptId.toString().startsWith('guest')) return;
+    try {
+      await api.recordExamEvent(attemptId, eventType, questionId, payload);
+    } catch (err) {
+      // Non-critical: silently fail
+    }
+  },
+
+  // ── NEW: Get exam replay events ──
+  async getExamEvents(attemptId) {
+    try {
+      const events = await api.getExamEvents(attemptId);
+      return events || [];
+    } catch (err) {
+      console.warn('[mockExamService] getExamEvents error:', err);
+      return [];
+    }
+  },
+
+  // ── NEW: Generate AI coach plan for an attempt ──
+  async generateAiCoach(attemptId) {
+    try {
+      const coachPlan = await api.generateAiCoach(attemptId);
+      return coachPlan;
+    } catch (err) {
+      console.warn('[mockExamService] generateAiCoach error:', err);
+      return null;
+    }
+  },
+
+  // ── NEW: Get topicStats and difficultyStats from a submitted attempt ──
+  async getAttemptAnalytics(attemptId) {
+    try {
+      const attempt = await api.getAttemptResult(attemptId);
+      if (!attempt) return null;
+      return {
+        topicStats: attempt.topicStats || {},
+        difficultyStats: attempt.difficultyStats || {},
+        examTrustScore: attempt.examTrustScore ?? null,
+        tabSwitchCount: attempt.tabSwitchCount || 0,
+        copyPasteCount: attempt.copyPasteCount || 0,
+        fullscreenExitCount: attempt.fullscreenExitCount || 0
+      };
+    } catch (err) {
+      console.warn('[mockExamService] getAttemptAnalytics error:', err);
+      return null;
+    }
+  },
+
+  // ── NEW: Create a smart retake session ──
+  async createSmartRetake(examId, mode, attemptId = null) {
+    try {
+      const res = await api.createSmartRetake(examId, mode, attemptId);
+      return res;
+    } catch (err) {
+      console.error('[mockExamService] createSmartRetake error:', err);
+      throw err;
+    }
+  },
+
+  async importExam(examData) {
+    try {
+      const res = await api.importExam(examData);
+      return res;
+    } catch (err) {
+      console.error('[mockExamService] importExam error:', err);
+      throw err;
+    }
   }
 };

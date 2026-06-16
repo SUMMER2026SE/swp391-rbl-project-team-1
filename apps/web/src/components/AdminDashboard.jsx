@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { toast } from '../utils/toast';
-import { HiTerminal, HiUsers, HiClipboardCheck, HiGlobeAlt, HiAdjustments, HiTrendingUp } from 'react-icons/hi';
+import { HiTerminal, HiUsers, HiClipboardCheck, HiGlobeAlt, HiAdjustments, HiTrendingUp, HiBookOpen } from 'react-icons/hi';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { api } from '../api';
+import { mockExamService } from '../services/mockExamService';
+
 
 const financeData = [
   { name: 'Tháng 1', revenue: 15.4 },
@@ -119,6 +121,13 @@ export default function AdminDashboard({
           style={{ padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}
         >
           <HiClipboardCheck /> Phê duyệt khóa học ({courseApprovals.length})
+        </button>
+        <button
+          className={`demo-role-btn ${currentTab === 'exams' ? 'active' : ''}`}
+          onClick={() => handleTabChange('exams')}
+          style={{ padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}
+        >
+          <HiBookOpen /> Quản lý đề thi
         </button>
         <button
           className={`demo-role-btn ${currentTab === 'announcements' ? 'active' : ''}`}
@@ -486,6 +495,146 @@ export default function AdminDashboard({
           )}
         </div>
       )}
+
+      {currentTab === 'exams' && (
+        <AdminExamManager addLog={addLog} />
+      )}
     </div>
   );
 }
+
+function AdminExamManager({ addLog }) {
+  const [exams, setExams] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [jsonText, setJsonText] = useState('');
+  const [importLogs, setImportLogs] = useState('');
+
+  const loadExams = async () => {
+    setLoading(true);
+    try {
+      const list = await mockExamService.getMockExams();
+      setExams(list || []);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadExams();
+  }, []);
+
+  const handleImport = async (e) => {
+    e.preventDefault();
+    if (!jsonText.trim()) return;
+
+    setImportLogs(prev => prev + `[${new Date().toLocaleTimeString()}] Bắt đầu kiểm tra cấu trúc JSON...\n`);
+    try {
+      const examData = JSON.parse(jsonText);
+      
+      setImportLogs(prev => prev + `[${new Date().toLocaleTimeString()}] Cấu trúc JSON hợp lệ. Đang gửi dữ liệu lên máy chủ...\n`);
+      const res = await mockExamService.importExam(examData);
+      
+      setImportLogs(prev => prev + `[${new Date().toLocaleTimeString()}] Nhập đề thi thành công! ID đề thi mới: ${res.examId}\n`);
+      addLog(`[Admin] Đã nhập đề thi mới: "${examData.title}" qua JSON Upload`, 'sys');
+      toast('Nhập đề thi mới thành công!', 'success');
+      setJsonText('');
+      loadExams();
+    } catch (err) {
+      setImportLogs(prev => prev + `[${new Date().toLocaleTimeString()}] LỖI: ${err.message}\n`);
+      toast('Nhập đề thi thất bại. Vui lòng kiểm tra định dạng JSON!', 'error');
+    }
+  };
+
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '20px' }} className="animate-in">
+      {/* Left Column: Exams List */}
+      <div className="card">
+        <h3 style={{ fontSize: '15px', fontWeight: 'bold', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: 6 }}>
+          📚 DANH SÁCH ĐỀ THI ĐÃ CÓ ({exams.length})
+        </h3>
+        
+        {loading ? (
+          <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Đang tải danh sách đề thi...</p>
+        ) : exams.length > 0 ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '500px', overflowY: 'auto', paddingRight: '6px' }}>
+            {exams.map(e => (
+              <div key={e.id} style={{ padding: '12px', border: '1px solid var(--border)', borderRadius: '8px', background: 'var(--bg-main)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <span className="badge-pill" style={{ background: 'var(--primary-bg)', color: 'var(--primary)', fontSize: '10px', fontWeight: 'bold' }}>
+                    {e.exam_subjects?.name || 'Môn học'} · {e.year}
+                  </span>
+                  <h4 style={{ fontSize: '13px', fontWeight: 'bold', marginTop: '4px', color: 'var(--text-primary)' }}>{e.title}</h4>
+                  <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Mã đề: {e.exam_code} · {e.total_questions} câu · {e.duration_minutes} phút</span>
+                </div>
+                <span style={{ fontSize: '12.5px', color: 'var(--text-secondary)', fontWeight: '500' }}>{e.source}</span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Chưa có đề thi nào trong hệ thống.</p>
+        )}
+      </div>
+
+      {/* Right Column: Paste JSON Form */}
+      <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <h3 style={{ fontSize: '15px', fontWeight: 'bold' }}>📤 NHẬP ĐỀ THI MỚI (JSON UPLOAD)</h3>
+        <p style={{ fontSize: '12px', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
+          Dán cấu trúc JSON chuẩn của đề thi tốt nghiệp THPT Quốc Gia (bao gồm các câu hỏi, các lựa chọn, đáp án đúng và hướng dẫn giải chi tiết).
+        </p>
+
+        <form onSubmit={handleImport} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <div className="form-group">
+            <textarea
+              className="form-control"
+              rows="12"
+              placeholder='Cấu trúc JSON mẫu:
+{
+  "title": "Đề thi thử Toán THPTQG 2026",
+  "subject_slug": "toan",
+  "subject_name": "Toán học",
+  "year": 2026,
+  "exam_code": "101",
+  "source": "Trường chuyên Hùng Vương",
+  "duration_minutes": 90,
+  "total_questions": 1,
+  "questions": [
+    {
+      "question_number": 1,
+      "question_text": "Tìm tập nghiệm của phương trình...",
+      "difficulty": "Trung bình",
+      "topic": "Hàm số mũ",
+      "explanation": "Lời giải chi tiết...",
+      "options": [
+        {"option_label": "A", "option_text": "S = (0; 1)", "is_correct": false},
+        {"option_label": "B", "option_text": "S = [0; 1]", "is_correct": true}
+      ]
+    }
+  ]
+}'
+              value={jsonText}
+              onChange={e => setJsonText(e.target.value)}
+              required
+              style={{ fontFamily: 'monospace', fontSize: '11px', background: 'var(--bg-main)', color: 'var(--text-primary)', border: '1px solid var(--border)', borderRadius: '6px', padding: '10px' }}
+            />
+          </div>
+          
+          <button type="submit" className="btn-primary" style={{ alignSelf: 'flex-start', background: 'var(--exams-purple)', color: '#fff', border: 'none' }}>
+            Bắt đầu Nhập đề thi ⚡
+          </button>
+        </form>
+
+        {importLogs && (
+          <div>
+            <span style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--text-secondary)' }}>LOG TIẾN TRÌNH IMPORT:</span>
+            <pre style={{ margin: '6px 0 0 0', padding: '10px', background: '#1e293b', color: '#38bdf8', borderRadius: '6px', fontSize: '11px', fontFamily: 'monospace', maxHeight: '150px', overflowY: 'auto', whiteSpace: 'pre-wrap' }}>
+              {importLogs}
+            </pre>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+

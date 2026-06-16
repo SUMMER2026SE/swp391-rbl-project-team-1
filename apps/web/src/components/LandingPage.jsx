@@ -1260,9 +1260,9 @@ export default function LandingPage({
             <a href="#home" className={activeLandingView === 'home' ? 'lp-link--active' : ''} onClick={(e) => { e.preventDefault(); setActiveLandingView('home'); }}>Trang chủ</a>
             <a href="/courses" className={activeLandingView === 'courses' ? 'lp-link--active' : ''} onClick={(e) => { e.preventDefault(); if (navigateTo) { navigateTo('/courses'); } else { setActiveLandingView('courses'); } }}>Khóa học</a>
             <a href="/mock-exams" className={currentPath?.startsWith('/mock-exams') ? 'lp-link--active' : ''} onClick={(e) => { e.preventDefault(); if (!currentUser) { toast("Vui lòng đăng nhập để sử dụng chức năng thi thử!", 'warning'); if (onNavigateToAuth) onNavigateToAuth('login'); } else { if (navigateTo) { navigateTo('/mock-exams'); } else { setActiveLandingView('exams'); } } }}>Thi thử</a>
-            <a href="#features" className={activeLandingView === 'features' ? 'lp-link--active' : ''} onClick={(e) => { e.preventDefault(); setActiveLandingView('features'); }}>Lộ trình học</a>
-            <a href="/ai-tutor" className={currentPath === '/ai-tutor' ? 'lp-link--active' : ''} onClick={(e) => { e.preventDefault(); if (navigateTo) { navigateTo('/ai-tutor'); } else { setActiveLandingView('ai-tutor'); } }}>AI Gia sư</a>
-            <a href="/exam-bank" className={currentPath === '/exam-bank' ? 'lp-link--active' : ''} onClick={(e) => { e.preventDefault(); if (navigateTo) { navigateTo('/exam-bank'); } }}>Ngân hàng đề</a>
+            <a href="/flashcards" className={currentPath === '/flashcards' ? 'lp-link--active' : ''} onClick={(e) => { e.preventDefault(); if (navigateTo) { navigateTo('/flashcards'); } else { setActiveLandingView('features'); } }}>Flashcard</a>
+            <a href="/ai-tutor" className={currentPath === '/ai-tutor' ? 'lp-link--active' : ''} onClick={(e) => { e.preventDefault(); if (navigateTo) { navigateTo('/ai-tutor'); } else { setActiveLandingView('ai-tutor'); } }}>Mindmap</a>
+            <a href="/exam-bank" className={currentPath === '/exam-bank' ? 'lp-link--active' : ''} onClick={(e) => { e.preventDefault(); if (navigateTo) { navigateTo('/exam-bank'); } }}>Ngân hàng tài liệu</a>
             <a href="#leaderboard" className={activeLandingView === 'leaderboard' ? 'lp-link--active' : ''} onClick={(e) => { e.preventDefault(); setActiveLandingView('home'); setTimeout(() => { const el = document.getElementById('leaderboard'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 100); }}>Bảng xếp hạng</a>
             <a href="#forum" className={activeLandingView === 'forum' ? 'lp-link--active' : ''} onClick={(e) => { e.preventDefault(); setActiveLandingView('forum'); }}>Cộng đồng</a>
           </div>
@@ -1501,9 +1501,9 @@ export default function LandingPage({
             <a href="#home" onClick={(e) => { e.preventDefault(); setActiveLandingView('home'); setMobileMenuOpen(false); }}>Trang chủ</a>
             <a href="/courses" onClick={(e) => { e.preventDefault(); if (navigateTo) { navigateTo('/courses'); } else { setActiveLandingView('courses'); } setMobileMenuOpen(false); }}>Khóa học</a>
             <a href="/mock-exams" onClick={(e) => { e.preventDefault(); if (!currentUser) { toast("Vui lòng đăng nhập để sử dụng chức năng thi thử!", 'warning'); if (onNavigateToAuth) onNavigateToAuth('login'); } else { if (navigateTo) { navigateTo('/mock-exams'); } else { setActiveLandingView('exams'); } } setMobileMenuOpen(false); }}>Thi thử</a>
-            <a href="#features" onClick={(e) => { e.preventDefault(); setActiveLandingView('features'); setMobileMenuOpen(false); }}>Lộ trình học</a>
-            <a href="/ai-tutor" onClick={(e) => { e.preventDefault(); if (navigateTo) { navigateTo('/ai-tutor'); } else { setActiveLandingView('ai-tutor'); } setMobileMenuOpen(false); }}>AI Gia sư</a>
-            <a href="/exam-bank" onClick={(e) => { e.preventDefault(); if (navigateTo) { navigateTo('/exam-bank'); } setMobileMenuOpen(false); }}>Ngân hàng đề</a>
+            <a href="/flashcards" onClick={(e) => { e.preventDefault(); if (navigateTo) { navigateTo('/flashcards'); } else { setActiveLandingView('features'); } setMobileMenuOpen(false); }}>Flashcard</a>
+            <a href="/ai-tutor" onClick={(e) => { e.preventDefault(); if (navigateTo) { navigateTo('/ai-tutor'); } else { setActiveLandingView('ai-tutor'); } setMobileMenuOpen(false); }}>Mindmap</a>
+            <a href="/exam-bank" onClick={(e) => { e.preventDefault(); if (navigateTo) { navigateTo('/exam-bank'); } setMobileMenuOpen(false); }}>Ngân hàng tài liệu</a>
             <a href="#leaderboard" onClick={(e) => { e.preventDefault(); setActiveLandingView('home'); setMobileMenuOpen(false); setTimeout(() => { const el = document.getElementById('leaderboard'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 100); }}>Bảng xếp hạng</a>
             <a href="#forum" onClick={(e) => { e.preventDefault(); setActiveLandingView('forum'); setMobileMenuOpen(false); }}>Cộng đồng</a>
             
@@ -1680,51 +1680,6 @@ export default function LandingPage({
         </div>
       </section>
 
-      {/* ── FEATURED PREMIUM COURSES ── */}
-      <section className="lp-premium-courses-section">
-        <div className="lp-container">
-          <div className="lp-section-header lp-section-header--light" style={{ marginBottom: '40px' }}>
-            <span className="lp-eyebrow lp-eyebrow--outline">Khóa Học Premium Nổi Bật</span>
-            <h2>Chương Trình Luyện Thi THPTQG Chuyên Sâu</h2>
-            <p>Đăng ký khóa học của các giáo viên hàng đầu để nhận lộ trình thích ứng thông minh.</p>
-          </div>
-
-          <div className="lp-courses-grid">
-            {displayCourses.map(course => (
-              <div key={course.id} className="lp-course-neo-card">
-                <div className="lp-course-header" style={{ background: course.imageBg }}>
-                  <span className="lp-course-subject-badge">
-                    {course.subject}
-                  </span>
-                  <h4 className="lp-course-title">{course.title}</h4>
-                </div>
-
-                <div className="lp-course-body">
-                  <div>
-                    <p className="lp-course-instructor">Giảng viên: <strong>{course.teacherName}</strong></p>
-                    <p className="lp-course-duration">{course.duration}</p>
-                    
-                    <div className="lp-course-meta">
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><HiStar style={{ color: '#FFC229' }} /> {course.rating}</span>
-                      <span>👤 {course.students} học viên</span>
-                    </div>
-                  </div>
-
-                  <div className="lp-course-footer">
-                    <span className="lp-course-price">{course.price}đ</span>
-                    <button 
-                      className="lp-btn-course-syllabus" 
-                      onClick={() => setSelectedPreviewCourse(course)}
-                    >
-                      Xem đề cương
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
 
       {/* ── LEADERBOARD SECTION ── */}
       <section id="leaderboard" className="lp-leaderboard-section">
@@ -1952,38 +1907,6 @@ export default function LandingPage({
         </div>
       </section>
 
-
-      {/* ── STUDENT PHOTO + WHY ── */}
-      <section className="subj-why is-visible" style={{ marginTop: '80px', marginBottom: '80px' }}>
-        <div className="subj-why-photo">
-          <img src={studentSuccessImg} alt="Học sinh EduPath đạt thành tích cao" />
-          <div className="subj-why-photo-badge">
-            <strong>28.5+</strong>
-            <span>Điểm THPTQG</span>
-          </div>
-        </div>
-        <div className="subj-why-content">
-          <span className="subj-why-eyebrow">Tại sao chọn EduPath?</span>
-          <h2>Học thông minh —<br />không chỉ học chăm</h2>
-          <ul className="subj-why-list">
-            <li><HiCheck />AI phân tích điểm yếu, gợi ý đúng chương cần ôn ngay</li>
-            <li><HiCheck />Đề thi bám sát cấu trúc Bộ GD&ĐT 2024–2025</li>
-            <li><HiCheck />Lộ trình ôn tập cá nhân hóa theo từng khối thi</li>
-            <li><HiCheck />Giáo viên trực tiếp chữa bài — không phải chatbot</li>
-            <li><HiCheck />Học mọi lúc mọi nơi: điện thoại, máy tính, tablet</li>
-          </ul>
-          <div className="subj-why-stats">
-            <div className="subj-why-stat">
-              <strong>100%</strong>
-              <span>Giáo viên đạt 8.0+</span>
-            </div>
-            <div className="subj-why-stat">
-              <strong>42,500+</strong>
-              <span>Học sinh đồng hành</span>
-            </div>
-          </div>
-        </div>
-      </section>
 
       {/* ── CTA BANNER ── */}
       <section className="lp-cta-banner">
@@ -2986,7 +2909,7 @@ export default function LandingPage({
             </div>
             <div className="lp-footer__col">
               <h4>Tính năng</h4>
-              <a href="#features" onClick={(e) => { e.preventDefault(); setActiveLandingView('features'); }}>Lộ trình học</a>
+              <a href="/flashcards" onClick={(e) => { e.preventDefault(); if (navigateTo) { navigateTo('/flashcards'); } }}>Flashcard</a>
               <a href="/mock-exams" onClick={(e) => { e.preventDefault(); if (!currentUser) { toast("Vui lòng đăng nhập để sử dụng chức năng thi thử!", 'warning'); if (onNavigateToAuth) onNavigateToAuth('login'); } else { if (navigateTo) { navigateTo('/mock-exams'); } else { setActiveLandingView('exams'); } } }}>Thi thử</a>
               <a href="#forum" onClick={(e) => { e.preventDefault(); setActiveLandingView('forum'); }}>Cộng đồng</a>
               <a href="#stats" onClick={(e) => { e.preventDefault(); setActiveLandingView('about'); }}>Về chúng tôi</a>

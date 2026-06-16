@@ -207,6 +207,7 @@ export default function AuthPage({ defaultMode = 'login', onAuthSuccess, usersLi
   const [resetSuccess, setResetSuccess] = useState(false);
   const [generatedOtp, setGeneratedOtp] = useState('');
   const [typedOtp, setTypedOtp] = useState('');
+  const [resetToken, setResetToken] = useState(null);
 
   // ── Countdown hooks ──
   const otpExpiry = useCountdown(otpExpiryTime);
@@ -221,6 +222,10 @@ export default function AuthPage({ defaultMode = 'login', onAuthSuccess, usersLi
     setConfirmPassword('');
     setPhone('');
     setSignupOtpInput('');
+    setTypedOtp('');
+    setGeneratedOtp('');
+    setResetToken(null);
+    setResetSuccess(false);
   };
 
   // ═══════════════════════════════════════════
@@ -433,6 +438,94 @@ export default function AuthPage({ defaultMode = 'login', onAuthSuccess, usersLi
   };
 
   // ═══════════════════════════════════════════
+  // FORGOT PASSWORD / OTP / RESET PASSWORD
+  // ═══════════════════════════════════════════
+  const handleForgotPasswordSubmit = async () => {
+    if (!resetEmail.trim()) {
+      setErrorMessage('Vui lòng nhập Email.');
+      return;
+    }
+    setLoading(true);
+    setErrorMessage('');
+    setSuccessMessage('');
+    try {
+      const data = await api.forgotPassword(resetEmail);
+      setTypedOtp('');
+      if (data.devOtp) {
+        setGeneratedOtp(data.devOtp);
+      } else {
+        setGeneratedOtp('');
+      }
+      setSuccessMessage(data.message || 'Mã OTP đã được gửi đến email của bạn!');
+      setMode('forgot_otp');
+      addLog(`Yêu cầu khôi phục mật khẩu gửi OTP đến: ${resetEmail}`, 'sys');
+    } catch (err) {
+      setErrorMessage(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifyResetOtp = async () => {
+    if (!typedOtp || typedOtp.length !== 6) {
+      setErrorMessage('Vui lòng nhập đúng 6 chữ số OTP.');
+      return;
+    }
+    setLoading(true);
+    setErrorMessage('');
+    setSuccessMessage('');
+    try {
+      const data = await api.verifyResetOtp(resetEmail, typedOtp);
+      setResetToken(data.token);
+      setSuccessMessage('Xác thực mã OTP thành công! Vui lòng đặt mật khẩu mới.');
+      setMode('reset_password');
+      addLog(`Xác thực OTP khôi phục mật khẩu thành công cho: ${resetEmail}`, 'sys');
+    } catch (err) {
+      setErrorMessage(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResetPassword = async () => {
+    if (!password.trim() || !confirmPassword.trim()) {
+      setErrorMessage('Vui lòng điền mật khẩu mới và xác nhận mật khẩu.');
+      return;
+    }
+    if (password !== confirmPassword) {
+      setErrorMessage('Mật khẩu xác nhận không trùng khớp.');
+      return;
+    }
+    if (!isPasswordValid(password)) {
+      setErrorMessage('Mật khẩu mới chưa đáp ứng tất cả yêu cầu bảo mật. Vui lòng kiểm tra lại.');
+      return;
+    }
+    if (!resetToken) {
+      setErrorMessage('Phiên làm việc đặt lại mật khẩu đã hết hạn hoặc không hợp lệ. Vui lòng yêu cầu lại OTP.');
+      setMode('forgot');
+      return;
+    }
+    setLoading(true);
+    setErrorMessage('');
+    setSuccessMessage('');
+    try {
+      const msg = await api.resetPassword(resetToken, password);
+      setSuccessMessage(typeof msg === 'string' ? msg : (msg?.data || 'Đặt lại mật khẩu thành công! Vui lòng đăng nhập lại.'));
+      setEmail(resetEmail);
+      setPassword('');
+      setConfirmPassword('');
+      setResetToken(null);
+      setResetEmail('');
+      setMode('login');
+      addLog(`Khôi phục mật khẩu thành công cho email: ${resetEmail}`, 'sys');
+    } catch (err) {
+      setErrorMessage(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ═══════════════════════════════════════════
   // FORM SUBMIT ROUTER
   // ═══════════════════════════════════════════
   const handleSubmit = async (e) => {
@@ -443,46 +536,9 @@ export default function AuthPage({ defaultMode = 'login', onAuthSuccess, usersLi
     if (mode === 'login') return handleLogin();
     if (mode === 'signup') return handleSignupSubmit();
     if (mode === 'signup_otp') return handleVerifyOtp();
-
-    // Forgot / Reset password (simulated)
-    setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
-
-      if (mode === 'forgot') {
-        if (!resetEmail.trim()) return;
-        const otp = Math.floor(100000 + Math.random() * 900000).toString();
-        setGeneratedOtp(otp);
-        setTypedOtp('');
-        addLog(`Yêu cầu khôi phục mật khẩu (Simulated OTP): ${resetEmail}`, 'sys');
-        setResetSuccess(true);
-        setShowInbox(true);
-      } else if (mode === 'reset_password') {
-        if (typedOtp !== generatedOtp) {
-          setErrorMessage('Mã xác thực OTP không chính xác. Vui lòng kiểm tra lại!');
-          return;
-        }
-        if (password !== confirmPassword) {
-          setErrorMessage('Mật khẩu xác nhận không trùng khớp.');
-          return;
-        }
-        if (!isPasswordValid(password)) {
-          setErrorMessage('Mật khẩu mới chưa đáp ứng tất cả yêu cầu bảo mật. Vui lòng kiểm tra lại.');
-          return;
-        }
-        const existingUser = usersList.find(u => u.email === resetEmail);
-        if (existingUser) {
-          const updatedUser = { ...existingUser, password };
-          onAuthSuccess(null, updatedUser);
-        }
-        addLog(`Khôi phục mật khẩu thành công cho email: ${resetEmail}`, 'sys');
-        setSuccessMessage('Đặt lại mật khẩu thành công! Vui lòng đăng nhập bằng mật khẩu mới.');
-        setEmail(resetEmail);
-        setPassword('');
-        setConfirmPassword('');
-        setMode('login');
-      }
-    }, 600);
+    if (mode === 'forgot') return handleForgotPasswordSubmit();
+    if (mode === 'forgot_otp') return handleVerifyResetOtp();
+    if (mode === 'reset_password') return handleResetPassword();
   };
 
   return (
@@ -543,7 +599,8 @@ export default function AuthPage({ defaultMode = 'login', onAuthSuccess, usersLi
                   style={{ textTransform: 'uppercase' }}
                 >
                   {mode === 'forgot' && 'QUÊN MẬT KHẨU'}
-                  {mode === 'reset_password' && 'OTP XÁC THỰC'}
+                  {mode === 'forgot_otp' && 'XÁC THỰC OTP KHÔI PHỤC'}
+                  {mode === 'reset_password' && 'ĐẶT LẠI MẬT KHẨU'}
                   {mode === 'signup_otp' && 'XÁC THỰC OTP ĐĂNG KÝ'}
                   {mode === 'google_role_select' && 'CHỌN VAI TRÒ'}
                 </button>
@@ -566,6 +623,7 @@ export default function AuthPage({ defaultMode = 'login', onAuthSuccess, usersLi
                 {mode === 'signup' && 'Tạo tài khoản mới ✨'}
                 {mode === 'signup_otp' && 'Xác thực OTP 📧'}
                 {mode === 'forgot' && 'Khôi phục mật khẩu 🔑'}
+                {mode === 'forgot_otp' && 'Xác thực OTP khôi phục 📧'}
                 {mode === 'reset_password' && 'Đặt lại mật khẩu mới 🛡️'}
                 {mode === 'google_role_select' && 'Chọn vai trò của bạn 🎯'}
               </h2>
@@ -574,7 +632,8 @@ export default function AuthPage({ defaultMode = 'login', onAuthSuccess, usersLi
                 {mode === 'signup' && 'Đăng ký miễn phí và bắt đầu học tập tại EduPath ngay hôm nay.'}
                 {mode === 'signup_otp' && `Mã OTP đã được gửi tới ${pendingSignupEmail}. Nhập mã để hoàn tất đăng ký.`}
                 {mode === 'forgot' && 'Nhập email đã đăng ký. Chúng tôi sẽ gửi mã OTP xác nhận ngay.'}
-                {mode === 'reset_password' && 'Mã OTP đã được gửi đến email của bạn. Hãy đổi mật khẩu.'}
+                {mode === 'forgot_otp' && `Mã OTP đã được gửi tới ${resetEmail}. Nhập mã để tiếp tục.`}
+                {mode === 'reset_password' && 'Mật khẩu mới của bạn phải đáp ứng các yêu cầu bảo mật.'}
                 {mode === 'google_role_select' && 'Đây là lần đầu bạn sử dụng EduPath. Hãy cho chúng tôi biết bạn là ai.'}
               </p>
             </div>
@@ -748,36 +807,67 @@ export default function AuthPage({ defaultMode = 'login', onAuthSuccess, usersLi
             {/* FORGOT PASSWORD FORM */}
             {mode === 'forgot' && (
               <form onSubmit={handleSubmit} className="auth-premium-form">
-                {!resetSuccess ? (
-                  <>
-                    <div className="auth-input-group">
-                      <label>EMAIL</label>
-                      <div className="auth-input-wrap">
-                        <HiMail className="auth-input-icon" />
-                        <input 
-                          type="email" 
-                          placeholder="email@example.com" 
-                          value={resetEmail} 
-                          onChange={e => setResetEmail(e.target.value)} 
-                          required 
-                        />
-                      </div>
-                    </div>
-                    <button type="submit" className="auth-submit-btn-premium" disabled={loading}>
-                      {loading ? 'ĐANG GỬI...' : 'GỬI LIÊN KẾT ĐẶT LẠI MẬT KHẨU →'}
-                    </button>
-                  </>
-                ) : (
-                  <div className="auth-alert success" style={{ flexDirection: 'column', gap: 8 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <HiCheckCircle />
-                      <strong>Đã gửi thành công!</strong>
-                    </div>
-                    <p style={{ fontSize: '13px' }}>Kiểm tra hộp thư thử nghiệm bên dưới để nhận mã OTP khôi phục cho <strong>{resetEmail}</strong>.</p>
+                <div className="auth-input-group">
+                  <label>EMAIL KHÔI PHỤC</label>
+                  <div className="auth-input-wrap">
+                    <HiMail className="auth-input-icon" />
+                    <input 
+                      type="email" 
+                      placeholder="email@example.com" 
+                      value={resetEmail} 
+                      onChange={e => setResetEmail(e.target.value)} 
+                      required 
+                    />
+                  </div>
+                </div>
+                <button type="submit" className="auth-submit-btn-premium" disabled={loading}>
+                  {loading ? 'ĐANG GỬI...' : 'GỬI MÃ XÁC THỰC OTP →'}
+                </button>
+                <button type="button" className="auth-link-btn-flat" onClick={() => { switchMode('login'); setResetEmail(''); }}>
+                  <HiArrowLeft /> Quay lại đăng nhập
+                </button>
+              </form>
+            )}
+
+            {/* FORGOT PASSWORD OTP VERIFICATION FORM */}
+            {mode === 'forgot_otp' && (
+              <form onSubmit={handleSubmit} className="auth-premium-form">
+                <p className="auth-form-sub-text">Nhập mã OTP 6 chữ số khôi phục mật khẩu gửi tới <strong>{resetEmail}</strong></p>
+                
+                {/* Premium 6-digit OTP input */}
+                <OtpDigitInput
+                  value={typedOtp}
+                  onChange={setTypedOtp}
+                  disabled={loading}
+                />
+
+                {generatedOtp && (
+                  <div
+                    className="dev-otp-hint"
+                    style={{
+                      marginTop: 10,
+                      padding: '12px 14px',
+                      background: '#FFF8E1',
+                      border: '2.5px solid #000000',
+                      borderRadius: '12px',
+                      boxShadow: '2.5px 2.5px 0px #000000',
+                      fontSize: '12px',
+                      color: '#B45309',
+                      fontWeight: '800',
+                      textAlign: 'center',
+                      cursor: 'pointer'
+                    }}
+                    onClick={() => setTypedOtp(generatedOtp)}
+                  >
+                    💡 Nhấp vào đây để tự động điền mã thử nghiệm: <strong style={{ color: '#000000', textDecoration: 'underline' }}>{generatedOtp}</strong>
                   </div>
                 )}
-                <button type="button" className="auth-link-btn-flat" onClick={() => { switchMode('login'); setResetSuccess(false); setResetEmail(''); }}>
-                  <HiArrowLeft /> Quay lại đăng nhập
+
+                <button type="submit" className="auth-submit-btn-premium" disabled={loading || typedOtp.length !== 6}>
+                  {loading ? 'ĐANG XẠC THỰC...' : 'XÁC NHẬN MÃ OTP →'}
+                </button>
+                <button type="button" className="auth-link-btn-flat" onClick={() => switchMode('forgot')}>
+                  <HiArrowLeft /> Quay lại nhập Email
                 </button>
               </form>
             )}
@@ -787,21 +877,6 @@ export default function AuthPage({ defaultMode = 'login', onAuthSuccess, usersLi
               <form onSubmit={handleSubmit} className="auth-premium-form">
                 <p className="auth-form-sub-text">Đặt mật khẩu mới cho tài khoản: <strong>{resetEmail}</strong></p>
                 
-                <div className="auth-input-group">
-                  <label>MÃ XÁC THỰC OTP (6 CHỮ SỐ)</label>
-                  <div className="auth-input-wrap">
-                    <HiLockClosed className="auth-input-icon" />
-                    <input
-                      type="text"
-                      maxLength={6}
-                      placeholder="Nhập mã OTP 6 chữ số từ Mock Inbox"
-                      value={typedOtp}
-                      onChange={e => setTypedOtp(e.target.value.replace(/\D/g, ''))}
-                      required
-                    />
-                  </div>
-                </div>
-
                 <div className="auth-input-group">
                   <label>MẬT KHẨU MỚI</label>
                   <div className="auth-input-wrap">

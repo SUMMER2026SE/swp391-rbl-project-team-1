@@ -5,17 +5,13 @@ import dotenv from 'dotenv';
 import { initSocket } from './lib/socket.js';
 import { prisma } from './lib/prisma.js';
 
-
-// Controller imports
-import {
-  login, logout, sendOtp, resendOtp, verifyOtpRegister,
-  googleAuth, forgotPassword, resetPassword, googleCompleteOnboarding,
-  changePassword, requestRoleChange, getRoleChangeRequests, reviewRoleChange
-} from './controllers/auth.js';
+import { login, logout, sendOtp, resendOtp, verifyOtpRegister, googleAuth, googleCompleteOnboarding, changePassword, forgotPassword, verifyResetOtp, resetPassword, requestRoleChange, getRoleChangeRequests, reviewRoleChange } from './controllers/auth.js';
 import { getCourses, getCourseById, createCourse, getCourseStats } from './controllers/course.js';
-import { getExams, startAttempt, submitAttempt, getAttempts, getAttemptById } from './controllers/exam.js';
-import { streamAIChat, refreshRoadmap, generateAIQuestions } from './controllers/ai.js';
+import { getExams, getExamById, startAttempt, saveAnswer, submitAttempt, getAttempts, getExamQuestionsPublic, getAttemptById, getAttemptResult, getExamHistory, recordViolation, recordExamEvent, getExamEvents, recordViolationDetail, generateAiCoach, createSmartRetake, importExam } from './controllers/exam.js';
+import { streamAIChat, refreshRoadmap, generateAIQuestions, generateMindmap, saveMindmap, getMindmaps, getMindmapById, deleteMindmap, generateFlashcards, getPublicMindmapById } from './controllers/ai.js';
+
 import { chatbotConsult } from './controllers/chatbot.js';
+import { getDocumentResources, getDocumentComments, addDocumentComment } from './controllers/document.js';
 import { createVNPayPayment, vnpayWebhook, sepayWebhook, checkEnrollmentStatus, checkUserProStatus } from './controllers/payment.js';
 import { authenticateJWT, requireRole } from './middleware/auth.js';
 import {
@@ -62,6 +58,7 @@ app.post('/auth/resend-otp', resendOtp);
 app.post('/auth/verify-otp-register', verifyOtpRegister);
 app.post('/auth/google', googleAuth);
 app.post('/auth/forgot-password', forgotPassword);
+app.post('/auth/verify-reset-otp', verifyResetOtp);
 app.post('/auth/reset-password', resetPassword);
 app.post('/auth/google/complete-onboarding', googleCompleteOnboarding);
 app.post('/auth/change-password', authenticateJWT, changePassword);
@@ -70,6 +67,7 @@ app.post('/auth/change-password', authenticateJWT, changePassword);
 app.post('/auth/role-change-request', authenticateJWT, requestRoleChange);
 app.get('/admin/role-change-requests', authenticateJWT, requireRole(['ADMIN']), getRoleChangeRequests);
 app.post('/admin/role-change-requests/:id/review', authenticateJWT, requireRole(['ADMIN']), reviewRoleChange);
+app.post('/admin/exams/import', authenticateJWT, requireRole(['ADMIN']), importExam);
 
 // Protected Course Routes
 app.get('/courses', getCourses);
@@ -77,12 +75,36 @@ app.get('/courses/:id', getCourseById);
 app.get('/courses/:id/stats', getCourseStats);
 app.post('/courses', authenticateJWT, requireRole(['TEACHER', 'ADMIN']), createCourse);
 
+// Document Resource Routes
+app.get('/document-resources', getDocumentResources);
+app.get('/document-resources/:id/comments', getDocumentComments);
+app.post('/document-resources/:id/comments', authenticateJWT, addDocumentComment);
+
 // Protected Exam Routes
 app.get('/exams', getExams);
+app.get('/exams/:id', getExamById);
+app.get('/exams/:id/questions', getExamQuestionsPublic);
+
 app.get('/exams/attempts', authenticateJWT, requireRole(['STUDENT']), getAttempts);
 app.get('/exams/attempts/:attemptId', authenticateJWT, requireRole(['STUDENT']), getAttemptById);
 app.post('/exams/:id/attempts', authenticateJWT, requireRole(['STUDENT']), startAttempt);
 app.post('/exams/:id/attempts/:attemptId/submit', authenticateJWT, requireRole(['STUDENT']), submitAttempt);
+
+// Upgraded Exam Simulation Endpoints
+app.post('/exam-attempts/start', authenticateJWT, requireRole(['STUDENT']), (req, res, next) => {
+  req.params.id = String(req.body.examId);
+  next();
+}, startAttempt);
+app.post('/exam-attempts/:attemptId/save-answer', authenticateJWT, requireRole(['STUDENT']), saveAnswer);
+app.post('/exam-attempts/:attemptId/submit', authenticateJWT, requireRole(['STUDENT']), submitAttempt);
+app.get('/exam-attempts/:attemptId/result', authenticateJWT, requireRole(['STUDENT']), getAttemptResult);
+app.post('/exam-attempts/:attemptId/violation', authenticateJWT, requireRole(['STUDENT']), recordViolation);
+app.post('/exam-attempts/:attemptId/violation-detail', authenticateJWT, requireRole(['STUDENT']), recordViolationDetail);
+app.post('/exam-attempts/:attemptId/events', authenticateJWT, requireRole(['STUDENT']), recordExamEvent);
+app.get('/exam-attempts/:attemptId/events', authenticateJWT, requireRole(['STUDENT']), getExamEvents);
+app.post('/exam-attempts/:attemptId/ai-coach', authenticateJWT, requireRole(['STUDENT']), generateAiCoach);
+app.post('/exams/:id/smart-retake', authenticateJWT, requireRole(['STUDENT']), createSmartRetake);
+app.get('/users/me/exam-history', authenticateJWT, requireRole(['STUDENT']), getExamHistory);
 
 // Protected Payment Routes
 app.post('/enrollments', authenticateJWT, requireRole(['STUDENT']), createVNPayPayment);
@@ -101,6 +123,28 @@ app.post('/ai/chat', (req, res, next) => {
 }, streamAIChat);
 app.post('/ai/roadmap/refresh', authenticateJWT, requireRole(['STUDENT']), refreshRoadmap);
 app.post('/ai/generate-questions', authenticateJWT, requireRole(['TEACHER', 'ADMIN']), generateAIQuestions);
+
+// AI Mindmap Routes
+app.post('/ai/mindmap', (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    return authenticateJWT(req as any, res, next);
+  }
+  next();
+}, generateMindmap);
+
+app.post('/ai/flashcards', (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    return authenticateJWT(req as any, res, next);
+  }
+  next();
+}, generateFlashcards);
+app.post('/mindmaps', authenticateJWT, saveMindmap);
+app.get('/mindmaps', authenticateJWT, getMindmaps);
+app.get('/mindmaps/:id', authenticateJWT, getMindmapById);
+app.get('/mindmaps/public/:id', getPublicMindmapById);
+app.delete('/mindmaps/:id', authenticateJWT, deleteMindmap);
 
 // Public AI Chatbot Route (No Auth required so landing page guests can use it!)
 app.post('/chatbot', chatbotConsult);

@@ -85,6 +85,12 @@ export default function MockExamTakingPage({ examId, currentUser, onFinished, na
   const [calcInput, setCalcInput] = useState('');
   const [calcOutput, setCalcOutput] = useState('');
 
+  // Per-type violation counters (for display + thresholds)
+  const [tabViolations, setTabViolations] = useState(0);
+  const [copyPasteViolations, setCopyPasteViolations] = useState(0);
+  const [fullscreenViolations, setFullscreenViolations] = useState(0);
+  const [estimatedTrustScore, setEstimatedTrustScore] = useState(100);
+
   // Refs for tracking
   const blurHandlerRegistered = useRef(false);
 
@@ -92,6 +98,9 @@ export default function MockExamTakingPage({ examId, currentUser, onFinished, na
   const answersRef = useRef(answers);
   const secondsRemainingRef = useRef(secondsRemaining);
   const showViolationModalRef = useRef(showViolationModal);
+  const tabViolRef = useRef(0);
+  const copyPasteViolRef = useRef(0);
+  const fullscreenViolRef = useRef(0);
 
   useEffect(() => { answersRef.current = answers; }, [answers]);
   useEffect(() => { secondsRemainingRef.current = secondsRemaining; }, [secondsRemaining]);
@@ -101,43 +110,120 @@ export default function MockExamTakingPage({ examId, currentUser, onFinished, na
   const loadExamWorkspace = async () => {
     setLoading(true);
     try {
-      const examData = await mockExamService.getMockExamById(examId);
-      setExam(examData);
+      const historyState = window.history.state;
+      const retakeData = historyState?.retakeData;
+      const retakeMode = historyState?.retakeMode;
 
-      const qs = await mockExamService.getExamQuestions(examId);
-      const questionsWithOptions = await Promise.all(
-        qs.map(async (q) => {
-          const opts = await mockExamService.getExamOptions(q.id);
-          return { ...q, options: opts };
-        })
-      );
-      setQuestions(questionsWithOptions);
+      if (retakeData && retakeData.questions && retakeData.exam) {
+        const examData = {
+          id: String(retakeData.exam.id),
+          title: retakeData.exam.title,
+          duration_minutes: retakeData.exam.duration,
+          total_questions: retakeData.exam.totalQuestions,
+          description: `Phiên ôn luyện thông minh: ${retakeData.exam.title}`,
+          status: 'published',
+          exam_subjects: {
+            name: retakeData.exam.subject
+          },
+          retakeMode: retakeData.exam.retakeMode,
+          sourceExamId: retakeData.exam.sourceExamId,
+          sourceAttemptId: retakeData.exam.sourceAttemptId
+        };
+        setExam(examData);
 
-      // Restore states from localStorage
-      const savedAnswers = localStorage.getItem(`exam_taking_answers_${examId}`);
-      if (savedAnswers) setAnswers(JSON.parse(savedAnswers));
+        const mappedQuestions = retakeData.questions.map((q, idx) => {
+          const options = typeof q.options === 'string' ? JSON.parse(q.options) : q.options;
+          const mappedOptions = (options || []).map((opt) => ({
+            id: `opt-${q.id}-${opt.label}`,
+            question_id: String(q.id),
+            option_label: opt.label,
+            option_text: opt.text,
+            is_correct: opt.label === q.correctAnswer
+          }));
 
-      const savedBookmarks = localStorage.getItem(`exam_taking_bookmarks_${examId}`);
-      if (savedBookmarks) setBookmarks(JSON.parse(savedBookmarks));
+          let diffLabel = 'Trung bình';
+          if (q.difficulty === 'EASY') diffLabel = 'Dễ';
+          else if (q.difficulty === 'HARD') diffLabel = 'Khó';
 
-      const savedAttemptId = localStorage.getItem(`exam_taking_attempt_id_${examId}`);
-      if (savedAttemptId) {
-        setAttemptId(savedAttemptId);
-      } else if (currentUser) {
-        const att = await mockExamService.startMockExam(currentUser.id, examId);
-        setAttemptId(att.id);
-        localStorage.setItem(`exam_taking_attempt_id_${examId}`, att.id);
+          return {
+            id: String(q.id),
+            exam_id: String(examData.id),
+            question_number: idx + 1,
+            question_text: q.content,
+            question_image_url: q.imageUrl || null,
+            question_type: 'multiple_choice_single',
+            difficulty: diffLabel,
+            explanation: q.explanation || '',
+            topic: q.topic || 'Kiến thức cốt lõi',
+            options: mappedOptions
+          };
+        });
+        setQuestions(mappedQuestions);
+
+        const savedAnswers = localStorage.getItem(`exam_taking_answers_${examId}`);
+        if (savedAnswers) setAnswers(JSON.parse(savedAnswers));
+
+        const savedBookmarks = localStorage.getItem(`exam_taking_bookmarks_${examId}`);
+        if (savedBookmarks) setBookmarks(JSON.parse(savedBookmarks));
+
+        const savedAttemptId = localStorage.getItem(`exam_taking_attempt_id_${examId}`);
+        if (savedAttemptId) {
+          setAttemptId(savedAttemptId);
+        } else if (currentUser) {
+          const qIds = mappedQuestions.map(mq => Number(mq.id));
+          const att = await mockExamService.startMockExam(currentUser.id, examId, retakeMode || retakeData.exam.retakeMode, qIds);
+          setAttemptId(att.id);
+          localStorage.setItem(`exam_taking_attempt_id_${examId}`, att.id);
+        } else {
+          const guestAttId = `guest-attempt-${Date.now()}`;
+          setAttemptId(guestAttId);
+          localStorage.setItem(`exam_taking_attempt_id_${examId}`, guestAttId);
+        }
+
+        const savedSeconds = localStorage.getItem(`exam_taking_seconds_${examId}`);
+        if (savedSeconds) {
+          setSecondsRemaining(parseInt(savedSeconds, 10));
+        } else {
+          setSecondsRemaining(examData.duration_minutes * 60);
+        }
       } else {
-        const guestAttId = `guest-attempt-${Date.now()}`;
-        setAttemptId(guestAttId);
-        localStorage.setItem(`exam_taking_attempt_id_${examId}`, guestAttId);
-      }
+        const examData = await mockExamService.getMockExamById(examId);
+        setExam(examData);
 
-      const savedSeconds = localStorage.getItem(`exam_taking_seconds_${examId}`);
-      if (savedSeconds) {
-        setSecondsRemaining(parseInt(savedSeconds, 10));
-      } else {
-        setSecondsRemaining((examData.duration_minutes || 90) * 60);
+        const qs = await mockExamService.getExamQuestions(examId);
+        const questionsWithOptions = await Promise.all(
+          qs.map(async (q) => {
+            const opts = await mockExamService.getExamOptions(q.id);
+            return { ...q, options: opts };
+          })
+        );
+        setQuestions(questionsWithOptions);
+
+        const savedAnswers = localStorage.getItem(`exam_taking_answers_${examId}`);
+        if (savedAnswers) setAnswers(JSON.parse(savedAnswers));
+
+        const savedBookmarks = localStorage.getItem(`exam_taking_bookmarks_${examId}`);
+        if (savedBookmarks) setBookmarks(JSON.parse(savedBookmarks));
+
+        const savedAttemptId = localStorage.getItem(`exam_taking_attempt_id_${examId}`);
+        if (savedAttemptId) {
+          setAttemptId(savedAttemptId);
+        } else if (currentUser) {
+          const att = await mockExamService.startMockExam(currentUser.id, examId);
+          setAttemptId(att.id);
+          localStorage.setItem(`exam_taking_attempt_id_${examId}`, att.id);
+        } else {
+          const guestAttId = `guest-attempt-${Date.now()}`;
+          setAttemptId(guestAttId);
+          localStorage.setItem(`exam_taking_attempt_id_${examId}`, guestAttId);
+        }
+
+        const savedSeconds = localStorage.getItem(`exam_taking_seconds_${examId}`);
+        if (savedSeconds) {
+          setSecondsRemaining(parseInt(savedSeconds, 10));
+        } else {
+          setSecondsRemaining((examData.duration_minutes || 90) * 60);
+        }
       }
     } catch (err) {
       console.error('Lỗi khởi tạo phòng thi:', err);
@@ -152,15 +238,28 @@ export default function MockExamTakingPage({ examId, currentUser, onFinished, na
 
   // Sync answers & scratchpad
   const handleSelectOption = (questionId, optionLabel) => {
+    const isChange = !!answers[questionId];
     const nextAnswers = { ...answers, [questionId]: optionLabel };
     setAnswers(nextAnswers);
     localStorage.setItem(`exam_taking_answers_${examId}`, JSON.stringify(nextAnswers));
+    if (attemptId && !attemptId.toString().startsWith('guest')) {
+      mockExamService.saveAttemptAnswer(attemptId, questionId, optionLabel);
+      mockExamService.recordExamEvent(
+        attemptId,
+        isChange ? 'CHANGE_ANSWER' : 'SELECT_ANSWER',
+        questionId,
+        { answer: optionLabel }
+      );
+    }
   };
 
   const handleChangeEssay = (questionId, text) => {
     const nextAnswers = { ...answers, [questionId]: text };
     setAnswers(nextAnswers);
     localStorage.setItem(`exam_taking_answers_${examId}`, JSON.stringify(nextAnswers));
+    if (attemptId && !attemptId.toString().startsWith('guest')) {
+      mockExamService.saveAttemptAnswer(attemptId, questionId, text);
+    }
   };
 
   const handleScratchpadChange = (text) => {
@@ -180,6 +279,9 @@ export default function MockExamTakingPage({ examId, currentUser, onFinished, na
     if (currentUser) {
       await mockExamService.bookmarkQuestion(currentUser.id, questionId, note);
     }
+    if (attemptId && !attemptId.toString().startsWith('guest')) {
+      mockExamService.recordExamEvent(attemptId, 'BOOKMARK', questionId, { action: note === null ? 'remove' : 'add' });
+    }
   };
 
   const handleSecondsChange = (secondsLeft) => {
@@ -198,32 +300,68 @@ export default function MockExamTakingPage({ examId, currentUser, onFinished, na
     }
   };
 
-  // Visibility & Tab-blur violation triggers
-  const triggerViolation = (reason) => {
-    if (showViolationModalRef.current) return; // Ignore secondary triggers while standard alert dialog is visible
-    setViolationCount(prev => {
-      const nextVal = prev + 1;
-      if (nextVal >= 3) {
-        // Clear hooks immediately to prevent repeating alerts
-        window.removeEventListener('blur', handleWindowBlur);
-        document.removeEventListener('visibilitychange', handleVisibilityChange);
-        toast('Bạn đã vi phạm nội quy chống gian lận quá 3 lần! Hệ thống tự động nộp bài.', 'error');
-        handleFinalSubmit(true);
-      } else {
-        setViolationReason(reason);
-        setShowViolationModal(true);
-      }
-      return nextVal;
-    });
+  // Compute estimated trust score from local counters
+  const recalcTrustScore = (tabs, copies, fullscreen) => {
+    return Math.max(0, 100 - tabs * 15 - copies * 10 - fullscreen * 8);
+  };
+
+  // Visibility & Tab-blur violation triggers (enhanced with per-type tracking)
+  const triggerViolation = (violationType, reason) => {
+    if (showViolationModalRef.current) return;
+
+    // Update per-type counter refs (sync for immediate threshold check)
+    let newTabs = tabViolRef.current;
+    let newCopies = copyPasteViolRef.current;
+    let newFullscreen = fullscreenViolRef.current;
+
+    if (violationType === 'TAB_SWITCH') {
+      tabViolRef.current += 1;
+      newTabs = tabViolRef.current;
+      setTabViolations(newTabs);
+    } else if (violationType === 'COPY_PASTE') {
+      copyPasteViolRef.current += 1;
+      newCopies = copyPasteViolRef.current;
+      setCopyPasteViolations(newCopies);
+    } else if (violationType === 'FULLSCREEN_EXIT') {
+      fullscreenViolRef.current += 1;
+      newFullscreen = fullscreenViolRef.current;
+      setFullscreenViolations(newFullscreen);
+    }
+
+    const newTrust = recalcTrustScore(newTabs, newCopies, newFullscreen);
+    setEstimatedTrustScore(newTrust);
+
+    // Report to backend (non-blocking)
+    if (attemptId && !attemptId.toString().startsWith('guest')) {
+      mockExamService.recordViolationDetail(attemptId, violationType).then(res => {
+        if (res?.examTrustScore != null) setEstimatedTrustScore(res.examTrustScore);
+      });
+    }
+
+    // Auto-submit thresholds
+    const autoSubmit = newTabs >= 3 || newCopies >= 5 || newFullscreen >= 3;
+    setViolationCount(prev => prev + 1);
+
+    if (autoSubmit) {
+      window.removeEventListener('blur', handleWindowBlur);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      const label = violationType === 'COPY_PASTE' ? 'copy/paste' : violationType === 'FULLSCREEN_EXIT' ? 'thoát toàn màn hình' : 'rời tab';
+      toast(`Vi phạm ${label} quá giới hạn! Hệ thống tự động nộp bài.`, 'error');
+      handleFinalSubmit(true);
+    } else if (violationType !== 'COPY_PASTE') {
+      // Show modal only for tab switch and fullscreen exit (not copy/paste)
+      setViolationReason(reason);
+      setShowViolationModal(true);
+    }
   };
 
   const handleWindowBlur = () => {
-    triggerViolation("Rời khỏi tab thi (chuyển đổi ứng dụng hoặc mở cửa sổ mới)");
+    triggerViolation('TAB_SWITCH', 'Rời khỏi tab thi (chuyển đổi ứng dụng hoặc mở cửa sổ mới)');
   };
 
   const handleVisibilityChange = () => {
     if (document.hidden) {
-      triggerViolation("Rời khỏi màn hình thi (chuyển đổi tab trình duyệt)");
+      triggerViolation('TAB_SWITCH', 'Rời khỏi màn hình thi (chuyển đổi tab trình duyệt)');
     }
   };
 
@@ -247,12 +385,38 @@ export default function MockExamTakingPage({ examId, currentUser, onFinished, na
       const isFull = !!document.fullscreenElement;
       setIsFullscreen(isFull);
       if (!isFull && !isPreExam) {
-        triggerViolation("Thoát chế độ toàn màn hình khi đang thi");
+        triggerViolation('FULLSCREEN_EXIT', 'Thoát chế độ toàn màn hình khi đang thi');
       }
     };
     document.addEventListener('fullscreenchange', onFsChange);
     return () => document.removeEventListener('fullscreenchange', onFsChange);
   }, [isPreExam]);
+
+  // Copy/paste detection
+  useEffect(() => {
+    if (isPreExam) return;
+    const handleCopyPaste = (e) => {
+      e.preventDefault();
+      triggerViolation('COPY_PASTE', 'Sao chép hoặc dán nội dung trong phòng thi');
+    };
+    document.addEventListener('copy', handleCopyPaste);
+    document.addEventListener('paste', handleCopyPaste);
+    document.addEventListener('cut', handleCopyPaste);
+    return () => {
+      document.removeEventListener('copy', handleCopyPaste);
+      document.removeEventListener('paste', handleCopyPaste);
+      document.removeEventListener('cut', handleCopyPaste);
+    };
+  }, [isPreExam, attemptId]);
+
+  // Track question view events for replay
+  useEffect(() => {
+    if (isPreExam || questions.length === 0 || !attemptId) return;
+    const currentQ = questions[currentIdx];
+    if (currentQ) {
+      mockExamService.recordExamEvent(attemptId, 'VIEW_QUESTION', currentQ.id, { questionNumber: currentIdx + 1 });
+    }
+  }, [currentIdx, isPreExam]);
 
   // Keyboard shortcuts: A/B/C/D to select options, Left/Right to navigate questions
   useEffect(() => {
@@ -280,6 +444,14 @@ export default function MockExamTakingPage({ examId, currentUser, onFinished, na
     setIsSubmitModalOpen(false);
     setShowViolationModal(false);
 
+    // Record submit event (fire-and-forget)
+    if (attemptId && !attemptId.toString().startsWith('guest')) {
+      mockExamService.recordExamEvent(attemptId, 'SUBMIT', null, {
+        answeredCount: Object.keys(answersRef.current).filter(k => answersRef.current[k]).length,
+        forced: forceSubmit
+      });
+    }
+
     // Stop events
     window.removeEventListener('blur', handleWindowBlur);
     document.removeEventListener('visibilitychange', handleVisibilityChange);
@@ -294,12 +466,17 @@ export default function MockExamTakingPage({ examId, currentUser, onFinished, na
 
     try {
       const durationSeconds = (exam.duration_minutes * 60) - secondsRemainingRef.current;
+      const historyState = window.history.state;
+      const activeRetakeMode = exam?.retakeMode || historyState?.retakeMode || null;
+      const qIds = activeRetakeMode ? questions.map(q => Number(q.id)) : [];
       const { score, attemptId: submittedId } = await mockExamService.submitMockExam(
         currentUser?.id || 101,
         examId,
         attemptId,
         answersRef.current,
-        durationSeconds
+        durationSeconds,
+        activeRetakeMode,
+        qIds
       );
 
       // Clean local storage states
@@ -463,10 +640,30 @@ export default function MockExamTakingPage({ examId, currentUser, onFinished, na
           </div>
 
           {/* Real-time Status and Violation indicators */}
-          <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(231, 76, 60, 0.08)', color: 'var(--accent-red)', padding: '6px 12px', borderRadius: '8px', border: '1px solid rgba(231,76,60,0.15)', fontSize: '11.5px', fontWeight: 'bold' }}>
-              <span>⚠️ Cảnh báo:</span>
-              <span>{violationCount}/3 lần</span>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+            {/* Trust score badge */}
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: '5px',
+              background: estimatedTrustScore >= 90 ? 'rgba(0,184,148,0.1)' : estimatedTrustScore >= 70 ? 'rgba(243,156,18,0.1)' : 'rgba(214,48,49,0.1)',
+              color: estimatedTrustScore >= 90 ? '#00b894' : estimatedTrustScore >= 70 ? '#f39c12' : '#d63031',
+              padding: '5px 10px', borderRadius: '8px',
+              border: `1px solid ${estimatedTrustScore >= 90 ? 'rgba(0,184,148,0.25)' : estimatedTrustScore >= 70 ? 'rgba(243,156,18,0.25)' : 'rgba(214,48,49,0.25)'}`,
+              fontSize: '11px', fontWeight: 'bold'
+            }}>
+              🛡️ Tin cậy: {Math.round(estimatedTrustScore)}%
+            </div>
+
+            {/* Per-type violation indicators */}
+            <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', background: tabViolRef.current > 0 ? 'rgba(231,76,60,0.08)' : 'var(--bg-main)', color: tabViolRef.current > 0 ? 'var(--accent-red)' : 'var(--text-muted)', padding: '4px 8px', borderRadius: '6px', border: '1px solid var(--border)', fontSize: '11px', fontWeight: 'bold' }}>
+                ↔️ {tabViolRef.current}/3
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', background: copyPasteViolRef.current > 0 ? 'rgba(231,76,60,0.08)' : 'var(--bg-main)', color: copyPasteViolRef.current > 0 ? 'var(--accent-red)' : 'var(--text-muted)', padding: '4px 8px', borderRadius: '6px', border: '1px solid var(--border)', fontSize: '11px', fontWeight: 'bold' }}>
+                📋 {copyPasteViolRef.current}/5
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', background: fullscreenViolRef.current > 0 ? 'rgba(231,76,60,0.08)' : 'var(--bg-main)', color: fullscreenViolRef.current > 0 ? 'var(--accent-red)' : 'var(--text-muted)', padding: '4px 8px', borderRadius: '6px', border: '1px solid var(--border)', fontSize: '11px', fontWeight: 'bold' }}>
+                🖥️ {fullscreenViolRef.current}/3
+              </div>
             </div>
 
             <button 
@@ -739,8 +936,21 @@ export default function MockExamTakingPage({ examId, currentUser, onFinished, na
               
               <div style={{ background: 'var(--bg-main)', padding: '16px', borderRadius: '10px', border: '1px solid var(--border)', margin: '18px 0', fontSize: '13px', color: 'var(--text-primary)', textAlign: 'left', lineHeight: 1.5 }}>
                 <p>🔴 <strong>Lý do vi phạm:</strong> {violationReason}</p>
-                <p style={{ marginTop: '8px' }}>⚠️ <strong>Số lần vi phạm hiện tại:</strong> <strong style={{ color: 'var(--exams-red)', fontSize: '14.5px' }}>{violationCount}/3 lần</strong></p>
-                <p style={{ marginTop: '8px', fontSize: '11.5px', color: 'var(--text-secondary)' }}><em>Lưu ý:</em> Nếu bạn vi phạm quá **3 lần**, hệ thống sẽ lập tức dừng bài thi, khóa bài làm và tự động gửi kết quả về chấm điểm.</p>
+                <div style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
+                    <span>↔️ Rời tab / cửa sổ</span>
+                    <strong style={{ color: tabViolRef.current >= 2 ? 'var(--exams-red)' : 'var(--text-primary)' }}>{tabViolRef.current}/3 lần</strong>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
+                    <span>🖥️ Thoát toàn màn hình</span>
+                    <strong style={{ color: fullscreenViolRef.current >= 2 ? 'var(--exams-red)' : 'var(--text-primary)' }}>{fullscreenViolRef.current}/3 lần</strong>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
+                    <span>📋 Copy/Paste</span>
+                    <strong style={{ color: copyPasteViolRef.current >= 4 ? 'var(--exams-red)' : 'var(--text-primary)' }}>{copyPasteViolRef.current}/5 lần</strong>
+                  </div>
+                </div>
+                <p style={{ marginTop: '10px', fontSize: '11.5px', color: 'var(--text-secondary)' }}>Điểm tin cậy hiện tại: <strong style={{ color: estimatedTrustScore < 70 ? 'var(--exams-red)' : '#00b894' }}>{Math.round(estimatedTrustScore)}/100</strong>. Vượt giới hạn sẽ tự động nộp bài.</p>
               </div>
 
               <button

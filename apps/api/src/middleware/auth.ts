@@ -15,6 +15,7 @@ export interface AuthRequest extends Request {
 export function authenticateJWT(req: AuthRequest, res: Response, next: NextFunction) {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    console.error('[auth] Missing or malformed Authorization header');
     return res.status(401).json({ success: false, error: 'Yêu cầu mã JWT xác thực (Bearer token)' });
   }
 
@@ -23,7 +24,8 @@ export function authenticateJWT(req: AuthRequest, res: Response, next: NextFunct
     const payload = jwt.verify(token, JWT_SECRET) as AuthRequest['user'];
     req.user = payload;
     next();
-  } catch (err) {
+  } catch (err: any) {
+    console.error('[auth] JWT verification failed:', err.message);
     return res.status(403).json({ success: false, error: 'Mã xác thực không hợp lệ hoặc đã hết hạn!' });
   }
 }

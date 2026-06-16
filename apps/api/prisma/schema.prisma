@@ -43,6 +43,8 @@ model User {
   reportsSubmitted   ForumReport[]       @relation("Reporter")
   reportsResolved    ForumReport[]       @relation("Resolver")
   auditLogs          ForumAuditLog[]
+  documentComments   DocumentComment[]
+  mindmaps           Mindmap[]
 }
 
 model Student {
@@ -74,7 +76,8 @@ model Course {
   title        String
   description  String
   subject      String
-  subjectGroup String
+  subjectGroup String       @default("")
+  level        String?
   price        Float
   thumbnailUrl String?
   isPublished  Boolean      @default(false)
@@ -118,20 +121,30 @@ model Question {
   topic          String
   difficulty     Difficulty          @default(MEDIUM)
   createdBy      Int
+  imageUrl       String?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @default(now()) @updatedAt
   examQuestions  ExamQuestion[]
   attemptAnswers TestAttemptAnswer[]
 }
 
 model Exam {
-  id            Int            @id @default(autoincrement())
-  title         String
-  subject       String
-  subjectGroup  String
-  duration      Int
-  isPublic      Boolean        @default(false)
-  createdBy     Int
-  examQuestions ExamQuestion[]
-  attempts      TestAttempt[]
+  id             Int            @id @default(autoincrement())
+  title          String
+  subject        String
+  subjectGroup   String
+  duration       Int
+  isPublic       Boolean        @default(false)
+  createdBy      Int
+  year           Int?
+  source         String?
+  totalQuestions Int            @default(0)
+  difficulty     Difficulty     @default(MEDIUM)
+  status         String         @default("published")
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @default(now()) @updatedAt
+  examQuestions  ExamQuestion[]
+  attempts       TestAttempt[]
 }
 
 model ExamQuestion {
@@ -145,16 +158,41 @@ model ExamQuestion {
 }
 
 model TestAttempt {
-  id             Int                 @id @default(autoincrement())
-  studentId      Int
-  examId         Int
-  score          Float
-  startedAt      DateTime            @default(now())
-  submittedAt    DateTime?
-  aiFeedback     Json?
-  exam           Exam                @relation(fields: [examId], references: [id], onDelete: Cascade)
-  student        Student             @relation(fields: [studentId], references: [userId], onDelete: Cascade)
-  attemptAnswers TestAttemptAnswer[]
+  id                  Int                 @id @default(autoincrement())
+  studentId           Int
+  examId              Int
+  score               Float
+  startedAt           DateTime            @default(now())
+  submittedAt         DateTime?
+  aiFeedback          Json?
+  durationUsed        Int?
+  correctCount        Int?
+  wrongCount          Int?
+  skippedCount        Int?
+  tabSwitchCount      Int                 @default(0)
+  copyPasteCount      Int                 @default(0)
+  fullscreenExitCount Int                 @default(0)
+  examTrustScore      Float?
+  topicStats          Json?
+  difficultyStats     Json?
+  status              AttemptStatus       @default(IN_PROGRESS)
+  exam                Exam                @relation(fields: [examId], references: [id], onDelete: Cascade)
+  student             Student             @relation(fields: [studentId], references: [userId], onDelete: Cascade)
+  attemptAnswers      TestAttemptAnswer[]
+  examEvents          ExamEvent[]
+}
+
+model ExamEvent {
+  id         Int         @id @default(autoincrement())
+  attemptId  Int
+  attempt    TestAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  eventType  String
+  questionId Int?
+  payload    Json?
+  createdAt  DateTime    @default(now())
+
+  @@index([attemptId])
+  @@index([eventType])
 }
 
 model TestAttemptAnswer {
@@ -165,6 +203,8 @@ model TestAttemptAnswer {
   isCorrect      Boolean
   attempt        TestAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
   question       Question    @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([attemptId, questionId])
 }
 
 model Roadmap {
@@ -227,6 +267,12 @@ enum Difficulty {
   EASY
   MEDIUM
   HARD
+}
+
+enum AttemptStatus {
+  IN_PROGRESS
+  SUBMITTED
+  TIMEOUT
 }
 
 enum OtpPurpose {
@@ -557,4 +603,53 @@ model ForumAuditLog {
   ipAddress      String?
   createdAt      DateTime        @default(now())
 }
+
+model DocumentResource {
+  id                  Int      @id @default(autoincrement())
+  title               String
+  description         String?  @db.Text
+  subject             String
+  level               String
+  isFree              Boolean  @default(false)
+  driveUrl            String?
+  imageUrl            String?
+  price               Int      @default(0)
+  isActive            Boolean  @default(true)
+  isDeleted           Boolean  @default(false)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @default(now()) @updatedAt
+  commissionPercent   Float?
+  markdownDescription String?  @db.Text
+  comments            DocumentComment[]
+
+  @@map("document_resources")
+}
+
+model DocumentComment {
+  id         Int      @id @default(autoincrement())
+  documentId Int
+  userId     Int
+  content    String   @db.Text
+  createdAt  DateTime @default(now())
+
+  user       User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  document   DocumentResource @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@map("document_comments")
+}
+
+model Mindmap {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  title     String
+  content   Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("mindmaps")
+}
+
+
 

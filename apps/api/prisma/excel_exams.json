@@ -1,0 +1,57 @@
+[
+  {
+    "excel_exam_id": "THPT_2025_TOAN_REF",
+    "title": "Đề tham khảo tốt nghiệp THPT từ năm 2025 - Môn Toán",
+    "subject": "Toán học",
+    "subjectGroup": "A01",
+    "duration": 90,
+    "year": 2025,
+    "source": "Đề tham khảo",
+    "totalQuestions": 50,
+    "notes": "Cần tải PDF từ Drive và extract"
+  },
+  {
+    "excel_exam_id": "THPT_2025_NGU_VAN_REF",
+    "title": "Đề tham khảo tốt nghiệp THPT từ năm 2025 - Môn Ngữ văn",
+    "subject": "Ngữ văn",
+    "subjectGroup": "D01",
+    "duration": 120,
+    "year": 2025,
+    "source": "Đề tham khảo",
+    "totalQuestions": 50,
+    "notes": "Tự luận"
+  },
+  {
+    "excel_exam_id": "THPT_2024_TOAN_REF",
+    "title": "Đề tham khảo tốt nghiệp THPT năm 2024 - Môn Toán",
+    "subject": "Toán học",
+    "subjectGroup": "A01",
+    "duration": 90,
+    "year": 2024,
+    "source": "Đề tham khảo",
+    "totalQuestions": 50,
+    "notes": null
+  },
+  {
+    "excel_exam_id": "THPT_2024_TA_REF",
+    "title": "Đề tham khảo tốt nghiệp THPT năm 2024 - Môn Tiếng Anh",
+    "subject": "Tiếng Anh",
+    "subjectGroup": "D01",
+    "duration": 60,
+    "year": 2024,
+    "source": "Đề tham khảo",
+    "totalQuestions": 50,
+    "notes": null
+  },
+  {
+    "excel_exam_id": "THPT_2023_NGU_VAN_OFFICIAL",
+    "title": "Đề chính thức tốt nghiệp THPT 2023 - Môn Ngữ văn",
+    "subject": "Ngữ văn",
+    "subjectGroup": "D01",
+    "duration": 120,
+    "year": 2023,
+    "source": "Đề chính thức",
+    "totalQuestions": 50,
+    "notes": "Có PDF 1 trang đề và 2 trang đáp án/thang điểm"
+  }
+]

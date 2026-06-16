@@ -1,4 +1,4 @@
-import type { Response } from 'express';
+import type { Request, Response } from 'express';
 import type { AuthRequest } from '../middleware/auth.js';
 import { prisma } from '../lib/prisma.js';
 
@@ -48,9 +48,7 @@ export async function streamAIChat(req: AuthRequest, res: Response) {
 
   const systemPrompt = {
     role: 'system',
-    content: 'Bạn là "EduBot" - Trợ lý AI gia sư và hướng dẫn ôn thi THPT Quốc gia của hệ thống giáo dục trực tuyến EduPath AI. ' +
-      'Nhiệm vụ của bạn là giải đáp chi tiết, hướng dẫn từng bước một cách khoa học cho các câu hỏi về lý thuyết, bài tập của học sinh (Toán, Vật lý, Hóa học, Tiếng Anh, v.v.). ' +
-      'Hãy trả lời bằng tiếng Việt một cách thân thiện, nhiệt tình, chuyên nghiệp, luôn sử dụng định dạng markdown (in đậm, công thức, bullet points) rõ ràng để học sinh dễ theo dõi.'
+    content: 'Bạn là EduBot. Trả lời cực ngắn gọn (dưới 10 từ) bằng tiếng Việt.'
   };
 
   const abortController = new AbortController();
@@ -58,6 +56,8 @@ export async function streamAIChat(req: AuthRequest, res: Response) {
     abortController.abort();
     res.end();
   });
+
+  const slicedMessage = message ? String(message).substring(0, 60) : '';
 
   try {
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
@@ -72,11 +72,11 @@ export async function streamAIChat(req: AuthRequest, res: Response) {
         model: model,
         messages: [
           systemPrompt,
-          { role: 'user', content: message }
+          { role: 'user', content: slicedMessage }
         ],
         stream: true,
         temperature: 0.7,
-        max_tokens: 2000
+        max_tokens: 40
       }),
       signal: abortController.signal
     });
@@ -504,6 +504,333 @@ export async function generateAIQuestions(req: AuthRequest, res: Response) {
     ];
 
     return res.status(200).json({ success: true, data: mockQuestions });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+}
+
+// =========================================================================
+// AI MINDMAP CONTROLLERS
+// =========================================================================
+
+export async function generateMindmap(req: AuthRequest, res: Response) {
+  const { text } = req.body;
+  if (!text || !text.trim()) {
+    return res.status(400).json({ success: false, error: 'Nội dung văn bản để lập sơ đồ tư duy không được để trống.' });
+  }
+
+  const apiKey = process.env.OPENROUTER_API_KEY;
+  const model = process.env.OPENROUTER_MODEL || 'google/gemini-2.5-flash';
+
+  if (!apiKey) {
+    return res.status(500).json({ success: false, error: 'Hệ thống AI chưa được cấu hình API Key.' });
+  }
+
+  try {
+    const prompt = `Tạo dàn ý sơ đồ tư duy cực ngắn gọn từ văn bản: "${text.substring(0, 80)}"
+Trả về CHÍNH XÁC theo cấu trúc sau (không thêm bất cứ giải thích nào):
+Chủ đề chính | Ý chính 1: Mô tả ý chính 1 (Ý chi tiết 1) | Ý chính 2: Mô tả ý chính 2 (Ý chi tiết 2)`;
+
+    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': 'https://edupath.vn',
+        'X-Title': 'EduPath AI Mindmap'
+      },
+      body: JSON.stringify({
+        model: model,
+        messages: [
+          { role: 'user', content: prompt }
+        ],
+        temperature: 0.3,
+        max_tokens: 65
+      })
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`OpenRouter error: ${errText}`);
+    }
+
+    const data = await response.json() as any;
+    let content = data.choices?.[0]?.message?.content || '';
+    content = content.trim();
+
+    // Parse outline string to expected mindmap JSON structure
+    const parts = content.split('|').map((p: string) => p.trim());
+    const rootName = parts[0] || 'Sơ đồ tư duy';
+    const children: any[] = [];
+
+    for (let i = 1; i < parts.length; i++) {
+      const childPart = parts[i];
+      if (!childPart) continue;
+
+      let childName = childPart;
+      let childDesc = '';
+      let grandchildName = '';
+
+      const colonIdx = childPart.indexOf(':');
+      if (colonIdx !== -1) {
+        childName = childPart.substring(0, colonIdx).trim();
+        const remainder = childPart.substring(colonIdx + 1).trim();
+        
+        const parenMatch = remainder.match(/(.*)\((.*)\)/);
+        if (parenMatch) {
+          childDesc = parenMatch[1].trim();
+          grandchildName = parenMatch[2].trim();
+        } else {
+          childDesc = remainder;
+        }
+      }
+
+      const childObj: any = {
+        name: childName,
+        description: childDesc || 'Ý chi tiết'
+      };
+
+      if (grandchildName) {
+        childObj.children = [
+          {
+            name: grandchildName,
+            description: 'Thông tin chi tiết thêm'
+          }
+        ];
+      }
+
+      children.push(childObj);
+    }
+
+    const parsedMindmap = {
+      name: rootName,
+      children: children.length > 0 ? children : [
+        { name: 'Ý phụ 1', description: 'Mô tả ý phụ 1' },
+        { name: 'Ý phụ 2', description: 'Mô tả ý phụ 2' }
+      ]
+    };
+
+    return res.status(200).json({ success: true, data: parsedMindmap });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+}
+
+export async function saveMindmap(req: AuthRequest, res: Response) {
+  const userId = req.user?.id;
+  const { title, content, id } = req.body;
+
+  if (!userId) {
+    return res.status(401).json({ success: false, error: 'Bạn cần đăng nhập để lưu sơ đồ tư duy.' });
+  }
+  if (!title || !title.trim()) {
+    return res.status(400).json({ success: false, error: 'Tiêu đề sơ đồ tư duy không được để trống.' });
+  }
+  if (!content) {
+    return res.status(400).json({ success: false, error: 'Nội dung sơ đồ tư duy không được để trống.' });
+  }
+
+  try {
+    let mindmap;
+    const numericId = id && !isNaN(Number(id)) ? Number(id) : null;
+    
+    if (numericId !== null) {
+      const existing = await prisma.mindmap.findFirst({
+        where: { id: numericId, userId }
+      });
+
+      if (existing) {
+        mindmap = await prisma.mindmap.update({
+          where: { id: numericId },
+          data: {
+            title: title.trim(),
+            content: content,
+            updatedAt: new Date()
+          }
+        });
+        return res.status(200).json({ success: true, data: mindmap });
+      }
+    }
+
+    mindmap = await prisma.mindmap.create({
+      data: {
+        userId,
+        title: title.trim(),
+        content: content,
+      }
+    });
+
+    return res.status(201).json({ success: true, data: mindmap });
+  } catch (err: any) {
+    console.error('[saveMindmap Error]', err);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+}
+
+export async function getMindmaps(req: AuthRequest, res: Response) {
+  const userId = req.user?.id;
+  if (!userId) {
+    return res.status(401).json({ success: false, error: 'Chưa xác thực!' });
+  }
+
+  try {
+    const mindmaps = await prisma.mindmap.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    return res.status(200).json({ success: true, data: mindmaps });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+}
+
+export async function getMindmapById(req: AuthRequest, res: Response) {
+  const userId = req.user?.id;
+  const id = Number(req.params.id);
+
+  if (!userId) {
+    return res.status(401).json({ success: false, error: 'Chưa xác thực!' });
+  }
+  if (isNaN(id)) {
+    return res.status(400).json({ success: false, error: 'Mã sơ đồ tư duy không hợp lệ.' });
+  }
+
+  try {
+    const mindmap = await prisma.mindmap.findFirst({
+      where: { id, userId }
+    });
+
+    if (!mindmap) {
+      return res.status(404).json({ success: false, error: 'Không tìm thấy sơ đồ tư duy này.' });
+    }
+
+    return res.status(200).json({ success: true, data: mindmap });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+}
+
+export async function getPublicMindmapById(req: Request, res: Response) {
+  const id = Number(req.params.id);
+  if (isNaN(id)) {
+    return res.status(400).json({ success: false, error: 'Mã sơ đồ tư duy không hợp lệ.' });
+  }
+
+  try {
+    const mindmap = await prisma.mindmap.findFirst({
+      where: { id }
+    });
+
+    if (!mindmap) {
+      return res.status(404).json({ success: false, error: 'Không tìm thấy sơ đồ tư duy này.' });
+    }
+
+    return res.status(200).json({ success: true, data: mindmap });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+}
+
+
+export async function deleteMindmap(req: AuthRequest, res: Response) {
+  const userId = req.user?.id;
+  const id = Number(req.params.id);
+
+  if (!userId) {
+    return res.status(401).json({ success: false, error: 'Chưa xác thực!' });
+  }
+  if (isNaN(id)) {
+    return res.status(400).json({ success: false, error: 'Mã sơ đồ tư duy không hợp lệ.' });
+  }
+
+  try {
+    const mindmap = await prisma.mindmap.findFirst({
+      where: { id, userId }
+    });
+
+    if (!mindmap) {
+      return res.status(404).json({ success: false, error: 'Không tìm thấy sơ đồ tư duy này hoặc bạn không có quyền xóa.' });
+    }
+
+    await prisma.mindmap.delete({
+      where: { id }
+    });
+
+    return res.status(200).json({ success: true, message: 'Đã xóa sơ đồ tư duy thành công.' });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+}
+
+export async function generateFlashcards(req: AuthRequest, res: Response) {
+  const { text } = req.body;
+  if (!text || !text.trim()) {
+    return res.status(400).json({ success: false, error: 'Nội dung văn bản để tạo flashcard không được để trống.' });
+  }
+
+  const apiKey = process.env.OPENROUTER_API_KEY;
+  const model = process.env.OPENROUTER_MODEL || 'google/gemini-2.5-flash';
+
+  if (!apiKey) {
+    return res.status(500).json({ success: false, error: 'Hệ thống AI chưa được cấu hình API Key.' });
+  }
+
+  try {
+    const prompt = `Tạo đúng 3 flashcards ngắn gọn từ văn bản: "${text.substring(0, 80)}"
+Trả về CHÍNH XÁC theo cấu trúc sau (không giải thích thêm):
+Mặt trước 1 = Mặt sau 1; Mặt trước 2 = Mặt sau 2; Mặt trước 3 = Mặt sau 3`;
+
+    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': 'https://edupath.vn',
+        'X-Title': 'EduPath AI Flashcard'
+      },
+      body: JSON.stringify({
+        model: model,
+        messages: [
+          { role: 'user', content: prompt }
+        ],
+        temperature: 0.3,
+        max_tokens: 65
+      })
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`OpenRouter error: ${errText}`);
+    }
+
+    const data = await response.json() as any;
+    let content = data.choices?.[0]?.message?.content || '';
+    content = content.trim();
+
+    // Parse outline string to expected flashcards JSON array
+    const parts = content.split(';').map((p: string) => p.trim());
+    const cards: any[] = [];
+
+    for (const part of parts) {
+      if (!part) continue;
+      const eqIdx = part.indexOf('=');
+      if (eqIdx !== -1) {
+        const front = part.substring(0, eqIdx).trim();
+        const back = part.substring(eqIdx + 1).trim();
+        if (front && back) {
+          cards.push({ front, back });
+        }
+      }
+    }
+
+    const parsedFlashcards = cards.length > 0 ? cards : [
+      { front: 'Flashcard 1', back: 'Ý nghĩa 1' },
+      { front: 'Flashcard 2', back: 'Ý nghĩa 2' },
+      { front: 'Flashcard 3', back: 'Ý nghĩa 3' }
+    ];
+
+    return res.status(200).json({ success: true, data: parsedFlashcards });
   } catch (err: any) {
     return res.status(500).json({ success: false, error: err.message });
   }

@@ -1544,3 +1544,167 @@
   transition: width 0.3s ease;
 }
 
+/* ==========================================================================
+   STARRY NIGHT/GOLD THEME OVERRIDES FOR MOCK EXAMS
+   ========================================================================== */
+
+.mock-exams-workspace-wrapper,
+.exams-lobby-layout,
+.mock-exams-public-page,
+.exam-taking-container,
+.lp-guest-exam-room-container {
+  --bg-main: #141410 !important;
+  --bg-card: #1E1E18 !important;
+  --border: #2F2F26 !important;
+  --text-main: #F3F4F6 !important;
+  --text-primary: #F3F4F6 !important;
+  --text-secondary: #9CA3AF !important;
+  --text-muted: #6B7280 !important;
+  --primary: #FFE259 !important;
+  --primary-light: #FFE259 !important;
+  --primary-bg: rgba(255, 226, 89, 0.08) !important;
+  --exams-purple: #FFE259 !important;
+  --exams-purple-bg: rgba(255, 226, 89, 0.08) !important;
+  --exams-blue: #FFE259 !important;
+  --exams-blue-bg: rgba(255, 226, 89, 0.08) !important;
+}
+
+/* Page containers background override */
+.mock-exams-public-page,
+.exams-lobby-layout,
+.mock-exams-workspace-wrapper,
+.mock-exams-simple-header {
+  background-color: #141410 !important;
+  color: #F3F4F6 !important;
+  font-family: 'Outfit', 'Inter', sans-serif !important;
+}
+
+.mock-exams-simple-header {
+  border-bottom: 1px solid #2F2F26 !important;
+}
+
+.mock-exams-simple-header .mock-exams-back-btn {
+  border: 1px solid #2F2F26 !important;
+  color: #F3F4F6 !important;
+  background-color: #1E1E18 !important;
+}
+
+.mock-exams-simple-header .mock-exams-back-btn:hover {
+  border-color: #FFE259 !important;
+  color: #FFE259 !important;
+  background-color: rgba(255, 226, 89, 0.08) !important;
+}
+
+.mock-exams-simple-header .mock-exams-user-name {
+  color: #F3F4F6 !important;
+}
+
+.mock-exams-simple-header .mock-exams-user-avatar {
+  background: linear-gradient(135deg, #FFE259 0%, #FFA751 100%) !important;
+  color: #12120e !important;
+}
+
+/* Hero Banner Starry Blue Gradient override */
+.exams-hero-banner {
+  background: linear-gradient(135deg, #0A0F1D 0%, #161F38 100%) !important;
+  border: 1px solid #2F2F26 !important;
+}
+
+/* Radial Dial Gold override */
+.radial-score-bar {
+  stroke: #FFE259 !important;
+}
+.radial-score-text {
+  color: #FFE259 !important;
+}
+
+/* Options vertical selection override */
+.taking-option-item.selected {
+  background: rgba(255, 226, 89, 0.08) !important;
+  border-color: #FFE259 !important;
+}
+.taking-option-item.selected .taking-option-label {
+  background: #FFE259 !important;
+  color: #12120e !important;
+  border-color: #FFE259 !important;
+}
+
+/* Navigator Bubbles states override */
+.nav-bubble-btn.answered {
+  background: #FFE259 !important;
+  color: #12120e !important;
+  border-color: #FFE259 !important;
+}
+.nav-bubble-btn.marked {
+  background: #f59e0b !important;
+  color: #ffffff !important;
+  border-color: #f59e0b !important;
+}
+.nav-bubble-btn.current {
+  border-color: #FFE259 !important;
+  box-shadow: 0 0 0 2px rgba(255, 226, 89, 0.25) !important;
+}
+
+/* Casio FX Emulator LCD retro screen override */
+.casio-screen {
+  background: #2D3D2A !important;
+  color: #10b981 !important;
+  border: 1px solid #364C33 !important;
+}
+.casio-screen-input {
+  color: rgba(16, 185, 129, 0.6) !important;
+}
+.casio-screen-output {
+  color: #10b981 !important;
+}
+.casio-btn-sci {
+  background: #25251E !important;
+  color: #F3F4F6 !important;
+  border: 1px solid #2F2F26 !important;
+}
+.casio-btn-num {
+  background: rgba(255, 255, 255, 0.03) !important;
+  color: #F3F4F6 !important;
+  border: 1px solid #2F2F26 !important;
+}
+.casio-btn-op {
+  background: rgba(255, 226, 89, 0.08) !important;
+  color: #FFE259 !important;
+  border: 1px solid rgba(255, 226, 89, 0.2) !important;
+}
+.casio-btn-clear {
+  background: rgba(239, 68, 68, 0.1) !important;
+  color: #ef4444 !important;
+  border: 1px solid rgba(239, 68, 68, 0.2) !important;
+}
+
+/* Subject Badges override */
+.source-badge.official {
+  background: rgba(255, 226, 89, 0.08) !important;
+  color: #FFE259 !important;
+  border: 1px solid rgba(255, 226, 89, 0.15) !important;
+}
+
+/* Primary/Outline Buttons override */
+.btn-primary, .exam-btn-start, .hero-search-btn {
+  background: #FFE259 !important;
+  color: #12120e !important;
+  border: none !important;
+  font-weight: bold !important;
+}
+.btn-primary:hover, .exam-btn-start:hover, .hero-search-btn:hover {
+  background: #FADB3B !important;
+  box-shadow: 0 4px 14px rgba(255, 226, 89, 0.3) !important;
+}
+.btn-outline, .exam-btn-detail {
+  background: transparent !important;
+  border: 1px solid #2F2F26 !important;
+  color: #F3F4F6 !important;
+}
+.btn-outline:hover, .exam-btn-detail:hover {
+  border-color: #FFE259 !important;
+  color: #FFE259 !important;
+  background: rgba(255, 226, 89, 0.03) !important;
+}
+
+

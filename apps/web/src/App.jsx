@@ -39,8 +39,11 @@ import './styles/dashboard.css';
 import './styles/courses.css';
 import AITutorPage from './pages/AITutorPage';
 import './styles/aitutor.css';
+import FlashcardPage from './pages/FlashcardPage';
+import './styles/flashcards.css';
 import ExamBankPage from './pages/ExamBankPage';
 import './styles/exambank.css';
+import ConfirmEmailPage from './pages/ConfirmEmailPage';
 
 
 import { HiPlay, HiDocumentDownload, HiBeaker, HiX, HiBookOpen } from 'react-icons/hi';
@@ -540,8 +543,8 @@ export default function App() {
     };
   }, []);
 
-  const navigateTo = (path) => {
-    window.history.pushState({}, '', path);
+  const navigateTo = (path, state = null) => {
+    window.history.pushState(state || {}, '', path);
     setCurrentPath(path);
   };
 
@@ -577,8 +580,16 @@ export default function App() {
       return { route: 'ai-tutor' };
     }
 
+    if (currentPath.startsWith('/flashcards')) {
+      return { route: 'flashcards' };
+    }
+
     if (currentPath === '/exam-bank') {
       return { route: 'exam-bank' };
+    }
+
+    if (currentPath.startsWith('/confirm-email')) {
+      return { route: 'confirm-email' };
     }
 
     return { route: 'legacy' };
@@ -1138,7 +1149,7 @@ export default function App() {
       {role !== 'guest' && activeTab !== 'landing' && parsedRoute.route !== 'mock-exam-taking' && !parsedRoute.route.startsWith('mock-') && (
         <Sidebar
           role={role}
-          active={parsedRoute.route !== 'legacy' ? (parsedRoute.route.startsWith('mock-') ? 'tests' : (parsedRoute.route === 'ai-tutor' ? 'ai-qa' : (parsedRoute.route === 'exam-bank' ? 'library' : 'courses'))) : activeTab}
+          active={parsedRoute.route !== 'legacy' ? (parsedRoute.route.startsWith('mock-') ? 'tests' : (parsedRoute.route === 'ai-tutor' ? 'ai-qa' : (parsedRoute.route === 'flashcards' ? 'path' : (parsedRoute.route === 'exam-bank' ? 'library' : 'courses')))) : activeTab}
           setActive={(tab) => {
             if (tab === 'courses') {
               navigateTo('/courses');
@@ -1146,6 +1157,8 @@ export default function App() {
               navigateTo('/mock-exams');
             } else if (tab === 'ai-qa') {
               navigateTo('/ai-tutor');
+            } else if (tab === 'path') {
+              navigateTo('/flashcards');
             } else if (tab === 'library') {
               navigateTo('/exam-bank');
             } else {
@@ -1163,7 +1176,7 @@ export default function App() {
       )}
 
       <div className="main-wrapper" style={{ marginLeft: (role === 'guest' || activeTab === 'landing' || parsedRoute.route.startsWith('mock-')) ? 0 : 'var(--sidebar-width)' }}>
-        <main className="main-content" style={(role === 'guest' || activeTab === 'landing' || parsedRoute.route.startsWith('mock-')) ? { maxWidth: '100%', padding: 0 } : { maxWidth: '100%' }}>
+        <main className="main-content" style={(role === 'guest' || activeTab === 'landing' || parsedRoute.route.startsWith('mock-') || parsedRoute.route === 'flashcards' || parsedRoute.route === 'ai-tutor') ? { maxWidth: '100%', padding: 0 } : { maxWidth: '100%' }}>
           {currentUser && parsedRoute.route.startsWith('mock-') && parsedRoute.route !== 'mock-exam-taking' && (
             <div className="mock-exams-simple-header">
               <button onClick={() => navigateTo('/')} className="mock-exams-back-btn">
@@ -1179,7 +1192,7 @@ export default function App() {
           )}
 
           {role !== 'guest' && activeTab !== 'landing' ? (
-            !parsedRoute.route.startsWith('mock-') && (
+            !parsedRoute.route.startsWith('mock-') && parsedRoute.route !== 'flashcards' && parsedRoute.route !== 'ai-tutor' && (
               <Header
                 role={role}
                 userProfile={currentUser}
@@ -1207,7 +1220,7 @@ export default function App() {
           )}
 
           {/* ================= PUBLIC OR PREVIEW LANDING PAGE ================= */}
-          {(role === 'guest' || activeTab === 'landing') && !parsedRoute.route.startsWith('mock-') && parsedRoute.route !== 'ai-tutor' && parsedRoute.route !== 'exam-bank' && (
+          {(role === 'guest' || activeTab === 'landing') && !parsedRoute.route.startsWith('mock-') && parsedRoute.route !== 'ai-tutor' && parsedRoute.route !== 'exam-bank' && parsedRoute.route !== 'flashcards' && (
             <div>
               {role === 'guest' && activeTab === 'reset-password' ? (
                 <div className="auth-page-layout" style={{ position: 'relative', display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '80vh', padding: '20px' }}>
@@ -1303,9 +1316,21 @@ export default function App() {
             </div>
           )}
 
+          {/* ================= CONFIRM EMAIL WORKSPACE ================= */}
+          {parsedRoute.route === 'confirm-email' && (
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh', padding: '40px 20px' }}>
+              <ConfirmEmailPage
+                onAuthSuccess={(user) => {
+                  handleAuthSuccess(user);
+                }}
+                navigateTo={navigateTo}
+              />
+            </div>
+          )}
+
           {/* ================= MOCK EXAMS ROUTER WORKSPACE (PUBLIC ACCESS) ================= */}
           {parsedRoute.route.startsWith('mock-') && (
-            <div style={{ padding: '20px 0' }}>
+            <div className="mock-exams-workspace-wrapper" style={{ padding: '20px 0' }}>
               {parsedRoute.route === 'mock-exams-list' && (
                 <MockExamsPage
                   currentUser={currentUser}
@@ -1376,8 +1401,19 @@ export default function App() {
 
           {/* ================= AI TUTOR WORKSPACE ================= */}
           {parsedRoute.route === 'ai-tutor' && (
-            <div style={{ padding: '20px 0' }}>
+            <div style={{ padding: '0', background: '#141410', minHeight: '100vh' }}>
               <AITutorPage
+                currentUser={currentUser}
+                navigateTo={navigateTo}
+                addLog={addLog}
+              />
+            </div>
+          )}
+
+          {/* ================= FLASHCARDS WORKSPACE ================= */}
+          {parsedRoute.route === 'flashcards' && (
+            <div style={{ padding: '0', background: '#141410', minHeight: '100vh' }}>
+              <FlashcardPage
                 currentUser={currentUser}
                 navigateTo={navigateTo}
                 addLog={addLog}
@@ -1422,11 +1458,10 @@ export default function App() {
 
               {/* Learning path adaptive roadmap tab */}
               {activeTab === 'path' && (
-                <AISystemCenter 
-                  submissions={activeUserSubmissions} 
-                  addLog={addLog} 
+                <FlashcardPage
                   currentUser={currentUser}
                   navigateTo={navigateTo}
+                  addLog={addLog}
                 />
               )}
 
@@ -1565,8 +1600,8 @@ export default function App() {
                       className="card animate-in"
                       style={{
                         padding: '20px 24px',
-                        background: 'linear-gradient(135deg, rgba(240, 253, 244, 0.6), rgba(220, 252, 231, 0.6))',
-                        border: '1px solid rgba(16, 185, 129, 0.2)',
+                        background: 'linear-gradient(135deg, rgba(255, 226, 89, 0.05), rgba(255, 167, 81, 0.05))',
+                        border: '1px solid rgba(255, 226, 89, 0.25)',
                         borderRadius: '16px',
                         boxShadow: 'var(--shadow-md)',
                         display: 'flex',
@@ -1577,13 +1612,13 @@ export default function App() {
                       }}
                     >
                       <div style={{ flex: '1', minWidth: '280px' }}>
-                        <span className="badge-pill" style={{ background: 'var(--accent-green)', color: '#fff', fontWeight: 'bold', fontSize: '10px', textTransform: 'uppercase' }}>
+                        <span className="badge-pill" style={{ background: 'var(--fc-gold, #FFE259)', color: '#12120e', fontWeight: 'bold', fontSize: '10px', textTransform: 'uppercase' }}>
                           ⚡ Tính năng Mới
                         </span>
-                        <h3 style={{ fontSize: '16px', fontWeight: '700', color: '#14532d', margin: '6px 0 4px 0' }}>
+                        <h3 style={{ fontSize: '16px', fontWeight: '700', color: 'var(--fc-gold, #FFE259)', margin: '6px 0 4px 0' }}>
                           📸 Tự động chấm điểm nhanh qua Camera (OCR)
                         </h3>
-                        <p style={{ fontSize: '12.5px', color: '#166534', margin: 0, lineHeight: 1.4 }}>
+                        <p style={{ fontSize: '12.5px', color: '#9CA3AF', margin: 0, lineHeight: 1.4 }}>
                           Làm bài ra giấy hoặc tô phiếu trắc nghiệm rồi chụp ảnh tải lên. AI sẽ tự động đọc kết quả, đối chiếu đáp án chính thức của Bộ GD&ĐT và chấm điểm ngay lập tức!
                         </p>
                       </div>
@@ -1592,14 +1627,14 @@ export default function App() {
                         onClick={() => setActiveOCRScanner(true)}
                         className="btn-primary"
                         style={{
-                          background: 'linear-gradient(135deg, #10b981, #059669)',
-                          color: '#fff',
+                          background: 'var(--fc-gold, #FFE259)',
+                          color: '#12120e',
                           border: 'none',
                           padding: '10px 22px',
                           fontSize: '13px',
                           fontWeight: '600',
                           borderRadius: 'var(--radius-sm)',
-                          boxShadow: '0 4px 12px rgba(16, 185, 129, 0.2)',
+                          boxShadow: '0 4px 12px rgba(255, 226, 89, 0.2)',
                           display: 'flex',
                           alignItems: 'center',
                           gap: '6px',
@@ -2106,7 +2141,11 @@ export default function App() {
 
               {/* AI Q&A Tutor tab */}
               {activeTab === 'ai-qa' && (
-                <AITutorChat addLog={addLog} />
+                <AITutorPage
+                  currentUser={currentUser}
+                  navigateTo={navigateTo}
+                  addLog={addLog}
+                />
               )}
 
               {/* Library docs downloads tab */}
@@ -2611,7 +2650,9 @@ export default function App() {
       )}
 
       {/* Public Chatbot AI floating button and chat dialog */}
-      <ChatbotWidget />
+      {parsedRoute.route !== 'flashcards' && activeTab !== 'path' && (
+        <ChatbotWidget />
+      )}
 
       {/* ── Toast Notifications ── */}
       <div className="app-toasts-container">

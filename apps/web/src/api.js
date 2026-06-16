@@ -4,17 +4,36 @@ export const API_BASE = import.meta.env.VITE_API_URL ||
     : '/api');
 
 async function request(path, options = {}) {
-  const token = localStorage.getItem('access_token');
+  let token = localStorage.getItem('access_token');
   const headers = {
     'Content-Type': 'application/json',
     ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
     ...(options.headers || {})
   };
-  const res = await fetch(`${API_BASE}${path}`, {
+  
+  let res = await fetch(`${API_BASE}${path}`, {
     headers,
     ...options,
     body: options.body ? JSON.stringify(options.body) : undefined
   });
+
+  // Handle expired/invalid JWT token by clearing and retrying as guest
+  if ((res.status === 401 || res.status === 403) && token) {
+    localStorage.removeItem('access_token');
+    // Clear authorization header and retry
+    const retryHeaders = {
+      'Content-Type': 'application/json',
+      ...(options.headers || {})
+    };
+    delete retryHeaders['Authorization'];
+    
+    res = await fetch(`${API_BASE}${path}`, {
+      headers: retryHeaders,
+      ...options,
+      body: options.body ? JSON.stringify(options.body) : undefined
+    });
+  }
+
   const data = await res.json().catch(() => ({}));
   if (!res.ok || !data.success) {
     const err = new Error(data.error || `Lỗi ${res.status}`);
@@ -55,6 +74,9 @@ export const api = {
   forgotPassword: (email) =>
     request('/auth/forgot-password', { method: 'POST', body: { email } }),
 
+  verifyResetOtp: (email, otp) =>
+    request('/auth/verify-reset-otp', { method: 'POST', body: { email, otp } }),
+
   resetPassword: (token, password) =>
     request('/auth/reset-password', { method: 'POST', body: { token, password } }),
 
@@ -67,7 +89,32 @@ export const api = {
 
   createCourse: (payload) => request('/courses', { method: 'POST', body: payload }),
 
-  getExams: (subject) => request(`/exams${subject ? `?subject=${subject}` : ''}`),
+  getExams: (filters = {}) => {
+    const params = new URLSearchParams();
+    Object.entries(filters).forEach(([k, v]) => {
+      if (v !== undefined && v !== null && v !== '') {
+        params.append(k, String(v));
+      }
+    });
+    return request(`/exams?${params.toString()}`);
+  },
+
+  getDocumentResources: (filters = {}) => {
+    const params = new URLSearchParams();
+    Object.entries(filters).forEach(([k, v]) => {
+      if (v !== undefined && v !== null && v !== '') {
+        params.append(k, String(v));
+      }
+    });
+    return request(`/document-resources?${params.toString()}`);
+  },
+  getDocumentComments: (documentId) => request(`/document-resources/${documentId}/comments`),
+  addDocumentComment: (documentId, content) => request(`/document-resources/${documentId}/comments`, {
+    method: 'POST',
+    body: { content },
+  }),
+
+  getExamById: (examId) => request(`/exams/${examId}`),
 
   getExamQuestionsPublic: (examId) => request(`/exams/${examId}/questions`),
 
@@ -75,10 +122,34 @@ export const api = {
 
   getAttemptById: (attemptId) => request(`/exams/attempts/${attemptId}`),
 
-  startAttempt: (examId) => request(`/exams/${examId}/attempts`, { method: 'POST' }),
+  startAttempt: (examId, retakeMode = null, questionIds = []) => request('/exam-attempts/start', { method: 'POST', body: { examId, retakeMode, questionIds } }),
 
-  submitAttempt: (examId, attemptId, answers) => 
-    request(`/exams/${examId}/attempts/${attemptId}/submit`, { method: 'POST', body: { answers } }),
+  saveAttemptAnswer: (attemptId, questionId, selectedAnswer) =>
+    request(`/exam-attempts/${attemptId}/save-answer`, { method: 'POST', body: { questionId, selectedAnswer } }),
+
+  submitAttempt: (attemptId, answers = [], retakeMode = null, questionIds = []) => 
+    request(`/exam-attempts/${attemptId}/submit`, { method: 'POST', body: { answers, retakeMode, questionIds } }),
+
+  getAttemptResult: (attemptId) => request(`/exam-attempts/${attemptId}/result`),
+
+  getExamHistory: () => request('/users/me/exam-history'),
+
+  recordViolation: (attemptId) => request(`/exam-attempts/${attemptId}/violation`, { method: 'POST' }),
+
+  recordViolationDetail: (attemptId, violationType) =>
+    request(`/exam-attempts/${attemptId}/violation-detail`, { method: 'POST', body: { violationType } }),
+
+  recordExamEvent: (attemptId, eventType, questionId, payload) =>
+    request(`/exam-attempts/${attemptId}/events`, { method: 'POST', body: { eventType, questionId, payload } }),
+
+  getExamEvents: (attemptId) =>
+    request(`/exam-attempts/${attemptId}/events`),
+
+  generateAiCoach: (attemptId) =>
+    request(`/exam-attempts/${attemptId}/ai-coach`, { method: 'POST' }),
+
+  createSmartRetake: (examId, mode, attemptId) =>
+    request(`/exams/${examId}/smart-retake`, { method: 'POST', body: { mode, attemptId } }),
 
   refreshRoadmap: () => request('/ai/roadmap/refresh', { method: 'POST' }),
 
@@ -175,6 +246,39 @@ export const api = {
     request('/forum/moderation/reports', { method: 'GET' }),
 
   resolveForumReport: (id, status, notes) =>
-    request(`/forum/moderation/reports/${id}/resolve`, { method: 'PUT', body: { status, notes } })
+    request(`/forum/moderation/reports/${id}/resolve`, { method: 'PUT', body: { status, notes } }),
+
+  importExam: (examData) =>
+    request('/admin/exams/import', { method: 'POST', body: examData }),
+
+  generateMindmap: (text) =>
+    request('/ai/mindmap', {
+      method: 'POST',
+      body: { text },
+    }),
+
+  generateFlashcards: (text) =>
+    request('/ai/flashcards', {
+      method: 'POST',
+      body: { text },
+    }),
+
+  saveMindmap: (title, content, id = null) =>
+    request('/mindmaps', {
+      method: 'POST',
+      body: { title, content, id },
+    }),
+
+  getMindmaps: () =>
+    request('/mindmaps', { method: 'GET' }),
+
+  getMindmapById: (id) =>
+    request(`/mindmaps/${id}`, { method: 'GET' }),
+
+  deleteMindmap: (id) =>
+    request(`/mindmaps/${id}`, { method: 'DELETE' }),
+
+  getPublicMindmapById: (id) =>
+    request(`/mindmaps/public/${id}`, { method: 'GET' }),
 };
 

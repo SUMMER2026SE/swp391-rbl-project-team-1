@@ -92,7 +92,7 @@ async function awardXP(userId: number, points: number, action: any, referenceId?
 async function checkAndAwardBadges(userId: number) {
   try {
     // Standard badges definition helper
-    const badges = [
+    const badges: Array<{ name: string; desc: string; cat: string; code: string; req: { posts?: number; solutions?: number; xp?: number } }> = [
       { name: 'Khởi đầu', desc: 'Đã tạo câu hỏi đầu tiên trên diễn đàn', cat: 'POSTING', code: 'FIRST_POST', req: { posts: 1 } },
       { name: 'Chuyên gia giải đáp', desc: 'Có 5 câu trả lời được chấp nhận là Lời giải hay', cat: 'ANSWERS', code: 'GURU', req: { solutions: 5 } },
       { name: 'Cây sáng kiến', desc: 'Đạt điểm uy tín (XP) từ 500 trở lên', cat: 'REPUTATION', code: 'POPULAR', req: { xp: 500 } }
@@ -131,9 +131,10 @@ async function checkAndAwardBadges(userId: number) {
 
       if (!userHasBadge) {
         let qualifies = false;
-        if (badgeInfo.code === 'FIRST_POST' && badgeInfo.req.posts && postsCount >= badgeInfo.req.posts) qualifies = true;
-        if (badgeInfo.code === 'GURU' && badgeInfo.req.solutions && solutionsCount >= badgeInfo.req.solutions) qualifies = true;
-        if (badgeInfo.code === 'POPULAR' && badgeInfo.req.xp && xpCount >= badgeInfo.req.xp) qualifies = true;
+        if (badgeInfo.code === 'FIRST_POST' && badgeInfo.req.posts !== undefined && postsCount >= badgeInfo.req.posts) qualifies = true;
+        if (badgeInfo.code === 'GURU' && badgeInfo.req.solutions !== undefined && solutionsCount >= badgeInfo.req.solutions) qualifies = true;
+        if (badgeInfo.code === 'POPULAR' && badgeInfo.req.xp !== undefined && xpCount >= badgeInfo.req.xp) qualifies = true;
+
 
         if (qualifies) {
           await prisma.userBadge.create({
@@ -585,7 +586,8 @@ export async function acceptCommentSolution(req: AuthRequest, res: Response) {
 
     // Validate permission: only author of post OR a teacher can accept solutions
     const isAuthor = comment.post.authorId === userId;
-    const isTeacher = req.user?.role === 'TEACHER' || req.user?.role === 'ADMIN';
+    const isTeacher = req.user!.role === 'TEACHER' || req.user!.role === 'ADMIN';
+
 
     if (!isAuthor && !isTeacher) {
       return res.status(403).json({ success: false, error: 'Không có quyền chọn lời giải hay cho câu hỏi này!' });
