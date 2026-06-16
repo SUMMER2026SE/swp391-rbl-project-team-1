@@ -892,7 +892,10 @@ export default function App() {
     setActiveTestSimulator(null);
     setActiveOCRScanner(null);
     setCheckoutCourse(null);
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
   };
+
 
 
   const handleChangePassword = async (oldPass, newPass) => {
