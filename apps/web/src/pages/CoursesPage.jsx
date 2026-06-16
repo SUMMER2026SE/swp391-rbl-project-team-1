@@ -42,6 +42,7 @@ export default function CoursesPage({ currentUser, onSelectCourse, onCheckoutCou
     clearFilters,
   } = useCourseFilters();
 
+  const [badgeFilter, setBadgeFilter] = useState('All');
   const [loading, setLoading] = useState(true);
 
   // Simulate shimmer loading on filter/page transitions
@@ -51,7 +52,7 @@ export default function CoursesPage({ currentUser, onSelectCourse, onCheckoutCou
       setLoading(false);
     }, 450);
     return () => clearTimeout(timer);
-  }, [debouncedSearch, subject, block, level, sortBy]);
+  }, [debouncedSearch, subject, block, level, sortBy, badgeFilter]);
 
   // Combine filters in memory from standard database courses list
   const filteredCourses = useMemo(() => {
@@ -78,6 +79,10 @@ export default function CoursesPage({ currentUser, onSelectCourse, onCheckoutCou
       result = result.filter(c => c.level === level);
     }
 
+    if (badgeFilter !== 'All') {
+      result = result.filter(c => c.badge?.toUpperCase() === badgeFilter.toUpperCase());
+    }
+
     // Sort operations
     if (sortBy === 'popular') {
       result.sort((a, b) => b.studentCount - a.studentCount);
@@ -92,7 +97,12 @@ export default function CoursesPage({ currentUser, onSelectCourse, onCheckoutCou
     }
 
     return result;
-  }, [debouncedSearch, subject, block, level, sortBy]);
+  }, [debouncedSearch, subject, block, level, sortBy, badgeFilter]);
+
+  const handleClearFilters = () => {
+    clearFilters();
+    setBadgeFilter('All');
+  };
 
   return (
     <div className="cp-page-container">
@@ -163,7 +173,9 @@ export default function CoursesPage({ currentUser, onSelectCourse, onCheckoutCou
             setLevel={setLevel}
             sortBy={sortBy}
             setSortBy={setSortBy}
-            clearFilters={clearFilters}
+            badgeFilter={badgeFilter}
+            setBadgeFilter={setBadgeFilter}
+            clearFilters={handleClearFilters}
           />
         </div>
 
@@ -174,9 +186,9 @@ export default function CoursesPage({ currentUser, onSelectCourse, onCheckoutCou
             {subject !== 'All' ? ` môn ${subject}` : ''}
             {block !== 'All' ? ` · ${block}` : ''}
           </span>
-          {(search || subject !== 'All' || block !== 'All' || level !== 'All') && (
+          {(search || subject !== 'All' || block !== 'All' || level !== 'All' || badgeFilter !== 'All') && (
             <button
-              onClick={clearFilters}
+              onClick={handleClearFilters}
               style={{
                 background: 'none',
                 border: 'none',

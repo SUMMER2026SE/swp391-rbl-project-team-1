@@ -153,7 +153,7 @@ export default function LearningPage({ courseId, lessonId, currentUser, onSelect
               </span>
             </div>
             <button 
-              onClick={onBackToCourse}
+              onClick={() => onBackToCourse(`/courses/${courseId}`)}
               style={{
                 backgroundColor: '#ffffff',
                 color: 'var(--emerald-primary)',
@@ -190,9 +190,9 @@ export default function LearningPage({ courseId, lessonId, currentUser, onSelect
             <button 
               className="cc-btn cc-btn--owned"
               style={{ padding: '8px 16px', fontSize: '12px', fontWeight: '800' }}
-              onClick={onBackToCourse}
+              onClick={() => onBackToCourse(isDemoMode ? '/courses' : `/courses/${courseId}`)}
             >
-              ◀ Quay lại Chi tiết khóa
+              {isDemoMode ? '◀ Quay lại khóa học' : '◀ Quay lại Chi tiết khóa'}
             </button>
             <div>
               <span style={{ fontSize: '11px', color: 'var(--stone-text-muted)', display: 'block', fontWeight: '600' }}>
@@ -286,7 +286,7 @@ export default function LearningPage({ courseId, lessonId, currentUser, onSelect
                 <button 
                   className="cc-btn cc-btn--enroll" 
                   style={{ padding: '12px 28px', fontSize: '14px', fontWeight: '800', borderRadius: '10px' }}
-                  onClick={onBackToCourse}
+                  onClick={() => onBackToCourse(`/courses/${courseId}`)}
                 >
                   Đăng ký khóa học ngay
                 </button>

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { toast } from '../utils/toast';
-import { HiSearch, HiBell, HiSun, HiMoon, HiUser, HiLockClosed, HiLogout, HiX, HiCog } from 'react-icons/hi';
+import { HiSearch, HiBell, HiSun, HiMoon, HiUser, HiLockClosed, HiLogout, HiX, HiCog, HiShoppingCart } from 'react-icons/hi';
 
 export default function Header({
   role,
@@ -12,7 +12,9 @@ export default function Header({
   onLogout,
   onChangePassword,
   onNavigateSettings,
-  addLog
+  addLog,
+  cartCourse,
+  onCheckoutCourse
 }) {
   const [showNotif, setShowNotif] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
@@ -78,6 +80,29 @@ export default function Header({
         >
           {theme === 'dark' ? <HiSun style={{ color: '#FFD700' }} /> : <HiMoon style={{ color: '#6C5CE7' }} />}
         </button>
+
+        {/* Shopping Cart Button */}
+        {role === 'student' && (
+          <button
+            className="header-icon-btn"
+            onClick={() => {
+              if (cartCourse) {
+                onCheckoutCourse(cartCourse);
+              } else {
+                toast('Giỏ hàng trống! Hãy chọn một khóa học để thêm vào giỏ.', 'warning');
+              }
+            }}
+            title="Giỏ hàng"
+            style={{ position: 'relative' }}
+          >
+            <HiShoppingCart />
+            {cartCourse && (
+              <span className="badge" style={{ backgroundColor: '#ef4444' }}>
+                1
+              </span>
+            )}
+          </button>
+        )}
 
         {/* Notification Bell */}
         <button

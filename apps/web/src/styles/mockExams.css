@@ -1553,87 +1553,91 @@
 .mock-exams-public-page,
 .exam-taking-container,
 .lp-guest-exam-room-container {
-  --bg-main: #141410 !important;
-  --bg-card: #1E1E18 !important;
-  --border: #2F2F26 !important;
-  --text-main: #F3F4F6 !important;
-  --text-primary: #F3F4F6 !important;
-  --text-secondary: #9CA3AF !important;
-  --text-muted: #6B7280 !important;
-  --primary: #FFE259 !important;
-  --primary-light: #FFE259 !important;
-  --primary-bg: rgba(255, 226, 89, 0.08) !important;
-  --exams-purple: #FFE259 !important;
-  --exams-purple-bg: rgba(255, 226, 89, 0.08) !important;
-  --exams-blue: #FFE259 !important;
-  --exams-blue-bg: rgba(255, 226, 89, 0.08) !important;
+  --bg-main: #f8fafc !important;
+  --bg-card: #ffffff !important;
+  --border: #e2e8f0 !important;
+  --text-main: #0f172a !important;
+  --text-primary: #0f172a !important;
+  --text-secondary: #475569 !important;
+  --text-muted: #94a3b8 !important;
+  --primary: #6c5ce7 !important;
+  --primary-light: #a29bfe !important;
+  --primary-bg: rgba(108, 92, 231, 0.08) !important;
+  --exams-purple: #6c5ce7 !important;
+  --exams-purple-bg: rgba(108, 92, 231, 0.08) !important;
+  --exams-blue: #0984e3 !important;
+  --exams-blue-bg: rgba(9, 132, 227, 0.08) !important;
 }
 
-/* Page containers background override */
+/* Page containers background override with premium light grid */
 .mock-exams-public-page,
 .exams-lobby-layout,
-.mock-exams-workspace-wrapper,
-.mock-exams-simple-header {
-  background-color: #141410 !important;
-  color: #F3F4F6 !important;
+.mock-exams-workspace-wrapper {
+  background-color: #f8fafc !important;
+  background-image: 
+    linear-gradient(rgba(108, 92, 231, 0.04) 1.5px, transparent 1.5px),
+    linear-gradient(90deg, rgba(108, 92, 231, 0.04) 1.5px, transparent 1.5px) !important;
+  background-size: 32px 32px !important;
+  color: #0f172a !important;
   font-family: 'Outfit', 'Inter', sans-serif !important;
 }
 
 .mock-exams-simple-header {
-  border-bottom: 1px solid #2F2F26 !important;
+  background-color: #ffffff !important;
+  border-bottom: 1px solid #e2e8f0 !important;
 }
 
 .mock-exams-simple-header .mock-exams-back-btn {
-  border: 1px solid #2F2F26 !important;
-  color: #F3F4F6 !important;
-  background-color: #1E1E18 !important;
+  border: 1px solid #e2e8f0 !important;
+  color: #0f172a !important;
+  background-color: #ffffff !important;
 }
 
 .mock-exams-simple-header .mock-exams-back-btn:hover {
-  border-color: #FFE259 !important;
-  color: #FFE259 !important;
-  background-color: rgba(255, 226, 89, 0.08) !important;
+  border-color: #6c5ce7 !important;
+  color: #6c5ce7 !important;
+  background-color: rgba(108, 92, 231, 0.08) !important;
 }
 
 .mock-exams-simple-header .mock-exams-user-name {
-  color: #F3F4F6 !important;
+  color: #0f172a !important;
 }
 
 .mock-exams-simple-header .mock-exams-user-avatar {
-  background: linear-gradient(135deg, #FFE259 0%, #FFA751 100%) !important;
-  color: #12120e !important;
+  background: linear-gradient(135deg, #6c5ce7 0%, #0984e3 100%) !important;
+  color: #ffffff !important;
 }
 
 /* Hero Banner Starry Blue Gradient override */
 .exams-hero-banner {
-  background: linear-gradient(135deg, #0A0F1D 0%, #161F38 100%) !important;
-  border: 1px solid #2F2F26 !important;
+  background: linear-gradient(135deg, #6c5ce7 0%, #0984e3 50%, #00b894 100%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
 }
 
-/* Radial Dial Gold override */
+/* Radial Dial Purple override */
 .radial-score-bar {
-  stroke: #FFE259 !important;
+  stroke: #6c5ce7 !important;
 }
 .radial-score-text {
-  color: #FFE259 !important;
+  color: #6c5ce7 !important;
 }
 
 /* Options vertical selection override */
 .taking-option-item.selected {
-  background: rgba(255, 226, 89, 0.08) !important;
-  border-color: #FFE259 !important;
+  background: rgba(108, 92, 231, 0.08) !important;
+  border-color: #6c5ce7 !important;
 }
 .taking-option-item.selected .taking-option-label {
-  background: #FFE259 !important;
-  color: #12120e !important;
-  border-color: #FFE259 !important;
+  background: #6c5ce7 !important;
+  color: #ffffff !important;
+  border-color: #6c5ce7 !important;
 }
 
 /* Navigator Bubbles states override */
 .nav-bubble-btn.answered {
-  background: #FFE259 !important;
-  color: #12120e !important;
-  border-color: #FFE259 !important;
+  background: #6c5ce7 !important;
+  color: #ffffff !important;
+  border-color: #6c5ce7 !important;
 }
 .nav-bubble-btn.marked {
   background: #f59e0b !important;
@@ -1641,8 +1645,8 @@
   border-color: #f59e0b !important;
 }
 .nav-bubble-btn.current {
-  border-color: #FFE259 !important;
-  box-shadow: 0 0 0 2px rgba(255, 226, 89, 0.25) !important;
+  border-color: #6c5ce7 !important;
+  box-shadow: 0 0 0 2px rgba(108, 92, 231, 0.25) !important;
 }
 
 /* Casio FX Emulator LCD retro screen override */
@@ -1668,9 +1672,9 @@
   border: 1px solid #2F2F26 !important;
 }
 .casio-btn-op {
-  background: rgba(255, 226, 89, 0.08) !important;
-  color: #FFE259 !important;
-  border: 1px solid rgba(255, 226, 89, 0.2) !important;
+  background: rgba(108, 92, 231, 0.08) !important;
+  color: #6c5ce7 !important;
+  border: 1px solid rgba(108, 92, 231, 0.2) !important;
 }
 .casio-btn-clear {
   background: rgba(239, 68, 68, 0.1) !important;
@@ -1680,31 +1684,31 @@
 
 /* Subject Badges override */
 .source-badge.official {
-  background: rgba(255, 226, 89, 0.08) !important;
-  color: #FFE259 !important;
-  border: 1px solid rgba(255, 226, 89, 0.15) !important;
+  background: rgba(9, 132, 227, 0.1) !important;
+  color: #0984e3 !important;
+  border: 1px solid rgba(9, 132, 227, 0.15) !important;
 }
 
 /* Primary/Outline Buttons override */
 .btn-primary, .exam-btn-start, .hero-search-btn {
-  background: #FFE259 !important;
-  color: #12120e !important;
+  background: #6c5ce7 !important;
+  color: #ffffff !important;
   border: none !important;
   font-weight: bold !important;
 }
 .btn-primary:hover, .exam-btn-start:hover, .hero-search-btn:hover {
-  background: #FADB3B !important;
-  box-shadow: 0 4px 14px rgba(255, 226, 89, 0.3) !important;
+  background: #5b4bc3 !important;
+  box-shadow: 0 4px 14px rgba(108, 92, 231, 0.3) !important;
 }
 .btn-outline, .exam-btn-detail {
   background: transparent !important;
-  border: 1px solid #2F2F26 !important;
-  color: #F3F4F6 !important;
+  border: 1px solid #e2e8f0 !important;
+  color: #475569 !important;
 }
 .btn-outline:hover, .exam-btn-detail:hover {
-  border-color: #FFE259 !important;
-  color: #FFE259 !important;
-  background: rgba(255, 226, 89, 0.03) !important;
+  border-color: #6c5ce7 !important;
+  color: #6c5ce7 !important;
+  background: rgba(108, 92, 231, 0.03) !important;
 }
 
 

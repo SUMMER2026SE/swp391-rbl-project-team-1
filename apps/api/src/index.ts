@@ -12,6 +12,7 @@ import { chatbotConsult } from './controllers/chatbot.js';
 import { getDocumentResources, getDocumentComments, addDocumentComment } from './controllers/document.js';
 import { createVNPayPayment, vnpayWebhook, sepayWebhook, checkEnrollmentStatus, checkUserProStatus } from './controllers/payment.js';
 import { authenticateJWT, requireRole } from './middleware/auth.js';
+import { getAdminStats, getAdminUsers, toggleUserBan, getAdminLeads, createAdminLead, updateAdminLeadStatus, getFeatureFlags, toggleFeatureFlag } from './controllers/admin.js';
 import { 
   getCategories, createCategory, deleteCategory,
   getPosts, getPostById, createPost, deletePost, togglePinPost, reactPost,
@@ -65,6 +66,16 @@ app.post('/auth/role-change-request', authenticateJWT, requestRoleChange);
 app.get('/admin/role-change-requests', authenticateJWT, requireRole(['ADMIN']), getRoleChangeRequests);
 app.post('/admin/role-change-requests/:id/review', authenticateJWT, requireRole(['ADMIN']), reviewRoleChange);
 app.post('/admin/exams/import', authenticateJWT, requireRole(['ADMIN']), importExam);
+
+// Admin Dashboard DB & Stats Routes
+app.get('/admin/stats', authenticateJWT, requireRole(['ADMIN']), getAdminStats);
+app.get('/admin/users', authenticateJWT, requireRole(['ADMIN']), getAdminUsers);
+app.post('/admin/users/:id/ban', authenticateJWT, requireRole(['ADMIN']), toggleUserBan);
+app.get('/admin/leads', authenticateJWT, requireRole(['ADMIN']), getAdminLeads);
+app.post('/admin/leads', authenticateJWT, createAdminLead);
+app.put('/admin/leads/:id/status', authenticateJWT, requireRole(['ADMIN']), updateAdminLeadStatus);
+app.get('/admin/features', getFeatureFlags);
+app.post('/admin/features/:id/toggle', authenticateJWT, requireRole(['ADMIN']), toggleFeatureFlag);
 
 // Protected Course Routes
 app.get('/courses', getCourses);

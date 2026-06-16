@@ -777,9 +777,13 @@ export async function generateFlashcards(req: AuthRequest, res: Response) {
   }
 
   try {
-    const prompt = `Tạo đúng 3 flashcards ngắn gọn từ văn bản: "${text.substring(0, 80)}"
-Trả về CHÍNH XÁC theo cấu trúc sau (không giải thích thêm):
-Mặt trước 1 = Mặt sau 1; Mặt trước 2 = Mặt sau 2; Mặt trước 3 = Mặt sau 3`;
+    const prompt = `Bạn là chuyên gia thiết kế tài liệu học tập và thẻ ghi nhớ (flashcard). Hãy tạo đúng 5 flashcards ngắn gọn từ yêu cầu hoặc văn bản sau: "${text}"
+
+Yêu cầu cực kỳ quan trọng:
+- Mặt trước (Front) của mỗi flashcard PHẢI là khái niệm, thuật ngữ, công thức hoặc từ vựng cụ thể (ví dụ: "Flo (F)", "Halogen", "Tính oxi hóa" hoặc "HCl"). TUYỆT ĐỐI KHÔNG ĐƯỢC để mặt trước là các từ chung chung như "Flashcard 1", "Khái niệm 1", v.v.
+- Mặt sau (Back) PHẢI là định nghĩa, ý nghĩa, tính chất, hoặc giải thích tương ứng ngắn gọn của khái niệm/thuật ngữ đó.
+- Định dạng trả về CHÍNH XÁC theo cấu trúc sau (mỗi thẻ cách nhau bằng dấu chấm phẩy ";", không kèm thêm bất cứ giải thích, lời chào hay lời dẫn nào khác):
+Mặt trước 1 = Mặt sau 1; Mặt trước 2 = Mặt sau 2; Mặt trước 3 = Mặt sau 3; Mặt trước 4 = Mặt sau 4; Mặt trước 5 = Mặt sau 5`;
 
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
@@ -794,8 +798,8 @@ Mặt trước 1 = Mặt sau 1; Mặt trước 2 = Mặt sau 2; Mặt trước 3
         messages: [
           { role: 'user', content: prompt }
         ],
-        temperature: 0.3,
-        max_tokens: 65
+        temperature: 0.5,
+        max_tokens: 500
       })
     });
 
@@ -809,25 +813,52 @@ Mặt trước 1 = Mặt sau 1; Mặt trước 2 = Mặt sau 2; Mặt trước 3
     content = content.trim();
 
     // Parse outline string to expected flashcards JSON array
-    const parts = content.split(';').map((p: string) => p.trim());
+    const rawParts = content.split(/[;\n]+/).map((p: string) => p.trim());
     const cards: any[] = [];
 
-    for (const part of parts) {
-      if (!part) continue;
-      const eqIdx = part.indexOf('=');
+    for (const rawPart of rawParts) {
+      if (!rawPart) continue;
+      
+      // Clean prefixes like "1. ", "Thẻ 1: ", etc.
+      let cleanedPart = rawPart.replace(/^\d+[\.\s:]+/, '').replace(/^Thẻ\s+\d+[\.\s:]*/i, '').trim();
+      
+      const eqIdx = cleanedPart.indexOf('=');
       if (eqIdx !== -1) {
-        const front = part.substring(0, eqIdx).trim();
-        const back = part.substring(eqIdx + 1).trim();
+        let front = cleanedPart.substring(0, eqIdx).trim();
+        let back = cleanedPart.substring(eqIdx + 1).trim();
+        
+        // Remove prefixes like "Mặt trước:", "Mặt sau:"
+        front = front.replace(/^(mặt trước|front)[:\s-]*/i, '').trim();
+        back = back.replace(/^(mặt sau|back)[:\s-]*/i, '').trim();
+        
         if (front && back) {
           cards.push({ front, back });
         }
       }
     }
 
+    // Secondary parsing fallback: try using colon as separator if no equal signs parsed
+    if (cards.length === 0) {
+      for (const rawPart of rawParts) {
+        if (!rawPart) continue;
+        let cleanedPart = rawPart.replace(/^\d+[\.\s:]+/, '').replace(/^Thẻ\s+\d+[\.\s:]*/i, '').trim();
+        const colonIdx = cleanedPart.indexOf(':');
+        if (colonIdx !== -1) {
+          let front = cleanedPart.substring(0, colonIdx).trim();
+          let back = cleanedPart.substring(colonIdx + 1).trim();
+          front = front.replace(/^(mặt trước|front)[:\s-]*/i, '').trim();
+          back = back.replace(/^(mặt sau|back)[:\s-]*/i, '').trim();
+          if (front && back) {
+            cards.push({ front, back });
+          }
+        }
+      }
+    }
+
     const parsedFlashcards = cards.length > 0 ? cards : [
-      { front: 'Flashcard 1', back: 'Ý nghĩa 1' },
-      { front: 'Flashcard 2', back: 'Ý nghĩa 2' },
-      { front: 'Flashcard 3', back: 'Ý nghĩa 3' }
+      { front: 'Thuật ngữ 1', back: 'Ý nghĩa định nghĩa 1' },
+      { front: 'Thuật ngữ 2', back: 'Ý nghĩa định nghĩa 2' },
+      { front: 'Thuật ngữ 3', back: 'Ý nghĩa định nghĩa 3' }
     ];
 
     return res.status(200).json({ success: true, data: parsedFlashcards });

@@ -268,5 +268,14 @@ export const api = {
 
   getPublicMindmapById: (id) =>
     request(`/mindmaps/public/${id}`, { method: 'GET' }),
+
+  getAdminStats: () => request('/admin/stats'),
+  getAdminUsers: () => request('/admin/users'),
+  banAdminUser: (id) => request(`/admin/users/${id}/ban`, { method: 'POST' }),
+  getAdminLeads: () => request('/admin/leads'),
+  createAdminLead: (payload) => request('/admin/leads', { method: 'POST', body: payload }),
+  updateAdminLeadStatus: (id, status) => request(`/admin/leads/${id}/status`, { method: 'PUT', body: { status } }),
+  getFeatureFlags: () => request('/admin/features'),
+  toggleFeatureFlag: (id, isEnabled) => request(`/admin/features/${id}/toggle`, { method: 'POST', body: { isEnabled } }),
 };
 
