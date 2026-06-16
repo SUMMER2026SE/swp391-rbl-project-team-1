@@ -527,22 +527,22 @@ export async function generateMindmap(req: AuthRequest, res: Response) {
   }
 
   try {
-    const prompt = `Bạn là một chuyên gia phân tích và tóm tắt kiến thức. Hãy đọc đoạn văn bản sau và trích xuất cấu trúc kiến thức của nó để tạo ra một sơ đồ tư duy dạng hình cây (mindmap) bằng định dạng JSON.
+    const prompt = `Bạn là một chuyên gia phân tích và tóm tắt kiến thức hàng đầu. Hãy đọc đoạn văn bản sau và trích xuất cấu trúc kiến thức của nó để lập một sơ đồ tư duy dạng hình cây (mindmap) chi tiết, khoa học, logic bằng định dạng JSON.
 
 Văn bản cần phân tích:
 "${text.substring(0, 8000)}"
 
 Yêu cầu định dạng JSON trả về PHẢI tuân thủ chính xác cấu trúc sau:
 {
-  "name": "Tiêu đề gốc (tối đa 5 từ)",
+  "name": "Tiêu đề gốc (Chủ đề chính ngắn gọn, tối đa 5 từ)",
   "children": [
     {
-      "name": "Chủ đề con cấp 1 (ngắn gọn, tối đa 6 từ)",
-      "description": "Tóm tắt ngắn gọn (tối đa 12 từ)",
+      "name": "Chủ đề con cấp 1 (Tóm tắt ý chính của cột mốc/chương, tối đa 6 từ)",
+      "description": "Giải thích tóm gọn và định nghĩa ý chính này (tối đa 18 từ)",
       "children": [
         {
-          "name": "Ý chi tiết cấp 2 (tối đa 6 từ)",
-          "description": "Chi tiết (tối đa 12 từ)"
+          "name": "Ý chi tiết cấp 2 (Mở rộng ý con, tối đa 6 từ)",
+          "description": "Chi tiết phân tích sâu, ví dụ hoặc công thức cụ thể của ý này (tối đa 18 từ)"
         }
       ]
     }
@@ -550,8 +550,8 @@ Yêu cầu định dạng JSON trả về PHẢI tuân thủ chính xác cấu t
 }
 
 Lưu ý quan trọng:
-1. Hãy trích xuất từ 2 đến 4 chủ đề con cấp 1. Mỗi chủ đề con cấp 1 chỉ nên có tối đa 2 ý chi tiết cấp 2 đi kèm để sơ đồ gọn gàng và tiết kiệm token.
-2. Mô tả (description) của mỗi nút phải cực kỳ ngắn gọn, tuyệt đối không vượt quá 12 từ.
+1. Hãy phân tích sâu và trích xuất từ 3 đến 5 chủ đề con cấp 1 (mốc quan trọng, phần chính). Mỗi chủ đề con cấp 1 nên có từ 2 đến 3 ý chi tiết cấp 2 đi kèm để sơ đồ có chiều sâu kiến thức và chi tiết rõ ràng.
+2. Phần description của mỗi nút phải chứa thông tin cô đọng, giàu giá trị ôn luyện (định nghĩa chính xác, mẹo hoặc số liệu lịch sử/công thức), giới hạn từ 10 đến 18 từ để đảm bảo đủ ý và tiết kiệm token.
 3. Trả về DUY NHẤT một chuỗi JSON hợp lệ, không bọc trong thẻ markdown \`\`\`json hay bất kỳ ký tự nào khác ngoài chuỗi JSON để frontend có thể parse được ngay.`;
 
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
@@ -568,7 +568,7 @@ Lưu ý quan trọng:
           { role: 'user', content: prompt }
         ],
         temperature: 0.3,
-        max_tokens: 580
+        max_tokens: 650
       })
     });
 

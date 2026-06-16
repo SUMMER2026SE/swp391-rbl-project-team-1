@@ -204,6 +204,10 @@ export default function AITutorPage({ currentUser, navigateTo, addLog }) {
 
   // Fetch saved history
   const fetchHistory = async () => {
+    if (!currentUser) {
+      loadLocalHistory();
+      return;
+    }
     setIsHistoryLoading(true);
     try {
       const data = await api.getMindmaps();
@@ -212,6 +216,15 @@ export default function AITutorPage({ currentUser, navigateTo, addLog }) {
       console.error("Failed to load history:", err);
     } finally {
       setIsHistoryLoading(false);
+    }
+  };
+
+  const loadLocalHistory = () => {
+    try {
+      const stored = localStorage.getItem('edupath_saved_mindmaps');
+      setSavedMindmaps(stored ? JSON.parse(stored) : []);
+    } catch (e) {
+      console.error(e);
     }
   };
 
@@ -525,13 +538,42 @@ export default function AITutorPage({ currentUser, navigateTo, addLog }) {
     setIsDraggingCanvas(false);
   };
 
-  // Save mindmap to Database
+  // Save mindmap to Database or localStorage
   const handleSaveMindmap = async () => {
+    if (!mindmapData) return;
+
     if (!currentUser) {
-      toast('Bạn cần đăng nhập để lưu sơ đồ tư duy vào tài khoản Học viên!', 'warning');
+      // Guest localStorage fallback
+      try {
+        const localId = activeMindmapDbId || `local-${Date.now()}`;
+        const newMindmap = {
+          id: localId,
+          title: mindmapData.name.trim() || 'Sơ đồ tư duy không tên',
+          content: mindmapData,
+          createdAt: new Date().toISOString()
+        };
+
+        const stored = localStorage.getItem('edupath_saved_mindmaps');
+        let list = stored ? JSON.parse(stored) : [];
+        
+        const existingIdx = list.findIndex(m => m.id === localId);
+        if (existingIdx > -1) {
+          list[existingIdx] = newMindmap;
+        } else {
+          list = [newMindmap, ...list];
+        }
+
+        localStorage.setItem('edupath_saved_mindmaps', JSON.stringify(list));
+        setActiveMindmapDbId(localId);
+        toast('Đã lưu sơ đồ tư duy vào bộ nhớ tạm trình duyệt!', 'success');
+        
+        loadLocalHistory();
+      } catch (err) {
+        console.error(err);
+        toast('Lỗi khi lưu sơ đồ vào trình duyệt!', 'error');
+      }
       return;
     }
-    if (!mindmapData) return;
 
     try {
       const response = await api.saveMindmap(mindmapData.name, mindmapData, activeMindmapDbId);
@@ -728,11 +770,32 @@ export default function AITutorPage({ currentUser, navigateTo, addLog }) {
   // Delete saved mindmap
   const handleDeleteMindmap = async (e, id) => {
     e.stopPropagation(); // stop click from loading
-    if (!confirm('Bạn có chắc chắn muốn xóa sơ đồ tư duy này khỏi thư viện?')) return;
+    if (!confirm('Bạn có chắc chắn muốn xóa sơ đồ tư duy này?')) return;
+
+    if (!currentUser || String(id).startsWith('local-')) {
+      // Local delete
+      try {
+        const stored = localStorage.getItem('edupath_saved_mindmaps');
+        if (stored) {
+          const list = JSON.parse(stored);
+          const nextList = list.filter(m => m.id !== id);
+          localStorage.setItem('edupath_saved_mindmaps', JSON.stringify(nextList));
+          if (activeMindmapDbId === id) {
+            setActiveMindmapDbId(null);
+          }
+          loadLocalHistory();
+          toast('Đã xóa sơ đồ tư duy khỏi trình duyệt!', 'success');
+        }
+      } catch (err) {
+        console.error(err);
+        toast('Lỗi khi xóa sơ đồ tư duy!', 'error');
+      }
+      return;
+    }
 
     try {
       await api.deleteMindmap(id);
-      toast('Đã xóa sơ đồ tư duy!', 'success');
+      toast('Đã xóa sơ đồ tư duy khỏi Thư viện!', 'success');
       if (activeMindmapDbId === id) {
         setActiveMindmapDbId(null);
       }
@@ -1034,12 +1097,29 @@ export default function AITutorPage({ currentUser, navigateTo, addLog }) {
           {/* History Saved Panel */}
           {activeTab === 'history' && (
             <div className="aitutor-panel-content" style={{ padding: '12px' }}>
-              {!currentUser ? (
-                <div className="aitutor-auth-prompt animate-in">
-                  <p>Hãy đăng nhập tài khoản Học viên để lưu và xem lại các sơ đồ tư duy kiến thức của bạn.</p>
-                  <button className="aitutor-auth-prompt-btn" onClick={() => handleNavigateToAuth('login')}>Đăng nhập ngay</button>
+              {!currentUser && (
+                <div style={{
+                  background: 'rgba(255, 226, 89, 0.03)',
+                  border: '1px dashed rgba(255, 226, 89, 0.2)',
+                  borderRadius: '10px',
+                  padding: '10px',
+                  marginBottom: '10px',
+                  fontSize: '10.5px',
+                  color: 'var(--mm-text-secondary)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '6px'
+                }} className="animate-in">
+                  <span>💡 Bạn đang lưu sơ đồ tạm thời trên trình duyệt này.</span>
+                  <button 
+                    onClick={() => handleNavigateToAuth('login')}
+                    style={{ background: 'var(--mm-gold)', color: '#12120e', border: 'none', borderRadius: '4px', padding: '4px 8px', fontSize: '10px', fontWeight: 'bold', cursor: 'pointer' }}
+                  >
+                    Đăng nhập để đồng bộ đám mây
+                  </button>
                 </div>
-              ) : isHistoryLoading ? (
+              )}
+              {isHistoryLoading ? (
                 <div className="aitutor-history-loading">
                   <span className="spinner-secondary" /> Đang tải danh sách...
                 </div>
