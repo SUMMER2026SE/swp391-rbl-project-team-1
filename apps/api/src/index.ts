@@ -18,7 +18,10 @@ import {
   getComments, createComment, acceptCommentSolution,
   getStudyGroups, createStudyGroup, joinStudyGroup, leaveStudyGroup,
   getLeaderboard, getUserGamificationProfile,
-  downloadResource, createReport, getReports, resolveReport
+  downloadResource, createReport, getReports, resolveReport,
+  getGroupRequests, handleGroupRequest, promoteGroupMember,
+  inviteToGroup, getUserInvitations, handleGroupInvitation,
+  searchUsersToInvite
 } from './controllers/forum.js';
 
 dotenv.config();
@@ -120,6 +123,14 @@ app.get('/forum/study-groups', authenticateJWT, getStudyGroups);
 app.post('/forum/study-groups', authenticateJWT, createStudyGroup);
 app.post('/forum/study-groups/:id/join', authenticateJWT, joinStudyGroup);
 app.post('/forum/study-groups/:id/leave', authenticateJWT, leaveStudyGroup);
+
+app.get('/forum/study-groups/:id/requests', authenticateJWT, getGroupRequests);
+app.post('/forum/study-groups/:id/requests/:requestId', authenticateJWT, handleGroupRequest);
+app.put('/forum/study-groups/:id/members/:userId/role', authenticateJWT, promoteGroupMember);
+app.post('/forum/study-groups/:id/invite', authenticateJWT, inviteToGroup);
+app.get('/forum/study-groups/invitations', authenticateJWT, getUserInvitations);
+app.post('/forum/study-groups/invitations/:requestId', authenticateJWT, handleGroupInvitation);
+app.get('/forum/users/search', authenticateJWT, searchUsersToInvite);
 
 app.get('/forum/leaderboard', getLeaderboard);
 app.get('/forum/gamification/profile', authenticateJWT, getUserGamificationProfile);

@@ -161,6 +161,132 @@ export const api = {
     request(`/forum/resources/${id}/download`, { method: 'POST' }),
 
   createForumReport: (postId, commentId, reason) =>
+<<<<<<< Updated upstream
     request('/forum/moderation/reports', { method: 'POST', body: { postId, commentId, reason } })
+=======
+    request('/forum/moderation/reports', { method: 'POST', body: { postId, commentId, reason } }),
+
+  getGroupAnnouncements: (groupId) =>
+    request(`/forum/study-groups/${groupId}/announcements`, { method: 'GET' }),
+
+  createGroupAnnouncement: (groupId, title, content) =>
+    request(`/forum/study-groups/${groupId}/announcements`, { method: 'POST', body: { title, content } }),
+
+  getGroupRequests: (groupId) =>
+    request(`/forum/study-groups/${groupId}/requests`, { method: 'GET' }),
+
+  handleGroupRequest: (groupId, requestId, action) =>
+    request(`/forum/study-groups/${groupId}/requests/${requestId}`, { method: 'POST', body: { action } }),
+
+  promoteGroupMember: (groupId, userId, role) =>
+    request(`/forum/study-groups/${groupId}/members/${userId}/role`, { method: 'PUT', body: { role } }),
+
+  inviteToGroup: (groupId, userId) =>
+    request(`/forum/study-groups/${groupId}/invite`, { method: 'POST', body: { userId } }),
+
+  getUserInvitations: () =>
+    request('/forum/study-groups/invitations', { method: 'GET' }),
+
+  handleGroupInvitation: (requestId, action) =>
+    request(`/forum/study-groups/invitations/${requestId}`, { method: 'POST', body: { action } }),
+
+  searchUsers: (query, groupId) =>
+    request(`/forum/users/search?q=${encodeURIComponent(query)}${groupId ? `&groupId=${groupId}` : ''}`, { method: 'GET' }),
+
+  getForumReports: () =>
+    request('/forum/moderation/reports', { method: 'GET' }),
+
+  resolveForumReport: (id, status, notes) =>
+    request(`/forum/moderation/reports/${id}/resolve`, { method: 'PUT', body: { status, notes } }),
+
+  importExam: (examData) =>
+    request('/admin/exams/import', { method: 'POST', body: examData }),
+
+  generateMindmap: (text) =>
+    request('/ai/mindmap', {
+      method: 'POST',
+      body: { text },
+    }),
+
+  generateFlashcards: (text) =>
+    request('/ai/flashcards', {
+      method: 'POST',
+      body: { text },
+    }),
+
+  saveMindmap: (title, content, id = null) =>
+    request('/mindmaps', {
+      method: 'POST',
+      body: { title, content, id },
+    }),
+
+  getMindmaps: () =>
+    request('/mindmaps', { method: 'GET' }),
+
+  getMindmapById: (id) =>
+    request(`/mindmaps/${id}`, { method: 'GET' }),
+
+  deleteMindmap: (id) =>
+    request(`/mindmaps/${id}`, { method: 'DELETE' }),
+
+  getPublicMindmapById: (id) =>
+    request(`/mindmaps/public/${id}`, { method: 'GET' }),
+
+  getAdminStats: () => request('/admin/stats'),
+  getAdminUsers: () => request('/admin/users'),
+  banAdminUser: (id) => request(`/admin/users/${id}/ban`, { method: 'POST' }),
+  getAdminLeads: () => request('/admin/leads'),
+  createAdminLead: (payload) => request('/admin/leads', { method: 'POST', body: payload }),
+  updateAdminLeadStatus: (id, status) => request(`/admin/leads/${id}/status`, { method: 'PUT', body: { status } }),
+  getFeatureFlags: () => request('/admin/features'),
+  toggleFeatureFlag: (id, isEnabled) => request(`/admin/features/${id}/toggle`, { method: 'POST', body: { isEnabled } }),
+
+  getAdvancedLeaderboard: (filters = {}) => {
+    const query = new URLSearchParams();
+    Object.entries(filters).forEach(([k, v]) => {
+      if (v !== undefined && v !== null && v !== '') {
+        query.append(k, String(v));
+      }
+    });
+    return request(`/v1/leaderboard?${query.toString()}`);
+  },
+
+  getActivityHeatmap: (userId, year) => {
+    const url = userId 
+      ? `/v1/users/${userId}/activity-heatmap${year ? `?year=${year}` : ''}`
+      : `/v1/users/me/activity-heatmap${year ? `?year=${year}` : ''}`;
+    return request(url);
+  },
+
+  generateNodeQuiz: (mindmapId, nodeKey) =>
+    request('/ai/mindmap/quiz', {
+      method: 'POST',
+      body: { mindmapId, nodeKey }
+    }),
+
+  submitNodeQuiz: (mindmapId, nodeKey, answers, completionTime) =>
+    request('/ai/mindmap/quiz/submit', {
+      method: 'POST',
+      body: { mindmapId, nodeKey, answers, completionTime }
+    }),
+
+  getNodeProgress: (mindmapId) =>
+    request(`/mindmaps/${mindmapId}/progress`, { method: 'GET' }),
+
+  generateWeaknessMindmap: () =>
+    request('/ai/mindmap/weakness', { method: 'POST' }),
+
+  uploadExamFile: (formData) =>
+    request('/ai/mindmap/exam-upload', {
+      method: 'POST',
+      body: formData
+    }),
+
+  generateExamMindmap: (payload) =>
+    request('/ai/mindmap/exam-analyse', {
+      method: 'POST',
+      body: payload
+    })
+>>>>>>> Stashed changes
 };
 

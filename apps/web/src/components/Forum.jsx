@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
-import { 
-  HiChat, HiHeart, HiSearch, HiPlus, HiArrowLeft, HiUser, HiTag, 
-  HiCheckCircle, HiDownload, HiUserGroup, HiStar, HiTrendingUp, 
+import {
+  HiChat, HiHeart, HiSearch, HiPlus, HiArrowLeft, HiUser, HiTag,
+  HiCheckCircle, HiDownload, HiUserGroup, HiStar, HiTrendingUp,
   HiSparkles, HiShieldCheck, HiFlag, HiRefresh
 } from 'react-icons/hi';
 import { io } from 'socket.io-client';
@@ -11,7 +11,7 @@ export default function Forum({ currentUser }) {
   // Global View Controls
   const [activeTab, setActiveTab] = useState('feed'); // feed, groups, drive, leaderboard
   const [selectedPost, setSelectedPost] = useState(null);
-  
+
   // API State data
   const [posts, setPosts] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -19,7 +19,15 @@ export default function Forum({ currentUser }) {
   const [studyGroups, setStudyGroups] = useState([]);
   const [leaderboard, setLeaderboard] = useState([]);
   const [gamifyProfile, setGamifyProfile] = useState(null);
-  
+  const [groupAnnouncements, setGroupAnnouncements] = useState([]);
+  const [groupPosts, setGroupPosts] = useState([]);
+  const [groupChatMessages, setGroupChatMessages] = useState([]);
+  const [invitations, setInvitations] = useState([]);
+  const [groupRequests, setGroupRequests] = useState([]);
+  const [userSearchQuery, setUserSearchQuery] = useState('');
+  const [userSearchResults, setUserSearchResults] = useState([]);
+  const [searchingUsers, setSearchingUsers] = useState(false);
+
   // Loading & Filtering controls
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -41,7 +49,7 @@ export default function Forum({ currentUser }) {
   const [newPostType, setNewPostType] = useState('GENERAL');
   const [newDifficulty, setNewDifficulty] = useState('MEDIUM');
   const [newTagsString, setNewTagsString] = useState('');
-  
+
   // Resource file attachment states
   const [resourceFile, setResourceFile] = useState(null); // { fileUrl, fileType, fileSize }
 
@@ -94,6 +102,7 @@ export default function Forum({ currentUser }) {
       fetchPosts();
     } else if (activeTab === 'groups') {
       fetchStudyGroups();
+      fetchUserInvitations();
     } else if (activeTab === 'leaderboard') {
       fetchLeaderboard();
     }
@@ -112,6 +121,132 @@ export default function Forum({ currentUser }) {
       }
     }
   }, [selectedPost]);
+
+  // Monitor room join / leave on group selection
+  useEffect(() => {
+    if (socketRef.current && selectedGroup) {
+      const room = `group_${selectedGroup.id}`;
+      socketRef.current.emit('join_room', room);
+      fetchGroupAnnouncements(selectedGroup.id);
+      fetchGroupPosts(selectedGroup.id);
+
+      const isCreatorOrAdmin = selectedGroup.creatorId === currentUser?.id || selectedGroup.members?.some(m => m.userId === currentUser?.id && (m.role === 'CREATOR' || m.role === 'ADMIN'));
+      if (isCreatorOrAdmin) {
+        fetchGroupRequests(selectedGroup.id);
+      }
+
+      setGroupChatMessages([
+        {
+          id: 'welcome',
+          roomId: room,
+          role: 'SYSTEM',
+          content: `Chào mừng bạn đến với kênh trò chuyện của nhóm "${selectedGroup.name}". Hãy thảo luận lịch học và ôn thi tại đây!`,
+          createdAt: new Date().toISOString()
+        }
+      ]);
+    }
+  }, [selectedGroup]);
+
+  useEffect(() => {
+    const delayDebounce = setTimeout(() => {
+      if (userSearchQuery.trim().length >= 2 && selectedGroup) {
+        searchInviteUsers(userSearchQuery);
+      } else {
+        setUserSearchResults([]);
+      }
+    }, 400);
+
+    return () => clearTimeout(delayDebounce);
+  }, [userSearchQuery, selectedGroup]);
+
+  const searchInviteUsers = async (query) => {
+    if (!selectedGroup) return;
+    setSearchingUsers(true);
+    try {
+      const data = await api.searchUsers(query, selectedGroup.id);
+      setUserSearchResults(data || []);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSearchingUsers(false);
+    }
+  };
+
+  const fetchUserInvitations = async () => {
+    if (!currentUser) return;
+    try {
+      const data = await api.getUserInvitations();
+      setInvitations(data || []);
+    } catch (err) {
+      console.error('Lỗi tải lời mời:', err);
+    }
+  };
+
+  const fetchGroupRequests = async (groupId) => {
+    try {
+      const data = await api.getGroupRequests(groupId);
+      setGroupRequests(data || []);
+    } catch (err) {
+      console.error('Lỗi tải yêu cầu gia nhập nhóm:', err);
+    }
+  };
+
+  const handleApproveRejectRequest = async (requestId, action) => {
+    if (!selectedGroup) return;
+    try {
+      await api.handleGroupRequest(selectedGroup.id, requestId, action);
+      toast(action === 'APPROVE' ? 'Đã phê duyệt thành viên!' : 'Đã từ chối yêu cầu.', 'success');
+      fetchGroupRequests(selectedGroup.id);
+      fetchStudyGroups();
+      const updatedGroups = await api.getStudyGroups();
+      setStudyGroups(updatedGroups || []);
+      const matched = updatedGroups.find(g => g.id === selectedGroup.id);
+      if (matched) {
+        setSelectedGroup(matched);
+      }
+    } catch (err) {
+      toast(err.message || 'Không thể xử lý yêu cầu!', 'error');
+    }
+  };
+
+  const handlePromoteDemoteMember = async (userId, role) => {
+    if (!selectedGroup) return;
+    try {
+      await api.promoteGroupMember(selectedGroup.id, userId, role);
+      toast(role === 'ADMIN' ? 'Bổ nhiệm Admin thành công!' : 'Đã hạ quyền thành viên.', 'success');
+      const updatedGroups = await api.getStudyGroups();
+      setStudyGroups(updatedGroups || []);
+      const matched = updatedGroups.find(g => g.id === selectedGroup.id);
+      if (matched) {
+        setSelectedGroup(matched);
+      }
+    } catch (err) {
+      toast(err.message || 'Thao tác phân quyền thất bại!', 'error');
+    }
+  };
+
+  const handleInviteUser = async (userId) => {
+    if (!selectedGroup) return;
+    try {
+      await api.inviteToGroup(selectedGroup.id, userId);
+      toast('Đã gửi lời mời tham gia nhóm học tập!', 'success');
+      setUserSearchQuery('');
+      setUserSearchResults([]);
+    } catch (err) {
+      toast(err.message || 'Gửi lời mời thất bại!', 'error');
+    }
+  };
+
+  const handleAcceptDeclineInvitation = async (requestId, action) => {
+    try {
+      await api.handleGroupInvitation(requestId, action);
+      toast(action === 'APPROVE' ? 'Đã tham gia nhóm thành công!' : 'Đã từ chối lời mời.', 'success');
+      fetchUserInvitations();
+      fetchStudyGroups();
+    } catch (err) {
+      toast(err.message || 'Không thể xử lý lời mời!', 'error');
+    }
+  };
 
   // =========================================================================
   // API CLIENT CALLS
@@ -211,14 +346,14 @@ export default function Forum({ currentUser }) {
       };
 
       await api.createForumPost(postPayload);
-      
+
       // Reset form & close modal
       setNewTitle('');
       setNewContent('');
       setNewTagsString('');
       setResourceFile(null);
       setShowCreateModal(false);
-      
+
       // Reload stream
       fetchPosts();
       fetchGamifyProfile();
@@ -234,7 +369,7 @@ export default function Forum({ currentUser }) {
 
     try {
       const newComment = await api.createForumComment(selectedPost.id, commentText, replyTargetId);
-      
+
       // Update local comment nodes
       if (replyTargetId) {
         setComments(prev => prev.map(c => {
@@ -246,7 +381,7 @@ export default function Forum({ currentUser }) {
       } else {
         setComments(prev => [...prev, newComment]);
       }
-      
+
       setCommentText('');
       setReplyTargetId(null);
       fetchGamifyProfile();
@@ -262,7 +397,7 @@ export default function Forum({ currentUser }) {
     }
     try {
       const result = await api.reactForumPost(postId, 'UPVOTE');
-      
+
       // Update local UI state
       setPosts(prev => prev.map(p => {
         if (p.id === postId) {
@@ -300,7 +435,7 @@ export default function Forum({ currentUser }) {
   const handleAcceptSolution = async (commentId) => {
     try {
       await api.acceptCommentSolution(commentId);
-      
+
       // Redraw comment solution state check
       setComments(prev => prev.map(c => {
         if (c.id === commentId) {
@@ -333,9 +468,13 @@ export default function Forum({ currentUser }) {
 
   const handleJoinStudyGroup = async (groupId) => {
     try {
-      await api.joinStudyGroup(groupId);
+      const res = await api.joinStudyGroup(groupId);
+      if (res && res.status === 'PENDING_APPROVAL') {
+        toast(res.message || 'Đã gửi yêu cầu tham gia nhóm học tập!', 'success');
+      } else {
+        toast('Đã tham gia nhóm học tập thành công!', 'success');
+      }
       fetchStudyGroups();
-      alert('Đã tham gia nhóm học tập thành công!');
     } catch (err) {
       alert(err.message || 'Không thể tham gia nhóm!');
     }
@@ -383,7 +522,7 @@ export default function Forum({ currentUser }) {
             Nơi kết nối tri thức, chia sẻ học liệu nâng cao và thi đua giải đề THPTQG
           </p>
         </div>
-        
+
         <div style={{ display: 'flex', gap: '10px' }}>
           {activeTab === 'feed' && (
             <button className="btn-primary" onClick={() => setShowCreateModal(true)} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -451,7 +590,7 @@ export default function Forum({ currentUser }) {
                   <div>
                     <h4 style={{ fontWeight: 'bold', fontSize: '15px' }}>{selectedPost.author?.fullName}</h4>
                     <p style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                      Đăng vào: {new Date(selectedPost.createdAt).toLocaleString()} • 
+                      Đăng vào: {new Date(selectedPost.createdAt).toLocaleString()} •
                       <span className="badge-pill" style={{ background: 'var(--primary-bg)', color: 'var(--primary)', marginLeft: '8px' }}>
                         {selectedPost.category?.name}
                       </span>
@@ -460,7 +599,7 @@ export default function Forum({ currentUser }) {
                 </div>
 
                 <div style={{ display: 'flex', gap: '8px' }}>
-                  <button 
+                  <button
                     onClick={() => {
                       setReportTarget({ postId: selectedPost.id, commentId: null });
                       setShowReportModal(true);
@@ -487,8 +626,8 @@ export default function Forum({ currentUser }) {
                       Định dạng: {selectedPost.resource.fileType} • Tải xuống: {selectedPost.resource.downloadCount} lượt
                     </p>
                   </div>
-                  <button 
-                    className="btn-primary" 
+                  <button
+                    className="btn-primary"
                     style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 14px', fontSize: '12px' }}
                     onClick={() => handleDownloadFile(selectedPost.resource.id, selectedPost.resource.fileUrl)}
                   >
@@ -499,7 +638,7 @@ export default function Forum({ currentUser }) {
 
               {/* Action Buttons Row */}
               <div style={{ display: 'flex', gap: '20px', borderTop: '1px solid var(--border)', paddingTop: '16px', marginBottom: '24px' }}>
-                <button 
+                <button
                   onClick={() => handleLikePost(selectedPost.id)}
                   style={{
                     display: 'flex', alignItems: 'center', gap: '6px', border: 'none', background: 'none',
@@ -517,7 +656,7 @@ export default function Forum({ currentUser }) {
               {/* Comments Section */}
               <div style={{ background: 'var(--bg-main)', padding: '20px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)' }}>
                 <h3 style={{ fontSize: '15px', fontWeight: 'bold', marginBottom: '16px' }}>Ý kiến thảo luận ({comments.length})</h3>
-                
+
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '20px' }}>
                   {comments.length > 0 ? (
                     comments.map(c => (
@@ -542,10 +681,10 @@ export default function Forum({ currentUser }) {
                                 <HiCheckCircle style={{ fontSize: '16px' }} /> Lời giải hay
                               </span>
                             )}
-                            
+
                             {/* Option to mark solution for post author or teacher */}
                             {(currentUser?.role === 'TEACHER' || currentUser?.role === 'ADMIN' || selectedPost.authorId === currentUser?.id) && (
-                              <button 
+                              <button
                                 onClick={() => handleAcceptSolution(c.id)}
                                 style={{
                                   background: 'none', border: '1px solid var(--border)', borderRadius: '4px',
@@ -587,7 +726,7 @@ export default function Forum({ currentUser }) {
                             </div>
                           ))}
 
-                          <button 
+                          <button
                             onClick={() => {
                               setReplyTargetId(c.id);
                               setCommentText(`@${c.author} `);
@@ -628,8 +767,8 @@ export default function Forum({ currentUser }) {
                   <div className="card" style={{ padding: '16px', marginBottom: '20px', display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center', background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
                     <div style={{ position: 'relative', flex: 1, minWidth: '200px' }}>
                       <HiSearch style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-                      <input 
-                        type="text" 
+                      <input
+                        type="text"
                         className="form-control"
                         placeholder="Tìm bài viết..."
                         value={searchQuery}
@@ -638,7 +777,7 @@ export default function Forum({ currentUser }) {
                       />
                     </div>
 
-                    <select 
+                    <select
                       className="form-control"
                       value={selectedCategory}
                       onChange={e => setSelectedCategory(e.target.value)}
@@ -650,7 +789,7 @@ export default function Forum({ currentUser }) {
                       ))}
                     </select>
 
-                    <select 
+                    <select
                       className="form-control"
                       value={selectedType}
                       onChange={e => setSelectedType(e.target.value)}
@@ -663,8 +802,8 @@ export default function Forum({ currentUser }) {
                     </select>
 
                     {(searchQuery || selectedCategory !== 'All' || selectedType !== 'All' || selectedTag) && (
-                      <button 
-                        className="btn-outline" 
+                      <button
+                        className="btn-outline"
                         onClick={() => {
                           setSearchQuery('');
                           setSelectedCategory('All');
@@ -685,11 +824,11 @@ export default function Forum({ currentUser }) {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                       {posts.length > 0 ? (
                         posts.map(post => (
-                          <div 
-                            key={post.id} 
-                            className="card post-card" 
-                            style={{ 
-                              cursor: 'pointer', padding: '16px', background: 'var(--bg-card)', 
+                          <div
+                            key={post.id}
+                            className="card post-card"
+                            style={{
+                              cursor: 'pointer', padding: '16px', background: 'var(--bg-card)',
                               border: post.isPinned ? '1.5px solid var(--primary)' : '1px solid var(--border)',
                               transition: 'transform 0.2s', hover: { transform: 'translateY(-2px)' }
                             }}
@@ -781,8 +920,8 @@ export default function Forum({ currentUser }) {
                   {/* Reuse resource filters */}
                   <div style={{ display: 'flex', gap: '10px', overflowX: 'auto', marginBottom: '10px' }}>
                     {categories.map(cat => (
-                      <button 
-                        key={cat.id} 
+                      <button
+                        key={cat.id}
                         onClick={() => setSelectedCategory(cat.id)}
                         className={`badge-pill ${selectedCategory === cat.id ? 'active' : ''}`}
                         style={{
@@ -804,8 +943,8 @@ export default function Forum({ currentUser }) {
                         <h4 style={{ fontWeight: 'bold', fontSize: '14.5px', marginTop: '6px', margin: '4px 0' }}>📘 {post.title}</h4>
                         <p style={{ fontSize: '11px', color: 'var(--text-secondary)', margin: 0 }}>Đóng góp bởi {post.author?.fullName}</p>
                       </div>
-                      <button 
-                        className="btn-primary" 
+                      <button
+                        className="btn-primary"
                         onClick={() => post.resource && handleDownloadFile(post.resource.id, post.resource.fileUrl)}
                         style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 14px', fontSize: '12px' }}
                       >
@@ -816,263 +955,519 @@ export default function Forum({ currentUser }) {
                 </div>
               )}
 
-              {activeTab === 'leaderboard' && (
-                <div className="card" style={{ padding: '20px', background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
-                  <h3 style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    🏆 Bảng xếp hạng thi đua tuần này
-                  </h3>
-                  
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                    {leaderboard.map(u => (
-                      <div key={u.userId} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', borderBottom: '1px solid var(--border)' }}>
-                        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                          <span style={{ fontWeight: 'bold', width: '20px', color: u.rank <= 3 ? 'var(--primary)' : 'var(--text-secondary)' }}>
-                            #{u.rank}
-                          </span>
-                          <div style={{ background: 'var(--accent-blue)', width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '12px', fontWeight: 'bold' }}>
-                            {u.name?.slice(0,2).toUpperCase()}
-                          </div>
-                          <div>
-                            <span style={{ fontSize: '13.5px', fontWeight: 'bold' }}>{u.name}</span>
-                            {u.role === 'TEACHER' && <span className="badge-pill" style={{ background: 'var(--primary-bg)', color: 'var(--primary)', fontSize: '9px', marginLeft: '6px' }}>Giáo viên</span>}
-                          </div>
-                        </div>
-                        <div style={{ display: 'flex', gap: '16px', fontSize: '13px', fontWeight: 'bold' }}>
-                          <span>Cấp độ {u.level}</span>
-                          <span style={{ color: 'var(--primary)' }}>{u.xp} XP</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+              {stripImages(post.content) && (
+                <p style={{ fontSize: '13px', color: 'var(--text-secondary)', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', margin: '0 0 4px 0', lineHeight: 1.5 }}>{stripImages(post.content)}</p>
               )}
-            </div>
-          )}
-        </div>
 
-        {/* Right Sidebar Column (Gamification Profile Widget & Info) */}
-        <div>
-          {gamifyProfile && (
-            <div className="card gamify-card" style={{ padding: '20px', background: 'var(--bg-card)', border: '1px solid var(--border)', marginBottom: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                <div style={{ width: '48px', height: '48px', background: 'var(--primary-bg)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px' }}>
-                  ⚡
-                </div>
-                <div>
-                  <h4 style={{ fontWeight: 'bold', fontSize: '15px' }}>{currentUser?.fullName}</h4>
-                  <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: 0 }}>Cấp độ hiện tại: {gamifyProfile.level}</p>
-                </div>
-              </div>
-
-              {/* Progress bar */}
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '6px' }}>
-                  <span>Tiến trình cấp độ</span>
-                  <span>{gamifyProfile.xp} XP / {gamifyProfile.nextLevelXP} XP</span>
-                </div>
-                <div style={{ width: '100%', height: '8px', background: 'var(--bg-main)', borderRadius: '4px', overflow: 'hidden' }}>
-                  <div style={{ width: `${gamifyProfile.progress}%`, height: '100%', background: 'var(--primary)', transition: 'width 0.4s ease' }} />
-                </div>
-              </div>
-
-              {/* Daily Streak widget */}
-              <div style={{ background: 'var(--bg-main)', padding: '12px', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid var(--border)' }}>
-                <div>
-                  <span style={{ fontSize: '11px', color: 'var(--text-secondary)', display: 'block' }}>Chuỗi hoạt động</span>
-                  <span style={{ fontSize: '15px', fontWeight: 'bold', color: 'var(--primary)' }}>🔥 {gamifyProfile.streakDays || 0} Ngày liên tục</span>
-                </div>
-              </div>
-
-              {/* Badges Grid */}
-              <div>
-                <h5 style={{ fontSize: '12.5px', fontWeight: 'bold', marginBottom: '8px' }}>🎖️ Huy hiệu của bạn ({gamifyProfile.badges?.length || 0})</h5>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                  {gamifyProfile.badges && gamifyProfile.badges.length > 0 ? (
-                    gamifyProfile.badges.map(b => (
-                      <span 
-                        key={b.id} 
-                        className="badge-pill" 
-                        style={{ background: 'rgba(255,168,0,0.12)', color: 'rgb(255,168,0)', border: '1px solid rgba(255,168,0,0.3)', fontSize: '11px' }}
-                        title={b.description}
-                      >
-                        🏅 {b.name}
-                      </span>
-                    ))
-                  ) : (
-                    <span style={{ fontSize: '11.5px', color: 'var(--text-muted)', fontStyle: 'italic' }}>Chưa mở khóa huy hiệu nào. Hãy tham gia tích cực để nhận thưởng!</span>
-                  )}
-                </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border)', paddingTop: '10px', fontSize: '12px', color: 'var(--text-secondary)' }}>
+                <span>Tác giả: {post.author?.fullName}</span>
+                <span>💬 {post.comments?.length || 0} bình luận</span>
               </div>
             </div>
-          )}
-
-          {/* Quick Guidance Card */}
-          <div className="card" style={{ padding: '16px', background: 'var(--bg-card)', border: '1px solid var(--border)', fontSize: '12.5px', color: 'var(--text-secondary)' }}>
-            <h5 style={{ fontWeight: 'bold', color: 'var(--text-main)', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              💡 Thể lệ tính điểm XP:
-            </h5>
-            <ul style={{ paddingLeft: '18px', display: 'flex', flexDirection: 'column', gap: '4px', margin: 0 }}>
-              <li>Câu hỏi hữu ích: +5 XP</li>
-              <li>Lời giải được chọn: +15 XP</li>
-              <li>Đóng góp bình luận: +2 XP</li>
-              <li>Tải xuống tài liệu hữu ích: +5 XP</li>
-            </ul>
+          ))
+          ) : (
+          <div style={{ padding: '30px', textAlign: 'center', color: 'var(--text-secondary)', fontStyle: 'italic' }}>
+            Chưa có chủ đề thảo luận nội bộ nào. Hãy khởi xướng chủ đề đầu tiên!
           </div>
+                        )}
         </div>
       </div>
+                  )}
 
-      {/* ================= MODALS ================= */}
+      {/* Tab Chat room */}
+      {groupTab === 'chat' && (
+        <div style={{ display: 'flex', flexDirection: 'column', height: '400px', border: '1px solid var(--border)', borderRadius: '8px', overflow: 'hidden' }}>
+          {/* Messages list */}
+          <div style={{ flex: 1, padding: '16px', overflowY: 'auto', background: 'var(--bg-main)', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {groupChatMessages.map((msg, i) => {
+              const isSystem = msg.role === 'SYSTEM';
+              const isMe = msg.studentId === currentUser?.id;
 
-      {/* Create New Post Modal */}
-      {showCreateModal && (
-        <div className="modal-backdrop" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 999 }}>
-          <div className="modal-card card" style={{ maxWidth: '600px', width: '90%', padding: '24px', background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-              <h3 style={{ fontSize: '17px', fontWeight: 'bold' }}>Tạo bài viết thảo luận mới</h3>
-              <button onClick={() => setShowCreateModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '18px', color: 'var(--text-muted)' }}>✕</button>
+              if (isSystem) {
+                return (
+                  <div key={msg.id || i} style={{ alignSelf: 'center', background: 'var(--border)', color: 'var(--text-secondary)', padding: '4px 12px', borderRadius: '12px', fontSize: '11.5px', textAlign: 'center', maxWidth: '80%' }}>
+                    {msg.content}
+                  </div>
+                );
+              }
+
+              return (
+                <div key={msg.id || i} style={{ alignSelf: isMe ? 'flex-end' : 'flex-start', display: 'flex', flexDirection: 'column', alignItems: isMe ? 'flex-end' : 'flex-start', maxWidth: '70%' }}>
+                  <span style={{ fontSize: '10.5px', color: 'var(--text-secondary)', marginBottom: '2px', fontWeight: 'bold' }}>
+                    {isMe ? 'Tôi' : (msg.authorName || 'Học viên')}
+                  </span>
+                  <div style={{
+                    padding: '10px 14px',
+                    borderRadius: '12px',
+                    background: isMe ? 'var(--primary)' : 'var(--bg-card)',
+                    color: isMe ? '#fff' : 'var(--text-primary)',
+                    border: isMe ? 'none' : '1px solid var(--border)',
+                    fontSize: '13px',
+                    wordBreak: 'break-word'
+                  }}>
+                    {msg.content}
+                  </div>
+                  <span style={{ fontSize: '9px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                    {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Chat input form */}
+          <form onSubmit={handleSendChatMessage} style={{ display: 'flex', borderTop: '1px solid var(--border)', background: 'var(--bg-card)' }}>
+            <input
+              type="text"
+              className="form-control"
+              placeholder="Nhập nội dung tin nhắn và ấn Enter..."
+              value={chatInput}
+              onChange={e => setChatInput(e.target.value)}
+              style={{ flex: 1, border: 'none', borderRadius: 0, padding: '14px', outline: 'none', background: 'none' }}
+            />
+            <button type="submit" className="btn-primary" style={{ borderRadius: 0, border: 'none', padding: '0 24px' }}>Gửi</button>
+          </form>
+        </div>
+      )}
+
+      {/* Tab Members */}
+      {groupTab === 'members' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          {/* Requests panel for admin/creator */}
+          {(selectedGroup.creatorId === currentUser?.id || selectedGroup.members?.some(m => m.userId === currentUser?.id && m.role === 'ADMIN')) && groupRequests.length > 0 && (
+            <div style={{ marginBottom: '20px', padding: '16px', background: 'var(--primary-bg)', border: '1px solid var(--primary)', borderRadius: '8px' }}>
+              <h5 style={{ fontWeight: 'bold', fontSize: '14px', marginBottom: '10px', color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                🔔 Yêu cầu gia nhập chờ duyệt ({groupRequests.length})
+              </h5>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {groupRequests.map(req => (
+                  <div key={req.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-card)', padding: '10px 14px', borderRadius: '6px', border: '1px solid var(--border)' }}>
+                    <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                      <div style={{ background: 'var(--accent-blue)', width: '30px', height: '30px', borderRadius: '50%', color: '#fff', fontSize: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
+                        {req.user?.fullName?.slice(0, 2).toUpperCase()}
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '13px', fontWeight: 'bold' }}>{req.user?.fullName}</div>
+                        <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>{req.user?.email}</div>
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button className="btn-primary" style={{ padding: '4px 10px', fontSize: '11px' }} onClick={() => handleApproveRejectRequest(req.id, 'APPROVE')}>Phê duyệt</button>
+                      <button className="btn-outline" style={{ padding: '4px 10px', fontSize: '11px', color: 'var(--accent-red)', borderColor: 'var(--accent-red)' }} onClick={() => handleApproveRejectRequest(req.id, 'REJECT')}>Từ chối</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
+          )}
 
-            <form onSubmit={handleCreatePost} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <div className="form-group">
-                <label style={{ fontSize: '12px', fontWeight: '600', marginBottom: '6px', display: 'block' }}>Chủ đề / Môn học:</label>
-                <select className="form-control" value={newCategoryId} onChange={e => setNewCategoryId(e.target.value)} style={{ width: '100%' }}>
-                  {categories.map(cat => (
-                    <option key={cat.id} value={cat.id}>{cat.name}</option>
+          {/* Invite section */}
+          {(selectedGroup.creatorId === currentUser?.id || selectedGroup.members?.some(m => m.userId === currentUser?.id && m.role === 'ADMIN')) && (
+            <div className="card" style={{ padding: '16px', marginBottom: '20px', background: 'var(--bg-main)', border: '1px dashed var(--border)' }}>
+              <h5 style={{ fontWeight: 'bold', fontSize: '13.5px', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                ✉️ Mời học viên khác vào nhóm
+              </h5>
+              <input
+                type="text"
+                className="form-control"
+                placeholder="Nhập tên hoặc email học viên để tìm kiếm..."
+                value={userSearchQuery}
+                onChange={e => setUserSearchQuery(e.target.value)}
+                style={{ width: '100%', fontSize: '13px' }}
+              />
+              {userSearchResults.length > 0 && (
+                <div style={{ marginTop: '10px', border: '1px solid var(--border)', borderRadius: '6px', background: 'var(--bg-card)', overflow: 'hidden' }}>
+                  {userSearchResults.map(u => (
+                    <div key={u.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', borderBottom: '1px solid var(--border)' }}>
+                      <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                        <div style={{ background: 'var(--primary)', width: '28px', height: '28px', borderRadius: '50%', color: '#fff', fontSize: '11px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
+                          {u.fullName?.slice(0, 2).toUpperCase()}
+                        </div>
+                        <div>
+                          <div style={{ fontSize: '13px', fontWeight: 'bold' }}>{u.fullName}</div>
+                          <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>{u.email}</div>
+                        </div>
+                      </div>
+                      <button className="btn-primary" style={{ padding: '4px 10px', fontSize: '11px' }} onClick={() => handleInviteUser(u.id)}>Mời</button>
+                    </div>
                   ))}
-                </select>
-              </div>
-
-              <div className="form-group">
-                <label style={{ fontSize: '12px', fontWeight: '600', marginBottom: '6px', display: 'block' }}>Dạng bài đăng:</label>
-                <select className="form-control" value={newPostType} onChange={e => setNewPostType(e.target.value)} style={{ width: '100%' }}>
-                  <option value="GENERAL">Thảo luận chung</option>
-                  <option value="QA">Hỏi & Đáp (Q&A)</option>
-                  <option value="RESOURCE">Chia sẻ tài liệu / Đề thi</option>
-                </select>
-              </div>
-
-              {newPostType === 'QA' && (
-                <div className="form-group">
-                  <label style={{ fontSize: '12px', fontWeight: '600', marginBottom: '6px', display: 'block' }}>Độ khó:</label>
-                  <select className="form-control" value={newDifficulty} onChange={e => setNewDifficulty(e.target.value)} style={{ width: '100%' }}>
-                    <option value="EASY">Dễ</option>
-                    <option value="MEDIUM">Trung bình</option>
-                    <option value="HARD">Khó</option>
-                  </select>
                 </div>
               )}
+              {searchingUsers && <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '6px' }}>⏳ Đang tìm kiếm học viên...</div>}
+            </div>
+          )}
 
-              {newPostType === 'RESOURCE' && (
-                <div className="form-group" style={{ background: 'var(--bg-main)', padding: '12px', borderRadius: '6px', border: '1px dashed var(--border)' }}>
-                  <label style={{ fontSize: '12px', fontWeight: '600', marginBottom: '6px', display: 'block' }}>Đính kèm tệp học liệu (Mô phỏng):</label>
-                  <input 
-                    type="text" 
-                    className="form-control" 
-                    placeholder="URL tài liệu (ví dụ: https://edupath.cdn/files/math12.pdf)" 
-                    onChange={e => setResourceFile({ fileUrl: e.target.value, fileType: 'PDF', fileSize: 2048000 })}
-                    style={{ width: '100%', fontSize: '12px' }}
-                    required
-                  />
+          <h4 style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '6px' }}>Danh sách thành viên nhóm:</h4>
+          {selectedGroup.members?.map(m => (
+            <div key={m.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', border: '1px solid var(--border)', borderRadius: '6px', background: 'var(--bg-main)' }}>
+              <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: m.role === 'CREATOR' ? 'var(--primary)' : (m.role === 'ADMIN' ? 'rgb(255, 168, 0)' : 'var(--accent-blue)'), color: '#fff', fontSize: '11px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
+                  {m.user?.fullName?.slice(0, 2).toUpperCase() || 'HV'}
                 </div>
-              )}
-
-              <div className="form-group">
-                <label style={{ fontSize: '12px', fontWeight: '600', marginBottom: '6px', display: 'block' }}>Tiêu đề câu hỏi / bài thảo luận:</label>
-                <input 
-                  type="text" className="form-control" placeholder="Ví dụ: Cách bấm máy Casio nghiệm nguyên đạo hàm?"
-                  value={newTitle} onChange={e => setNewTitle(e.target.value)} style={{ width: '100%' }} required
-                />
+                <div>
+                  <span style={{ fontSize: '13.5px', fontWeight: 'bold' }}>{m.user?.fullName}</span>
+                  <span style={{ fontSize: '10px', color: 'var(--text-muted)', marginLeft: '8px' }}>Tham gia: {new Date(m.joinedAt).toLocaleDateString()}</span>
+                </div>
               </div>
 
-              <div className="form-group">
-                <label style={{ fontSize: '12px', fontWeight: '600', marginBottom: '6px', display: 'block' }}>Nội dung chi tiết câu hỏi:</label>
-                <textarea 
-                  className="form-control" placeholder="Nhập nội dung chi tiết bài toán, bạn đã thử cách nào..."
-                  value={newContent} onChange={e => setNewContent(e.target.value)} style={{ width: '100%', minHeight: '120px', resize: 'vertical' }} required
-                />
-              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <span className="badge-pill" style={{
+                  background: m.role === 'CREATOR' ? 'rgba(108,92,231,0.12)' : (m.role === 'ADMIN' ? 'rgba(255,168,0,0.12)' : 'rgba(9,132,227,0.12)'),
+                  color: m.role === 'CREATOR' ? 'var(--primary)' : (m.role === 'ADMIN' ? 'rgb(255, 168, 0)' : 'var(--accent-blue)'),
+                  fontSize: '11px', fontWeight: 'bold'
+                }}>
+                  {m.role === 'CREATOR' ? 'Trưởng nhóm' : (m.role === 'ADMIN' ? 'Admin nhóm' : 'Thành viên')}
+                </span>
 
-              <div className="form-group">
-                <label style={{ fontSize: '12px', fontWeight: '600', marginBottom: '6px', display: 'block' }}>Thẻ phân loại (ngăn cách bởi dấu phẩy):</label>
-                <input 
-                  type="text" className="form-control" placeholder="Ví dụ: casio, daoham, toan12"
-                  value={newTagsString} onChange={e => setNewTagsString(e.target.value)} style={{ width: '100%' }}
-                />
+                {/* Promote / Demote admin buttons */}
+                {(selectedGroup.creatorId === currentUser?.id || currentUser?.role === 'ADMIN') && m.userId !== selectedGroup.creatorId && (
+                  <div style={{ display: 'flex', gap: '6px' }}>
+                    {m.role === 'ADMIN' ? (
+                      <button
+                        className="btn-outline"
+                        style={{ padding: '2px 8px', fontSize: '11px', color: 'var(--text-muted)', borderColor: 'var(--border)' }}
+                        onClick={() => handlePromoteDemoteMember(m.userId, 'MEMBER')}
+                      >
+                        Hạ quyền Admin
+                      </button>
+                    ) : (
+                      <button
+                        className="btn-outline"
+                        style={{ padding: '2px 8px', fontSize: '11px', color: 'rgb(255, 168, 0)', borderColor: 'rgb(255, 168, 0)' }}
+                        onClick={() => handlePromoteDemoteMember(m.userId, 'ADMIN')}
+                      >
+                        Phong Admin
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
-
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>
-                <button type="button" className="btn-outline" onClick={() => setShowCreateModal(false)}>Hủy bỏ</button>
-                <button type="submit" className="btn-primary">Đăng lên diễn đàn</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Create New Group Modal */}
-      {showGroupModal && (
-        <div className="modal-backdrop" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 999 }}>
-          <div className="modal-card card" style={{ maxWidth: '500px', width: '90%', padding: '24px', background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-              <h3 style={{ fontSize: '17px', fontWeight: 'bold' }}>Tạo nhóm học tập mới</h3>
-              <button onClick={() => setShowGroupModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '18px', color: 'var(--text-muted)' }}>✕</button>
             </div>
-
-            <form onSubmit={handleCreateStudyGroup} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <div className="form-group">
-                <label style={{ fontSize: '12px', fontWeight: '600', marginBottom: '6px', display: 'block' }}>Tên nhóm học tập:</label>
-                <input type="text" name="groupName" className="form-control" placeholder="Ví dụ: Ôn thi khối A1 chuyên sâu" style={{ width: '100%' }} required />
-              </div>
-
-              <div className="form-group">
-                <label style={{ fontSize: '12px', fontWeight: '600', marginBottom: '6px', display: 'block' }}>Mô tả mục tiêu nhóm:</label>
-                <textarea name="groupDesc" className="form-control" placeholder="Mô tả lịch học, tài liệu trao đổi..." style={{ width: '100%', minHeight: '80px' }} required />
-              </div>
-
-              <div className="form-group" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                <input type="checkbox" name="groupPrivate" id="groupPrivate" />
-                <label htmlFor="groupPrivate" style={{ fontSize: '13px' }}>Đặt nhóm ở chế độ riêng tư (Yêu cầu lời mời)</label>
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>
-                <button type="button" className="btn-outline" onClick={() => setShowGroupModal(false)}>Hủy bỏ</button>
-                <button type="submit" className="btn-primary">Tạo nhóm</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Safety Report Modal */}
-      {showReportModal && (
-        <div className="modal-backdrop" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 999 }}>
-          <div className="modal-card card" style={{ maxWidth: '400px', width: '90%', padding: '24px', background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <h3 style={{ fontSize: '16px', fontWeight: 'bold' }}>Báo cáo nội dung không lành mạnh</h3>
-              <button onClick={() => setShowReportModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '18px', color: 'var(--text-muted)' }}>✕</button>
-            </div>
-
-            <form onSubmit={handleSendReport} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <div className="form-group">
-                <label style={{ fontSize: '12.5px', marginBottom: '6px', display: 'block' }}>Lý do báo cáo:</label>
-                <textarea 
-                  className="form-control" 
-                  placeholder="Vui lòng cung cấp lý do chi tiết (Spam, ngôn từ kích động, xúc phạm giáo viên/học sinh...)" 
-                  value={reportReason} 
-                  onChange={e => setReportReason(e.target.value)} 
-                  style={{ width: '100%', minHeight: '100px' }} 
-                  required 
-                />
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>
-                <button type="button" className="btn-outline" onClick={() => setShowReportModal(false)}>Hủy</button>
-                <button type="submit" className="btn-primary">Gửi báo cáo</button>
-              </div>
-            </form>
-          </div>
+          ))}
         </div>
       )}
     </div>
+  ) : activeTab === 'groups' ? (
+    /* REGULAR LIST OF GROUPS */
+    <div>
+      {/* User Invitations list if any */}
+      {invitations.length > 0 && (
+        <div className="card animate-in" style={{ padding: '20px', marginBottom: '20px', background: 'rgba(255, 168, 0, 0.08)', border: '1px solid rgba(255, 168, 0, 0.3)', borderRadius: '10px' }}>
+          <h4 style={{ fontWeight: 'bold', fontSize: '15px', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px', color: 'rgb(255, 168, 0)' }}>
+            ✉️ Lời mời tham gia nhóm học tập ({invitations.length})
+          </h4>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '12px' }}>
+            {invitations.map(inv => (
+              <div key={inv.id} className="card" style={{ padding: '14px', display: 'flex', flexDirection: 'column', gap: '10px', border: '1px solid var(--border)', background: 'var(--bg-card)' }}>
+                <div>
+                  <h5 style={{ fontWeight: 'bold', fontSize: '14px', margin: '0 0 4px 0' }}>👥 {inv.group?.name}</h5>
+                  <p style={{ fontSize: '11.5px', color: 'var(--text-secondary)', margin: 0 }}>
+                    Người mời: <span style={{ fontWeight: 'bold' }}>{inv.group?.creator?.fullName}</span>
+                  </p>
+                </div>
+                <div style={{ display: 'flex', gap: '8px', marginTop: '6px' }}>
+                  <button className="btn-primary" style={{ flex: 1, padding: '4px 8px', fontSize: '11.5px' }} onClick={() => handleAcceptDeclineInvitation(inv.id, 'APPROVE')}>Chấp nhận</button>
+                  <button className="btn-outline" style={{ flex: 1, padding: '4px 8px', fontSize: '11.5px', color: 'var(--accent-red)', borderColor: 'var(--accent-red)' }} onClick={() => handleAcceptDeclineInvitation(inv.id, 'REJECT')}>Từ chối</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {loading ? (
+        <div style={{ textAlign: 'center', padding: '40px' }}><HiRefresh className="animate-spin" style={{ fontSize: '24px' }} /> Đang tải...</div>
+      ) : (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
+          {studyGroups.length > 0 ? (
+            studyGroups.map(group => (
+              <div key={group.id} className="card animate-in" style={{ padding: '20px', background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+                <h4 style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  👥 {group.name}
+                  <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }} title={group.isPrivate ? "Nhóm riêng tư (Cần duyệt)" : "Nhóm công khai"}>
+                    {group.isPrivate ? '🔒' : '🔓'}
+                  </span>
+                </h4>
+                <p style={{ fontSize: '12.5px', color: 'var(--text-secondary)', minHeight: '40px', marginBottom: '14px' }}>{group.description}</p>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px', color: 'var(--text-muted)', borderTop: '1px solid var(--border)', paddingTop: '10px' }}>
+                  <span>Thành viên: {group.memberCount}</span>
+                  {group.isMember ? (
+                    <div style={{ display: 'flex', gap: '6px' }}>
+                      <span style={{ color: 'var(--accent-green)', fontWeight: 'bold', display: 'flex', alignItems: 'center' }}>✓</span>
+                      <button
+                        className="btn-primary"
+                        onClick={() => setSelectedGroup(group)}
+                        style={{ padding: '4px 10px', fontSize: '11px', background: 'var(--primary)' }}
+                      >
+                        Vào nhóm
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      {group.isPrivate ? (
+                        group.hasPendingRequest ? (
+                          <button className="btn-outline" style={{ padding: '4px 10px', fontSize: '11px', background: 'var(--border)', color: 'var(--text-secondary)', cursor: 'not-allowed' }} disabled>
+                            Đang chờ duyệt...
+                          </button>
+                        ) : (
+                          <button className="btn-primary" onClick={() => handleJoinStudyGroup(group.id)} style={{ padding: '4px 10px', fontSize: '11px', background: 'var(--accent-blue)', borderColor: 'var(--accent-blue)' }}>
+                            🔒 Yêu cầu
+                          </button>
+                        )
+                      ) : (
+                        <button className="btn-primary" onClick={() => handleJoinStudyGroup(group.id)} style={{ padding: '4px 10px', fontSize: '11px' }}>
+                          Tham gia
+                        </button>
+                      )}
+                    </>
+                  )}
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="card" style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '40px', color: 'var(--text-muted)', background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+              👥 Chưa có nhóm học tập nào được tạo. Hãy là người đầu tiên tạo nhóm nhé!
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  ) : null
+}
+
+            </div >
+          )}
+        </div >
+
+  {/* Right Sidebar Column (Gamification Profile Widget & Info) */ }
+  < div >
+  { gamifyProfile && (
+    <div className="card gamify-card" style={{ padding: '20px', background: 'var(--bg-card)', border: '1px solid var(--border)', marginBottom: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+        <div style={{ width: '48px', height: '48px', background: 'var(--primary-bg)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px' }}>
+          ⚡
+        </div>
+        <div>
+          <h4 style={{ fontWeight: 'bold', fontSize: '15px' }}>{currentUser?.fullName}</h4>
+          <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: 0 }}>Cấp độ hiện tại: {gamifyProfile.level}</p>
+        </div>
+      </div>
+
+      {/* Progress bar */}
+      <div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '6px' }}>
+          <span>Tiến trình cấp độ</span>
+          <span>{gamifyProfile.xp} XP / {gamifyProfile.nextLevelXP} XP</span>
+        </div>
+        <div style={{ width: '100%', height: '8px', background: 'var(--bg-main)', borderRadius: '4px', overflow: 'hidden' }}>
+          <div style={{ width: `${gamifyProfile.progress}%`, height: '100%', background: 'var(--primary)', transition: 'width 0.4s ease' }} />
+        </div>
+      </div>
+
+      {/* Daily Streak widget */}
+      <div style={{ background: 'var(--bg-main)', padding: '12px', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid var(--border)' }}>
+        <div>
+          <span style={{ fontSize: '11px', color: 'var(--text-secondary)', display: 'block' }}>Chuỗi hoạt động</span>
+          <span style={{ fontSize: '15px', fontWeight: 'bold', color: 'var(--primary)' }}>🔥 {gamifyProfile.streakDays || 0} Ngày liên tục</span>
+        </div>
+      </div>
+
+      {/* Badges Grid */}
+      <div>
+        <h5 style={{ fontSize: '12.5px', fontWeight: 'bold', marginBottom: '8px' }}>🎖️ Huy hiệu của bạn ({gamifyProfile.badges?.length || 0})</h5>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+          {gamifyProfile.badges && gamifyProfile.badges.length > 0 ? (
+            gamifyProfile.badges.map(b => (
+              <span
+                key={b.id}
+                className="badge-pill"
+                style={{ background: 'rgba(255,168,0,0.12)', color: 'rgb(255,168,0)', border: '1px solid rgba(255,168,0,0.3)', fontSize: '11px' }}
+                title={b.description}
+              >
+                🏅 {b.name}
+              </span>
+            ))
+          ) : (
+            <span style={{ fontSize: '11.5px', color: 'var(--text-muted)', fontStyle: 'italic' }}>Chưa mở khóa huy hiệu nào. Hãy tham gia tích cực để nhận thưởng!</span>
+          )}
+        </div>
+      </div>
+    </div>
+  )}
+
+{/* Quick Guidance Card */ }
+<div className="card" style={{ padding: '16px', background: 'var(--bg-card)', border: '1px solid var(--border)', fontSize: '12.5px', color: 'var(--text-secondary)' }}>
+  <h5 style={{ fontWeight: 'bold', color: 'var(--text-main)', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+    💡 Thể lệ tính điểm XP:
+  </h5>
+  <ul style={{ paddingLeft: '18px', display: 'flex', flexDirection: 'column', gap: '4px', margin: 0 }}>
+    <li>Câu hỏi hữu ích: +5 XP</li>
+    <li>Lời giải được chọn: +15 XP</li>
+    <li>Đóng góp bình luận: +2 XP</li>
+    <li>Tải xuống tài liệu hữu ích: +5 XP</li>
+  </ul>
+</div>
+        </div >
+      </div >
+
+  {/* ================= MODALS ================= */ }
+
+{/* Create New Post Modal */ }
+{
+  showCreateModal && (
+    <div className="modal-backdrop" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 999 }}>
+      <div className="modal-card card" style={{ maxWidth: '600px', width: '90%', padding: '24px', background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+          <h3 style={{ fontSize: '17px', fontWeight: 'bold' }}>Tạo bài viết thảo luận mới</h3>
+          <button onClick={() => setShowCreateModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '18px', color: 'var(--text-muted)' }}>✕</button>
+        </div>
+
+        <form onSubmit={handleCreatePost} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          <div className="form-group">
+            <label style={{ fontSize: '12px', fontWeight: '600', marginBottom: '6px', display: 'block' }}>Chủ đề / Môn học:</label>
+            <select className="form-control" value={newCategoryId} onChange={e => setNewCategoryId(e.target.value)} style={{ width: '100%' }}>
+              {categories.map(cat => (
+                <option key={cat.id} value={cat.id}>{cat.name}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="form-group">
+            <label style={{ fontSize: '12px', fontWeight: '600', marginBottom: '6px', display: 'block' }}>Dạng bài đăng:</label>
+            <select className="form-control" value={newPostType} onChange={e => setNewPostType(e.target.value)} style={{ width: '100%' }}>
+              <option value="GENERAL">Thảo luận chung</option>
+              <option value="QA">Hỏi & Đáp (Q&A)</option>
+              <option value="RESOURCE">Chia sẻ tài liệu / Đề thi</option>
+            </select>
+          </div>
+
+          {newPostType === 'QA' && (
+            <div className="form-group">
+              <label style={{ fontSize: '12px', fontWeight: '600', marginBottom: '6px', display: 'block' }}>Độ khó:</label>
+              <select className="form-control" value={newDifficulty} onChange={e => setNewDifficulty(e.target.value)} style={{ width: '100%' }}>
+                <option value="EASY">Dễ</option>
+                <option value="MEDIUM">Trung bình</option>
+                <option value="HARD">Khó</option>
+              </select>
+            </div>
+          )}
+
+          {newPostType === 'RESOURCE' && (
+            <div className="form-group" style={{ background: 'var(--bg-main)', padding: '12px', borderRadius: '6px', border: '1px dashed var(--border)' }}>
+              <label style={{ fontSize: '12px', fontWeight: '600', marginBottom: '6px', display: 'block' }}>Đính kèm tệp học liệu (Mô phỏng):</label>
+              <input
+                type="text"
+                className="form-control"
+                placeholder="URL tài liệu (ví dụ: https://edupath.cdn/files/math12.pdf)"
+                onChange={e => setResourceFile({ fileUrl: e.target.value, fileType: 'PDF', fileSize: 2048000 })}
+                style={{ width: '100%', fontSize: '12px' }}
+                required
+              />
+            </div>
+          )}
+
+          <div className="form-group">
+            <label style={{ fontSize: '12px', fontWeight: '600', marginBottom: '6px', display: 'block' }}>Tiêu đề câu hỏi / bài thảo luận:</label>
+            <input
+              type="text" className="form-control" placeholder="Ví dụ: Cách bấm máy Casio nghiệm nguyên đạo hàm?"
+              value={newTitle} onChange={e => setNewTitle(e.target.value)} style={{ width: '100%' }} required
+            />
+          </div>
+
+          <div className="form-group">
+            <label style={{ fontSize: '12px', fontWeight: '600', marginBottom: '6px', display: 'block' }}>Nội dung chi tiết câu hỏi:</label>
+            <textarea
+              className="form-control" placeholder="Nhập nội dung chi tiết bài toán, bạn đã thử cách nào..."
+              value={newContent} onChange={e => setNewContent(e.target.value)} style={{ width: '100%', minHeight: '120px', resize: 'vertical' }} required
+            />
+          </div>
+
+          <div className="form-group">
+            <label style={{ fontSize: '12px', fontWeight: '600', marginBottom: '6px', display: 'block' }}>Thẻ phân loại (ngăn cách bởi dấu phẩy):</label>
+            <input
+              type="text" className="form-control" placeholder="Ví dụ: casio, daoham, toan12"
+              value={newTagsString} onChange={e => setNewTagsString(e.target.value)} style={{ width: '100%' }}
+            />
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>
+            <button type="button" className="btn-outline" onClick={() => setShowCreateModal(false)}>Hủy bỏ</button>
+            <button type="submit" className="btn-primary">Đăng lên diễn đàn</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
+{/* Create New Group Modal */ }
+{
+  showGroupModal && (
+    <div className="modal-backdrop" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 999 }}>
+      <div className="modal-card card" style={{ maxWidth: '500px', width: '90%', padding: '24px', background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+          <h3 style={{ fontSize: '17px', fontWeight: 'bold' }}>Tạo nhóm học tập mới</h3>
+          <button onClick={() => setShowGroupModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '18px', color: 'var(--text-muted)' }}>✕</button>
+        </div>
+
+        <form onSubmit={handleCreateStudyGroup} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          <div className="form-group">
+            <label style={{ fontSize: '12px', fontWeight: '600', marginBottom: '6px', display: 'block' }}>Tên nhóm học tập:</label>
+            <input type="text" name="groupName" className="form-control" placeholder="Ví dụ: Ôn thi khối A1 chuyên sâu" style={{ width: '100%' }} required />
+          </div>
+
+          <div className="form-group">
+            <label style={{ fontSize: '12px', fontWeight: '600', marginBottom: '6px', display: 'block' }}>Mô tả mục tiêu nhóm:</label>
+            <textarea name="groupDesc" className="form-control" placeholder="Mô tả lịch học, tài liệu trao đổi..." style={{ width: '100%', minHeight: '80px' }} required />
+          </div>
+
+          <div className="form-group" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <input type="checkbox" name="groupPrivate" id="groupPrivate" />
+            <label htmlFor="groupPrivate" style={{ fontSize: '13px' }}>Đặt nhóm ở chế độ riêng tư (Yêu cầu lời mời)</label>
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>
+            <button type="button" className="btn-outline" onClick={() => setShowGroupModal(false)}>Hủy bỏ</button>
+            <button type="submit" className="btn-primary">Tạo nhóm</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
+{/* Safety Report Modal */ }
+{
+  showReportModal && (
+    <div className="modal-backdrop" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 999 }}>
+      <div className="modal-card card" style={{ maxWidth: '400px', width: '90%', padding: '24px', background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+          <h3 style={{ fontSize: '16px', fontWeight: 'bold' }}>Báo cáo nội dung không lành mạnh</h3>
+          <button onClick={() => setShowReportModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '18px', color: 'var(--text-muted)' }}>✕</button>
+        </div>
+
+        <form onSubmit={handleSendReport} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <div className="form-group">
+            <label style={{ fontSize: '12.5px', marginBottom: '6px', display: 'block' }}>Lý do báo cáo:</label>
+            <textarea
+              className="form-control"
+              placeholder="Vui lòng cung cấp lý do chi tiết (Spam, ngôn từ kích động, xúc phạm giáo viên/học sinh...)"
+              value={reportReason}
+              onChange={e => setReportReason(e.target.value)}
+              style={{ width: '100%', minHeight: '100px' }}
+              required
+            />
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>
+            <button type="button" className="btn-outline" onClick={() => setShowReportModal(false)}>Hủy</button>
+            <button type="submit" className="btn-primary">Gửi báo cáo</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+    </div >
   );
 }
