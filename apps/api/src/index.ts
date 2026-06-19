@@ -15,7 +15,7 @@ import { getExams, getExamById, startAttempt, saveAnswer, submitAttempt, getAtte
 import { streamAIChat, refreshRoadmap, generateAIQuestions, generateMindmap, saveMindmap, getMindmaps, getMindmapById, deleteMindmap, generateFlashcards, getPublicMindmapById, generateNodeQuiz, submitNodeQuiz, getNodeProgress, generateWeaknessMindmap, uploadExamFile, generateExamMindmap } from './controllers/ai.js';
 
 import { chatbotConsult } from './controllers/chatbot.js';
-import { getDocumentResources, getDocumentComments, addDocumentComment } from './controllers/document.js';
+import { getDocumentResources, getDocumentComments, addDocumentComment, checkDocumentOwnership } from './controllers/document.js';
 import { createVNPayPayment, vnpayWebhook, sepayWebhook, checkEnrollmentStatus, checkUserProStatus } from './controllers/payment.js';
 import { authenticateJWT, requireRole } from './middleware/auth.js';
 import { getAdminStats, getAdminUsers, toggleUserBan, getAdminLeads, createAdminLead, updateAdminLeadStatus, getFeatureFlags, toggleFeatureFlag } from './controllers/admin.js';
@@ -122,6 +122,7 @@ app.post('/courses', authenticateJWT, requireRole(['TEACHER', 'ADMIN']), createC
 app.get('/document-resources', getDocumentResources);
 app.get('/document-resources/:id/comments', getDocumentComments);
 app.post('/document-resources/:id/comments', authenticateJWT, addDocumentComment);
+app.get('/document-resources/:id/ownership', authenticateJWT, checkDocumentOwnership);
 
 // Protected Exam Routes
 app.get('/exams', getExams);

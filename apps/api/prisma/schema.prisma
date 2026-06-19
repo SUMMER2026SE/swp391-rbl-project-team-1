@@ -53,6 +53,7 @@ model User {
   examAnalyses         ExamPaperAnalysis[]
   uploadedExamFiles    UploadedExamFile[]
   weaknessMindmaps     WeaknessMindmap[]
+  purchasedDocuments   UserDocument[]
 }
 
 
@@ -631,6 +632,7 @@ model DocumentResource {
   commissionPercent   Float?
   markdownDescription String?  @db.Text
   comments            DocumentComment[]
+  purchasedUsers      UserDocument[]
 
   @@map("document_resources")
 }
@@ -850,6 +852,20 @@ model UploadedExamFile {
 
   @@map("uploaded_exam_files")
 }
+
+model UserDocument {
+  id            Int              @id @default(autoincrement())
+  userId        Int
+  documentId    Int
+  purchasedAt   DateTime         @default(now())
+  paidPrice     Int              
+  transactionId String?          @unique 
+  user          User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  document      DocumentResource @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  @@unique([userId, documentId])
+  @@map("user_documents")
+}
+
 
 
 

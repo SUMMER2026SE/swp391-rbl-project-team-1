@@ -68,7 +68,7 @@ function renderDescription(desc) {
 // ============================================================
 // EXAM BANK PAGE COMPONENT (DOCUMENT REPOSITORY)
 // ============================================================
-export default function ExamBankPage({ currentUser, navigateTo }) {
+export default function ExamBankPage({ currentUser, navigateTo, onAddToCart, onCheckoutCourse }) {
   const [selectedSubject, setSelectedSubject] = useState('all');
   const [selectedLevel, setSelectedLevel] = useState('Tất cả');
   const [selectedPriceFilter, setSelectedPriceFilter] = useState('Tất cả');
@@ -441,6 +441,28 @@ export default function ExamBankPage({ currentUser, navigateTo }) {
     return () => clearTimeout(delayDebounceFn);
   }, [selectedSubject, selectedLevel, selectedPriceFilter, searchQuery, page]);
 
+  useEffect(() => {
+    const handlePaymentSuccessEvent = (e) => {
+      if (e.detail?.type === 'document') {
+        fetchDocuments(page);
+        // Also if previewDoc matches the purchased document, we can update it or fetch details
+        if (previewDoc && previewDoc.id.toString() === e.detail.documentId?.toString()) {
+          // Find document in updated data or set it to include driveUrl
+          api.getDocumentResources({ search: previewDoc.title }).then((response) => {
+            if (response && response.success) {
+              const matched = response.data.find(d => d.id === previewDoc.id);
+              if (matched) {
+                setPreviewDoc(matched);
+              }
+            }
+          });
+        }
+      }
+    };
+    window.addEventListener('app:payment-success', handlePaymentSuccessEvent);
+    return () => window.removeEventListener('app:payment-success', handlePaymentSuccessEvent);
+  }, [page, selectedSubject, selectedLevel, selectedPriceFilter, searchQuery, previewDoc]);
+
   const getPageNumbers = () => {
     const delta = 2;
     const range = [];
@@ -477,12 +499,63 @@ export default function ExamBankPage({ currentUser, navigateTo }) {
   }, [documents, totalItems]);
 
   const handleDownload = (doc) => {
+    if (doc.price > 0 && !doc.driveUrl) {
+      if (!currentUser) {
+        toast('Vui lòng đăng nhập để tải tài liệu Premium!', 'warning');
+        return;
+      }
+      onAddToCart?.({
+        id: doc.id,
+        title: doc.title,
+        price: doc.price,
+        subject: doc.subject,
+        imageUrl: doc.imageUrl,
+        isDocument: true
+      });
+      onCheckoutCourse?.({
+        id: doc.id,
+        title: doc.title,
+        price: doc.price,
+        subject: doc.subject,
+        imageUrl: doc.imageUrl,
+        isDocument: true
+      });
+      return;
+    }
+
     if (doc.driveUrl) {
       window.open(doc.driveUrl, '_blank');
       toast(`Đang tải xuống: ${doc.title}`, 'success');
     } else {
-      toast(`Tài liệu này chưa có liên kết tải trực tiếp.`, 'error');
+      toast(`Tài liệu này chưa có liên kết tải trực tiếp hoặc cần đăng nhập để mua tài liệu Premium.`, 'error');
     }
+  };
+
+  const handleViewDetails = (doc) => {
+    if (doc.price > 0 && !doc.driveUrl) {
+      if (!currentUser) {
+        toast('Vui lòng đăng nhập để mua tài liệu Premium!', 'warning');
+        return;
+      }
+      onAddToCart?.({
+        id: doc.id,
+        title: doc.title,
+        price: doc.price,
+        subject: doc.subject,
+        imageUrl: doc.imageUrl,
+        isDocument: true
+      });
+      onCheckoutCourse?.({
+        id: doc.id,
+        title: doc.title,
+        price: doc.price,
+        subject: doc.subject,
+        imageUrl: doc.imageUrl,
+        isDocument: true
+      });
+      return;
+    }
+    setPreviewDoc(doc);
   };
 
   const isGuest = !currentUser;
@@ -710,7 +783,7 @@ export default function ExamBankPage({ currentUser, navigateTo }) {
                     <div className="exambank-card__actions">
                       <button
                         className="exambank-card__btn exambank-card__btn--view"
-                        onClick={() => setPreviewDoc(doc)}
+                        onClick={() => handleViewDetails(doc)}
                       >
                         <HiEye /> Xem chi tiết
                       </button>

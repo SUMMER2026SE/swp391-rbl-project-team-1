@@ -1646,6 +1646,14 @@ export default function App() {
 
   // Student purchases course
   const handlePaymentSuccess = async (courseId) => {
+    if (checkoutCourse?.isDocument) {
+      setCheckoutCourse(null);
+      setCartCourse(null);
+      localStorage.removeItem('app_cart_course');
+      window.dispatchEvent(new CustomEvent('app:payment-success', { detail: { type: 'document', documentId: courseId } }));
+      return;
+    }
+
     // Write payment & enrollment rows into local storage db / Supabase tables
     if (currentUser) {
       try {
@@ -2160,6 +2168,8 @@ export default function App() {
               <ExamBankPage
                 currentUser={currentUser}
                 navigateTo={navigateTo}
+                onAddToCart={handleAddToCart}
+                onCheckoutCourse={(item) => setCheckoutCourse(item)}
               />
             </div>
           )}
