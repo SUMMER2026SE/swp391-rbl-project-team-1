@@ -79,6 +79,11 @@ export default function ExamBankPage({ currentUser, navigateTo }) {
   const [error, setError] = useState(null);
   const [previewDoc, setPreviewDoc] = useState(null);
 
+  const [page, setPage] = useState(1);
+  const [hasNextPage, setHasNextPage] = useState(false);
+  const [totalItems, setTotalItems] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+
   // ============================================================
   // LOCAL AI SEARCH, ROADMAP & CHATBOT STATES
   // ============================================================
@@ -358,7 +363,7 @@ export default function ExamBankPage({ currentUser, navigateTo }) {
       setIsSuggesting(true);
       try {
         const data = await api.getDocumentResources({ search: aiSearchText });
-        setSuggestedDocs(data.slice(0, 5));
+        setSuggestedDocs(data.data.slice(0, 5));
       } catch (err) {
         console.error('Error fetching suggestions:', err);
       } finally {
@@ -384,62 +389,92 @@ export default function ExamBankPage({ currentUser, navigateTo }) {
     }
   }, [selectedDirectDoc]);
 
+  const fetchDocuments = async (pageNum) => {
+    setLoading(true);
+    try {
+      const queryParams = {
+        page: pageNum,
+        limit: 30
+      };
+      if (selectedSubject !== 'all') {
+        const matched = SUBJECTS.find(s => s.id === selectedSubject);
+        queryParams.subject = matched ? matched.dbName : selectedSubject;
+      }
+      if (selectedLevel !== 'Tất cả') {
+        queryParams.level = selectedLevel;
+      }
+      if (selectedPriceFilter === 'Miễn phí') {
+        queryParams.isFree = 'true';
+      } else if (selectedPriceFilter === 'Premium') {
+        queryParams.isFree = 'false';
+      }
+      if (searchQuery.trim()) {
+        queryParams.search = searchQuery;
+      }
+      
+      const response = await api.getDocumentResources(queryParams);
+      if (response && response.success) {
+        setDocuments(response.data);
+        setHasNextPage(response.meta?.hasNextPage || false);
+        setTotalItems(response.meta?.totalItems || 0);
+        setTotalPages(response.meta?.totalPages || 1);
+        setError(null);
+      }
+    } catch (err) {
+      setError(err.message || 'Không thể tải danh sách tài liệu.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Reset page to 1 when filters change
+  useEffect(() => {
+    setPage(1);
+  }, [selectedSubject, selectedLevel, selectedPriceFilter, searchQuery]);
+
   // Load documents from backend
   useEffect(() => {
-    let active = true;
-    const fetchDocuments = async () => {
-      setLoading(true);
-      try {
-        const queryParams = {};
-        if (selectedSubject !== 'all') {
-          const matched = SUBJECTS.find(s => s.id === selectedSubject);
-          queryParams.subject = matched ? matched.dbName : selectedSubject;
-        }
-        if (selectedLevel !== 'Tất cả') {
-          queryParams.level = selectedLevel;
-        }
-        if (selectedPriceFilter === 'Miễn phí') {
-          queryParams.isFree = 'true';
-        } else if (selectedPriceFilter === 'Premium') {
-          queryParams.isFree = 'false';
-        }
-        if (searchQuery.trim()) {
-          queryParams.search = searchQuery;
-        }
-        
-        const data = await api.getDocumentResources(queryParams);
-        if (active) {
-          setDocuments(data);
-          setError(null);
-        }
-      } catch (err) {
-        if (active) {
-          setError(err.message || 'Không thể tải danh sách tài liệu.');
-        }
-      } finally {
-        if (active) {
-          setLoading(false);
-        }
-      }
-    };
-
     const delayDebounceFn = setTimeout(() => {
-      fetchDocuments();
+      fetchDocuments(page);
     }, 300);
 
-    return () => {
-      active = false;
-      clearTimeout(delayDebounceFn);
-    };
-  }, [selectedSubject, selectedLevel, selectedPriceFilter, searchQuery]);
+    return () => clearTimeout(delayDebounceFn);
+  }, [selectedSubject, selectedLevel, selectedPriceFilter, searchQuery, page]);
+
+  const getPageNumbers = () => {
+    const delta = 2;
+    const range = [];
+    const rangeWithDots = [];
+    let l;
+
+    for (let i = 1; i <= totalPages; i++) {
+      if (i === 1 || i === totalPages || (i >= page - delta && i <= page + delta)) {
+        range.push(i);
+      }
+    }
+
+    for (let i of range) {
+      if (l) {
+        if (i - l === 2) {
+          rangeWithDots.push(l + 1);
+        } else if (i - l > 2) {
+          rangeWithDots.push('...');
+        }
+      }
+      rangeWithDots.push(i);
+      l = i;
+    }
+
+    return rangeWithDots;
+  };
 
   // Compute metrics from fetched data
   const stats = useMemo(() => {
-    const total = documents.length;
+    const total = totalItems;
     const uniqueSubjects = new Set(documents.map(d => d.subject)).size;
     const freeCount = documents.filter(d => d.isFree).length;
     return { total, uniqueSubjects, freeCount };
-  }, [documents]);
+  }, [documents, totalItems]);
 
   const handleDownload = (doc) => {
     if (doc.driveUrl) {
@@ -617,78 +652,233 @@ export default function ExamBankPage({ currentUser, navigateTo }) {
             <p className="exambank-empty__desc">Hãy thử thay đổi bộ lọc hoặc từ khóa tìm kiếm.</p>
           </div>
         ) : (
-          <div className="exambank-grid">
-            {documents.map((doc) => {
-              // Match subject color and emoji
-              const matchedSubject = SUBJECTS.find(s => s.dbName.toLowerCase() === doc.subject.toLowerCase());
-              const cardColor = matchedSubject ? matchedSubject.color : '#64748b';
-              const cardEmoji = matchedSubject ? matchedSubject.emoji : '📄';
-              
-              // Get file extension from title (e.g. PDF)
-              const ext = doc.title.split('.').pop()?.toUpperCase() || 'PDF';
-              const displayExt = ext.length > 4 ? 'DOC' : ext;
-
-              return (
-                <article
-                  key={doc.id}
-                  className="exambank-card"
-                  style={{ '--card-color': cardColor }}
-                >
-                  <div className="exambank-card__header">
-                    <div className="exambank-card__year-badge" style={{ background: cardColor }}>
-                      <span>{displayExt}</span>
-                      <small>Định dạng</small>
-                    </div>
-                    <div className="exambank-card__info">
-                      <div className="exambank-card__subject-tag">
-                        {cardEmoji} {doc.subject}
+          <>
+            <div className="exambank-grid">
+              {documents.map((doc) => {
+                // Match subject color and emoji
+                const matchedSubject = SUBJECTS.find(s => s.dbName.toLowerCase() === doc.subject.toLowerCase());
+                const cardColor = matchedSubject ? matchedSubject.color : '#64748b';
+                const cardEmoji = matchedSubject ? matchedSubject.emoji : '📄';
+                
+                // Get file extension from title (e.g. PDF)
+                const ext = doc.title.split('.').pop()?.toUpperCase() || 'PDF';
+                const displayExt = ext.length > 4 ? 'DOC' : ext;
+  
+                return (
+                  <article
+                    key={doc.id}
+                    className="exambank-card"
+                    style={{ '--card-color': cardColor }}
+                  >
+                    <div className="exambank-card__header">
+                      <div className="exambank-card__year-badge" style={{ background: cardColor }}>
+                        <span>{displayExt}</span>
+                        <small>Định dạng</small>
                       </div>
-                      <h3 className="exambank-card__title" style={{ fontSize: '14px', fontWeight: '800', maxHeight: '42px', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
-                        {doc.title}
-                      </h3>
-                      <p className="exambank-card__subtitle" style={{ fontSize: '11.5px', marginTop: '4px' }}>
-                        Khối lớp: {doc.level === 'Sinh viên' ? 'Sinh viên' : `Lớp ${doc.level}`}
-                      </p>
+                      <div className="exambank-card__info">
+                        <div className="exambank-card__subject-tag">
+                          {cardEmoji} {doc.subject}
+                        </div>
+                        <h3 className="exambank-card__title" style={{ fontSize: '14px', fontWeight: '800', maxHeight: '42px', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                          {doc.title}
+                        </h3>
+                        <p className="exambank-card__subtitle" style={{ fontSize: '11.5px', marginTop: '4px' }}>
+                          Khối lớp: {doc.level === 'Sinh viên' ? 'Sinh viên' : `Lớp ${doc.level}`}
+                        </p>
+                      </div>
                     </div>
-                  </div>
+  
+                    <div className="exambank-card__stats" style={{ background: '#FAF8F4' }}>
+                      <div className="exambank-card__stat">
+                        <span className="exambank-card__stat-value" style={{ color: doc.isFree ? '#22C55E' : '#E28743' }}>
+                          {doc.isFree ? 'Miễn phí' : 'Premium'}
+                        </span>
+                        <div className="exambank-card__stat-label">Bản quyền</div>
+                      </div>
+                      <div className="exambank-card__stat">
+                        <span className="exambank-card__stat-value">
+                          {doc.price === 0 ? '0đ' : `${doc.price.toLocaleString('vi-VN')}đ`}
+                        </span>
+                        <div className="exambank-card__stat-label">Đơn giá</div>
+                      </div>
+                      <div className="exambank-card__stat">
+                        <span className="exambank-card__stat-value">Drive</span>
+                        <div className="exambank-card__stat-label">Lưu trữ</div>
+                      </div>
+                    </div>
+  
+                    <div className="exambank-card__actions">
+                      <button
+                        className="exambank-card__btn exambank-card__btn--view"
+                        onClick={() => setPreviewDoc(doc)}
+                      >
+                        <HiEye /> Xem chi tiết
+                      </button>
+                      <button
+                        className="exambank-card__btn exambank-card__btn--download"
+                        onClick={() => handleDownload(doc)}
+                      >
+                        <HiDownload /> Tải tài liệu
+                      </button>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+            {totalPages > 1 && (
+              <div style={{
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                gap: '8px',
+                marginTop: '48px',
+                flexWrap: 'wrap'
+              }}>
+                {/* Prev button */}
+                <button
+                  onClick={() => {
+                    if (page > 1) {
+                      setPage(page - 1);
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }
+                  }}
+                  disabled={page === 1}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: '40px',
+                    height: '40px',
+                    borderRadius: '50%',
+                    border: '1.5px solid #e2e8f0',
+                    background: '#fff',
+                    color: '#64748b',
+                    cursor: page === 1 ? 'not-allowed' : 'pointer',
+                    opacity: page === 1 ? 0.5 : 1,
+                    transition: 'all 0.2s ease',
+                  }}
+                  onMouseOver={(e) => {
+                    if (page > 1) {
+                      e.currentTarget.style.borderColor = '#5b75f3';
+                      e.currentTarget.style.color = '#5b75f3';
+                      e.currentTarget.style.transform = 'translateX(-2px)';
+                    }
+                  }}
+                  onMouseOut={(e) => {
+                    if (page > 1) {
+                      e.currentTarget.style.borderColor = '#e2e8f0';
+                      e.currentTarget.style.color = '#64748b';
+                      e.currentTarget.style.transform = 'none';
+                    }
+                  }}
+                >
+                  ←
+                </button>
 
-                  <div className="exambank-card__stats" style={{ background: '#FAF8F4' }}>
-                    <div className="exambank-card__stat">
-                      <span className="exambank-card__stat-value" style={{ color: doc.isFree ? '#22C55E' : '#E28743' }}>
-                        {doc.isFree ? 'Miễn phí' : 'Premium'}
+                {/* Page numbers */}
+                {getPageNumbers().map((p, idx) => {
+                  if (p === '...') {
+                    return (
+                      <span key={`dots-${idx}`} style={{
+                        padding: '0 8px',
+                        color: '#94a3b8',
+                        fontSize: '14px',
+                        fontWeight: '600'
+                      }}>
+                        ...
                       </span>
-                      <div className="exambank-card__stat-label">Bản quyền</div>
-                    </div>
-                    <div className="exambank-card__stat">
-                      <span className="exambank-card__stat-value">
-                        {doc.price === 0 ? '0đ' : `${doc.price.toLocaleString('vi-VN')}đ`}
-                      </span>
-                      <div className="exambank-card__stat-label">Đơn giá</div>
-                    </div>
-                    <div className="exambank-card__stat">
-                      <span className="exambank-card__stat-value">Drive</span>
-                      <div className="exambank-card__stat-label">Lưu trữ</div>
-                    </div>
-                  </div>
+                    );
+                  }
 
-                  <div className="exambank-card__actions">
+                  const isCurrent = p === page;
+
+                  return (
                     <button
-                      className="exambank-card__btn exambank-card__btn--view"
-                      onClick={() => setPreviewDoc(doc)}
+                      key={`page-${p}`}
+                      onClick={() => {
+                        setPage(p);
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        minWidth: '40px',
+                        height: '40px',
+                        padding: '0 6px',
+                        borderRadius: '50%',
+                        border: isCurrent ? '1.5px solid #5b75f3' : '1.5px solid #e2e8f0',
+                        background: isCurrent ? '#5b75f3' : '#fff',
+                        color: isCurrent ? '#fff' : '#475569',
+                        fontWeight: '700',
+                        fontSize: '14px',
+                        cursor: 'pointer',
+                        boxShadow: isCurrent ? '0 4px 10px rgba(91, 117, 243, 0.25)' : 'none',
+                        transition: 'all 0.2s ease'
+                      }}
+                      onMouseOver={(e) => {
+                        if (!isCurrent) {
+                          e.currentTarget.style.borderColor = '#5b75f3';
+                          e.currentTarget.style.color = '#5b75f3';
+                          e.currentTarget.style.transform = 'translateY(-1px)';
+                        }
+                      }}
+                      onMouseOut={(e) => {
+                        if (!isCurrent) {
+                          e.currentTarget.style.borderColor = '#e2e8f0';
+                          e.currentTarget.style.color = '#475569';
+                          e.currentTarget.style.transform = 'none';
+                        }
+                      }}
                     >
-                      <HiEye /> Xem chi tiết
+                      {p}
                     </button>
-                    <button
-                      className="exambank-card__btn exambank-card__btn--download"
-                      onClick={() => handleDownload(doc)}
-                    >
-                      <HiDownload /> Tải tài liệu
-                    </button>
-                  </div>
-                </article>
-              );
-            })}
-          </div>
+                  );
+                })}
+
+                {/* Next button */}
+                <button
+                  onClick={() => {
+                    if (page < totalPages) {
+                      setPage(page + 1);
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }
+                  }}
+                  disabled={page === totalPages}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: '40px',
+                    height: '40px',
+                    borderRadius: '50%',
+                    border: '1.5px solid #e2e8f0',
+                    background: '#fff',
+                    color: '#64748b',
+                    cursor: page === totalPages ? 'not-allowed' : 'pointer',
+                    opacity: page === totalPages ? 0.5 : 1,
+                    transition: 'all 0.2s ease',
+                  }}
+                  onMouseOver={(e) => {
+                    if (page < totalPages) {
+                      e.currentTarget.style.borderColor = '#5b75f3';
+                      e.currentTarget.style.color = '#5b75f3';
+                      e.currentTarget.style.transform = 'translateX(2px)';
+                    }
+                  }}
+                  onMouseOut={(e) => {
+                    if (page < totalPages) {
+                      e.currentTarget.style.borderColor = '#e2e8f0';
+                      e.currentTarget.style.color = '#64748b';
+                      e.currentTarget.style.transform = 'none';
+                    }
+                  }}
+                >
+                  →
+                </button>
+              </div>
+            )}
+          </>
         )}
       </div>
 
