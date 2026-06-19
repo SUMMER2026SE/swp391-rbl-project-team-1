@@ -161,9 +161,6 @@ export const api = {
     request(`/forum/resources/${id}/download`, { method: 'POST' }),
 
   createForumReport: (postId, commentId, reason) =>
-<<<<<<< Updated upstream
-    request('/forum/moderation/reports', { method: 'POST', body: { postId, commentId, reason } })
-=======
     request('/forum/moderation/reports', { method: 'POST', body: { postId, commentId, reason } }),
 
   getGroupAnnouncements: (groupId) =>
@@ -287,6 +284,5 @@ export const api = {
       method: 'POST',
       body: payload
     })
->>>>>>> Stashed changes
 };
 

@@ -888,32 +888,6 @@ export default function Forum({ currentUser }) {
                 </div>
               )}
 
-              {activeTab === 'groups' && (
-                <div>
-                  {loading ? (
-                    <div style={{ textAlign: 'center', padding: '40px' }}><HiRefresh className="animate-spin" style={{ fontSize: '24px' }} /> Đang tải...</div>
-                  ) : (
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
-                      {studyGroups.map(group => (
-                        <div key={group.id} className="card" style={{ padding: '20px', background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
-                          <h4 style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '8px' }}>👥 {group.name}</h4>
-                          <p style={{ fontSize: '12.5px', color: 'var(--text-secondary)', minHeight: '40px', marginBottom: '14px' }}>{group.description}</p>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px', color: 'var(--text-muted)', borderTop: '1px solid var(--border)', paddingTop: '10px' }}>
-                            <span>Thành viên: {group.memberCount}</span>
-                            {group.isMember ? (
-                              <span style={{ color: 'var(--accent-green)', fontWeight: 'bold' }}>✓ Đã tham gia</span>
-                            ) : (
-                              <button className="btn-primary" onClick={() => handleJoinStudyGroup(group.id)} style={{ padding: '4px 10px', fontSize: '11px' }}>
-                                Tham gia
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
 
               {activeTab === 'drive' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -955,9 +929,168 @@ export default function Forum({ currentUser }) {
                 </div>
               )}
 
-              {stripImages(post.content) && (
-                <p style={{ fontSize: '13px', color: 'var(--text-secondary)', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', margin: '0 0 4px 0', lineHeight: 1.5 }}>{stripImages(post.content)}</p>
-              )}
+              {activeTab === 'groups' && selectedGroup ? (
+                /* GROUP WORKSPACE DETAIL VIEW */
+                <div className="card detailed-post-card animate-in" style={{ padding: '24px', background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+                  {/* Header info */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '16px', marginBottom: '20px' }}>
+                    <div style={{ display: 'flex', gap: '14px', alignItems: 'center' }}>
+                      <button className="btn-outline" onClick={() => setSelectedGroup(null)} style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '6px 12px' }}>
+                        <HiArrowLeft /> Danh sách nhóm
+                      </button>
+                      <div>
+                        <h2 style={{ fontSize: '18px', fontWeight: 'bold', margin: 0 }}>👥 {selectedGroup.name}</h2>
+                        <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: '2px 0 0 0' }}>{selectedGroup.description}</p>
+                      </div>
+                    </div>
+                    
+                    <button 
+                      className="btn-outline" 
+                      onClick={() => handleLeaveGroup(selectedGroup.id)}
+                      style={{ color: 'var(--accent-red)', borderColor: 'var(--accent-red)', background: 'none', padding: '6px 14px' }}
+                    >
+                      Rời nhóm
+                    </button>
+                  </div>
+
+                  {/* Tabs menu */}
+                  <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', marginBottom: '20px', gap: '8px' }}>
+                    {[
+                      { id: 'announcements', label: 'Bảng tin thông báo' },
+                      { id: 'discussion', label: 'Thảo luận nội bộ' },
+                      { id: 'chat', label: 'Hộp chat trực tuyến ⚡' },
+                      { id: 'members', label: 'Thành viên (' + (selectedGroup.members?.length || 0) + ')' }
+                    ].map(tab => (
+                      <button
+                        key={tab.id}
+                        id={`group-tab-${tab.id}`}
+                        onClick={() => setGroupTab(tab.id)}
+                        style={{
+                          padding: '10px 16px',
+                          border: 'none',
+                          borderBottom: groupTab === tab.id ? '2px solid var(--primary)' : '2px solid transparent',
+                          background: 'none',
+                          color: groupTab === tab.id ? 'var(--primary)' : 'var(--text-secondary)',
+                          cursor: 'pointer',
+                          fontWeight: '600',
+                          fontSize: '13px',
+                          transition: 'all 0.2s'
+                        }}
+                      >
+                        {tab.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Tab Announcement contents */}
+                  {groupTab === 'announcements' && (
+                    <div>
+                      {/* Only creators/admin can announce */}
+                      {(selectedGroup.creatorId === currentUser?.id || currentUser?.role === 'ADMIN' || currentUser?.role === 'TEACHER') && (
+                        <form onSubmit={handleCreateGroupAnnouncement} className="card" style={{ padding: '16px', background: 'var(--bg-main)', border: '1px solid var(--border)', marginBottom: '20px' }}>
+                          <h4 style={{ fontSize: '13.5px', fontWeight: 'bold', marginBottom: '10px' }}>📢 Phát hành thông báo nhóm mới</h4>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                            <input 
+                              type="text" 
+                              className="form-control" 
+                              placeholder="Tiêu đề thông báo..." 
+                              value={newAnnTitle}
+                              onChange={e => setNewAnnTitle(e.target.value)}
+                              required
+                            />
+                            <textarea 
+                              className="form-control" 
+                              placeholder="Nội dung thông báo chi tiết..." 
+                              value={newAnnContent}
+                              onChange={e => setNewAnnContent(e.target.value)}
+                              style={{ minHeight: '80px' }}
+                              required
+                            />
+                            <button type="submit" className="btn-primary" style={{ alignSelf: 'flex-end', padding: '6px 16px' }}>
+                              Phát thông báo
+                            </button>
+                          </div>
+                        </form>
+                      )}
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                        {groupAnnouncements.length > 0 ? (
+                          groupAnnouncements.map(ann => (
+                            <div key={ann.id} className="card" style={{ padding: '16px', border: '1px solid var(--border)' }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                  <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: 'var(--primary)', color: '#fff', fontSize: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
+                                    {ann.author?.fullName?.slice(0, 2).toUpperCase() || 'TR'}
+                                  </div>
+                                  <span style={{ fontSize: '12.5px', fontWeight: 'bold' }}>{ann.author?.fullName}</span>
+                                </div>
+                                <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{new Date(ann.createdAt).toLocaleString()}</span>
+                              </div>
+                              <h5 style={{ fontWeight: 'bold', fontSize: '14px', marginBottom: '6px', color: 'var(--text-main)' }}>{ann.title}</h5>
+                              <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: 0, whiteSpace: 'pre-line' }}>{ann.content}</p>
+                            </div>
+                          ))
+                        ) : (
+                          <div style={{ padding: '30px', textAlign: 'center', color: 'var(--text-secondary)', fontStyle: 'italic' }}>
+                            Không có thông báo nhóm nào.
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Tab Discussion content */}
+                  {groupTab === 'discussion' && (
+                    <div>
+                      {/* Simple group create post form */}
+                      <form onSubmit={handleCreateGroupPost} className="card" style={{ padding: '16px', background: 'var(--bg-main)', border: '1px solid var(--border)', marginBottom: '20px' }}>
+                        <h4 style={{ fontSize: '13.5px', fontWeight: 'bold', marginBottom: '10px' }}>✍️ Tạo bài thảo luận nội bộ</h4>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                          <select className="form-control" value={newCategoryId} onChange={e => setNewCategoryId(e.target.value)}>
+                            {categories.map(cat => (
+                              <option key={cat.id} value={cat.id}>{cat.name}</option>
+                            ))}
+                          </select>
+                          <input 
+                            type="text" 
+                            className="form-control" 
+                            placeholder="Tiêu đề thảo luận..." 
+                            value={newTitle}
+                            onChange={e => setNewTitle(e.target.value)}
+                            required
+                          />
+                          <textarea 
+                            className="form-control" 
+                            placeholder="Nội dung thảo luận..." 
+                            value={newContent}
+                            onChange={e => setNewContent(e.target.value)}
+                            style={{ minHeight: '80px' }}
+                            required
+                          />
+                          <button type="submit" className="btn-primary" style={{ alignSelf: 'flex-end', padding: '6px 16px' }}>
+                            Đăng thảo luận
+                          </button>
+                        </div>
+                      </form>
+
+                      {/* Display internal group posts */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                        {groupPosts.length > 0 ? (
+                          groupPosts.map(post => (
+                            <div 
+                              key={post.id} 
+                              className="card post-card" 
+                              style={{ padding: '16px', cursor: 'pointer', border: '1px solid var(--border)' }}
+                              onClick={() => setSelectedPost(post)}
+                            >
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                                <span className="badge-pill" style={{ background: 'var(--primary-bg)', color: 'var(--primary)', fontSize: '10px' }}>{post.category?.name}</span>
+                                <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{new Date(post.createdAt).toLocaleDateString()}</span>
+                              </div>
+                              <h4 style={{ fontWeight: 'bold', fontSize: '14.5px', marginBottom: '6px' }}>{post.title}</h4>
+                              {stripImages(post.content) && (
+                                <p style={{ fontSize: '13px', color: 'var(--text-secondary)', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', margin: '0 0 4px 0', lineHeight: 1.5 }}>{stripImages(post.content)}</p>
+                              )}
 
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border)', paddingTop: '10px', fontSize: '12px', color: 'var(--text-secondary)' }}>
                 <span>Tác giả: {post.author?.fullName}</span>
