@@ -7,10 +7,28 @@ import {
 import { io } from 'socket.io-client';
 import { api, API_BASE } from '../api';
 
+// Fallback Toast Helper since it is used in components but not defined in codebase
+const toast = (msg, type = 'success') => {
+  alert(msg);
+};
+
+// Helper function to strip image patterns from post preview contents
+function stripImages(content) {
+  if (!content) return '';
+  return content.replace(/!\[.*?\]\(.*?\)/g, '').replace(/https?:\/\/.*?\.(png|jpg|jpeg|gif)/gi, '').trim();
+}
+
 export default function Forum({ currentUser }) {
   // Global View Controls
   const [activeTab, setActiveTab] = useState('feed'); // feed, groups, drive, leaderboard
   const [selectedPost, setSelectedPost] = useState(null);
+
+  // Missing Study Group detailed states
+  const [selectedGroup, setSelectedGroup] = useState(null);
+  const [groupTab, setGroupTab] = useState('announcements');
+  const [newAnnTitle, setNewAnnTitle] = useState('');
+  const [newAnnContent, setNewAnnContent] = useState('');
+  const [chatInput, setChatInput] = useState('');
 
   // API State data
   const [posts, setPosts] = useState([]);
@@ -83,6 +101,14 @@ export default function Forum({ currentUser }) {
         // Check for duplicates
         if (prev.some(c => c.id === newComment.id)) return prev;
         return [...prev, newComment];
+      });
+    });
+
+    // Listen to real-time incoming chat messages
+    socketRef.current.on('receive_message', (newMsg) => {
+      setGroupChatMessages(prev => {
+        if (prev.some(m => m.id === newMsg.id)) return prev;
+        return [...prev, newMsg];
       });
     });
 
@@ -235,6 +261,87 @@ export default function Forum({ currentUser }) {
     } catch (err) {
       toast(err.message || 'Gửi lời mời thất bại!', 'error');
     }
+  };
+
+  const fetchGroupAnnouncements = async (groupId) => {
+    try {
+      const data = await api.getGroupAnnouncements(groupId);
+      setGroupAnnouncements(data || []);
+    } catch (err) {
+      console.error('Lỗi tải thông báo nhóm:', err);
+    }
+  };
+
+  const fetchGroupPosts = async (groupId) => {
+    try {
+      const data = await api.getForumPosts({ studyGroupId: groupId });
+      setGroupPosts(data || []);
+    } catch (err) {
+      console.error('Lỗi tải bài thảo luận nhóm:', err);
+    }
+  };
+
+  const handleCreateGroupAnnouncement = async (e) => {
+    e.preventDefault();
+    if (!newAnnTitle.trim() || !newAnnContent.trim() || !selectedGroup) return;
+    try {
+      await api.createGroupAnnouncement(selectedGroup.id, newAnnTitle, newAnnContent);
+      setNewAnnTitle('');
+      setNewAnnContent('');
+      fetchGroupAnnouncements(selectedGroup.id);
+      toast('Đăng thông báo nhóm thành công!', 'success');
+    } catch (err) {
+      toast(err.message || 'Lỗi đăng thông báo nhóm!', 'error');
+    }
+  };
+
+  const handleCreateGroupPost = async (e) => {
+    e.preventDefault();
+    if (!newTitle.trim() || !newContent.trim() || !selectedGroup) return;
+    try {
+      await api.createForumPost({
+        title: newTitle,
+        content: newContent,
+        categoryId: Number(newCategoryId),
+        postType: 'GENERAL',
+        studyGroupId: selectedGroup.id
+      });
+      setNewTitle('');
+      setNewContent('');
+      fetchGroupPosts(selectedGroup.id);
+      toast('Đăng bài thảo luận nội bộ thành công!', 'success');
+    } catch (err) {
+      toast(err.message || 'Lỗi đăng thảo luận nội bộ!', 'error');
+    }
+  };
+
+  const handleLeaveGroup = async (groupId) => {
+    if (!window.confirm('Bạn có chắc chắn muốn rời nhóm học tập này?')) return;
+    try {
+      await api.leaveStudyGroup(groupId);
+      setSelectedGroup(null);
+      fetchStudyGroups();
+      toast('Đã rời nhóm thành công.', 'success');
+    } catch (err) {
+      toast(err.message || 'Lỗi khi rời nhóm!', 'error');
+    }
+  };
+
+  const handleSendChatMessage = (e) => {
+    e.preventDefault();
+    if (!chatInput.trim() || !selectedGroup || !socketRef.current) return;
+
+    const room = `group_${selectedGroup.id}`;
+    const messagePayload = {
+      roomId: room,
+      studentId: currentUser?.id,
+      role: currentUser?.role || 'STUDENT',
+      content: chatInput,
+      authorName: currentUser?.fullName
+    };
+
+    socketRef.current.emit('send_message', messagePayload);
+    setChatInput('');
   };
 
   const handleAcceptDeclineInvitation = async (requestId, action) => {
