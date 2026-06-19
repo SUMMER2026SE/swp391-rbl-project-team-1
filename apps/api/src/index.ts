@@ -18,7 +18,7 @@ import { chatbotConsult } from './controllers/chatbot.js';
 import { getDocumentResources, getDocumentComments, addDocumentComment } from './controllers/document.js';
 import { createVNPayPayment, vnpayWebhook, sepayWebhook, checkEnrollmentStatus, checkUserProStatus } from './controllers/payment.js';
 import { authenticateJWT, requireRole } from './middleware/auth.js';
-import { getAdminStats, getAdminUsers, toggleUserBan, getAdminLeads, createAdminLead, updateAdminLeadStatus, getFeatureFlags, toggleFeatureFlag } from './controllers/admin.js';
+import { getAdminStats, getAdminUsers, toggleUserBan, getAdminLeads, createAdminLead, updateAdminLeadStatus, getFeatureFlags, toggleFeatureFlag, getUserDetail, blockUser, unblockUser } from './controllers/admin.js';
 import { getLeaderboardRankings, getActivityHeatmap } from './controllers/gamification.js';
 import {
   getCategories, createCategory, deleteCategory,
@@ -105,6 +105,9 @@ app.post('/admin/exams/import', authenticateJWT, requireRole(['ADMIN']), importE
 // Admin Dashboard DB & Stats Routes
 app.get('/admin/stats', authenticateJWT, requireRole(['ADMIN']), getAdminStats);
 app.get('/admin/users', authenticateJWT, requireRole(['ADMIN']), getAdminUsers);
+app.get('/admin/users/:id/detail', authenticateJWT, requireRole(['ADMIN']), getUserDetail);
+app.post('/admin/users/:id/block', authenticateJWT, requireRole(['ADMIN']), blockUser);
+app.post('/admin/users/:id/unblock', authenticateJWT, requireRole(['ADMIN']), unblockUser);
 app.post('/admin/users/:id/ban', authenticateJWT, requireRole(['ADMIN']), toggleUserBan);
 app.get('/admin/leads', authenticateJWT, requireRole(['ADMIN']), getAdminLeads);
 app.post('/admin/leads', authenticateJWT, createAdminLead);

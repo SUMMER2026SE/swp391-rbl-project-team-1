@@ -4,6 +4,7 @@ import { prisma } from '../lib/prisma.js';
 import { Difficulty } from '@prisma/client';
 import { importExamFromObject } from '../utils/examImporter.js';
 import { logUserActivity } from './gamification.js';
+import { incrementBothStats } from '../lib/monthlyStats.js';
 
 
 export async function getExams(req: AuthRequest, res: Response) {
@@ -311,7 +312,16 @@ export async function submitAttempt(req: AuthRequest, res: Response) {
       console.error('[submitAttempt Activity Log Error]', err);
     }
 
+    // Cập nhật thống kê hàng tháng
+    try {
+      const now = new Date();
+      await incrementBothStats('totalAttempts', now);
+    } catch (err) {
+      console.error('[MonthlyStats] Lỗi cập nhật totalAttempts:', err);
+    }
+
     return res.status(200).json({ success: true, data: updatedAttempt });
+
   } catch (err: any) {
     return res.status(500).json({ success: false, error: err.message });
   }

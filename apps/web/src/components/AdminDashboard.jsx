@@ -16,9 +16,10 @@ import {
   HiSearch,
   HiArrowLeft
 } from 'react-icons/hi';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { AreaChart, Area, BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { api } from '../api';
 import { mockExamService } from '../services/mockExamService';
+import Header from './Header';
 
 const financeData = [
   { name: 'Tháng 1', revenue: 15.4 },
@@ -116,7 +117,19 @@ export default function AdminDashboard({
   booksList = [],
   setBooksList,
   featureFlags = [],
-  setFeatureFlags
+  setFeatureFlags,
+  
+  // Header Props
+  currentUser,
+  theme,
+  onToggleTheme,
+  notifications,
+  onClearNotifications,
+  onLogout,
+  onChangePassword,
+  onNavigateSettings,
+  cartCourse,
+  onCheckoutCourse
 }) {
   // Sidebar tabs state
   const [activeTab, setActiveTab] = useState('stats'); // stats, exams, content, books, users, leads, features
@@ -126,16 +139,22 @@ export default function AdminDashboard({
   
   // Dynamic stats state from Supabase
   const [stats, setStats] = useState({
-    totalUsers: 0,
-    newUsersThisWeek: 0,
-    totalLeads: 0,
-    attemptsToday: 0,
-    conversionRate: 0,
-    last7Days: [],
-    featureUsage: { mockExams: 0, chatbot: 0, mindmaps: 0, forum: 0, documents: 0 },
-    subjectStats: []
+    kpi: {
+      totalUsers: { value: 0, prevValue: 0, change: 0, description: 'Tài khoản đã đăng ký' },
+      newUsersThisWeek: { value: 0, prevValue: 0, change: 0, description: 'Đăng ký trong 7 ngày qua' },
+      totalAttempts: { value: 0, prevValue: 0, change: 0, description: 'Lượt thi thử THPTQG' },
+      totalAiQuestions: { value: 0, prevValue: 0, change: 0, description: 'Câu hỏi gửi tới AI Coach' },
+      revenue: { value: 0, prevValue: 0, change: 0, description: 'Doanh thu học phí kì này' }
+    },
+    attemptsChart: [],
+    aiQuestionsChart: [],
+    revenueChart: [],
+    topStudents: []
   });
   
+  const [timeFilter, setTimeFilter] = useState('this-month');
+  const [customStartDate, setCustomStartDate] = useState('');
+  const [customEndDate, setCustomEndDate] = useState('');
   const [loadingStats, setLoadingStats] = useState(false);
 
   const loadStats = async () => {
@@ -143,7 +162,12 @@ export default function AdminDashboard({
       setLoadingStats(true);
       try {
         const { api } = await import('../api');
-        const dbStats = await api.getAdminStats();
+        const params = { filter: timeFilter };
+        if (timeFilter === 'custom') {
+          if (customStartDate) params.startDate = customStartDate;
+          if (customEndDate) params.endDate = customEndDate;
+        }
+        const dbStats = await api.getAdminStats(params);
         if (dbStats) {
           setStats(dbStats);
         }
@@ -157,12 +181,174 @@ export default function AdminDashboard({
 
   useEffect(() => {
     loadStats();
-  }, [activeTab, submissions, leadsList, users]);
+  }, [activeTab, submissions, leadsList, users, timeFilter]);
+
+  // ────────────────────────────────────────────────────────────
+  // New States and Handlers for User Management
+  // ────────────────────────────────────────────────────────────
+  const [adminUsers, setAdminUsers] = useState([]);
+  const [userPagination, setUserPagination] = useState({ total: 0, page: 1, limit: 10, totalPages: 1 });
+  const [userStats, setUserStats] = useState({ totalUsers: 0, totalStudents: 0, totalTeachers: 0, totalBlocked: 0 });
+  const [userSearch, setUserSearch] = useState('');
+  const [userRoleFilter, setUserRoleFilter] = useState('all');
+  const [userStatusFilter, setUserStatusFilter] = useState('all');
+  const [userStartDate, setUserStartDate] = useState('');
+  const [userEndDate, setUserEndDate] = useState('');
+  const [userPage, setUserPage] = useState(1);
+  const [usersLoading, setUsersLoading] = useState(false);
+
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [userDetailLoading, setUserDetailLoading] = useState(false);
+  const [showDetailModal, setShowDetailModal] = useState(false);
+
+  const [userToBlock, setUserToBlock] = useState(null);
+  const [blockReason, setBlockReason] = useState('');
+  const [showBlockModal, setShowBlockModal] = useState(false);
+
+  const [userToUnblock, setUserToUnblock] = useState(null);
+  const [showUnblockModal, setShowUnblockModal] = useState(false);
+
+  const fetchUsers = async () => {
+    try {
+      setUsersLoading(true);
+      const res = await api.getAdminUsers({
+        search: userSearch,
+        role: userRoleFilter,
+        status: userStatusFilter,
+        startDate: userStartDate,
+        endDate: userEndDate,
+        page: userPage,
+        limit: 10
+      });
+      if (res) {
+        setAdminUsers(res.users);
+        setUserPagination(res.pagination);
+        setUserStats(res.stats);
+      }
+    } catch (err) {
+      toast(err.message || 'Lỗi tải danh sách người dùng', 'error');
+    } finally {
+      setUsersLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'users') {
+      fetchUsers();
+    }
+  }, [activeTab, userSearch, userRoleFilter, userStatusFilter, userStartDate, userEndDate, userPage]);
+
+  const handleViewUserDetail = async (userId) => {
+    try {
+      setUserDetailLoading(true);
+      setShowDetailModal(true);
+      setSelectedUser(null);
+      const res = await api.getUserDetail(userId);
+      if (res) {
+        setSelectedUser(res);
+      }
+    } catch (err) {
+      toast(err.message || 'Không thể lấy thông tin chi tiết', 'error');
+      setShowDetailModal(false);
+    } finally {
+      setUserDetailLoading(false);
+    }
+  };
+
+  const handleBlockUserSubmit = async () => {
+    if (!blockReason.trim()) {
+      toast('Vui lòng nhập lý do khóa!', 'warning');
+      return;
+    }
+    try {
+      await api.blockUser(userToBlock.id, blockReason);
+      toast(`Đã khóa tài khoản "${userToBlock.name}"`, 'success');
+      setShowBlockModal(false);
+      setBlockReason('');
+      fetchUsers();
+      if (addLog) {
+        addLog(`Khóa tài khoản ${userToBlock.email} lý do: ${blockReason}`, 'sys');
+      }
+    } catch (err) {
+      toast(err.message || 'Lỗi khóa tài khoản', 'error');
+    }
+  };
+
+  const handleUnblockUserSubmit = async () => {
+    try {
+      await api.unblockUser(userToUnblock.id);
+      toast(`Đã mở khóa tài khoản "${userToUnblock.name}"`, 'success');
+      setShowUnblockModal(false);
+      fetchUsers();
+      if (addLog) {
+        addLog(`Mở khóa tài khoản ${userToUnblock.email}`, 'sys');
+      }
+    } catch (err) {
+      toast(err.message || 'Lỗi mở khóa tài khoản', 'error');
+    }
+  };
 
   const [showBookModal, setShowBookModal] = useState(false);
   const [editingBook, setEditingBook] = useState(null);
   const [bookForm, setBookForm] = useState({ title: '', author: '', coverUrl: '', price: '', description: '', link: '' });
   const [leadSearch, setLeadSearch] = useState('');
+
+  const getCurrentDateVietnamese = () => {
+    const days = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
+    const now = new Date();
+    const dayName = days[now.getDay()];
+    const dateStr = String(now.getDate()).padStart(2, '0');
+    const monthStr = String(now.getMonth() + 1).padStart(2, '0');
+    const yearStr = now.getFullYear();
+    return `${dayName}, ngày ${dateStr} tháng ${monthStr}, ${yearStr}`;
+  };
+
+  const formatCurrency = (val) => {
+    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val || 0).replace('₫', 'đ');
+  };
+
+  const getFilterText = (filter) => {
+    switch (filter) {
+      case 'this-month':
+        return 'tháng này';
+      case 'last-month':
+        return 'tháng trước';
+      case '3-months':
+        return '3 tháng qua';
+      case '6-months':
+        return '6 tháng qua';
+      case 'this-year':
+        return 'năm nay';
+      case 'custom':
+        return 'trong kỳ';
+      default:
+        return 'trong kỳ';
+    }
+  };
+
+  const renderKpiCard = (title, icon, data, colorKey = 'blue') => {
+    const value = data?.value ?? 0;
+    const isRevenue = title.toLowerCase().includes('doanh thu');
+    const displayVal = isRevenue ? formatCurrency(value) : value;
+    const change = data?.change ?? 0;
+    const isPositive = change >= 0;
+    
+    return (
+      <div className="kpi-card" key={title}>
+        <div className="kpi-card-header">
+          <div className={`kpi-card-icon ${colorKey}`}>{icon}</div>
+          <span className={`kpi-change-badge ${isPositive ? 'positive' : 'negative'}`}>
+            {isPositive ? '+' : ''}{change}%
+          </span>
+        </div>
+        <div className="kpi-card-body">
+          <h4 className="kpi-value">{displayVal}</h4>
+          <span className="kpi-title">{title}</span>
+          <p className="kpi-desc">{data?.description}</p>
+        </div>
+      </div>
+    );
+  };
 
   // Announcement & AI variables
   const [annText, setAnnText] = useState('');
@@ -281,30 +467,43 @@ export default function AdminDashboard({
     l.email?.toLowerCase().includes(leadSearch.toLowerCase())
   );
 
-
   return (
     <div className="admin-root-container">
       {/* Dynamic CSS Stylesheet block for neobrutalism custom dashboard rendering */}
       <style dangerouslySetInnerHTML={{__html: `
         .admin-root-container {
           display: flex;
-          min-height: 100vh;
+          height: 100vh;
+          overflow: hidden;
           font-family: 'Outfit', 'Inter', -apple-system, sans-serif;
           background-color: #FCFBFA;
-          color: #000000;
+          color: #0E100D;
         }
 
         /* ── SIDEBAR ── */
         .admin-sidebar {
           width: 260px;
+          height: 100vh;
+          position: sticky;
+          top: 0;
           background-color: #0E100D;
-          border-right: 3px solid #000000;
+          border-right: 1.5px solid #1C2B17;
           display: flex;
           flex-direction: column;
           padding: 24px 16px;
           box-sizing: border-box;
           color: #FFFFFF;
           flex-shrink: 0;
+          overflow-y: auto;
+        }
+
+        .admin-sidebar::-webkit-scrollbar {
+          width: 4px;
+        }
+
+        .admin-sidebar::-webkit-scrollbar-thumb {
+          background-color: #2E332A;
+          border-radius: 4px;
         }
 
         .admin-sidebar-header {
@@ -384,8 +583,8 @@ export default function AdminDashboard({
         .admin-back-btn {
           width: 100%;
           background-color: #FFFFFF;
-          border: 2px solid #000000;
-          color: #000000;
+          border: 1.5px solid #2D3229;
+          color: #2D3229;
           padding: 10px 16px;
           border-radius: 10px;
           font-size: 13px;
@@ -396,12 +595,13 @@ export default function AdminDashboard({
           justify-content: center;
           gap: 8px;
           transition: all 0.15s;
-          box-shadow: 2px 2px 0px #000000;
+          box-shadow: 2px 2px 0px #2D3229;
         }
 
         .admin-back-btn:hover {
           transform: translate(-1px, -1px);
-          box-shadow: 3px 3px 0px #000000;
+          box-shadow: 3px 3px 0px #2D3229;
+          background-color: #FCFBFA;
         }
 
         /* ── MAIN WORKSPACE ── */
@@ -413,21 +613,121 @@ export default function AdminDashboard({
           box-sizing: border-box;
         }
 
+        /* ── STICKY TOP WRAPPER (Header chào mừng + admin-header) ── */
+        .admin-sticky-top {
+          position: sticky;
+          top: 0;
+          z-index: 100;
+          background-color: #FCFBFA;
+          border-bottom: 1.5px solid #E8E7E3;
+        }
+
+        .dark-theme .admin-sticky-top {
+          background-color: #151A22 !important;
+          border-bottom-color: #2D3748 !important;
+        }
+
         .admin-header {
-          background-color: #FFFFFF;
-          border-bottom: 3px solid #000000;
-          padding: 24px 32px;
+          background-color: transparent;
+          border-bottom: none;
+          padding: 10px 32px 14px 32px;
           display: flex;
           align-items: center;
           justify-content: space-between;
         }
 
         .admin-header-title {
-          font-size: 24px;
+          font-size: 22px;
           font-weight: 950;
           letter-spacing: -0.5px;
           text-transform: uppercase;
           margin: 0;
+          color: #0E100D;
+        }
+
+        .admin-header-left {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+        }
+
+        .admin-header-subtitle-date {
+          margin: 0;
+          font-size: 13px;
+          font-weight: 800;
+          color: #7A7A7A;
+        }
+
+        .admin-header-filters {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          flex-wrap: wrap;
+        }
+
+        .admin-filter-select {
+          padding: 8px 16px;
+          border: 1.5px solid #2D3229;
+          border-radius: 8px;
+          background-color: #FFFFFF;
+          font-family: inherit;
+          font-size: 13px;
+          font-weight: 800;
+          color: #2D3229;
+          cursor: pointer;
+          outline: none;
+          box-shadow: 2px 2px 0px #2D3229;
+          transition: all 0.15s;
+        }
+
+        .admin-filter-select:hover {
+          transform: translate(-1px, -1px);
+          box-shadow: 3px 3px 0px #2D3229;
+        }
+
+        .admin-custom-date-range {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          background-color: #FFFFFF;
+          border: 1.5px solid #2D3229;
+          border-radius: 8px;
+          padding: 4px 8px;
+          box-shadow: 2px 2px 0px #2D3229;
+        }
+
+        .admin-date-input {
+          border: none;
+          outline: none;
+          font-family: inherit;
+          font-size: 12px;
+          font-weight: 700;
+          color: #2D3229;
+          padding: 4px;
+        }
+
+        .admin-date-separator {
+          font-size: 11px;
+          font-weight: 800;
+          color: #7A7A7A;
+          text-transform: uppercase;
+        }
+
+        .admin-date-apply-btn {
+          border: none;
+          background-color: #1C2B17;
+          color: #FFFFFF;
+          font-family: inherit;
+          font-size: 11px;
+          font-weight: 800;
+          padding: 6px 12px;
+          border-radius: 6px;
+          cursor: pointer;
+          transition: background-color 0.15s;
+        }
+
+        .admin-date-apply-btn:hover {
+          background-color: #2F4D25;
         }
 
         .admin-body {
@@ -438,124 +738,185 @@ export default function AdminDashboard({
           box-sizing: border-box;
         }
 
-        /* ── NEOBRUTALISM CARDS ── */
+        /* ── MODERN SaaS CARDS ── */
         .admin-card {
           background-color: #FFFFFF;
-          border: 2px solid #000000;
+          border: 1.5px solid #E8E7E3;
           border-radius: 16px;
           padding: 24px;
-          box-shadow: 4px 4px 0px #000000;
+          box-shadow: 0 4px 12px rgba(45, 50, 41, 0.03);
           margin-bottom: 24px;
           box-sizing: border-box;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        /* ── STATS ROW ── */
-        .stats-row-3col {
+        .admin-card:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 8px 24px rgba(45, 50, 41, 0.06);
+          border-color: #A3B899;
+        }
+
+        /* ── KPI CARD STYLES ── */
+        .stats-row-5col {
           display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 20px;
+          grid-template-columns: repeat(5, 1fr);
+          gap: 16px;
           margin-bottom: 24px;
         }
 
-        .stats-row-2col {
-          display: grid;
-          grid-template-columns: repeat(2, 1fr);
-          gap: 20px;
-          margin-bottom: 24px;
+        @media (max-width: 1200px) {
+          .stats-row-5col {
+            grid-template-columns: repeat(3, 1fr);
+          }
         }
 
-        .stat-card-label {
+        @media (max-width: 768px) {
+          .stats-row-5col {
+            grid-template-columns: repeat(2, 1fr);
+          }
+        }
+
+        @media (max-width: 480px) {
+          .stats-row-5col {
+            grid-template-columns: 1fr;
+          }
+        }
+
+        .kpi-card {
+          background-color: #FFFFFF;
+          border: 1.5px solid #E8E7E3;
+          border-radius: 16px;
+          padding: 20px;
+          box-shadow: 0 4px 12px rgba(45, 50, 41, 0.03);
+          box-sizing: border-box;
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .kpi-card:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 8px 24px rgba(45, 50, 41, 0.06);
+          border-color: #A3B899;
+        }
+
+        .kpi-card-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        }
+
+        .kpi-card-icon {
+          width: 40px;
+          height: 40px;
+          border-radius: 10px;
+          background-color: #FCFBFA;
+          border: 1px solid #E8E7E3;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #1C2B17;
+          font-size: 20px;
+          transition: all 0.2s;
+        }
+
+        .kpi-card-icon.blue { background-color: #E0F2FE; color: #0284C7; border-color: #BAE6FD; }
+        .kpi-card-icon.green { background-color: #D1FAE5; color: #059669; border-color: #A7F3D0; }
+        .kpi-card-icon.indigo { background-color: #E0E7FF; color: #4F46E5; border-color: #C7D2FE; }
+        .kpi-card-icon.purple { background-color: #F3E8FF; color: #7C3AED; border-color: #E9D5FF; }
+        .kpi-card-icon.amber { background-color: #FEF3C7; color: #D97706; border-color: #FDE68A; }
+
+        .kpi-change-badge {
           font-size: 11px;
-          font-weight: 900;
-          color: #7A7A7A;
-          text-transform: uppercase;
-          letter-spacing: 1px;
-          margin-bottom: 6px;
+          font-weight: 800;
+          padding: 3px 8px;
+          border-radius: 6px;
+          border: 1px solid currentColor;
         }
 
-        .stat-card-value {
-          font-size: 38px;
+        .kpi-change-badge.positive {
+          background-color: #D1FAE5;
+          color: #065F46;
+          border-color: #A7F3D0;
+        }
+
+        .kpi-change-badge.negative {
+          background-color: #FEE2E2;
+          color: #991B1B;
+          border-color: #FCA5A5;
+        }
+
+        .kpi-value {
+          font-size: 24px;
           font-weight: 950;
-          line-height: 1.1;
-          margin: 0 0 4px 0;
+          color: #0E100D;
+          margin: 0 0 2px 0;
+          letter-spacing: -0.5px;
         }
 
-        .stat-card-desc {
-          font-size: 13px;
+        .kpi-title {
+          font-size: 12px;
+          font-weight: 850;
+          color: #1C2B17;
+          text-transform: uppercase;
+        }
+
+        .kpi-desc {
+          font-size: 11px;
           color: #7A7A7A;
+          margin: 4px 0 0 0;
           font-weight: 600;
         }
 
-        /* ── CUSTOM BAR CHART ── */
+        /* ── CHARTS SECTION ── */
+        .charts-grid-2col {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 20px;
+          margin-bottom: 24px;
+        }
+
+        @media (max-width: 1024px) {
+          .charts-grid-2col {
+            grid-template-columns: 1fr;
+          }
+        }
+
         .chart-card-title {
           font-size: 14px;
           font-weight: 900;
           text-transform: uppercase;
           letter-spacing: 0.5px;
           margin: 0 0 24px 0;
-          color: #000000;
+          color: #1C2B17;
         }
 
-        .chart-bars-container {
+        .revenue-total-amount {
+          color: #3B82F6;
+          margin-left: 8px;
+          text-transform: none;
+          font-weight: 800;
+        }
+
+        .chart-header-row {
           display: flex;
           justify-content: space-between;
-          align-items: flex-end;
-          height: 180px;
-          padding-bottom: 8px;
-          border-bottom: 2px solid #000000;
-          margin-bottom: 12px;
-          box-sizing: border-box;
-        }
-
-        .chart-col {
-          flex: 1;
-          display: flex;
-          flex-direction: column;
           align-items: center;
-          height: 100%;
-          justify-content: flex-end;
+          margin-bottom: 20px;
+          flex-wrap: wrap;
           gap: 8px;
         }
 
-        .chart-val-lbl {
-          font-size: 11.5px;
-          font-weight: 850;
-          color: #000000;
-        }
-
-        .chart-bar {
-          width: 80%;
-          max-width: 90px;
-          background-color: #1C2B17;
-          border: 2px solid #000000;
-          border-bottom: none;
-          border-radius: 8px 8px 0 0;
-          transition: all 0.2s;
-          cursor: pointer;
-          min-height: 12px;
-        }
-
-        .chart-bar:hover {
-          background-color: #2F4D25;
-          transform: translateY(-2px);
-        }
-
-        .chart-bar.active {
-          background-color: #3B6630;
-        }
-
-        .chart-dates-row {
-          display: flex;
-          justify-content: space-between;
-          padding: 0 4px;
-        }
-
-        .chart-date-lbl {
-          flex: 1;
-          text-align: center;
+        .chart-active-filter-badge {
           font-size: 11px;
           font-weight: 800;
-          color: #7A7A7A;
+          color: #1C2B17;
+          background-color: #E8F4E5;
+          border: 1px solid #C2E2BC;
+          padding: 3px 8px;
+          border-radius: 6px;
+          text-transform: uppercase;
         }
 
         /* ── PROGRESS & SKILLS ── */
@@ -582,7 +943,7 @@ export default function AdminDashboard({
           justify-content: space-between;
           font-size: 13px;
           font-weight: 800;
-          color: #000000;
+          color: #0E100D;
         }
 
         .skill-title-group {
@@ -599,7 +960,7 @@ export default function AdminDashboard({
           width: 100%;
           background-color: #F0EDEB;
           height: 14px;
-          border: 2px solid #000000;
+          border: 1.5px solid #2D3229;
           border-radius: 20px;
           overflow: hidden;
         }
@@ -615,14 +976,14 @@ export default function AdminDashboard({
           display: flex;
           gap: 8px;
           margin-bottom: 24px;
-          border-bottom: 2px solid #000000;
+          border-bottom: 1.5px solid #E8E7E3;
           padding-bottom: 12px;
           overflow-x: auto;
         }
 
         .admin-sub-tab-btn {
           background: none;
-          border: 2px solid transparent;
+          border: 1.5px solid transparent;
           padding: 8px 18px;
           border-radius: 8px;
           font-size: 13px;
@@ -637,24 +998,25 @@ export default function AdminDashboard({
         }
 
         .admin-sub-tab-btn:hover {
-          color: #000000;
+          color: #1C2B17;
           background-color: #F0EDEB;
         }
 
         .admin-sub-tab-btn.active {
-          border-color: #000000;
+          border-color: #2D3229;
           background-color: #FFFFFF;
-          color: #000000;
-          box-shadow: 2px 2px 0px #000000;
+          color: #1C2B17;
+          box-shadow: 2px 2px 0px #2D3229;
         }
 
         /* ── LEADS TABLE ── */
         .leads-table-container {
           width: 100%;
           overflow-x: auto;
-          border: 2px solid #000000;
+          border: 1.5px solid #E8E7E3;
           border-radius: 12px;
           background-color: #FFFFFF;
+          box-shadow: 0 2px 8px rgba(45, 50, 41, 0.02);
         }
 
         .leads-table {
@@ -665,17 +1027,18 @@ export default function AdminDashboard({
         }
 
         .leads-table th {
-          background-color: #F0EDEB;
-          border-bottom: 2px solid #000000;
+          background-color: #FCFBFA;
+          border-bottom: 1.5px solid #E8E7E3;
           padding: 14px 16px;
           font-weight: 900;
           text-transform: uppercase;
           letter-spacing: 0.5px;
+          color: #1C2B17;
         }
 
         .leads-table td {
           padding: 14px 16px;
-          border-bottom: 1px solid #E5E5E5;
+          border-bottom: 1px solid #F0EDEB;
           font-weight: 700;
           color: #333333;
         }
@@ -690,7 +1053,7 @@ export default function AdminDashboard({
           border-radius: 100px;
           font-size: 11px;
           font-weight: 800;
-          border: 1.5px solid #000000;
+          border: 1px solid currentColor;
           cursor: pointer;
           text-align: center;
           transition: all 0.15s;
@@ -703,16 +1066,32 @@ export default function AdminDashboard({
         .lead-status-badge.pending {
           background-color: #FEF3C7;
           color: #D97706;
+          border-color: #FDE68A;
         }
 
         .lead-status-badge.contacted {
           background-color: #DBEAFE;
           color: #2563EB;
+          border-color: #BFDBFE;
         }
 
         .lead-status-badge.success {
           background-color: #D1FAE5;
           color: #059669;
+          border-color: #A7F3D0;
+        }
+
+        .student-avatar {
+          width: 32px;
+          height: 32px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-weight: 800;
+          font-size: 13px;
+          border: 1px solid rgba(0, 0, 0, 0.05);
+          flex-shrink: 0;
         }
 
         /* ── BOOKS GRID ── */
@@ -731,19 +1110,26 @@ export default function AdminDashboard({
 
         .book-card {
           background-color: #FFFFFF;
-          border: 2px solid #000000;
+          border: 1.5px solid #E8E7E3;
           border-radius: 16px;
           padding: 16px;
-          box-shadow: 4px 4px 0px #000000;
+          box-shadow: 0 4px 12px rgba(45, 50, 41, 0.03);
           display: flex;
           gap: 16px;
           position: relative;
+          transition: all 0.2s;
+        }
+
+        .book-card:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 8px 24px rgba(45, 50, 41, 0.06);
+          border-color: #A3B899;
         }
 
         .book-cover {
           width: 90px;
           height: 120px;
-          border: 2px solid #000000;
+          border: 1.5px solid #2D3229;
           border-radius: 8px;
           object-fit: cover;
           flex-shrink: 0;
@@ -761,11 +1147,12 @@ export default function AdminDashboard({
           font-weight: 900;
           margin: 0 0 4px 0;
           line-height: 1.3;
+          color: #0E100D;
         }
 
         .book-author {
           font-size: 11.5px;
-          font-weight: 800;
+          font-weight: 850;
           color: #7A7A7A;
           margin-bottom: 6px;
         }
@@ -796,19 +1183,22 @@ export default function AdminDashboard({
 
         .book-btn-buy {
           background-color: #FFFFFF;
-          border: 1.5px solid #000000;
+          border: 1.5px solid #2D3229;
           padding: 4px 12px;
           border-radius: 6px;
           font-size: 11px;
           font-weight: 800;
           text-decoration: none;
-          color: #000000;
+          color: #2D3229;
           transition: all 0.15s;
+          box-shadow: 1px 1px 0px #2D3229;
         }
 
         .book-btn-buy:hover {
-          background-color: #000000;
+          background-color: #2D3229;
           color: #FFFFFF;
+          transform: translate(-0.5px, -0.5px);
+          box-shadow: 1.5px 1.5px 0px #2D3229;
         }
 
         .book-actions-overlay {
@@ -823,7 +1213,7 @@ export default function AdminDashboard({
           width: 28px;
           height: 28px;
           border-radius: 6px;
-          border: 1.5px solid #000000;
+          border: 1.5px solid #2D3229;
           background-color: #FFFFFF;
           display: flex;
           align-items: center;
@@ -855,11 +1245,11 @@ export default function AdminDashboard({
 
         .admin-modal {
           background-color: #FFFFFF;
-          border: 3px solid #000000;
+          border: 1.5px solid #2D3229;
           border-radius: 20px;
           width: 100%;
           max-width: 500px;
-          box-shadow: 8px 8px 0px #000000;
+          box-shadow: 6px 6px 0px rgba(45, 50, 41, 0.15);
           overflow: hidden;
           animation: modalIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
         }
@@ -871,7 +1261,7 @@ export default function AdminDashboard({
 
         .admin-modal-header {
           background-color: #F0EDEB;
-          border-bottom: 2.5px solid #000000;
+          border-bottom: 2.5px solid #2D3229;
           padding: 16px 24px;
           font-weight: 950;
           font-size: 16px;
@@ -908,7 +1298,7 @@ export default function AdminDashboard({
         .admin-form-input, .admin-form-textarea {
           width: 100%;
           padding: 10px 14px;
-          border: 2px solid #000000;
+          border: 1.5px solid #2D3229;
           border-radius: 8px;
           font-family: inherit;
           font-size: 13px;
@@ -918,13 +1308,13 @@ export default function AdminDashboard({
         }
 
         .admin-form-input:focus, .admin-form-textarea:focus {
-          box-shadow: 2px 2px 0px #000000;
+          box-shadow: 2px 2px 0px #2D3229;
         }
 
         /* ── TERMINAL LOGS ── */
         .admin-terminal {
           background-color: #0E100D !important;
-          border: 2px solid #000000;
+          border: 1.5px solid #2D3229;
           border-radius: 12px;
           padding: 16px;
           height: 320px;
@@ -953,6 +1343,33 @@ export default function AdminDashboard({
         .terminal-tag-sys {
           color: #A855F7;
           font-weight: bold;
+        }
+
+        /* ── LOADING STATS OVERLAY ── */
+        .stats-spinner {
+          width: 44px;
+          height: 44px;
+          border: 4px solid #E8E7E3;
+          border-top-color: #059669;
+          border-radius: 50%;
+          animation: spin-stats 0.8s linear infinite;
+        }
+
+        @keyframes spin-stats {
+          to { transform: rotate(360deg); }
+        }
+
+        .dark-theme .stats-spinner {
+          border-color: #2D3748;
+          border-top-color: #A3B899;
+        }
+
+        .dark-theme .stats-loading-overlay {
+          background: rgba(21, 26, 34, 0.75) !important;
+        }
+        
+        .dark-theme .stats-loading-text {
+          color: #A3B899 !important;
         }
       `}} />
 
@@ -995,7 +1412,7 @@ export default function AdminDashboard({
             className={`admin-menu-item ${activeTab === 'users' ? 'active' : ''}`}
             onClick={() => setActiveTab('users')}
           >
-            <HiUsers style={{ fontSize: '18px' }} /> Users
+            <HiUsers style={{ fontSize: '18px' }} /> Người dùng
           </button>
           <button 
             className={`admin-menu-item ${activeTab === 'leads' ? 'active' : ''}`}
@@ -1033,165 +1450,204 @@ export default function AdminDashboard({
 
       {/* ── MAIN WORKSPACE ── */}
       <main className="admin-main">
-        <header className="admin-header">
-          <h2 className="admin-header-title">
-            {activeTab === 'stats' && 'THỐNG KÊ'}
-            {activeTab === 'exams' && 'QUẢN LÝ ĐỀ THI'}
-            {activeTab === 'content' && 'QUẢN TRỊ NỘI DUNG'}
-            {activeTab === 'books' && 'ĐỀ XUẤT SÁCH ÔN THI'}
-            {activeTab === 'users' && 'QUẢN LÝ NGƯỜI DÙNG'}
-            {activeTab === 'leads' && 'QUẢN LÝ ĐĂNG KÝ HỌC VIÊN (LEADS)'}
-            {activeTab === 'features' && 'QUẢN LÝ CÁC CHỨC NĂNG HỆ THỐNG'}
-            {activeTab === 'moderation' && 'KIỂM DUYỆT BÁO CÁO VI PHẠM'}
-          </h2>
-        </header>
+        {/* ── STICKY TOP: Header chào mừng + Admin page header ── */}
+        <div className="admin-sticky-top">
+          <div style={{ padding: '8px 32px 0 32px' }}>
+            <Header
+              role="admin"
+              userProfile={currentUser}
+              theme={theme}
+              onToggleTheme={onToggleTheme}
+              notifications={notifications || []}
+              onClearNotifications={onClearNotifications}
+              onLogout={onLogout}
+              onChangePassword={onChangePassword}
+              onNavigateSettings={onNavigateSettings}
+              addLog={addLog}
+              cartCourse={cartCourse}
+              onCheckoutCourse={onCheckoutCourse}
+            />
+          </div>
+          <header className="admin-header">
+            <div className="admin-header-left">
+              <h2 className="admin-header-title">
+                {activeTab === 'stats' && 'Dashboard Thống kê'}
+                {activeTab === 'exams' && 'QUẢN LÝ ĐỀ THI'}
+                {activeTab === 'content' && 'QUẢN TRỊ NỘI DUNG'}
+                {activeTab === 'books' && 'ĐỀ XUẤT SÁCH ÔN THI'}
+                {activeTab === 'users' && 'QUẢN LÝ NGƯỜI DÙNG'}
+                {activeTab === 'leads' && 'QUẢN LÝ ĐĂNG KÝ HỌC VIÊN (LEADS)'}
+                {activeTab === 'features' && 'QUẢN LÝ CÁC CHỨC NĂNG HỆ THỐNG'}
+                {activeTab === 'moderation' && 'KIỂM DUYỆT BÁO CÁO VI PHẠM'}
+              </h2>
+              {activeTab === 'stats' && (
+                <p className="admin-header-subtitle-date">{getCurrentDateVietnamese()}</p>
+              )}
+            </div>
+            {activeTab === 'stats' && (
+              <div className="admin-header-filters">
+                <select 
+                  value={timeFilter} 
+                  onChange={(e) => setTimeFilter(e.target.value)}
+                  className="admin-filter-select"
+                >
+                  <option value="this-month">Tháng này</option>
+                  <option value="last-month">Tháng trước</option>
+                  <option value="3-months">3 tháng gần nhất</option>
+                  <option value="6-months">6 tháng gần nhất</option>
+                  <option value="this-year">Năm nay</option>
+                </select>
+              </div>
+            )}
+          </header>
+        </div>
 
         <div className="admin-body">
           {/* ==========================================
               TAB: THỐNG KÊ (DASHBOARD)
               ========================================== */}
           {activeTab === 'stats' && (
-            <div>
-              {/* Row 1: 3 Column Stats */}
-              <div className="stats-row-3col">
-                <div className="admin-card">
-                  <div className="stat-card-label">TỔNG USERS</div>
-                  <div className="stat-card-value">{stats.totalUsers}</div>
-                  <div className="stat-card-desc">tài khoản đã đăng ký</div>
+            <div style={{ position: 'relative', minHeight: '400px' }}>
+              {loadingStats && (
+                <div className="stats-loading-overlay animate-in" style={{
+                  position: 'absolute',
+                  inset: 0,
+                  background: 'rgba(252, 251, 250, 0.75)',
+                  backdropFilter: 'blur(6px)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  zIndex: 50,
+                  borderRadius: '16px',
+                  gap: '16px',
+                  transition: 'all 0.3s ease'
+                }}>
+                  <div className="stats-spinner" />
+                  <p className="stats-loading-text" style={{
+                    fontSize: '14px',
+                    fontWeight: '800',
+                    color: '#1C2B17',
+                    letterSpacing: '-0.3px',
+                    margin: 0
+                  }}>
+                    Đang tải dữ liệu thống kê...
+                  </p>
                 </div>
+              )}
+
+              <div style={{ opacity: loadingStats ? 0.35 : 1, transition: 'opacity 0.3s ease', pointerEvents: loadingStats ? 'none' : 'auto' }}>
+                {/* Row 1: 5 Column KPI Cards */}
+                <div className="stats-row-5col">
+                {renderKpiCard('Tổng User', <HiUsers />, stats.kpi?.totalUsers, 'blue')}
+                {renderKpiCard(`User mới ${getFilterText(timeFilter)}`, <HiPlus />, stats.kpi?.newUsersThisWeek, 'green')}
+                {renderKpiCard(`Tổng bài làm ${getFilterText(timeFilter)}`, <HiClipboardCheck />, stats.kpi?.totalAttempts, 'indigo')}
+                {renderKpiCard(`Tổng câu hỏi AI ${getFilterText(timeFilter)}`, <HiTerminal />, stats.kpi?.totalAiQuestions, 'purple')}
+                {renderKpiCard(`Doanh thu ${getFilterText(timeFilter)}`, <HiTrendingUp />, stats.kpi?.revenue, 'amber')}
+              </div>
+
+              {/* Row 2: 2 Column Charts (Lượt làm bài & Câu hỏi AI) */}
+              <div className="charts-grid-2col">
+                {/* Bar Chart: Lượt làm bài */}
                 <div className="admin-card">
-                  <div className="stat-card-label">NGƯỜI DÙNG MỚI TUẦN NÀY</div>
-                  <div className="stat-card-value" style={{ color: '#059669' }}>{stats.newUsersThisWeek}</div>
-                  <div className="stat-card-desc">đăng ký trong 7 ngày qua</div>
+                  <h3 className="chart-card-title">
+                    Lượt làm bài: <span className="revenue-total-amount" style={{ color: '#059669' }}>{stats.kpi?.totalAttempts?.value}</span>
+                  </h3>
+                  <div style={{ width: '100%', height: 260 }}>
+                    <ResponsiveContainer>
+                      <BarChart data={stats.attemptsChart || []} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#E8E7E3" vertical={false} />
+                        <XAxis dataKey="date" stroke="#7A7A7A" fontSize={11} fontWeight={700} tickLine={false} />
+                        <YAxis stroke="#7A7A7A" fontSize={11} fontWeight={700} tickLine={false} axisLine={false} />
+                        <Tooltip 
+                          contentStyle={{ 
+                            backgroundColor: '#FFFFFF', 
+                            border: '1.5px solid #2D3229', 
+                            borderRadius: '8px',
+                            fontFamily: 'inherit',
+                            fontSize: '12px',
+                            fontWeight: '700',
+                            boxShadow: '2px 2px 0px rgba(45, 50, 41, 0.15)'
+                          }} 
+                        />
+                        <Bar dataKey="count" fill="#059669" radius={[4, 4, 0, 0]} barSize={28} isAnimationActive={false} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
                 </div>
+
+                {/* Line Chart: Câu hỏi AI */}
                 <div className="admin-card">
-                  <div className="stat-card-label">TỔNG LEADS</div>
-                  <div className="stat-card-value" style={{ color: '#E11D48' }}>{stats.totalLeads}</div>
-                  <div className="stat-card-desc">form đăng ký nhận tư vấn</div>
+                  <h3 className="chart-card-title">
+                    Câu hỏi AI: <span className="revenue-total-amount" style={{ color: '#8B5CF6' }}>{stats.kpi?.totalAiQuestions?.value}</span>
+                  </h3>
+                  <div style={{ width: '100%', height: 260 }}>
+                    <ResponsiveContainer>
+                      <LineChart data={stats.aiQuestionsChart || []} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#E8E7E3" vertical={false} />
+                        <XAxis dataKey="date" stroke="#7A7A7A" fontSize={11} fontWeight={700} tickLine={false} />
+                        <YAxis stroke="#7A7A7A" fontSize={11} fontWeight={700} tickLine={false} axisLine={false} />
+                        <Tooltip 
+                          contentStyle={{ 
+                            backgroundColor: '#FFFFFF', 
+                            border: '1.5px solid #2D3229', 
+                            borderRadius: '8px',
+                            fontFamily: 'inherit',
+                            fontSize: '12px',
+                            fontWeight: '700',
+                            boxShadow: '2px 2px 0px rgba(45, 50, 41, 0.15)'
+                          }} 
+                        />
+                        <Line type="monotone" dataKey="count" stroke="#8B5CF6" strokeWidth={3} dot={{ r: 4, strokeWidth: 2 }} activeDot={{ r: 6 }} connectNulls={true} isAnimationActive={false} />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
                 </div>
               </div>
 
-              {/* Row 2: 2 Column Stats */}
-              <div className="stats-row-2col">
-                <div className="admin-card">
-                  <div className="stat-card-label">LƯỢT LÀM HÔM NAY</div>
-                  <div className="stat-card-value" style={{ color: '#D97706' }}>{stats.attemptsToday}</div>
-                  <div className="stat-card-desc">bài thi / luyện tập</div>
-                </div>
-                <div className="admin-card">
-                  <div className="stat-card-label">TỶ LỆ CHUYỂN ĐỔI</div>
-                  <div className="stat-card-value" style={{ color: '#6D28D9' }}>{stats.conversionRate}%</div>
-                  <div className="stat-card-desc">leads &rarr; tài khoản</div>
-                </div>
-              </div>
-
-              {/* Row 3: 7-Day Performance Custom Bar Chart */}
+              {/* Row 3: Revenue Trend Area Chart */}
               <div className="admin-card">
-                <h3 className="chart-card-title">LƯỢT LÀM BÀI 7 NGÀY QUA</h3>
-                
-                {(() => {
-                  const maxCount = Math.max(...(stats.last7Days || []).map(d => d.count), 1);
-                  return (
-                    <>
-                      <div className="chart-bars-container">
-                        {(stats.last7Days || []).map((day, idx) => {
-                          const pct = maxCount > 0 ? (day.count / maxCount) * 100 : 0;
-                          const isActive = idx === (stats.last7Days || []).length - 1;
-                          return (
-                            <div key={idx} className="chart-col">
-                              <span className="chart-val-lbl">{day.count}</span>
-                              <div className={`chart-bar ${isActive ? 'active' : ''}`} style={{ height: `${Math.max(pct, 5)}%` }}></div>
-                            </div>
-                          );
-                        })}
-                        {(stats.last7Days || []).length === 0 && (
-                          <div style={{ width: '100%', textAlign: 'center', padding: '20px', color: '#7A7A7A', fontWeight: 'bold' }}>
-                            Chưa có dữ liệu làm bài.
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="chart-dates-row">
-                        {(stats.last7Days || []).map((day, idx) => (
-                          <span key={idx} className="chart-date-lbl">{day.date}</span>
-                        ))}
-                      </div>
-                    </>
-                  );
-                })()}
+                <div className="chart-header-row">
+                  <h3 className="chart-card-title">
+                    Doanh thu: <span className="revenue-total-amount">{formatCurrency(stats.kpi?.revenue?.value)}</span>
+                  </h3>
+                </div>
+                <div style={{ width: '100%', height: 300 }}>
+                  <ResponsiveContainer>
+                    <AreaChart data={stats.revenueChart || []} margin={{ top: 10, right: 15, left: -10, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.2}/>
+                          <stop offset="95%" stopColor="#3B82F6" stopOpacity={0}/>
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#E8E7E3" vertical={false} />
+                      <XAxis dataKey="label" stroke="#7A7A7A" fontSize={11} fontWeight={700} tickLine={false} />
+                      <YAxis 
+                        stroke="#7A7A7A" 
+                        fontSize={11} 
+                        fontWeight={700} 
+                        tickLine={false} 
+                        axisLine={false} 
+                        tickFormatter={(val) => val >= 1000000 ? `${(val / 1000000).toFixed(1).replace('.0', '')}tr` : val >= 1000 ? `${(val / 1000).toFixed(0)}k` : val}
+                      />
+                      <Tooltip 
+                        formatter={(value) => [formatCurrency(value), 'Doanh thu']}
+                        contentStyle={{ 
+                          backgroundColor: '#FFFFFF', 
+                          border: '1.5px solid #2D3229', 
+                          borderRadius: '8px',
+                          fontFamily: 'inherit',
+                          fontSize: '12px',
+                          fontWeight: '700',
+                          boxShadow: '2px 2px 0px rgba(45, 50, 41, 0.15)'
+                        }} 
+                      />
+                      <Area type="monotone" dataKey="revenue" stroke="#3B82F6" strokeWidth={3} fillOpacity={1} fill="url(#colorRevenue)" dot={{ r: 3 }} connectNulls={true} isAnimationActive={false} />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
               </div>
-
-              {/* Row 4: Feature Interaction and Subject performance score bars */}
-              <div className="skills-grid">
-                <div className="admin-card" style={{ marginBottom: 0 }}>
-                  <h3 className="chart-card-title">TỈ LỆ TƯƠNG TÁC CHỨC NĂNG</h3>
-                  
-                  {(() => {
-                    const featureUsage = stats.featureUsage || { mockExams: 0, chatbot: 0, mindmaps: 0, forum: 0, documents: 0 };
-                    const totalInteractions = Object.values(featureUsage).reduce((a, b) => a + b, 0) || 1;
-                    
-                    const featureItems = [
-                      { label: '📝 Thi thử THPTQG', value: featureUsage.mockExams, color: '#10B981' },
-                      { label: '🤖 Trợ lý ảo AI Coach', value: featureUsage.chatbot, color: '#06B6D4' },
-                      { label: '🧠 Sơ đồ tư duy AI', value: featureUsage.mindmaps, color: '#8B5CF6' },
-                      { label: '💬 Diễn đàn Thảo luận', value: featureUsage.forum, color: '#F59E0B' },
-                      { label: '📚 Tài liệu ôn tập', value: featureUsage.documents, color: '#EC4899' }
-                    ];
-
-                    return (
-                      <div className="skills-list">
-                        {featureItems.map((item, idx) => {
-                          const pct = totalInteractions > 0 ? Math.round((item.value / totalInteractions) * 100) : 0;
-                          return (
-                            <div key={idx} className="skill-item">
-                              <div className="skill-header">
-                                <span className="skill-title-group">{item.label}</span>
-                                <span className="skill-val">{item.value} ({pct}%)</span>
-                              </div>
-                              <div className="skill-progress-bar-bg">
-                                <div className="skill-progress-bar-fill" style={{ width: `${pct}%`, backgroundColor: item.color }}></div>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    );
-                  })()}
-                </div>
-
-                <div className="admin-card" style={{ marginBottom: 0 }}>
-                  <h3 className="chart-card-title">ĐIỂM TRUNG BÌNH THI THỬ THEO MÔN</h3>
-                  
-                  {(!stats.subjectStats || stats.subjectStats.length === 0) ? (
-                    <div style={{ padding: '40px 20px', textAlign: 'center', color: '#7A7A7A', fontSize: '12.5px', fontWeight: 'bold' }}>
-                      Chưa có dữ liệu làm bài thi thử để thống kê.
-                    </div>
-                  ) : (
-                    <div className="skills-list">
-                      {(stats.subjectStats || []).map((item, idx) => {
-                        const pct = Math.min((item.averageScore / 10) * 100, 100);
-                        const colors = ['#10B981', '#06B6D4', '#F59E0B', '#EF4444', '#EC4899', '#8B5CF6'];
-                        const color = colors[idx % colors.length];
-                        return (
-                          <div key={idx} className="skill-item">
-                            <div className="skill-header">
-                              <span className="skill-title-group">
-                                📚 {item.subject} 
-                                <span style={{ fontSize: '11px', color: '#7A7A7A', marginLeft: '6px', fontWeight: 'bold' }}>
-                                  ({item.count} lượt làm)
-                                </span>
-                              </span>
-                              <span className="skill-val">{item.averageScore} / 10</span>
-                            </div>
-                            <div className="skill-progress-bar-bg">
-                              <div className="skill-progress-bar-fill" style={{ width: `${pct}%`, backgroundColor: color }}></div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
               </div>
             </div>
           )}
@@ -1445,89 +1901,239 @@ export default function AdminDashboard({
               TAB: USERS LIST & VERIFY
               ========================================== */}
           {activeTab === 'users' && (
-            <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '24px' }}>
-              {/* Account List */}
-              <div className="admin-card">
-                <h3 className="chart-card-title">QUẢN LÝ TÀI KHOẢN HỌC VIÊN / GIÁO VIÊN</h3>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  {users.map(u => (
-                    <div key={u.id} style={{ padding: '14px', border: '2px solid #000000', borderRadius: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#FCFBFA' }}>
-                      <div>
-                        <span style={{ fontSize: '13.5px', fontWeight: '900' }}>{u.name}</span>
-                        <p style={{ fontSize: '11.5px', color: '#7A7A7A', margin: '2px 0 0 0', fontWeight: '700' }}>
-                          Email: {u.email} • Loại tài khoản: <span style={{ color: '#6c5ce7', fontWeight: '800' }}>{u.role.toUpperCase()}</span>
-                        </p>
-                      </div>
-                      <button
-                        onClick={() => {
-                          onToggleUserBan(u.id);
-                          addLog(`Quản trị viên ${u.isBanned ? 'mở khóa' : 'khóa'} tài khoản "${u.name}"`, 'sys');
-                        }}
-                        className="admin-back-btn"
-                        style={{
-                          padding: '6px 14px', fontSize: '11px', width: 'auto', boxShadow: 'none',
-                          background: u.isBanned ? '#10B981' : '#EF4444',
-                          color: '#FFFFFF',
-                          borderColor: '#000000'
-                        }}
-                      >
-                        {u.isBanned ? 'Mở khóa' : 'Khóa tài khoản'}
-                      </button>
-                    </div>
-                  ))}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              {/* Thống kê Người dùng */}
+              <div className="stats-row-5col" style={{ gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '0' }}>
+                {renderKpiCard('Tổng Người dùng', <HiUsers />, { value: userStats.totalUsers, change: 0, description: 'Tài khoản hệ thống' }, 'blue')}
+                {renderKpiCard('Tổng Học sinh', <HiUsers />, { value: userStats.totalStudents, change: 0, description: 'Vai trò STUDENT' }, 'green')}
+                {renderKpiCard('Tổng Giáo viên', <HiUsers />, { value: userStats.totalTeachers, change: 0, description: 'Vai trò TEACHER' }, 'purple')}
+                {renderKpiCard('Bị khóa', <HiUsers />, { value: userStats.totalBlocked, change: 0, description: 'Trạng thái BLOCKED' }, 'amber')}
+              </div>
+
+              {/* Bộ lọc & Tìm kiếm */}
+              <div className="admin-card" style={{ marginBottom: '0' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr 1fr 1.5fr', gap: '16px', alignItems: 'center' }}>
+                  {/* Search */}
+                  <div style={{ position: 'relative' }}>
+                    <HiSearch style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#7A7A7A' }} />
+                    <input
+                      type="text"
+                      className="admin-form-input"
+                      placeholder="Tìm theo tên hoặc email..."
+                      value={userSearch}
+                      onChange={(e) => { setUserSearch(e.target.value); setUserPage(1); }}
+                      style={{ paddingLeft: '32px' }}
+                    />
+                  </div>
+
+                  {/* Role filter */}
+                  <select
+                    className="admin-form-input"
+                    value={userRoleFilter}
+                    onChange={(e) => { setUserRoleFilter(e.target.value); setUserPage(1); }}
+                    style={{ height: '40px', padding: '0 10px' }}
+                  >
+                    <option value="all">Tất cả vai trò</option>
+                    <option value="STUDENT">Học sinh (STUDENT)</option>
+                    <option value="TEACHER">Giáo viên (TEACHER)</option>
+                    <option value="ADMIN">Quản trị viên (ADMIN)</option>
+                  </select>
+
+                  {/* Status filter */}
+                  <select
+                    className="admin-form-input"
+                    value={userStatusFilter}
+                    onChange={(e) => { setUserStatusFilter(e.target.value); setUserPage(1); }}
+                    style={{ height: '40px', padding: '0 10px' }}
+                  >
+                    <option value="all">Tất cả trạng thái</option>
+                    <option value="ACTIVE">Hoạt động (ACTIVE)</option>
+                    <option value="BLOCKED">Bị khóa (BLOCKED)</option>
+                  </select>
+
+                  {/* Date range filter */}
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <input
+                      type="date"
+                      className="admin-form-input"
+                      value={userStartDate}
+                      onChange={(e) => { setUserStartDate(e.target.value); setUserPage(1); }}
+                      style={{ fontSize: '11px', height: '40px' }}
+                    />
+                    <span style={{ fontSize: '12px', fontWeight: 'bold' }}>-</span>
+                    <input
+                      type="date"
+                      className="admin-form-input"
+                      value={userEndDate}
+                      onChange={(e) => { setUserEndDate(e.target.value); setUserPage(1); }}
+                      style={{ fontSize: '11px', height: '40px' }}
+                    />
+                  </div>
                 </div>
               </div>
 
-              {/* Teacher application profile */}
+              {/* Bảng danh sách người dùng */}
               <div className="admin-card">
-                <h3 className="chart-card-title">PHÊ DUYỆT HỒ SƠ GIÁO VIÊN DÂN SỰ</h3>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  {users.filter(u => u.role === 'teacher' && u.status === 'pending').length > 0 ? (
-                    users.filter(u => u.role === 'teacher' && u.status === 'pending').map(u => (
-                      <div key={u.id} style={{ padding: '14px', border: '2px solid #000000', borderRadius: '12px', background: '#FCFBFA', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                          <div>
-                            <h4 style={{ fontSize: '14px', fontWeight: '950' }}>Ứng viên: {u.name}</h4>
-                            <span style={{ fontSize: '11px', color: '#7A7A7A', fontWeight: '700' }}>Email: {u.email}</span>
-                          </div>
-                          <span style={{ background: '#E0F2FE', border: '1.5px solid #000000', color: '#0369A1', fontSize: '10px', fontWeight: '800', padding: '3px 8px', borderRadius: '6px' }}>
-                            {u.combo || 'Chuyên môn THPT'}
-                          </span>
-                        </div>
-                        <p style={{ fontSize: '12px', color: '#555555', lineHeight: '1.4', margin: '4px 0', fontWeight: '700' }}>
-                          Kinh nghiệm giảng dạy và ôn tập trực tuyến THPTQG cá nhân hóa lộ trình thích ứng.
-                        </p>
-                        <div style={{ display: 'flex', gap: '8px', marginTop: '6px' }}>
-                          <button
-                            className="admin-back-btn"
-                            style={{ padding: '6px 14px', fontSize: '11px', background: '#10B981', color: '#FFFFFF', boxShadow: 'none' }}
-                            onClick={() => {
-                              onApproveTeacher(u.name, u.combo || 'Tổng hợp');
-                              addLog(`Quản trị viên cấp duyệt tài khoản "${u.name}" thành vai trò GIÁO VIÊN`, 'sys');
-                              toast(`Phê duyệt hồ sơ giáo viên "${u.name}" thành công!`, 'success');
-                            }}
-                          >
-                            Phê duyệt cấp quyền
-                          </button>
-                          <button
-                            className="admin-back-btn"
-                            style={{ padding: '6px 14px', fontSize: '11px', background: '#EF4444', color: '#FFFFFF', boxShadow: 'none' }}
-                            onClick={() => {
-                              toast(`Đã từ chối hồ sơ của ứng viên "${u.name}".`, 'warning');
-                            }}
-                          >
-                            Từ chối
-                          </button>
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <div style={{ textAlign: 'center', padding: '24px', background: '#FCFBFA', border: '2px dashed #000000', borderRadius: '12px' }}>
-                      <span style={{ fontSize: '28px', display: 'block', marginBottom: '6px' }}>🎓</span>
-                      <p style={{ fontSize: '12px', color: '#7A7A7A', fontWeight: '700', margin: 0 }}>Không có hồ sơ đăng ký giáo viên nào đang chờ phê duyệt.</p>
-                    </div>
-                  )}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                  <h3 className="chart-card-title" style={{ margin: 0 }}>DANH SÁCH TÀI KHOẢN NGƯỜI DÙNG</h3>
+                  {usersLoading && <div className="stats-spinner" style={{ width: '20px', height: '20px' }} />}
                 </div>
+
+                <div className="leads-table-container">
+                  <table className="leads-table">
+                    <thead>
+                      <tr>
+                        <th style={{ width: '60px', textAlign: 'center' }}>Avatar</th>
+                        <th>Họ tên</th>
+                        <th>Email</th>
+                        <th style={{ textAlign: 'center' }}>Vai trò</th>
+                        <th style={{ textAlign: 'center' }}>Trạng thái</th>
+                        <th>Ngày đăng ký</th>
+                        <th>Lần đăng nhập cuối</th>
+                        <th style={{ textAlign: 'center', width: '200px' }}>Thao tác</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {adminUsers.map(user => {
+                        const isSelf = user.id === currentUser?.id;
+                        return (
+                          <tr key={user.id} style={{ opacity: usersLoading ? 0.5 : 1 }}>
+                            <td style={{ textAlign: 'center' }}>
+                              {user.avatarUrl && (user.avatarUrl.startsWith('http') || user.avatarUrl.startsWith('data:')) ? (
+                                <img
+                                  src={user.avatarUrl}
+                                  alt="Avatar"
+                                  style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover', border: '1.5px solid #000' }}
+                                />
+                              ) : (
+                                <div style={{
+                                  width: '32px',
+                                  height: '32px',
+                                  borderRadius: '50%',
+                                  background: user.role === 'ADMIN' ? '#EF4444' : user.role === 'TEACHER' ? '#3B82F6' : '#10B981',
+                                  color: '#FFF',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  fontSize: '12px',
+                                  fontWeight: '800',
+                                  margin: '0 auto',
+                                  border: '1.5px solid #000'
+                                }}>
+                                  {user.name ? user.name.slice(0, 2).toUpperCase() : 'U'}
+                                </div>
+                              )}
+                            </td>
+                            <td style={{ fontWeight: '800' }}>{user.name}</td>
+                            <td>{user.email}</td>
+                            <td style={{ textAlign: 'center' }}>
+                              <span style={{
+                                padding: '4px 8px',
+                                borderRadius: '6px',
+                                fontSize: '10px',
+                                fontWeight: '800',
+                                border: '1.5px solid #000',
+                                background: user.role === 'ADMIN' ? '#FEE2E2' : user.role === 'TEACHER' ? '#DBEAFE' : '#D1FAE5',
+                                color: user.role === 'ADMIN' ? '#991B1B' : user.role === 'TEACHER' ? '#1E40AF' : '#065F46'
+                              }}>
+                                {user.role}
+                              </span>
+                            </td>
+                            <td style={{ textAlign: 'center' }}>
+                              <span style={{
+                                padding: '4px 8px',
+                                borderRadius: '6px',
+                                fontSize: '10px',
+                                fontWeight: '800',
+                                border: '1.5px solid #000',
+                                background: user.status === 'BLOCKED' ? '#F3F4F6' : '#D1FAE5',
+                                color: user.status === 'BLOCKED' ? '#374151' : '#065F46'
+                              }}>
+                                {user.status === 'BLOCKED' ? 'BỊ KHÓA' : 'HOẠT ĐỘNG'}
+                              </span>
+                            </td>
+                            <td>{user.registeredDate}</td>
+                            <td>
+                              {user.lastLoginAt ? (
+                                new Date(user.lastLoginAt).toLocaleString('vi-VN', {
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                  day: '2-digit',
+                                  month: '2-digit',
+                                  year: 'numeric'
+                                })
+                              ) : (
+                                <span style={{ color: '#7A7A7A', fontStyle: 'italic' }}>Chưa đăng nhập</span>
+                              )}
+                            </td>
+                            <td style={{ textAlign: 'center' }}>
+                              <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                                <button
+                                  className="admin-back-btn"
+                                  style={{ padding: '4px 8px', fontSize: '11px', width: 'auto', boxShadow: 'none', background: '#3B82F6', color: '#FFF', borderColor: '#000' }}
+                                  onClick={() => handleViewUserDetail(user.id)}
+                                >
+                                  Chi tiết
+                                </button>
+                                {user.status === 'BLOCKED' ? (
+                                  <button
+                                    className="admin-back-btn"
+                                    style={{ padding: '4px 8px', fontSize: '11px', width: 'auto', boxShadow: 'none', background: '#10B981', color: '#FFF', borderColor: '#000' }}
+                                    onClick={() => { setUserToUnblock(user); setShowUnblockModal(true); }}
+                                  >
+                                    Mở khóa
+                                  </button>
+                                ) : (
+                                  <button
+                                    className="admin-back-btn"
+                                    style={{ padding: '4px 8px', fontSize: '11px', width: 'auto', boxShadow: 'none', background: '#EF4444', color: '#FFF', borderColor: '#000', opacity: isSelf ? 0.5 : 1 }}
+                                    disabled={isSelf}
+                                    title={isSelf ? 'Bạn không thể tự khóa chính mình' : ''}
+                                    onClick={() => { setUserToBlock(user); setShowBlockModal(true); }}
+                                  >
+                                    Khóa
+                                  </button>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                      {adminUsers.length === 0 && (
+                        <tr>
+                          <td colSpan="8" style={{ textAlign: 'center', padding: '36px', color: '#7A7A7A', fontWeight: 'bold' }}>
+                            Không tìm thấy tài khoản người dùng nào.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Phân trang */}
+                {userPagination.totalPages > 1 && (
+                  <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginTop: '16px' }}>
+                    <button
+                      className="admin-back-btn"
+                      style={{ padding: '4px 12px', fontSize: '11px', width: 'auto', boxShadow: 'none', opacity: userPage === 1 ? 0.5 : 1 }}
+                      disabled={userPage === 1}
+                      onClick={() => setUserPage(prev => Math.max(1, prev - 1))}
+                    >
+                      Trước
+                    </button>
+                    <span style={{ display: 'flex', alignItems: 'center', fontSize: '12px', fontWeight: 'bold', padding: '0 8px' }}>
+                      Trang {userPage} / {userPagination.totalPages} (Tổng: {userPagination.total})
+                    </span>
+                    <button
+                      className="admin-back-btn"
+                      style={{ padding: '4px 12px', fontSize: '11px', width: 'auto', boxShadow: 'none', opacity: userPage === userPagination.totalPages ? 0.5 : 1 }}
+                      disabled={userPage === userPagination.totalPages}
+                      onClick={() => setUserPage(prev => Math.min(userPagination.totalPages, prev + 1))}
+                    >
+                      Sau
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -1904,6 +2510,277 @@ export default function AdminDashboard({
                 </button>
               </footer>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ==========================================
+          USER DETAIL MODAL
+          ========================================== */}
+      {showDetailModal && (
+        <div className="admin-modal-backdrop" onClick={() => setShowDetailModal(false)}>
+          <div className="admin-modal" style={{ maxWidth: '600px' }} onClick={e => e.stopPropagation()}>
+            <header className="admin-modal-header">
+              <span>CHI TIẾT TÀI KHOẢN NGƯỜI DÙNG</span>
+              <button 
+                onClick={() => setShowDetailModal(false)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '18px', fontWeight: 'bold' }}
+              >
+                ×
+              </button>
+            </header>
+
+            <div className="admin-modal-body">
+              {userDetailLoading || !selectedUser ? (
+                <div style={{ textAlign: 'center', padding: '40px' }}>
+                  <div className="stats-spinner" style={{ margin: '0 auto 12px auto' }} />
+                  <p style={{ fontWeight: 'bold' }}>Đang tải thông tin chi tiết...</p>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                  <div style={{ display: 'flex', gap: '16px', alignItems: 'center', background: '#FCFBFA', padding: '16px', border: '2px solid #000', borderRadius: '12px' }}>
+                    {selectedUser.user.avatarUrl && (selectedUser.user.avatarUrl.startsWith('http') || selectedUser.user.avatarUrl.startsWith('data:')) ? (
+                      <img
+                        src={selectedUser.user.avatarUrl}
+                        alt="Avatar"
+                        style={{ width: '64px', height: '64px', borderRadius: '50%', objectFit: 'cover', border: '2px solid #000' }}
+                      />
+                    ) : (
+                      <div style={{
+                        width: '64px',
+                        height: '64px',
+                        borderRadius: '50%',
+                        background: selectedUser.user.role === 'ADMIN' ? '#EF4444' : selectedUser.user.role === 'TEACHER' ? '#3B82F6' : '#10B981',
+                        color: '#FFF',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '24px',
+                        fontWeight: '800',
+                        border: '2px solid #000'
+                      }}>
+                        {selectedUser.user.name ? selectedUser.user.name.slice(0, 2).toUpperCase() : 'U'}
+                      </div>
+                    )}
+                    <div>
+                      <h3 style={{ margin: '0 0 4px 0', fontSize: '18px', fontWeight: '950' }}>{selectedUser.user.name}</h3>
+                      <p style={{ margin: '0 0 4px 0', fontSize: '13px', color: '#666', fontWeight: '600' }}>Email: {selectedUser.user.email}</p>
+                      <p style={{ margin: 0, fontSize: '13px', color: '#666', fontWeight: '600' }}>Điện thoại: {selectedUser.user.phone || 'Chưa cung cấp'}</p>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                    <div className="admin-form-group" style={{ margin: 0 }}>
+                      <label>Vai trò:</label>
+                      <span style={{
+                        display: 'inline-block',
+                        padding: '4px 8px',
+                        borderRadius: '6px',
+                        fontSize: '11px',
+                        fontWeight: '800',
+                        border: '1.5px solid #000',
+                        background: selectedUser.user.role === 'ADMIN' ? '#FEE2E2' : selectedUser.user.role === 'TEACHER' ? '#DBEAFE' : '#D1FAE5',
+                        color: selectedUser.user.role === 'ADMIN' ? '#991B1B' : selectedUser.user.role === 'TEACHER' ? '#1E40AF' : '#065F46'
+                      }}>{selectedUser.user.role}</span>
+                    </div>
+
+                    <div className="admin-form-group" style={{ margin: 0 }}>
+                      <label>Trạng thái:</label>
+                      <span style={{
+                        display: 'inline-block',
+                        padding: '4px 8px',
+                        borderRadius: '6px',
+                        fontSize: '11px',
+                        fontWeight: '800',
+                        border: '1.5px solid #000',
+                        background: selectedUser.user.status === 'BLOCKED' ? '#F3F4F6' : '#D1FAE5',
+                        color: selectedUser.user.status === 'BLOCKED' ? '#374151' : '#065F46'
+                      }}>{selectedUser.user.status === 'BLOCKED' ? 'BỊ KHÓA' : 'HOẠT ĐỘNG'}</span>
+                    </div>
+
+                    <div className="admin-form-group" style={{ margin: 0 }}>
+                      <label>Ngày tạo tài khoản:</label>
+                      <span style={{ fontWeight: '700' }}>{new Date(selectedUser.user.createdAt).toLocaleDateString('vi-VN')}</span>
+                    </div>
+
+                    <div className="admin-form-group" style={{ margin: 0 }}>
+                      <label>Đăng nhập cuối:</label>
+                      <span style={{ fontWeight: '700' }}>
+                        {selectedUser.user.lastLoginAt ? new Date(selectedUser.user.lastLoginAt).toLocaleString('vi-VN') : 'Chưa đăng nhập'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {selectedUser.user.status === 'BLOCKED' && (
+                    <div style={{ background: '#FFFBEB', border: '2px solid #F59E0B', borderRadius: '12px', padding: '14px' }}>
+                      <h4 style={{ margin: '0 0 6px 0', color: '#B45309', fontWeight: '900', fontSize: '13px' }}>THÔNG TIN KHÓA TÀI KHOẢN</h4>
+                      <p style={{ margin: '0 0 4px 0', fontSize: '12.5px', fontWeight: '700' }}>Lý do: <span style={{ color: '#D97706' }}>{selectedUser.user.blockedReason}</span></p>
+                      <p style={{ margin: '0 0 4px 0', fontSize: '12.5px', fontWeight: '700' }}>Khóa bởi: {selectedUser.user.blockedBy}</p>
+                      <p style={{ margin: 0, fontSize: '12.5px', fontWeight: '700' }}>Thời gian khóa: {selectedUser.user.blockedAt ? new Date(selectedUser.user.blockedAt).toLocaleString('vi-VN') : ''}</p>
+                    </div>
+                  )}
+
+                  {selectedUser.user.role === 'STUDENT' && (
+                    <div style={{ borderTop: '2px solid #000', paddingTop: '16px' }}>
+                      <h4 style={{ margin: '0 0 12px 0', fontWeight: '950', fontSize: '14px' }}>📊 THỐNG KÊ HỌC TẬP (STUDENT)</h4>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                        <div style={{ background: '#F9FAFB', border: '1.5px solid #E5E7EB', borderRadius: '8px', padding: '12px', textAlign: 'center' }}>
+                          <span style={{ display: 'block', fontSize: '11px', color: '#6B7280', fontWeight: '700' }}>Tổng số bài làm</span>
+                          <span style={{ fontSize: '20px', fontWeight: '900', color: '#111827' }}>{selectedUser.stats?.totalAttempts || 0}</span>
+                        </div>
+                        <div style={{ background: '#F9FAFB', border: '1.5px solid #E5E7EB', borderRadius: '8px', padding: '12px', textAlign: 'center' }}>
+                          <span style={{ display: 'block', fontSize: '11px', color: '#6B7280', fontWeight: '700' }}>Điểm trung bình</span>
+                          <span style={{ fontSize: '20px', fontWeight: '900', color: '#111827' }}>{selectedUser.stats?.averageScore || 0}/10</span>
+                        </div>
+                        <div style={{ background: '#F9FAFB', border: '1.5px solid #E5E7EB', borderRadius: '8px', padding: '12px', textAlign: 'center' }}>
+                          <span style={{ display: 'block', fontSize: '11px', color: '#6B7280', fontWeight: '700' }}>Tổng câu hỏi AI</span>
+                          <span style={{ fontSize: '20px', fontWeight: '900', color: '#111827' }}>{selectedUser.stats?.totalAiQuestions || 0}</span>
+                        </div>
+                        <div style={{ background: '#F9FAFB', border: '1.5px solid #E5E7EB', borderRadius: '8px', padding: '12px', textAlign: 'center' }}>
+                          <span style={{ display: 'block', fontSize: '11px', color: '#6B7280', fontWeight: '700' }}>Khóa học đã tham gia</span>
+                          <span style={{ fontSize: '20px', fontWeight: '900', color: '#111827' }}>{selectedUser.stats?.enrolledCourses || 0}</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {selectedUser.user.role === 'TEACHER' && (
+                    <div style={{ borderTop: '2px solid #000', paddingTop: '16px' }}>
+                      <h4 style={{ margin: '0 0 12px 0', fontWeight: '950', fontSize: '14px' }}>📊 THỐNG KÊ GIẢNG DẠY (TEACHER)</h4>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
+                        <div style={{ background: '#F9FAFB', border: '1.5px solid #E5E7EB', borderRadius: '8px', padding: '12px', textAlign: 'center' }}>
+                          <span style={{ display: 'block', fontSize: '10px', color: '#6B7280', fontWeight: '700' }}>Khóa học đã tạo</span>
+                          <span style={{ fontSize: '18px', fontWeight: '900', color: '#111827' }}>{selectedUser.stats?.createdCourses || 0}</span>
+                        </div>
+                        <div style={{ background: '#F9FAFB', border: '1.5px solid #E5E7EB', borderRadius: '8px', padding: '12px', textAlign: 'center' }}>
+                          <span style={{ display: 'block', fontSize: '10px', color: '#6B7280', fontWeight: '700' }}>Khóa học đã duyệt</span>
+                          <span style={{ fontSize: '18px', fontWeight: '900', color: '#111827' }}>{selectedUser.stats?.approvedCourses || 0}</span>
+                        </div>
+                        <div style={{ background: '#F9FAFB', border: '1.5px solid #E5E7EB', borderRadius: '8px', padding: '12px', textAlign: 'center' }}>
+                          <span style={{ display: 'block', fontSize: '10px', color: '#6B7280', fontWeight: '700' }}>Tổng số học viên</span>
+                          <span style={{ fontSize: '18px', fontWeight: '900', color: '#111827' }}>{selectedUser.stats?.studentCount || 0}</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <footer className="admin-modal-footer">
+              <button 
+                type="button" 
+                className="admin-back-btn" 
+                style={{ background: '#1C2B17', color: '#FFFFFF', boxShadow: 'none' }}
+                onClick={() => setShowDetailModal(false)}
+              >
+                Đóng
+              </button>
+            </footer>
+          </div>
+        </div>
+      )}
+
+      {/* ==========================================
+          CONFIRM BLOCK MODAL
+          ========================================== */}
+      {showBlockModal && userToBlock && (
+        <div className="admin-modal-backdrop" onClick={() => setShowBlockModal(false)}>
+          <div className="admin-modal" style={{ maxWidth: '450px' }} onClick={e => e.stopPropagation()}>
+            <header className="admin-modal-header" style={{ borderBottom: '2px solid #EF4444' }}>
+              <span style={{ color: '#EF4444', fontWeight: '900' }}>⚠️ XÁC NHẬN KHÓA TÀI KHOẢN</span>
+              <button 
+                onClick={() => setShowBlockModal(false)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '18px', fontWeight: 'bold' }}
+              >
+                ×
+              </button>
+            </header>
+
+            <div className="admin-modal-body">
+              <p style={{ fontWeight: 'bold', marginBottom: '16px' }}>
+                Bạn có chắc chắn muốn khóa tài khoản của người dùng:
+                <br />
+                <span style={{ color: '#EF4444', fontSize: '16px', fontWeight: '950' }}>{userToBlock.name}</span> ({userToBlock.email})?
+              </p>
+              
+              <div className="admin-form-group">
+                <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '8px' }}>Lý do khóa tài khoản (Bắt buộc):</label>
+                <textarea
+                  className="admin-form-textarea"
+                  placeholder="Nhập lý do khóa tài khoản..."
+                  value={blockReason}
+                  onChange={e => setBlockReason(e.target.value)}
+                  rows="3"
+                  required
+                />
+              </div>
+            </div>
+
+            <footer className="admin-modal-footer">
+              <button 
+                type="button" 
+                className="admin-back-btn" 
+                style={{ background: 'none', boxShadow: 'none' }}
+                onClick={() => setShowBlockModal(false)}
+              >
+                Hủy bỏ
+              </button>
+              <button 
+                type="button" 
+                className="admin-back-btn"
+                style={{ background: '#EF4444', color: '#FFFFFF', borderColor: '#000' }}
+                onClick={handleBlockUserSubmit}
+              >
+                Khóa tài khoản
+              </button>
+            </footer>
+          </div>
+        </div>
+      )}
+
+      {/* ==========================================
+          CONFIRM UNBLOCK MODAL
+          ========================================== */}
+      {showUnblockModal && userToUnblock && (
+        <div className="admin-modal-backdrop" onClick={() => setShowUnblockModal(false)}>
+          <div className="admin-modal" style={{ maxWidth: '450px' }} onClick={e => e.stopPropagation()}>
+            <header className="admin-modal-header" style={{ borderBottom: '2px solid #10B981' }}>
+              <span style={{ color: '#10B981', fontWeight: '900' }}>✅ XÁC NHẬN MỞ KHÓA TÀI KHOẢN</span>
+              <button 
+                onClick={() => setShowUnblockModal(false)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '18px', fontWeight: 'bold' }}
+              >
+                ×
+              </button>
+            </header>
+
+            <div className="admin-modal-body">
+              <p style={{ fontWeight: 'bold', margin: 0 }}>
+                Bạn muốn mở khóa hoạt động lại cho tài khoản người dùng:
+                <br />
+                <span style={{ color: '#10B981', fontSize: '16px', fontWeight: '950' }}>{userToUnblock.name}</span> ({userToUnblock.email})?
+              </p>
+            </div>
+
+            <footer className="admin-modal-footer">
+              <button 
+                type="button" 
+                className="admin-back-btn" 
+                style={{ background: 'none', boxShadow: 'none' }}
+                onClick={() => setShowUnblockModal(false)}
+              >
+                Hủy bỏ
+              </button>
+              <button 
+                type="button" 
+                className="admin-back-btn"
+                style={{ background: '#10B981', color: '#FFFFFF', borderColor: '#000' }}
+                onClick={handleUnblockUserSubmit}
+              >
+                Mở khóa tài khoản
+              </button>
+            </footer>
           </div>
         </div>
       )}

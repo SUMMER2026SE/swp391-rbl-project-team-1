@@ -27,8 +27,8 @@ export default function Header({
 
   const getGreeting = () => {
     if (role === 'admin') return 'Chào Quản trị viên! 🛡️';
-    if (role === 'teacher') return `Kính chào Thầy/Cô ${userProfile?.name}! 🎓`;
-    return `Chào lại, ${userProfile?.name}! 👋`;
+    if (role === 'teacher') return `Kính chào Thầy/Cô ${userProfile?.fullName || userProfile?.name}! 🎓`;
+    return `Chào lại, ${userProfile?.fullName || userProfile?.name || 'Học viên'}! 👋`;
   };
 
   const getSubtitle = () => {
@@ -59,9 +59,20 @@ export default function Header({
 
   return (
     <div className="main-header animate-in" style={{ position: 'relative' }}>
-      <div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
         <h2>{getGreeting()}</h2>
-        <p>{getSubtitle()}</p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px' }}>
+          {role === 'admin' && (
+            <span className="status-dot pulsing" style={{
+              width: '8px',
+              height: '8px',
+              borderRadius: '50%',
+              backgroundColor: '#00B894',
+              display: 'inline-block'
+            }} />
+          )}
+          <p style={{ margin: 0 }}>{getSubtitle()}</p>
+        </div>
       </div>
 
       <div className="header-actions">
@@ -124,7 +135,7 @@ export default function Header({
             alt="Avatar"
             className="header-avatar"
             style={{
-              width: '36px', height: '36px', borderRadius: '50%',
+              width: '42px', height: '42px', borderRadius: '50%',
               objectFit: 'cover', cursor: 'pointer', border: userProfile?.isPro ? '2px solid #FFA751' : '1px solid var(--border)',
               boxShadow: userProfile?.isPro ? '0 0 8px rgba(255, 226, 89, 0.4)' : 'none'
             }}
@@ -139,20 +150,20 @@ export default function Header({
             style={{
               background: userProfile?.isPro 
                 ? 'linear-gradient(135deg, #FFE259, #FFA751)' 
-                : (role === 'admin' ? '#E74C3C' : (role === 'teacher' ? '#0984E3' : '#6C5CE7')),
+                : (role === 'admin' ? 'linear-gradient(135deg, #FF6B6B, #E74C3C)' : (role === 'teacher' ? 'linear-gradient(135deg, #54a0ff, #0984E3)' : 'linear-gradient(135deg, #a29bfe, #6C5CE7)')),
               boxShadow: userProfile?.isPro ? '0 0 8px rgba(255, 226, 89, 0.4)' : 'none',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              fontWeight: 'bold'
+              fontWeight: '800'
             }}
             onClick={() => {
               setShowProfileMenu(!showProfileMenu);
               setShowNotif(false);
             }}
           >
-            {userProfile?.avatar && userProfile.avatar.length <= 10 ? userProfile.avatar : (userProfile?.name ? userProfile.name.slice(0, 2).toUpperCase() : 'U')}
+            {userProfile?.avatar && userProfile.avatar.length <= 10 ? userProfile.avatar : ((userProfile?.fullName || userProfile?.name) ? (userProfile.fullName || userProfile.name).slice(0, 2).toUpperCase() : 'U')}
           </div>
         )}
 
@@ -211,7 +222,7 @@ export default function Header({
         {showProfileMenu && (
           <div className="profile-dropdown-card" style={{ right: '10px', top: '55px' }}>
             <div style={{ borderBottom: '1px solid var(--border)', paddingBottom: '8px', marginBottom: '8px' }}>
-              <div style={{ fontWeight: 'bold', fontSize: '13px' }}>{userProfile?.name}</div>
+              <div style={{ fontWeight: 'bold', fontSize: '13px' }}>{userProfile?.fullName || userProfile?.name}</div>
               <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>{userProfile?.email}</div>
             </div>
             {onNavigateSettings && (

@@ -186,7 +186,7 @@ export default function LearningPage({ courseId, lessonId, currentUser, onSelect
       const newComment = await discussionService.createDiscussion(
         Number(currentLesson.id),
         currentUser.id,
-        currentUser.name,
+        currentUser.fullName || currentUser.name || 'Học sinh',
         currentUser.avatar || 'U',
         text,
         parentId

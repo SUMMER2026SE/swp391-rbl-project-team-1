@@ -1392,7 +1392,7 @@ export default function LandingPage({
                           style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
                         />
                       ) : (
-                        (currentUser.avatar && currentUser.avatar.length <= 10) ? currentUser.avatar : currentUser.name.slice(0, 2).toUpperCase()
+                        (currentUser.avatar && currentUser.avatar.length <= 10) ? currentUser.avatar : (currentUser.fullName || currentUser.name || 'U').slice(0, 2).toUpperCase()
                       )}
                     </div>
                   </button>
@@ -1448,12 +1448,12 @@ export default function LandingPage({
                                 style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
                               />
                             ) : (
-                              (currentUser.avatar && currentUser.avatar.length <= 10) ? currentUser.avatar : currentUser.name.slice(0, 2).toUpperCase()
+                              (currentUser.avatar && currentUser.avatar.length <= 10) ? currentUser.avatar : (currentUser.fullName || currentUser.name || 'U').slice(0, 2).toUpperCase()
                             )}
                           </div>
                           <div style={{ minWidth: 0 }}>
                             <h4 style={{ margin: 0, fontSize: '13.5px', fontWeight: '700', color: 'var(--text-main, #1e293b)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                              {currentUser.name}
+                              {currentUser.fullName || currentUser.name}
                             </h4>
                             <p style={{ margin: '2px 0 0', fontSize: '11px', color: 'var(--text-muted, #64748b)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                               {currentUser.email}
@@ -1651,11 +1651,11 @@ export default function LandingPage({
                         style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
                       />
                     ) : (
-                      (currentUser.avatar && currentUser.avatar.length <= 10) ? currentUser.avatar : currentUser.name.slice(0, 2).toUpperCase()
+                      (currentUser.avatar && currentUser.avatar.length <= 10) ? currentUser.avatar : (currentUser.fullName || currentUser.name || 'U').slice(0, 2).toUpperCase()
                     )}
                   </div>
                   <div>
-                    <h4 style={{ margin: 0, fontSize: '13.5px', fontWeight: '700', color: '#fff' }}>{currentUser.name}</h4>
+                    <h4 style={{ margin: 0, fontSize: '13.5px', fontWeight: '700', color: '#fff' }}>{currentUser.fullName || currentUser.name}</h4>
                     <p style={{ margin: '2px 0 0', fontSize: '11px', color: 'rgba(255,255,255,0.6)' }}>{currentUser.email}</p>
                   </div>
                 </div>

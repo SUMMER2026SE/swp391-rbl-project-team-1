@@ -2,6 +2,8 @@ import type { Response } from 'express';
 import type { AuthRequest } from '../middleware/auth.js';
 import crypto from 'crypto';
 import { prisma } from '../lib/prisma.js';
+import { addBothRevenue } from '../lib/monthlyStats.js';
+
 
 const VNPAY_TMN_CODE = process.env.VNPAY_TMN_CODE || 'EDUPATH123';
 const VNPAY_HASH_SECRET = process.env.VNPAY_HASH_SECRET || 'SECRET_VNPAY_HASH_KEY_2026';
@@ -238,6 +240,14 @@ export async function sepayWebhook(req: any, res: Response) {
 
     console.log(`[SePay Webhook] Đã kích hoạt thành công khóa học "${course.title}" cho học sinh "${studentUser.fullName}".`);
 
+    // Cập nhật doanh thu hàng tháng
+    try {
+      const now = new Date();
+      await addBothRevenue(paidAmount, now);
+    } catch (e) {
+      console.error('[MonthlyStats] Lỗi cập nhật revenue (SePay):', e);
+    }
+
     return res.status(200).json({
       success: true,
       message: 'Kích hoạt khóa học thành công!',
@@ -339,6 +349,16 @@ export async function createDemoEnrollment(req: AuthRequest, res: Response) {
     });
 
     console.log(`[Demo Enrollment] Đã kích hoạt khóa học ID=${courseId} cho học sinh ID=${studentId} (Demo Mode).`);
+
+    // Cập nhật doanh thu hàng tháng (Demo)
+    try {
+      const basePrice = course.price < 10000 ? course.price * 1000 : course.price;
+      const salePrice = basePrice * (1 - (course.discount || 0) / 100);
+      const now = new Date();
+      await addBothRevenue(salePrice, now);
+    } catch (e) {
+      console.error('[MonthlyStats] Lỗi cập nhật revenue (Demo):', e);
+    }
 
     return res.status(200).json({
       success: true,

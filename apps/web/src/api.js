@@ -338,9 +338,29 @@ export const api = {
   getPublicMindmapById: (id) =>
     request(`/mindmaps/public/${id}`, { method: 'GET' }),
 
-  getAdminStats: () => request('/admin/stats'),
-  getAdminUsers: () => request('/admin/users'),
+  getAdminStats: (params = {}) => {
+    const query = new URLSearchParams();
+    Object.entries(params).forEach(([k, v]) => {
+      if (v !== undefined && v !== null && v !== '') {
+        query.append(k, String(v));
+      }
+    });
+    const url = '/admin/stats' + (query.toString() ? `?${query.toString()}` : '');
+    return request(url);
+  },
+  getAdminUsers: (params = {}) => {
+    const query = new URLSearchParams();
+    Object.entries(params).forEach(([k, v]) => {
+      if (v !== undefined && v !== null && v !== '') {
+        query.append(k, String(v));
+      }
+    });
+    return request('/admin/users?' + query.toString());
+  },
   banAdminUser: (id) => request(`/admin/users/${id}/ban`, { method: 'POST' }),
+  getUserDetail: (id) => request(`/admin/users/${id}/detail`),
+  blockUser: (id, reason) => request(`/admin/users/${id}/block`, { method: 'POST', body: { reason } }),
+  unblockUser: (id) => request(`/admin/users/${id}/unblock`, { method: 'POST' }),
   getAdminLeads: () => request('/admin/leads'),
   createAdminLead: (payload) => request('/admin/leads', { method: 'POST', body: payload }),
   updateAdminLeadStatus: (id, status) => request(`/admin/leads/${id}/status`, { method: 'PUT', body: { status } }),

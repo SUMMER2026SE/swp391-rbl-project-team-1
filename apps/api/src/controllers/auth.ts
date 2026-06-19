@@ -1,8 +1,10 @@
 import type { Request, Response } from 'express';
+import type { AuthRequest } from '../middleware/auth.js';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import { prisma } from '../lib/prisma.js';
+import { incrementBothStats } from '../lib/monthlyStats.js';
 import { sendOTPEmail, sendResetPasswordEmail, sendResetPasswordOTPEmail, sendRoleChangeNotification, isRealSmtpActive } from '../lib/mailer.js';
 import { isDisposableEmail, isValidEmailFormat } from '../lib/disposable-domains.js';
 import { checkOtpSendRateLimit, recordOtpSend, checkResendCooldown, recordResendCooldown } from '../lib/rate-limiter.js';
@@ -38,6 +40,7 @@ function buildUserPayload(user: any) {
     email: user.email,
     fullName: user.fullName,
     avatarUrl: user.avatarUrl,
+    phone: user.phone || null,
     role: user.role,
     isPro: user.isPro,
     emailVerified: user.emailVerified,
@@ -101,13 +104,23 @@ export async function login(req: Request, res: Response) {
       return res.status(400).json({ success: false, error: 'Tên đăng nhập hoặc mật khẩu không chính xác!' });
     }
 
-    if (!user.isActive) {
+    if (!user.isActive || user.status === 'BLOCKED') {
       return res.status(403).json({ success: false, error: 'Tài khoản của bạn đã bị khóa!' });
     }
 
     // If teacher, verify approved status
     if (user.role === 'TEACHER' && user.teacher && !user.teacher.isApproved) {
       return res.status(403).json({ success: false, error: 'Tài khoản Giáo viên đang chờ Quản trị viên duyệt hồ sơ!' });
+    }
+
+    // Update lastLoginAt
+    try {
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { lastLoginAt: new Date() }
+      });
+    } catch (loginErr) {
+      console.error('[Login] Failed to update lastLoginAt:', loginErr);
     }
 
     const tokens = signTokens({ id: user.id, email: user.email, fullName: user.fullName, role: user.role });
@@ -144,6 +157,7 @@ export async function updateProfile(req: Request, res: Response) {
       data: {
         ...(fullName ? { fullName } : {}),
         ...(avatarUrl !== undefined ? { avatarUrl } : {}),
+        ...(phone !== undefined ? { phone } : {}),
       },
       include: {
         student: {
@@ -469,7 +483,7 @@ export async function verifyOtpRegister(req: Request, res: Response) {
 
     // OTP is correct — create user account
     const payload = record.payload as any;
-    const { fullName, password, role, subjectGroup, bio } = payload || {};
+    const { fullName, password, role, subjectGroup, bio, phone } = payload || {};
 
     const passwordHash = await bcrypt.hash(password, 12);
     const assignedRole = role && ['STUDENT', 'TEACHER'].includes(role.toUpperCase())
@@ -484,6 +498,9 @@ export async function verifyOtpRegister(req: Request, res: Response) {
           fullName,
           role: assignedRole as any,
           isActive: true,
+          status: 'ACTIVE',
+          phone: phone || null,
+          lastLoginAt: new Date(),
           emailVerified: true,
           onboardingComplete: true
         }
@@ -507,6 +524,14 @@ export async function verifyOtpRegister(req: Request, res: Response) {
     });
 
     if (!user) return res.status(500).json({ success: false, error: 'Không tạo được tài khoản.' });
+
+    // Cập nhật thống kê hàng tháng
+    try {
+      const now = new Date();
+      await incrementBothStats('newUsers', now);
+    } catch (e) {
+      console.error('[MonthlyStats] Lỗi cập nhật newUsers:', e);
+    }
 
     const tokens = signTokens({ id: user.id, email: user.email, fullName: user.fullName, role: user.role });
 
@@ -549,11 +574,21 @@ export async function googleAuth(req: Request, res: Response) {
         });
       }
 
-      if (!user.isActive) {
+      if (!user.isActive || user.status === 'BLOCKED') {
         return res.status(403).json({ success: false, error: 'Tài khoản đã bị khóa!' });
       }
       if (user.role === 'TEACHER' && user.teacher && !user.teacher.isApproved) {
         return res.status(403).json({ success: false, error: 'Tài khoản Giáo viên đang chờ duyệt!' });
+      }
+
+      // Update lastLoginAt
+      try {
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { lastLoginAt: new Date() }
+        });
+      } catch (authErr) {
+        console.error('[GoogleAuth] Failed to update lastLoginAt:', authErr);
       }
 
       const tokens = signTokens({ id: user.id, email: user.email, fullName: user.fullName, role: user.role });
@@ -649,6 +684,8 @@ export async function googleCompleteOnboarding(req: Request, res: Response) {
           googleId,
           role: assignedRole as any,
           isActive: true,
+          status: 'ACTIVE',
+          lastLoginAt: new Date(),
           emailVerified: true,
           onboardingComplete: true
         }
@@ -672,6 +709,13 @@ export async function googleCompleteOnboarding(req: Request, res: Response) {
 
     if (!user) return res.status(500).json({ success: false, error: 'Không tạo được tài khoản.' });
 
+    // Cập nhật thống kê hàng tháng (Google OAuth register)
+    try {
+      const now = new Date();
+      await incrementBothStats('newUsers', now);
+    } catch (e) {
+      console.error('[MonthlyStats] Lỗi cập nhật newUsers (Google):', e);
+    }
     const tokens = signTokens({ id: user.id, email: user.email, fullName: user.fullName, role: user.role });
 
     return res.status(201).json({

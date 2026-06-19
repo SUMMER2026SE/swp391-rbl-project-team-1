@@ -16,6 +16,12 @@ model User {
   avatarUrl          String?
   role               Role                @default(STUDENT)
   isActive           Boolean             @default(true)
+  status             UserStatus          @default(ACTIVE)
+  phone              String?
+  lastLoginAt        DateTime?
+  blockedAt          DateTime?
+  blockedReason      String?
+  blockedBy          String?
   googleId           String?             @unique
   createdAt          DateTime            @default(now())
   updatedAt          DateTime            @updatedAt
@@ -66,6 +72,7 @@ model Student {
   user         User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   testAttempts TestAttempt[]
   profile      StudentProfile?
+  totalAiQuestions Int             @default(0)
 }
 
 model Teacher {
@@ -271,6 +278,11 @@ enum Role {
   STUDENT
   TEACHER
   ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  BLOCKED
 }
 
 enum Difficulty {
@@ -851,7 +863,34 @@ model UploadedExamFile {
   @@map("uploaded_exam_files")
 }
 
+// ── Thống kê hàng tháng (Dashboard Admin) ──
+model MonthlyStatistic {
+  id               Int      @id @default(autoincrement())
+  month            Int      // 1-12
+  year             Int      // ví dụ: 2026
+  totalUsers       Int      @default(0)
+  newUsers         Int      @default(0)
+  totalAttempts    Int      @default(0)
+  totalAiQuestions Int      @default(0)
+  revenue          Float    @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
+  @@unique([month, year])
+  @@map("monthly_statistics")
+}
 
+// ── Thống kê theo ngày (Chart dữ liệu chi tiết) ──
+model DailyStatistic {
+  id               Int      @id @default(autoincrement())
+  date             DateTime @unique // chuẩn hóa về 00:00:00 UTC
+  newUsers         Int      @default(0)
+  totalAttempts    Int      @default(0)
+  totalAiQuestions Int      @default(0)
+  revenue          Float    @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
+  @@map("daily_statistics")
+}
 

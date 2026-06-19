@@ -1,8 +1,10 @@
 import type { Request, Response } from 'express';
 import type { AuthRequest } from '../middleware/auth.js';
 import { prisma } from '../lib/prisma.js';
+import { incrementBothStats } from '../lib/monthlyStats.js';
 import fs from 'fs';
 import path from 'path';
+
 
 // Helper to process SSE lines from OpenRouter
 function processLines(buffer: string, res: Response): string {
@@ -122,6 +124,15 @@ export async function streamAIChat(req: AuthRequest, res: Response) {
     }
 
     res.write('data: [DONE]\n\n');
+
+    // Cập nhật thống kê hàng tháng
+    try {
+      const now = new Date();
+      await incrementBothStats('totalAiQuestions', now);
+    } catch (statErr) {
+      console.error('[MonthlyStats] Lỗi cập nhật totalAiQuestions:', statErr);
+    }
+
     res.end();
   } catch (err: any) {
     if (err.name === 'AbortError') {
