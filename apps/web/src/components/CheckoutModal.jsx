@@ -15,10 +15,11 @@ export default function CheckoutModal({ course, onClose, onPaymentSuccess, addLo
   const [discountPercent, setDiscountPercent] = useState(0);
   const [promoStatus, setPromoStatus] = useState(''); // 'success' | 'invalid' | ''
 
+  const isDocument = course.isDocument === true;
   const currentUser = JSON.parse(localStorage.getItem('current_user')) || {};
   const studentId = currentUser.id || 1;
   const courseId = course.id;
-  const transferCode = `EP${studentId}C${courseId}`;
+  const transferCode = isDocument ? `EP${studentId}D${courseId}` : `EP${studentId}C${courseId}`;
 
   // Helper function to parse course price to actual VND
   const parsePrice = (priceVal) => {
@@ -55,15 +56,20 @@ export default function CheckoutModal({ course, onClose, onPaymentSuccess, addLo
       if (!token) return;
 
       try {
-        const res = await fetch(`${API_BASE}/enrollments/status?courseId=${courseId}`, {
+        const statusUrl = isDocument 
+          ? `${API_BASE}/document-resources/${course.id}/ownership` 
+          : `${API_BASE}/enrollments/status?courseId=${courseId}`;
+        const res = await fetch(statusUrl, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
         });
         const data = await res.json();
         
-        if (data.success && data.data?.isEnrolled) {
-          addLog(`[SePay Webhook] Hệ thống đã ghi nhận khoản thanh toán tự động cho khóa "${course.title}".`, 'sys');
+        const isSuccess = isDocument ? data.data?.isPurchased : data.data?.isEnrolled;
+        if (data.success && isSuccess) {
+          const typeStr = isDocument ? 'tài liệu' : 'khóa';
+          addLog(`[SePay Webhook] Hệ thống đã ghi nhận khoản thanh toán tự động cho ${typeStr} "${course.title}".`, 'sys');
           setStep(4);
           onPaymentSuccess(course.id);
         }
@@ -108,20 +114,22 @@ export default function CheckoutModal({ course, onClose, onPaymentSuccess, addLo
   };
 
   const handleFreeCheckout = () => {
-    addLog(`[Free Code] Kích hoạt khóa học "${course.title}" miễn phí 100% bằng mã giảm giá...`, 'sys');
+    const typeStr = isDocument ? 'tài liệu' : 'khóa học';
+    addLog(`[Free Code] Kích hoạt ${typeStr} "${course.title}" miễn phí 100% bằng mã giảm giá...`, 'sys');
     setStep(3);
     setTimeout(() => {
-      addLog(`[Free Code] Kích hoạt thành công! Đã mở khóa khóa học: "${course.title}"`, 'sys');
+      addLog(`[Free Code] Kích hoạt thành công! Đã mở khóa ${typeStr}: "${course.title}"`, 'sys');
       onPaymentSuccess(course.id);
       setStep(4);
     }, 1200);
   };
 
   const handleSimulatePayment = () => {
-    addLog(`[Demo Mode] Tiến hành mô phỏng thanh toán khóa học "${course.title}"...`, 'sys');
+    const typeStr = isDocument ? 'tài liệu' : 'khóa học';
+    addLog(`[Demo Mode] Tiến hành mô phỏng thanh toán ${typeStr} "${course.title}"...`, 'sys');
     setStep(3);
     setTimeout(() => {
-      addLog(`[Demo Mode] Xác nhận thành công! Đã kích hoạt quyền sở hữu khóa học "${course.title}".`, 'sys');
+      addLog(`[Demo Mode] Xác nhận thành công! Đã kích hoạt quyền sở hữu ${typeStr} "${course.title}".`, 'sys');
       setStep(4);
       onPaymentSuccess(course.id);
     }, 1500);
@@ -130,13 +138,14 @@ export default function CheckoutModal({ course, onClose, onPaymentSuccess, addLo
   const handleManualCheck = async () => {
     setIsVerifying(true);
     setPollingError('');
+    const typeStr = isDocument ? 'tài liệu' : 'khóa học';
     addLog(`[SePay] Học sinh yêu cầu kiểm tra sao kê thủ công giao dịch: ${transferCode}`, 'sys');
     
     const token = localStorage.getItem('access_token');
     if (!token) {
       // Fallback to simulation in mock/demo mode when no token is present
       setTimeout(() => {
-        addLog(`[Demo Mode] Xác nhận thành công! Đã kích hoạt quyền sở hữu khóa học "${course.title}".`, 'sys');
+        addLog(`[Demo Mode] Xác nhận thành công! Đã kích hoạt quyền sở hữu ${typeStr} "${course.title}".`, 'sys');
         setStep(4);
         onPaymentSuccess(course.id);
         setIsVerifying(false);
@@ -147,15 +156,19 @@ export default function CheckoutModal({ course, onClose, onPaymentSuccess, addLo
     try {
       await new Promise((resolve) => setTimeout(resolve, 1500));
       
-      const res = await fetch(`${API_BASE}/enrollments/status?courseId=${courseId}`, {
+      const statusUrl = isDocument 
+        ? `${API_BASE}/document-resources/${course.id}/ownership` 
+        : `${API_BASE}/enrollments/status?courseId=${courseId}`;
+      const res = await fetch(statusUrl, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
       });
       const data = await res.json();
       
-      if (data.success && data.data?.isEnrolled) {
-        addLog(`[SePay] Chuyển khoản thành công! Đã mở khóa khóa học: "${course.title}"`, 'sys');
+      const isSuccess = isDocument ? data.data?.isPurchased : data.data?.isEnrolled;
+      if (data.success && isSuccess) {
+        addLog(`[SePay] Chuyển khoản thành công! Đã mở khóa ${typeStr}: "${course.title}"`, 'sys');
         setStep(4);
         onPaymentSuccess(course.id);
       } else {
@@ -256,7 +269,11 @@ export default function CheckoutModal({ course, onClose, onPaymentSuccess, addLo
                   <div style={{ display: 'flex', gap: '12px', fontSize: '12px', color: 'var(--text-secondary)' }}>
                     <span>Môn: <strong>{course.subject}</strong></span>
                     <span>•</span>
-                    <span>Giảng viên: <strong>{course.teacherName || course.instructor?.name || 'Cố vấn EduPath'}</strong></span>
+                    {isDocument ? (
+                      <span>Loại: <strong>Tài liệu Premium</strong></span>
+                    ) : (
+                      <span>Giảng viên: <strong>{course.teacherName || course.instructor?.name || 'Cố vấn EduPath'}</strong></span>
+                    )}
                   </div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
@@ -345,7 +362,7 @@ export default function CheckoutModal({ course, onClose, onPaymentSuccess, addLo
                 onClick={onClose}
                 style={{ padding: '12px 24px' }}
               >
-                Tiếp tục chọn khóa học
+                {isDocument ? 'Tiếp tục chọn tài liệu' : 'Tiếp tục chọn khóa học'}
               </button>
               <button
                 type="button"
@@ -353,7 +370,9 @@ export default function CheckoutModal({ course, onClose, onPaymentSuccess, addLo
                 onClick={finalAmount === 0 ? handleFreeCheckout : () => setStep(2)}
                 style={{ padding: '12px 32px' }}
               >
-                {finalAmount === 0 ? 'Nhận khóa học miễn phí ➔' : 'Xác nhận thanh toán ➔'}
+                {finalAmount === 0 
+                  ? (isDocument ? 'Nhận tài liệu miễn phí ➔' : 'Nhận khóa học miễn phí ➔') 
+                  : 'Xác nhận thanh toán ➔'}
               </button>
             </div>
           </div>
@@ -370,7 +389,7 @@ export default function CheckoutModal({ course, onClose, onPaymentSuccess, addLo
             </div>
             
             <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '16px', lineHeight: 1.4 }}>
-              Bạn đang mua khóa học: <strong style={{ color: 'var(--primary)' }}>{course.title}</strong>
+              Bạn đang mua {isDocument ? 'tài liệu' : 'khóa học'}: <strong style={{ color: 'var(--primary)' }}>{course.title}</strong>
             </p>
  
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '28px', alignItems: 'start' }}>
@@ -499,33 +518,35 @@ export default function CheckoutModal({ course, onClose, onPaymentSuccess, addLo
                 </div>
  
                 {/* Vào học DEMO Link */}
-                <div style={{
-                  background: 'var(--emerald-light)',
-                  padding: '12px 16px',
-                  borderRadius: '12px',
-                  border: '1px solid rgba(5, 150, 105, 0.15)',
-                  fontSize: '13px',
-                  textAlign: 'center',
-                  marginTop: '4px'
-                }}>
-                  Bạn muốn dùng thử trước?{' '}
-                  <a
-                    href="#"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      onClose();
-                      window.history.pushState({}, '', `/learn/${course.id}?demo=true`);
-                      window.dispatchEvent(new PopStateEvent('popstate'));
-                    }}
-                    style={{
-                      color: 'var(--emerald-primary)',
-                      fontWeight: '800',
-                      textDecoration: 'underline'
-                    }}
-                  >
-                    Vào học thử DEMO ngay!
-                  </a>
-                </div>
+                {!isDocument && (
+                  <div style={{
+                    background: 'var(--emerald-light)',
+                    padding: '12px 16px',
+                    borderRadius: '12px',
+                    border: '1px solid rgba(5, 150, 105, 0.15)',
+                    fontSize: '13px',
+                    textAlign: 'center',
+                    marginTop: '4px'
+                  }}>
+                    Bạn muốn dùng thử trước?{' '}
+                    <a
+                      href="#"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        onClose();
+                        window.history.pushState({}, '', `/learn/${course.id}?demo=true`);
+                        window.dispatchEvent(new PopStateEvent('popstate'));
+                      }}
+                      style={{
+                        color: 'var(--emerald-primary)',
+                        fontWeight: '800',
+                        textDecoration: 'underline'
+                      }}
+                    >
+                      Vào học thử DEMO ngay!
+                    </a>
+                  </div>
+                )}
               </div>
  
               {/* CỘT PHẢI: VietQR & Quét mã thanh toán */}
@@ -617,8 +638,16 @@ export default function CheckoutModal({ course, onClose, onPaymentSuccess, addLo
             <h3 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '8px', color: 'var(--text-primary)' }}>
               Kích hoạt thành công! 🎉
             </h3>
-            <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '20px', lineHeight: '1.5' }}>
-              Cảm ơn em! Khóa học <strong style={{ color: 'var(--primary)' }}>{course.title}</strong> đã được kích hoạt trên hệ thống. Hãy bắt đầu chinh phục kiến thức và nhận lộ trình học tập cá nhân hóa ngay nào!
+            <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '20px', lineHeight: 1.5 }}>
+              {isDocument ? (
+                <>
+                  Cảm ơn em! Tài liệu <strong style={{ color: 'var(--primary)' }}>{course.title}</strong> đã được kích hoạt thành công trên hệ thống. Em có thể mở xem trực tiếp hoặc tải tài liệu về máy ôn luyện ngay!
+                </>
+              ) : (
+                <>
+                  Cảm ơn em! Khóa học <strong style={{ color: 'var(--primary)' }}>{course.title}</strong> đã được kích hoạt trên hệ thống. Hãy bắt đầu chinh phục kiến thức và nhận lộ trình học tập cá nhân hóa ngay nào!
+                </>
+              )}
             </p>
             <div style={{ display: 'flex', justifyContent: 'center' }}>
               <button 

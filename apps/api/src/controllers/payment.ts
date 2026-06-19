@@ -162,7 +162,63 @@ export async function sepayWebhook(req: any, res: Response) {
       });
     }
 
-    // 2. Check if it matches the COURSE purchase pattern: EP[studentId]C[courseId]
+    // 2. Check if it matches the DOCUMENT purchase pattern: EP[studentId]D[documentId]
+    const docMatch = cleanContent.match(/EP(\d+)D(\d+)/i);
+    if (docMatch) {
+      const studentId = parseInt(docMatch[1], 10);
+      const documentId = parseInt(docMatch[2], 10);
+
+      console.log(`[SePay Webhook] Phát hiện mã mua tài liệu: Học sinh ID: ${studentId}, Tài liệu ID: ${documentId}`);
+
+      const studentUser = await prisma.user.findUnique({
+        where: { id: studentId }
+      });
+
+      if (!studentUser) {
+        console.error(`[SePay Webhook] Không tìm thấy học sinh có ID: ${studentId}`);
+        return res.status(404).json({ success: false, error: `Không tìm thấy học sinh có ID: ${studentId}` });
+      }
+
+      const document = await prisma.documentResource.findUnique({
+        where: { id: documentId }
+      });
+
+      if (!document) {
+        console.error(`[SePay Webhook] Không tìm thấy tài liệu có ID: ${documentId}`);
+        return res.status(404).json({ success: false, error: `Không tìm thấy tài liệu có ID: ${documentId}` });
+      }
+
+      // Check if ownership already exists
+      const existingPurchase = await prisma.userDocument.findFirst({
+        where: { userId: studentId, documentId }
+      });
+
+      if (existingPurchase) {
+        console.log(`[SePay Webhook] Học sinh ${studentId} đã sở hữu tài liệu ${documentId} từ trước.`);
+        return res.status(200).json({ success: true, message: 'Quyền sở hữu tài liệu đã tồn tại.' });
+      }
+
+      // Create UserDocument
+      const txnId = id ? String(id) : `SEPAY_${Date.now()}`;
+      const userDoc = await prisma.userDocument.create({
+        data: {
+          userId: studentId,
+          documentId,
+          paidPrice: document.price,
+          transactionId: txnId,
+        }
+      });
+
+      console.log(`[SePay Webhook] Đã kích hoạt thành công tài liệu "${document.title}" cho học sinh "${studentUser.fullName}".`);
+
+      return res.status(200).json({
+        success: true,
+        message: 'Kích hoạt tài liệu thành công!',
+        data: { userDocId: userDoc.id }
+      });
+    }
+
+    // 3. Check if it matches the COURSE purchase pattern: EP[studentId]C[courseId]
     const match = cleanContent.match(/EP(\d+)C(\d+)/i);
 
     if (!match) {
