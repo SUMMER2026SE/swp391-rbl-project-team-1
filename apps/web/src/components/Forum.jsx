@@ -35,7 +35,6 @@ export default function Forum({ currentUser }) {
   const [categories, setCategories] = useState([]);
   const [comments, setComments] = useState([]);
   const [studyGroups, setStudyGroups] = useState([]);
-  const [leaderboard, setLeaderboard] = useState([]);
   const [gamifyProfile, setGamifyProfile] = useState(null);
   const [groupAnnouncements, setGroupAnnouncements] = useState([]);
   const [groupPosts, setGroupPosts] = useState([]);
@@ -129,8 +128,6 @@ export default function Forum({ currentUser }) {
     } else if (activeTab === 'groups') {
       fetchStudyGroups();
       fetchUserInvitations();
-    } else if (activeTab === 'leaderboard') {
-      fetchLeaderboard();
     }
     fetchGamifyProfile();
   }, [activeTab, selectedCategory, selectedType, selectedTag]);
@@ -410,17 +407,7 @@ export default function Forum({ currentUser }) {
     }
   };
 
-  const fetchLeaderboard = async () => {
-    setLoading(true);
-    try {
-      const data = await api.getForumLeaderboard();
-      setLeaderboard(data || []);
-    } catch (err) {
-      console.error('Lỗi tải bảng xếp hạng:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
+
 
   const fetchGamifyProfile = async () => {
     if (!currentUser) return;
@@ -653,8 +640,7 @@ export default function Forum({ currentUser }) {
             {[
               { id: 'feed', label: 'Bài thảo luận', icon: <HiChat /> },
               { id: 'groups', label: 'Nhóm học tập', icon: <HiUserGroup /> },
-              { id: 'drive', label: 'Thư viện tài liệu', icon: <HiDownload /> },
-              { id: 'leaderboard', label: 'Bảng xếp hạng', icon: <HiTrendingUp /> }
+              { id: 'drive', label: 'Thư viện tài liệu', icon: <HiDownload /> }
             ].map(tab => (
               <button
                 key={tab.id}
