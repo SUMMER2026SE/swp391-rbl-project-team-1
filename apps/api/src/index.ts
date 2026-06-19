@@ -21,7 +21,8 @@ import {
   downloadResource, createReport, getReports, resolveReport,
   getGroupRequests, handleGroupRequest, promoteGroupMember,
   inviteToGroup, getUserInvitations, handleGroupInvitation,
-  searchUsersToInvite
+  searchUsersToInvite,
+  getGroupAnnouncements, createGroupAnnouncement
 } from './controllers/forum.js';
 
 dotenv.config();
@@ -123,6 +124,8 @@ app.get('/forum/study-groups', authenticateJWT, getStudyGroups);
 app.post('/forum/study-groups', authenticateJWT, createStudyGroup);
 app.post('/forum/study-groups/:id/join', authenticateJWT, joinStudyGroup);
 app.post('/forum/study-groups/:id/leave', authenticateJWT, leaveStudyGroup);
+app.get('/forum/study-groups/:id/announcements', authenticateJWT, getGroupAnnouncements);
+app.post('/forum/study-groups/:id/announcements', authenticateJWT, createGroupAnnouncement);
 
 app.get('/forum/study-groups/:id/requests', authenticateJWT, getGroupRequests);
 app.post('/forum/study-groups/:id/requests/:requestId', authenticateJWT, handleGroupRequest);
