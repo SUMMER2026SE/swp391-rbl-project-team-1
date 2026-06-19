@@ -639,8 +639,7 @@ export default function Forum({ currentUser }) {
           <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', marginBottom: '20px', gap: '8px' }}>
             {[
               { id: 'feed', label: 'Bài thảo luận', icon: <HiChat /> },
-              { id: 'groups', label: 'Nhóm học tập', icon: <HiUserGroup /> },
-              { id: 'drive', label: 'Thư viện tài liệu', icon: <HiDownload /> }
+              { id: 'groups', label: 'Nhóm học tập', icon: <HiUserGroup /> }
             ].map(tab => (
               <button
                 key={tab.id}
@@ -982,45 +981,7 @@ export default function Forum({ currentUser }) {
               )}
 
 
-              {activeTab === 'drive' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  {/* Reuse resource filters */}
-                  <div style={{ display: 'flex', gap: '10px', overflowX: 'auto', marginBottom: '10px' }}>
-                    {categories.map(cat => (
-                      <button
-                        key={cat.id}
-                        onClick={() => setSelectedCategory(cat.id)}
-                        className={`badge-pill ${selectedCategory === cat.id ? 'active' : ''}`}
-                        style={{
-                          border: '1px solid var(--border)',
-                          background: selectedCategory === cat.id ? 'var(--primary)' : 'var(--bg-main)',
-                          color: selectedCategory === cat.id ? '#fff' : 'var(--text-secondary)',
-                          padding: '6px 12px', fontSize: '12px', borderRadius: '16px', cursor: 'pointer', whiteSpace: 'nowrap'
-                        }}
-                      >
-                        {cat.name}
-                      </button>
-                    ))}
-                  </div>
 
-                  {posts.filter(p => p.postType === 'RESOURCE').map(post => (
-                    <div key={post.id} className="card" style={{ padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
-                      <div>
-                        <span className="badge-pill" style={{ background: 'var(--primary-bg)', color: 'var(--primary)', fontSize: '10px' }}>{post.category?.name}</span>
-                        <h4 style={{ fontWeight: 'bold', fontSize: '14.5px', marginTop: '6px', margin: '4px 0' }}>📘 {post.title}</h4>
-                        <p style={{ fontSize: '11px', color: 'var(--text-secondary)', margin: 0 }}>Đóng góp bởi {post.author?.fullName}</p>
-                      </div>
-                      <button
-                        className="btn-primary"
-                        onClick={() => post.resource && handleDownloadFile(post.resource.id, post.resource.fileUrl)}
-                        style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 14px', fontSize: '12px' }}
-                      >
-                        <HiDownload /> Tải ngay
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
 
               {activeTab === 'groups' && selectedGroup ? (
                 /* GROUP WORKSPACE DETAIL VIEW */
