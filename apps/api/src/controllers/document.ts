@@ -4,7 +4,11 @@ import { prisma } from '../lib/prisma.js';
 
 export async function getDocumentResources(req: Request, res: Response) {
   try {
-    const { subject, level, search, isFree } = req.query;
+    const { subject, level, search, isFree, page: pageParam, limit: limitParam } = req.query;
+
+    const page = Math.max(1, Number(pageParam) || 1);
+    const limit = Math.max(1, Number(limitParam) || 30);
+    const skip = (page - 1) * limit;
 
     const whereClause: any = {
       isActive: true,
@@ -36,12 +40,31 @@ export async function getDocumentResources(req: Request, res: Response) {
       whereClause.isFree = isFree === 'true';
     }
 
+    // Get total items for metadata
+    const totalItems = await prisma.documentResource.count({
+      where: whereClause,
+    });
+
     const docs = await prisma.documentResource.findMany({
       where: whereClause,
       orderBy: { id: 'asc' },
+      skip,
+      take: limit,
     });
 
-    return res.status(200).json({ success: true, data: docs });
+    const totalPages = Math.ceil(totalItems / limit);
+    const hasNextPage = page < totalPages;
+
+    return res.status(200).json({
+      success: true,
+      data: docs,
+      meta: {
+        totalItems,
+        totalPages,
+        currentPage: page,
+        hasNextPage,
+      },
+    });
   } catch (err: any) {
     return res.status(500).json({ success: false, error: err.message });
   }

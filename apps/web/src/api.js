@@ -88,7 +88,7 @@ async function request(path, options = {}) {
     err.data = data.data || null;
     throw err;
   }
-  return data.data;
+  return options.returnFullResponse ? data : data.data;
 }
 
 export const api = {
@@ -160,7 +160,7 @@ export const api = {
         params.append(k, String(v));
       }
     });
-    return request(`/document-resources?${params.toString()}`);
+    return request(`/document-resources?${params.toString()}`, { returnFullResponse: true });
   },
   getDocumentComments: (documentId) => request(`/document-resources/${documentId}/comments`),
   addDocumentComment: (documentId, content) => request(`/document-resources/${documentId}/comments`, {
