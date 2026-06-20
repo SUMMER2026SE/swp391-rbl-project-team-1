@@ -6,7 +6,7 @@ export const API_BASE = import.meta.env.VITE_API_URL ||
 let refreshPromise = null;
 
 async function request(path, options = {}) {
-  let token = localStorage.getItem('access_token');
+  let token = localStorage.getItem('access_token') || localStorage.getItem('token') || localStorage.getItem('jwt_token');
   const isFormData = options.body instanceof FormData;
   const headers = {
     ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
@@ -392,6 +392,15 @@ export const api = {
     request('/ai/mindmap/exam-analyse', {
       method: 'POST',
       body: payload
-    })
+    }),
+
+  completeLesson: (courseId, lessonId, isCompleted = true) =>
+    request(`/courses/${courseId}/lessons/${lessonId}/complete`, {
+      method: 'POST',
+      body: { isCompleted }
+    }),
+
+  getCourseLessonsProgress: (courseId) =>
+    request(`/courses/${courseId}/lessons/progress`, { method: 'GET' })
 };
 

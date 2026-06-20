@@ -1021,53 +1021,54 @@ export default function App() {
   };
 
   const getParsedRoute = () => {
-    if (currentPath === '/admin' || currentPath.startsWith('/admin/')) {
+    const pathOnly = currentPath ? currentPath.split('?')[0] : '';
+    if (pathOnly === '/admin' || pathOnly.startsWith('/admin/')) {
       return { route: 'admin' };
     }
-    if (currentPath === '/courses') {
+    if (pathOnly === '/courses') {
       return { route: 'courses-list' };
     }
-    const courseMatch = currentPath.match(/^\/courses\/(\d+)$/);
+    const courseMatch = pathOnly.match(/^\/courses\/(\d+)$/);
     if (courseMatch) {
       return { route: 'course-detail', courseId: courseMatch[1] };
     }
-    const learnMatch = currentPath.match(/^\/learn\/(\d+)(?:\/lesson\/(\d+))?$/);
+    const learnMatch = pathOnly.match(/^\/learn\/(\d+)(?:\/lesson\/(\d+))?$/);
     if (learnMatch) {
       return { route: 'learn', courseId: learnMatch[1], lessonId: learnMatch[2] || null };
     }
-    if (currentPath === '/mock-exams') {
+    if (pathOnly === '/mock-exams') {
       return { route: 'mock-exams-list' };
     }
-    const mockExamMatch = currentPath.match(/^\/mock-exams\/([^/]+)$/);
-    if (mockExamMatch && !currentPath.includes('/start') && !currentPath.includes('/result/')) {
+    const mockExamMatch = pathOnly.match(/^\/mock-exams\/([^/]+)$/);
+    if (mockExamMatch && !pathOnly.includes('/start') && !pathOnly.includes('/result/')) {
       return { route: 'mock-exam-detail', examId: mockExamMatch[1] };
     }
-    const mockExamTakingMatch = currentPath.match(/^\/mock-exams\/([^/]+)\/start$/);
+    const mockExamTakingMatch = pathOnly.match(/^\/mock-exams\/([^/]+)\/start$/);
     if (mockExamTakingMatch) {
       return { route: 'mock-exam-taking', examId: mockExamTakingMatch[1] };
     }
-    const mockExamResultMatch = currentPath.match(/^\/mock-exams\/([^/]+)\/result\/([^/]+)$/);
+    const mockExamResultMatch = pathOnly.match(/^\/mock-exams\/([^/]+)\/result\/([^/]+)$/);
     if (mockExamResultMatch) {
       return { route: 'mock-exam-result', examId: mockExamResultMatch[1], attemptId: mockExamResultMatch[2] };
     }
 
-    if (currentPath.startsWith('/ai-tutor')) {
+    if (pathOnly.startsWith('/ai-tutor')) {
       return { route: 'ai-tutor' };
     }
 
-    if (currentPath.startsWith('/flashcards')) {
+    if (pathOnly.startsWith('/flashcards')) {
       return { route: 'flashcards' };
     }
 
-    if (currentPath === '/exam-bank') {
+    if (pathOnly === '/exam-bank') {
       return { route: 'exam-bank' };
     }
 
-    if (currentPath === '/forum' || currentPath === '/community' || currentPath === '/direct') {
+    if (pathOnly === '/forum' || pathOnly === '/community' || pathOnly === '/direct') {
       return { route: 'forum' };
     }
 
-    if (currentPath.startsWith('/confirm-email')) {
+    if (pathOnly.startsWith('/confirm-email')) {
       return { route: 'confirm-email' };
     }
 
@@ -2000,6 +2001,7 @@ export default function App() {
                 <LandingPage
                   courses={courses}
                   currentUser={currentUser}
+                  addLog={addLog}
                   onNavigateToAuth={(mode) => setActiveTab(mode)}
                   onBackToDashboard={handleBackToDashboard}
                   onLogout={handleLogout}
@@ -2009,10 +2011,11 @@ export default function App() {
                   onAddComment={handleForumAddComment}
                   onAcceptCommentSolution={handleForumAcceptCommentSolution}
                   onCheckoutCourse={(course) => setCheckoutCourse(course)}
-                  onNavigateToLearn={(courseId, lessonId) => {
-                    if (currentUser) {
+                  onNavigateToLearn={(courseId, lessonId, isDemo = false) => {
+                    const demoQuery = isDemo ? '?demo=true' : '';
+                    if (currentUser || isDemo) {
                       setActiveTab('home');
-                      navigateTo(`/learn/${courseId}${lessonId ? `/lesson/${lessonId}` : ''}`);
+                      navigateTo(`/learn/${courseId}${lessonId ? `/lesson/${lessonId}` : ''}${demoQuery}`);
                     } else {
                       setActiveTab('signup');
                     }

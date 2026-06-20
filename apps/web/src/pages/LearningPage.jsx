@@ -140,12 +140,57 @@ export default function LearningPage({ courseId, lessonId, currentUser, onSelect
 
   const totalLessonsCount = allLessons.length;
 
-  // 2. Load Progress Hook
-  const { completedLessons, toggleCompleted, progressPercent } = useCourseProgress(
-    courseId,
-    currentUser,
-    totalLessonsCount
-  );
+  // 2. Load Progress State and API fetch
+  const [completedLessons, setCompletedLessons] = useState([]);
+
+  useEffect(() => {
+    const fetchProgress = async () => {
+      if (!courseId) return;
+      try {
+        const completedIds = await api.getCourseLessonsProgress(courseId);
+        if (completedIds) {
+          setCompletedLessons(completedIds.map(Number));
+        }
+      } catch (err) {
+        console.warn('Lỗi khi nạp tiến độ học tập:', err);
+        // Fallback to local storage
+        const saved = localStorage.getItem(`course_${courseId}_completed_lessons`);
+        if (saved) {
+          setCompletedLessons(JSON.parse(saved).map(Number));
+        }
+      }
+    };
+    fetchProgress();
+  }, [courseId, currentUser]);
+
+  const toggleCompleted = useCallback(async (lessonId) => {
+    if (!lessonId) return;
+    const numericId = Number(lessonId);
+    const isCompleted = completedLessons.includes(numericId);
+
+    setCompletedLessons(prev => {
+      const next = prev.includes(numericId)
+        ? prev.filter(id => id !== numericId)
+        : [...prev, numericId];
+
+      if (!currentUser) {
+        localStorage.setItem(`course_${courseId}_completed_lessons`, JSON.stringify(next));
+      }
+      return next;
+    });
+
+    if (currentUser) {
+      try {
+        await api.completeLesson(courseId, numericId, !isCompleted);
+      } catch (err) {
+        console.error('Error toggling complete status:', err);
+      }
+    }
+  }, [completedLessons, courseId, currentUser]);
+
+  const progressPercent = totalLessonsCount > 0
+    ? Math.round((completedLessons.length / totalLessonsCount) * 100)
+    : 0;
 
   // Check enrollment
   const isOwned = useMemo(() => {
@@ -209,12 +254,36 @@ export default function LearningPage({ courseId, lessonId, currentUser, onSelect
 
   const handleNextLesson = useCallback(() => {
     if (!currentLesson || allLessons.length === 0) return;
+
     const idx = allLessons.findIndex(l => l.id.toString() === currentLesson.id.toString());
     if (idx < allLessons.length - 1) {
       const nextLesson = allLessons[idx + 1];
       onSelectLesson(courseId, nextLesson.id);
     }
   }, [currentLesson, allLessons, courseId, onSelectLesson]);
+
+  const handleVideoEnded = useCallback(() => {
+    if (!currentLesson) return;
+
+    const isAlreadyCompleted = completedLessons.includes(Number(currentLesson.id)) || completedLessons.includes(currentLesson.id.toString());
+    const isVipLesson = !currentLesson.isPreview || currentLesson.isVip === true || currentLesson.level === 'VIP';
+
+    if (currentUser && !isAlreadyCompleted) {
+      if (isVipLesson && !isOwned) {
+        toast('Bài học này thuộc diện VIP. Vui lòng đăng ký khóa học để ghi nhận tiến độ!', 'warning');
+      } else {
+        toggleCompleted(currentLesson.id);
+      }
+    }
+
+    if (allLessons.length > 0) {
+      const idx = allLessons.findIndex(l => l.id.toString() === currentLesson.id.toString());
+      if (idx < allLessons.length - 1) {
+        const nextLesson = allLessons[idx + 1];
+        onSelectLesson(courseId, nextLesson.id);
+      }
+    }
+  }, [currentLesson, completedLessons, currentUser, isOwned, allLessons, courseId, onSelectLesson, toggleCompleted]);
 
   const isDemoMode = window.location.search.includes('demo=true');
   const isLocked = !isDemoMode && !isOwned && currentLesson && !currentLesson.isPreview;
@@ -331,10 +400,17 @@ export default function LearningPage({ courseId, lessonId, currentUser, onSelect
                   transition: 'all 0.2s'
                 }}
               >
-                <input 
+                 <input 
                   type="checkbox" 
                   checked={completedLessons.includes(Number(currentLesson.id)) || completedLessons.includes(currentLesson.id.toString())}
-                  onChange={() => toggleCompleted(currentLesson.id)}
+                  onChange={() => {
+                    const isVipLesson = !currentLesson.isPreview || currentLesson.isVip === true || currentLesson.level === 'VIP';
+                    if (isVipLesson && !isOwned) {
+                      toast('Bài học này thuộc diện VIP. Vui lòng đăng ký khóa học để ghi nhận tiến độ!', 'warning');
+                      return;
+                    }
+                    toggleCompleted(currentLesson.id);
+                  }}
                   style={{ accentColor: 'var(--emerald-primary)', width: '16px', height: '16px', cursor: 'pointer' }}
                 />
                 {completedLessons.includes(Number(currentLesson.id)) || completedLessons.includes(currentLesson.id.toString()) ? '✓ Đã hoàn thành' : 'Đánh dấu hoàn thành'}
@@ -467,7 +543,7 @@ export default function LearningPage({ courseId, lessonId, currentUser, onSelect
               <VideoPlayer 
                 videoUrl={currentLesson.videoUrl || "https://www.w3schools.com/html/mov_bbb.mp4"}
                 title={currentLesson.title}
-                onEnded={handleNextLesson} // Auto play next lesson when finished!
+                onEnded={handleVideoEnded} // Auto complete and navigate when video finished!
               />
             )}
 
