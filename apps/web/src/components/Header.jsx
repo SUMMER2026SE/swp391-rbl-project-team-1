@@ -1,45 +1,79 @@
-import { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { toast } from '../utils/toast';
-import { HiSearch, HiBell, HiSun, HiMoon, HiUser, HiLockClosed, HiLogout, HiX, HiCog, HiShoppingCart } from 'react-icons/hi';
+import { 
+  HiSearch, 
+  HiBell, 
+  HiSun, 
+  HiMoon, 
+  HiUser, 
+  HiLockClosed, 
+  HiLogout, 
+  HiX, 
+  HiCog, 
+  HiShoppingCart,
+  HiMenu
+} from 'react-icons/hi';
 
 export default function Header({
   role,
   userProfile,
   theme,
   onToggleTheme,
-  notifications,
+  notifications = [],
   onClearNotifications,
   onLogout,
   onChangePassword,
   onNavigateSettings,
   addLog,
-  cartCourses,
-  onCheckoutCourse
+  cartCourses = [],
+  onCheckoutCourse,
+  navigateTo,
+  currentPath = '',
+  courses = []
 }) {
   const [showNotif, setShowNotif] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showChangePassModal, setShowChangePassModal] = useState(false);
+  
+  // Search Autocomplete States
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showAutocomplete, setShowAutocomplete] = useState(false);
+  const [filteredCourses, setFilteredCourses] = useState([]);
+  const searchRef = useRef(null);
 
   // Password change states
   const [oldPass, setOldPass] = useState('');
   const [newPass, setNewPass] = useState('');
   const [confirmNewPass, setConfirmNewPass] = useState('');
 
-  const getGreeting = () => {
-    if (role === 'admin') return 'Chào Quản trị viên! 🛡️';
-    if (role === 'teacher') return `Kính chào Thầy/Cô ${userProfile?.fullName || userProfile?.name}! 🎓`;
-    if (role === 'affiliate') return `Chào Đối tác ${userProfile?.fullName || userProfile?.name}! 🤝`;
-    return `Chào lại, ${userProfile?.fullName || userProfile?.name || 'Học viên'}! 👋`;
-  };
-
-  const getSubtitle = () => {
-    if (role === 'admin') return 'Hệ thống đang hoạt động ổn định.';
-    if (role === 'teacher') return 'Hôm nay Thầy/Cô muốn chuẩn bị học liệu nào?';
-    if (role === 'affiliate') return 'Theo dõi chiến dịch tiếp thị và quản lý hoa hồng.';
-    return 'Hôm nay bạn muốn chinh phục kiến thức nào?';
-  };
-
   const unreadCount = notifications.filter(n => !n.read).length;
+
+  // Handle Search Input Change
+  useEffect(() => {
+    if (searchQuery.trim() === '') {
+      setFilteredCourses([]);
+      setShowAutocomplete(false);
+      return;
+    }
+
+    const filtered = courses.filter(c => 
+      c.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (c.subject && c.subject.toLowerCase().includes(searchQuery.toLowerCase()))
+    );
+    setFilteredCourses(filtered.slice(0, 5)); // show max 5 results
+    setShowAutocomplete(true);
+  }, [searchQuery, courses]);
+
+  // Close Autocomplete on Click Outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (searchRef.current && !searchRef.current.contains(event.target)) {
+        setShowAutocomplete(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const handlePasswordChange = (e) => {
     e.preventDefault();
@@ -59,257 +93,452 @@ export default function Header({
     setShowChangePassModal(false);
   };
 
+  const handleSearchSubmit = (e) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      // Find the first matching course if any and navigate
+      if (filteredCourses.length > 0) {
+        navigateTo(`/courses/${filteredCourses[0].id}`);
+        setSearchQuery('');
+        setShowAutocomplete(false);
+      } else {
+        toast(`Không tìm thấy kết quả cho "${searchQuery}"`, 'warning');
+      }
+    }
+  };
+
+  const isLinkActive = (path) => {
+    if (path === '/') {
+      return currentPath === '/' || currentPath === '/landing';
+    }
+    return currentPath.startsWith(path);
+  };
+
+  if (role === 'admin') {
+    return (
+      <header className="fts-header" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '88px', padding: '0 32px' }}>
+        {/* CENTER COLUMN: Search with Autocomplete */}
+        <div className="fts-header-search-col" ref={searchRef} style={{ width: '100%', maxWidth: '500px', margin: '0 auto' }}>
+          <form className="fts-header-search-container" onSubmit={handleSearchSubmit}>
+            <input 
+              type="text" 
+              placeholder="Tìm kiếm khóa học hoặc người dùng..." 
+              className="fts-header-search-input"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onFocus={() => { if (filteredCourses.length > 0) setShowAutocomplete(true); }}
+            />
+            <button type="submit" className="fts-header-search-btn" aria-label="Tìm kiếm">
+              <HiSearch />
+            </button>
+
+            {/* Autocomplete Dropdown */}
+            {showAutocomplete && filteredCourses.length > 0 && (
+              <div style={{
+                position: 'absolute',
+                top: '58px',
+                left: '12px',
+                right: '12px',
+                background: '#FFFFFF',
+                borderRadius: '16px',
+                boxShadow: '0 10px 30px rgba(79, 63, 203, 0.15)',
+                border: '1px solid rgba(79, 63, 203, 0.08)',
+                zIndex: 1000,
+                overflow: 'hidden'
+              }}>
+                {filteredCourses.map(course => (
+                  <div 
+                    key={course.id}
+                    onClick={() => {
+                      navigateTo(`/courses/${course.id}`);
+                      setSearchQuery('');
+                      setShowAutocomplete(false);
+                    }}
+                    style={{
+                      padding: '12px 20px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      borderBottom: '1px solid rgba(79, 63, 203, 0.04)',
+                      transition: 'background 0.2s'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = '#F3F1FF'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                  >
+                    <span style={{ fontSize: '14px', fontWeight: '700', color: 'var(--fts-text-primary)' }}>{course.title}</span>
+                    <span style={{ fontSize: '11.5px', color: 'var(--fts-text-secondary)', marginTop: '2px' }}>Chuyên đề: {course.subject} • {course.lessonCount || 0} bài học</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </form>
+        </div>
+      </header>
+    );
+  }
+
   return (
-    <div className="main-header animate-in" style={{ position: 'relative' }}>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-        <h2>{getGreeting()}</h2>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px' }}>
-          {role === 'admin' && (
-            <span className="status-dot pulsing" style={{
-              width: '8px',
-              height: '8px',
-              borderRadius: '50%',
-              backgroundColor: '#00B894',
-              display: 'inline-block'
-            }} />
-          )}
-          <p style={{ margin: 0 }}>{getSubtitle()}</p>
+    <header className="fts-header">
+      {/* LEFT COLUMN: Logo */}
+      <div 
+        className="fts-header-logo-col" 
+        onClick={() => navigateTo ? navigateTo('/') : (window.location.href = '/')}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div style={{
+            background: 'var(--fts-purple)',
+            borderRadius: '12px',
+            width: '40px',
+            height: '40px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}>
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: '22px', height: '22px' }}>
+              <path d="M18 6H8.5a4 4 0 100 8h8" stroke="#FFFFFF" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M14 10H8.5" stroke="#FFFFFF" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+              <circle cx="18" cy="6" r="1.5" fill="#FFD234" />
+              <circle cx="16.5" cy="14" r="1.5" fill="#FFD234" />
+            </svg>
+          </div>
+          <span style={{ fontSize: '20px', fontWeight: '800', color: 'var(--fts-purple)', letterSpacing: '-0.5px' }}>
+            EduPath <em style={{ color: 'var(--fts-purple-dark)', fontStyle: 'normal' }}>AI</em>
+          </span>
         </div>
       </div>
 
-      <div className="header-actions">
-        {role === 'student' && (
-          <div className="search-box">
-            <HiSearch className="search-icon" />
-            <input type="text" placeholder="Tìm kiếm bài học, bài tập..." />
-          </div>
-        )}
+      {/* CENTER COLUMN: Search with Autocomplete */}
+      <div className="fts-header-search-col" ref={searchRef}>
+        <form className="fts-header-search-container" onSubmit={handleSearchSubmit}>
+          <input 
+            type="text" 
+            placeholder="Tìm kiếm khóa học hoặc người dùng..." 
+            className="fts-header-search-input"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onFocus={() => { if (filteredCourses.length > 0) setShowAutocomplete(true); }}
+          />
+          <button type="submit" className="fts-header-search-btn" aria-label="Tìm kiếm">
+            <HiSearch />
+          </button>
 
-        {/* Theme Switcher Toggle */}
-        <button
-          className="header-icon-btn"
-          onClick={onToggleTheme}
-          title={theme === 'dark' ? 'Chuyển sang chế độ sáng' : 'Chuyển sang chế độ tối'}
+          {/* Autocomplete Dropdown */}
+          {showAutocomplete && filteredCourses.length > 0 && (
+            <div style={{
+              position: 'absolute',
+              top: '58px',
+              left: '12px',
+              right: '12px',
+              background: '#FFFFFF',
+              borderRadius: '16px',
+              boxShadow: '0 10px 30px rgba(79, 63, 203, 0.15)',
+              border: '1px solid rgba(79, 63, 203, 0.08)',
+              zIndex: 1000,
+              overflow: 'hidden'
+            }}>
+              {filteredCourses.map(course => (
+                <div 
+                  key={course.id}
+                  onClick={() => {
+                    navigateTo(`/courses/${course.id}`);
+                    setSearchQuery('');
+                    setShowAutocomplete(false);
+                  }}
+                  style={{
+                    padding: '12px 20px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    borderBottom: '1px solid rgba(79, 63, 203, 0.04)',
+                    transition: 'background 0.2s'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.background = '#F3F1FF'}
+                  onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                >
+                  <span style={{ fontSize: '14px', fontWeight: '700', color: 'var(--fts-text-primary)' }}>{course.title}</span>
+                  <span style={{ fontSize: '11.5px', color: 'var(--fts-text-secondary)', marginTop: '2px' }}>Chuyên đề: {course.subject} • {course.lessonCount || 0} bài học</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </form>
+      </div>
+
+      {/* RIGHT COLUMN: Nav Links & Actions */}
+      <div className="fts-header-nav-col">
+        <a 
+          className={`fts-header-nav-link ${isLinkActive('/') ? 'active' : ''}`}
+          onClick={() => navigateTo('/')}
         >
-          {theme === 'dark' ? <HiSun style={{ color: '#FFD700' }} /> : <HiMoon style={{ color: '#6C5CE7' }} />}
+          Trang chủ
+        </a>
+        <a 
+          className={`fts-header-nav-link ${isLinkActive('/courses') ? 'active' : ''}`}
+          onClick={() => navigateTo('/courses')}
+        >
+          Khóa học
+        </a>
+        <a 
+          className={`fts-header-nav-link ${isLinkActive('/news') ? 'active' : ''}`}
+          onClick={() => toast('Tính năng tin tức đang phát triển!', 'info')}
+        >
+          Tin tức
+        </a>
+
+        {/* Shopping Cart */}
+        <button
+          className="fts-header-cart-btn"
+          onClick={() => {
+            if (cartCourses && cartCourses.length > 0) {
+              onCheckoutCourse(cartCourses[0]);
+            } else {
+              toast('Giỏ hàng trống! Hãy chọn một khóa học để thêm vào giỏ.', 'warning');
+            }
+          }}
+          title="Giỏ hàng"
+        >
+          <HiShoppingCart />
+          {cartCourses.length > 0 && (
+            <span className="fts-header-cart-badge">
+              {cartCourses.length}
+            </span>
+          )}
         </button>
 
-        {/* Shopping Cart Button */}
-        {role === 'student' && (
+        {/* Notification Bell */}
+        {role !== 'guest' && (
           <button
             className="header-icon-btn"
+            style={{ position: 'relative', background: 'none', border: 'none', fontSize: '22px', cursor: 'pointer', display: 'flex', alignItems: 'center', color: 'var(--fts-text-primary)' }}
             onClick={() => {
-              if (cartCourses && cartCourses.length > 0) {
-                onCheckoutCourse(cartCourses[0]);
-              } else {
-                toast('Giỏ hàng trống! Hãy chọn một khóa học để thêm vào giỏ.', 'warning');
-              }
+              setShowNotif(!showNotif);
+              setShowProfileMenu(false);
             }}
-            title="Giỏ hàng"
-            style={{ position: 'relative' }}
+            id="notifications-btn"
           >
-            <HiShoppingCart />
-            {cartCourses && cartCourses.length > 0 && (
-              <span className="badge" style={{ backgroundColor: '#ef4444' }}>
-                {cartCourses.length}
+            <HiBell />
+            {unreadCount > 0 && (
+              <span className="fts-header-cart-badge" style={{ top: '-2px', right: '-4px' }}>
+                {unreadCount}
               </span>
             )}
           </button>
         )}
 
-        {/* Notification Bell */}
+        {/* Theme Toggle */}
         <button
           className="header-icon-btn"
-          onClick={() => {
-            setShowNotif(!showNotif);
-            setShowProfileMenu(false);
-          }}
-          id="notifications-btn"
+          style={{ background: 'none', border: 'none', fontSize: '22px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+          onClick={onToggleTheme}
+          title={theme === 'dark' ? 'Chế độ sáng' : 'Chế độ tối'}
         >
-          <HiBell />
-          {unreadCount > 0 && <span className="badge">{unreadCount}</span>}
+          {theme === 'dark' ? <HiSun style={{ color: '#FFD700' }} /> : <HiMoon style={{ color: 'var(--fts-purple)' }} />}
         </button>
 
-        {/* User initials or uploaded image triggering profile menu */}
-        {userProfile?.avatar && (userProfile.avatar.startsWith('data:') || userProfile.avatar.startsWith('http') || userProfile.avatar.length > 10) ? (
-          <img
-            src={userProfile.avatar.startsWith('data:') || userProfile.avatar.startsWith('http') ? userProfile.avatar : `data:image/png;base64,${userProfile.avatar}`}
-            alt="Avatar"
-            className="header-avatar"
-            style={{
-              width: '42px', height: '42px', borderRadius: '50%',
-              objectFit: 'cover', cursor: 'pointer', border: userProfile?.isPro ? '2px solid #FFA751' : '1px solid var(--border)',
-              boxShadow: userProfile?.isPro ? '0 0 8px rgba(255, 226, 89, 0.4)' : 'none'
-            }}
-            onClick={() => {
-              setShowProfileMenu(!showProfileMenu);
-              setShowNotif(false);
-            }}
-          />
-        ) : (
-          <div
-            className="header-avatar"
-            style={{
-              background: userProfile?.isPro 
-                ? 'linear-gradient(135deg, #FFE259, #FFA751)' 
-                : (role === 'admin' ? 'linear-gradient(135deg, #FF6B6B, #E74C3C)' : (role === 'teacher' ? 'linear-gradient(135deg, #54a0ff, #0984E3)' : 'linear-gradient(135deg, #a29bfe, #6C5CE7)')),
-              boxShadow: userProfile?.isPro ? '0 0 8px rgba(255, 226, 89, 0.4)' : 'none',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontWeight: '800'
-            }}
-            onClick={() => {
-              setShowProfileMenu(!showProfileMenu);
-              setShowNotif(false);
-            }}
-          >
-            {userProfile?.avatar && userProfile.avatar.length <= 10 ? userProfile.avatar : ((userProfile?.fullName || userProfile?.name) ? (userProfile.fullName || userProfile.name).slice(0, 2).toUpperCase() : 'U')}
-          </div>
-        )}
-
-        {/* Notification Dropdown Drawer */}
-        {showNotif && (
-          <div
-            style={{
-              position: 'absolute', top: '55px', right: '60px',
-              width: '320px', background: 'var(--bg-card)',
-              backdropFilter: 'blur(12px)',
-              WebkitBackdropFilter: 'blur(12px)',
-              border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)',
-              boxShadow: 'var(--shadow-lg)', zIndex: 2000, padding: '16px',
-              animation: 'fadeInUp 0.2s ease forwards'
-            }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', borderBottom: '1px solid var(--border)', paddingBottom: '8px' }}>
-              <span style={{ fontSize: '12px', fontWeight: 'bold' }}>THÔNG BÁO ({unreadCount})</span>
-              {unreadCount > 0 && (
-                <button
-                  onClick={() => {
-                    onClearNotifications();
-                    setShowNotif(false);
-                  }}
-                  style={{ background: 'none', border: 'none', color: 'var(--primary)', fontSize: '11px', cursor: 'pointer', fontWeight: 600 }}
-                >
-                  Đọc tất cả
-                </button>
-              )}
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '240px', overflowY: 'auto', paddingRight: '4px' }}>
-              {notifications.length > 0 ? (
-                notifications.map((n) => (
-                  <div
-                    key={n.id}
-                    style={{
-                      padding: '8px 10px', borderRadius: '4px',
-                      background: n.read ? 'transparent' : 'var(--primary-bg)',
-                      borderLeft: n.read ? 'none' : '3px solid var(--primary)',
-                      fontSize: '11.5px', lineHeight: '1.4'
-                    }}
-                  >
-                    <p style={{ color: 'var(--text-primary)', fontWeight: n.read ? 'normal' : '600' }}>{n.text}</p>
-                    <span style={{ fontSize: '9px', color: 'var(--text-muted)', marginTop: '4px', display: 'block' }}>{n.time}</span>
-                  </div>
-                ))
-              ) : (
-                <p style={{ fontSize: '12px', color: 'var(--text-muted)', textAlign: 'center', padding: '16px 0' }}>Không có thông báo mới.</p>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* User Profile dropdown menu */}
-        {showProfileMenu && (
-          <div className="profile-dropdown-card" style={{ right: '10px', top: '55px' }}>
-            <div style={{ borderBottom: '1px solid var(--border)', paddingBottom: '8px', marginBottom: '8px' }}>
-              <div style={{ fontWeight: 'bold', fontSize: '13px' }}>{userProfile?.fullName || userProfile?.name}</div>
-              <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>{userProfile?.email}</div>
-            </div>
-            {onNavigateSettings && (
-              <button
-                className="dropdown-item"
-                onClick={() => {
-                  onNavigateSettings();
-                  setShowProfileMenu(false);
-                }}
-              >
-                <HiCog /> Cài đặt hồ sơ
-              </button>
-            )}
-            <button
-              className="dropdown-item"
+        {/* User Profile Avatar */}
+        {role !== 'guest' && (
+          userProfile?.avatar && (userProfile.avatar.startsWith('data:') || userProfile.avatar.startsWith('http') || userProfile.avatar.length > 10) ? (
+            <img
+              src={userProfile.avatar}
+              alt="Avatar"
+              className="header-avatar"
+              style={{
+                width: '38px', height: '38px', borderRadius: '50%',
+                objectFit: 'cover', cursor: 'pointer', border: '2px solid var(--fts-purple)'
+              }}
               onClick={() => {
-                setShowChangePassModal(true);
-                setShowProfileMenu(false);
+                setShowProfileMenu(!showProfileMenu);
+                setShowNotif(false);
+              }}
+            />
+          ) : (
+            <div
+              className="header-avatar"
+              style={{
+                background: 'linear-gradient(135deg, #a29bfe, #6C5CE7)',
+                color: '#FFFFFF',
+                width: '38px',
+                height: '38px',
+                borderRadius: '50%',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: '800',
+                fontSize: '13px'
+              }}
+              onClick={() => {
+                setShowProfileMenu(!showProfileMenu);
+                setShowNotif(false);
               }}
             >
-              <HiLockClosed /> Đổi mật khẩu
-            </button>
-            <button
-              className="dropdown-item"
-              style={{ color: 'var(--accent-red)' }}
-              onClick={() => {
-                onLogout();
-                setShowProfileMenu(false);
-              }}
-            >
-              <HiLogout /> Đăng xuất an toàn
-            </button>
-          </div>
+              {userProfile?.avatar && userProfile.avatar.length <= 10 ? userProfile.avatar : ((userProfile?.fullName || userProfile?.name) ? (userProfile.fullName || userProfile.name).slice(0, 2).toUpperCase() : 'U')}
+            </div>
+          )
         )}
       </div>
 
-      {/* UC-04 Change Password Modal */}
+      {/* Notifications Drawer */}
+      {showNotif && (
+        <div
+          style={{
+            position: 'absolute', top: '75px', right: '60px',
+            width: '320px', background: '#FFFFFF',
+            border: '1px solid rgba(79, 63, 203, 0.1)', borderRadius: '16px',
+            boxShadow: '0 10px 30px rgba(79, 63, 203, 0.15)', zIndex: 2000, padding: '16px',
+            animation: 'fadeInUp 0.2s ease forwards'
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', borderBottom: '1px solid rgba(79, 63, 203, 0.05)', paddingBottom: '8px' }}>
+            <span style={{ fontSize: '12px', fontWeight: 'bold', color: 'var(--fts-text-primary)' }}>THÔNG BÁO ({unreadCount})</span>
+            {unreadCount > 0 && (
+              <button
+                onClick={() => {
+                  onClearNotifications();
+                  setShowNotif(false);
+                }}
+                style={{ background: 'none', border: 'none', color: 'var(--fts-purple)', fontSize: '11px', cursor: 'pointer', fontWeight: 600 }}
+              >
+                Đọc tất cả
+              </button>
+            )}
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '240px', overflowY: 'auto', paddingRight: '4px' }}>
+            {notifications.length > 0 ? (
+              notifications.map((n) => (
+                <div
+                  key={n.id}
+                  style={{
+                    padding: '8px 10px', borderRadius: '8px',
+                    background: n.read ? 'transparent' : 'var(--fts-purple-bg)',
+                    borderLeft: n.read ? 'none' : '3px solid var(--fts-purple)',
+                    fontSize: '11.5px', lineHeight: '1.4'
+                  }}
+                >
+                  <p style={{ color: 'var(--fts-text-primary)', fontWeight: n.read ? 'normal' : '600', margin: 0 }}>{n.text}</p>
+                  <span style={{ fontSize: '9px', color: 'var(--fts-text-muted)', marginTop: '4px', display: 'block' }}>{n.time}</span>
+                </div>
+              ))
+            ) : (
+              <p style={{ fontSize: '12px', color: 'var(--fts-text-muted)', textAlign: 'center', padding: '16px 0' }}>Không có thông báo mới.</p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* User Profile dropdown menu */}
+      {showProfileMenu && (
+        <div 
+          className="profile-dropdown-card" 
+          style={{ 
+            position: 'absolute', right: '32px', top: '75px',
+            width: '220px', background: '#FFFFFF',
+            border: '1px solid rgba(79, 63, 203, 0.1)', borderRadius: '16px',
+            boxShadow: '0 10px 30px rgba(79, 63, 203, 0.15)', zIndex: 2000, padding: '12px'
+          }}
+        >
+          <div style={{ borderBottom: '1px solid rgba(79, 63, 203, 0.05)', paddingBottom: '8px', marginBottom: '8px' }}>
+            <div style={{ fontWeight: 'bold', fontSize: '13px', color: 'var(--fts-text-primary)' }}>{userProfile?.fullName || userProfile?.name}</div>
+            <div style={{ fontSize: '11px', color: 'var(--fts-text-secondary)', marginTop: '2px' }}>{userProfile?.email}</div>
+          </div>
+          {onNavigateSettings && (
+            <button
+              className="dropdown-item"
+              style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', padding: '8px', background: 'none', border: 'none', textAlign: 'left', fontSize: '12.5px', color: 'var(--fts-text-primary)', cursor: 'pointer', borderRadius: '8px' }}
+              onClick={() => {
+                onNavigateSettings();
+                setShowProfileMenu(false);
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.background = '#F3F1FF'}
+              onMouseLeave={(e) => e.currentTarget.style.background = 'none'}
+            >
+              <HiCog /> Cài đặt hồ sơ
+            </button>
+          )}
+          <button
+            className="dropdown-item"
+            style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', padding: '8px', background: 'none', border: 'none', textAlign: 'left', fontSize: '12.5px', color: 'var(--fts-text-primary)', cursor: 'pointer', borderRadius: '8px' }}
+            onClick={() => {
+              setShowChangePassModal(true);
+              setShowProfileMenu(false);
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.background = '#F3F1FF'}
+            onMouseLeave={(e) => e.currentTarget.style.background = 'none'}
+          >
+            <HiLockClosed /> Đổi mật khẩu
+          </button>
+          <button
+            className="dropdown-item"
+            style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', padding: '8px', background: 'none', border: 'none', textAlign: 'left', fontSize: '12.5px', color: '#EF4444', cursor: 'pointer', borderRadius: '8px' }}
+            onClick={() => {
+              onLogout();
+              setShowProfileMenu(false);
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.background = '#FFEAEA'}
+            onMouseLeave={(e) => e.currentTarget.style.background = 'none'}
+          >
+            <HiLogout /> Đăng xuất
+          </button>
+        </div>
+      )}
+
+      {/* Change Password Modal */}
       {showChangePassModal && (
-        <div className="checkout-overlay">
-          <div className="checkout-modal animate-in" style={{ maxWidth: '400px' }}>
+        <div className="checkout-overlay" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000 }}>
+          <div className="checkout-modal animate-in" style={{ position: 'relative', width: '100%', maxWidth: '400px', background: '#FFFFFF', padding: '32px', borderRadius: '20px', boxShadow: 'var(--fts-shadow-player)' }}>
             <button
               onClick={() => setShowChangePassModal(false)}
-              style={{ position: 'absolute', top: '16px', right: '16px', border: 'none', background: 'none', color: 'var(--text-secondary)', fontSize: '20px', cursor: 'pointer' }}
+              style={{ position: 'absolute', top: '16px', right: '16px', border: 'none', background: 'none', color: 'var(--fts-text-secondary)', fontSize: '20px', cursor: 'pointer' }}
             >
               <HiX />
             </button>
-            <h3 style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '16px' }}>ĐỔI MẬT KHẨU BẢO MẬT (UC-04)</h3>
+            <h3 style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '16px', color: 'var(--fts-text-primary)' }}>ĐỔI MẬT KHẨU BẢO MẬT</h3>
             <form onSubmit={handlePasswordChange} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
               <div className="form-group">
-                <label style={{ fontSize: '11.5px', fontWeight: '600' }}>Mật khẩu hiện tại:</label>
+                <label style={{ fontSize: '11.5px', fontWeight: '600', color: 'var(--fts-text-primary)' }}>Mật khẩu hiện tại:</label>
                 <input
                   type="password"
                   className="form-control"
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #E5E7EB', outline: 'none' }}
                   value={oldPass}
                   onChange={e => setOldPass(e.target.value)}
                   required
                 />
               </div>
               <div className="form-group">
-                <label style={{ fontSize: '11.5px', fontWeight: '600' }}>Mật khẩu mới:</label>
+                <label style={{ fontSize: '11.5px', fontWeight: '600', color: 'var(--fts-text-primary)' }}>Mật khẩu mới:</label>
                 <input
                   type="password"
                   className="form-control"
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #E5E7EB', outline: 'none' }}
                   value={newPass}
                   onChange={e => setNewPass(e.target.value)}
                   required
                 />
               </div>
               <div className="form-group">
-                <label style={{ fontSize: '11.5px', fontWeight: '600' }}>Xác nhận mật khẩu mới:</label>
+                <label style={{ fontSize: '11.5px', fontWeight: '600', color: 'var(--fts-text-primary)' }}>Xác nhận mật khẩu mới:</label>
                 <input
                   type="password"
                   className="form-control"
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #E5E7EB', outline: 'none' }}
                   value={confirmNewPass}
                   onChange={e => setConfirmNewPass(e.target.value)}
                   required
                 />
               </div>
-              <button type="submit" className="btn-primary" style={{ width: '100%', marginTop: '6px' }}>
+              <button 
+                type="submit" 
+                className="btn-primary" 
+                style={{ width: '100%', marginTop: '6px', height: '44px', background: 'var(--fts-purple)', color: '#FFFFFF', border: 'none', borderRadius: '8px', fontWeight: '700', cursor: 'pointer' }}
+              >
                 Cập nhật mật khẩu mới
               </button>
             </form>
           </div>
         </div>
       )}
-    </div>
+    </header>
   );
 }

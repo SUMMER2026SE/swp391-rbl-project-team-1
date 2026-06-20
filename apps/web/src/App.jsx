@@ -994,8 +994,7 @@ export default function App() {
     const saved = JSON.parse(localStorage.getItem('current_user') || 'null');
     return saved?.role?.toLowerCase() || 'guest';
   });
-  const [previewRole, setPreviewRole] = useState(null);
-  const effectiveRole = previewRole || role;
+  const effectiveRole = role;
   const [theme, setTheme] = useState(() => localStorage.getItem('app_theme') || 'light');
   const [activeTab, setActiveTab] = useState('home');
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -1163,16 +1162,7 @@ export default function App() {
     }
   }, [parsedRoute.tab, parsedRoute.route]);
 
-  // Auto-preview guard for admin/teacher visiting dashboard paths
-  useEffect(() => {
-    const parsed = getParsedRoute();
-    if (parsed.route === 'dashboard') {
-      if (role === 'admin' && !previewRole) {
-        setPreviewRole('student');
-        addLog('[Preview Mode] Tự động chuyển Quản trị viên sang xem trước Học sinh', 'sys');
-      }
-    }
-  }, [currentPath, role, previewRole]);
+
 
   const handleSetAdminActiveTab = (tab) => {
     setActiveTab(tab);
@@ -1380,6 +1370,7 @@ export default function App() {
   }, [examFilterSubject, examFilterYear, examSearchQuery, examCategory]);
 
   const [checkoutCourse, setCheckoutCourse] = useState(null);
+  const [paymentSuccessRedirect, setPaymentSuccessRedirect] = useState(false);
   const [cartCourses, setCartCourses] = useState(() => JSON.parse(localStorage.getItem('app_cart_courses')) || []);
   const [showUpgradePRO, setShowUpgradePRO] = useState(false);
 
@@ -1473,6 +1464,26 @@ export default function App() {
     }
   }, [currentUser, role, parsedRoute.route]);
 
+  // Redirect teachers visiting /dashboard routes to /teacher routes
+  useEffect(() => {
+    if (currentUser && role === 'teacher' && parsedRoute.route === 'dashboard') {
+      const tab = parsedRoute.tab || 'home';
+      navigateTo(`/teacher/${tab}`);
+    }
+  }, [currentUser, role, parsedRoute.route, parsedRoute.tab]);
+
+  // Auto-redirect logged-in admin/teacher away from public landing or student dashboard routes to their respective dashboards
+  useEffect(() => {
+    if (currentUser) {
+      const lowercaseRole = currentUser.role?.toLowerCase() || role;
+      if (lowercaseRole === 'admin' && !currentPath.startsWith('/admin') && currentPath !== '/devtools') {
+        navigateTo('/admin');
+      } else if (lowercaseRole === 'teacher' && !currentPath.startsWith('/teacher') && !currentPath.startsWith('/dashboard') && currentPath !== '/devtools') {
+        navigateTo('/teacher');
+      }
+    }
+  }, [currentUser, role, currentPath]);
+
   useEffect(() => {
     if (currentUser) {
       setSettingsName(currentUser.name || '');
@@ -1493,21 +1504,17 @@ export default function App() {
 
   // Guard admin routes and redirect to login if not authenticated with real credentials
   useEffect(() => {
-    if (currentPath === '/admin') {
-      const token = localStorage.getItem('access_token');
-      
-      if (!token || !currentUser || currentUser.role?.toLowerCase() !== 'admin') {
-        showToast.current?.('Vui lòng đăng nhập tài khoản Quản trị viên để truy cập cơ sở dữ liệu thực!', 'warning');
+    if (currentPath.startsWith('/admin')) {
+      if (!currentUser || currentUser.role?.toLowerCase() !== 'admin') {
+        showToast.current?.('Vui lòng đăng nhập tài khoản Quản trị viên!', 'warning');
         navigateTo('/');
         setActiveTab('login');
       } else {
-        setRole('admin');
-        setActiveTab('home');
+        if (role !== 'admin') setRole('admin');
+        if (activeTab !== 'home') setActiveTab('home');
       }
-    } else if (currentPath === '/' && role === 'admin') {
-      setActiveTab('landing');
     }
-  }, [currentPath, role, currentUser]);
+  }, [currentPath, role, currentUser, activeTab]);
 
   // Sync state data to localStorage
   useEffect(() => {
@@ -1694,6 +1701,9 @@ export default function App() {
     if (lowercaseRole === 'admin') {
       navigateTo('/admin');
       setActiveTab('home');
+    } else if (lowercaseRole === 'teacher') {
+      navigateTo('/teacher');
+      setActiveTab('home');
     } else {
       setActiveTab('landing');
     }
@@ -1701,14 +1711,16 @@ export default function App() {
 
 
   const handleBackToDashboard = (targetTab) => {
+    const isTeacher = effectiveRole === 'teacher' || role === 'teacher' || currentUser?.role?.toLowerCase() === 'teacher';
+    const prefix = isTeacher ? '/teacher' : '/dashboard';
     if (targetTab === 'courses') {
-      navigateTo('/dashboard/courses');
+      navigateTo(`${prefix}/courses`);
     } else if (targetTab === 'forum') {
-      navigateTo('/dashboard/forum');
+      navigateTo(`${prefix}/forum`);
     } else if (targetTab === 'settings') {
-      navigateTo('/dashboard/settings');
+      navigateTo(`${prefix}/settings`);
     } else {
-      navigateTo('/dashboard');
+      navigateTo(prefix);
       setActiveCourseDetails(null);
       setActiveTestSimulator(null);
       setActiveOCRScanner(null);
@@ -1807,6 +1819,9 @@ export default function App() {
             ? parseFloat(String(targetCourse.priceSale || targetCourse.price || targetCourse.priceOriginal).replace(/\D/g, '')) 
             : 499000;
           await enrollmentService.enrollCourse(currentUser.id, id, priceNum);
+          
+          // Persist the course enrollment in the backend database
+          await api.enrollCourseDemo(id);
         } catch (err) {
           console.error('Failed to log payment enrollment data:', err);
         }
@@ -1846,7 +1861,6 @@ export default function App() {
     setCurrentUser(updatedCurrentUser);
     localStorage.setItem('current_user', JSON.stringify(updatedCurrentUser));
 
-    setCheckoutCourse(null);
     setCartCourses([]);
     localStorage.removeItem('app_cart_courses');
   };
@@ -2030,7 +2044,7 @@ export default function App() {
   return (
     <div className="app-layout">
       {/* Sidebar - Guarded against guest visitors and focused exam sessions */}
-      {effectiveRole !== 'guest' && effectiveRole !== 'admin' && parsedRoute.route === 'dashboard' && (
+      {effectiveRole !== 'guest' && effectiveRole !== 'admin' && effectiveRole !== 'teacher' && parsedRoute.route === 'dashboard' && !(effectiveRole === 'student' && parsedRoute.tab === 'home') && (
         <div style={{
           position: 'fixed',
           top: 0,
@@ -2123,43 +2137,15 @@ export default function App() {
       <div 
         className="main-wrapper" 
         style={{ 
-          marginLeft: (effectiveRole === 'guest' || effectiveRole === 'admin' || parsedRoute.route !== 'dashboard') ? 0 : (isEffectiveFullscreen ? 0 : 'var(--sidebar-width)'),
+          marginLeft: (effectiveRole === 'guest' || effectiveRole === 'admin' || effectiveRole === 'teacher' || parsedRoute.route !== 'dashboard' || (effectiveRole === 'student' && parsedRoute.tab === 'home')) ? 0 : (isEffectiveFullscreen ? 0 : 'var(--sidebar-width)'),
           transition: 'margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
         }}
       >
         <main 
           className="main-content" 
-          style={(effectiveRole === 'guest' || effectiveRole === 'admin' || parsedRoute.route !== 'dashboard' || isEffectiveFullscreen) ? { maxWidth: '100%', padding: 0 } : { maxWidth: '100%' }}
+          style={(effectiveRole === 'guest' || effectiveRole === 'admin' || effectiveRole === 'teacher' || parsedRoute.route !== 'dashboard' || isEffectiveFullscreen || (effectiveRole === 'student' && parsedRoute.tab === 'home')) ? { maxWidth: '100%', padding: 0 } : { maxWidth: '100%' }}
         >
-          {previewRole && (
-            <div style={{
-              background: '#FFC229',
-              color: '#000',
-              borderBottom: '3.5px solid #000',
-              padding: '12px 24px',
-              fontWeight: '900',
-              fontSize: '13.5px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              zIndex: 2000,
-              position: 'relative',
-              boxShadow: '0 4px 6px rgba(0,0,0,0.05)'
-            }}>
-              <span>💡 Bạn đang xem trước với tư cách: <strong style={{ textTransform: 'uppercase' }}>{previewRole === 'student' ? 'Học sinh (Student)' : 'Giáo viên (Teacher)'}</strong></span>
-              <button 
-                onClick={() => {
-                  setPreviewRole(null);
-                  if (role === 'admin') navigateTo('/admin');
-                  else if (role === 'teacher') navigateTo('/dashboard/home');
-                }}
-                className="lp-btn--ghost" 
-                style={{ padding: '6px 14px', fontSize: '12.5px', border: '2px solid #000', borderRadius: '8px', background: '#fff', cursor: 'pointer' }}
-              >
-                Thoát xem trước
-              </button>
-            </div>
-          )}
+
           {currentUser && parsedRoute.route.startsWith('mock-') && parsedRoute.route !== 'mock-exam-taking' && (
             <div className="mock-exams-simple-header">
               <button onClick={() => navigateTo('/')} className="mock-exams-back-btn">
@@ -2174,7 +2160,7 @@ export default function App() {
             </div>
           )}
 
-          {effectiveRole !== 'guest' && parsedRoute.route === 'dashboard' ? (
+          {effectiveRole !== 'guest' && ((parsedRoute.route === 'dashboard' && !(effectiveRole === 'student' && parsedRoute.tab === 'home') && !(effectiveRole === 'teacher' && parsedRoute.tab !== 'forum')) || (parsedRoute.route === 'teacher' && parsedRoute.tab === 'forum')) ? (
             <div style={{
               transform: isEffectiveFullscreen ? 'translateY(-100%)' : 'none',
               opacity: isEffectiveFullscreen ? 0 : 1,
@@ -2195,6 +2181,9 @@ export default function App() {
                 addLog={addLog}
                 cartCourses={cartCourses}
                 onCheckoutCourse={handleCheckoutCourse}
+                navigateTo={navigateTo}
+                currentPath={currentPath}
+                courses={courses}
               />
             </div>
           ) : !isEffectiveFullscreen ? (
@@ -2377,7 +2366,25 @@ export default function App() {
 
           {/* ================= COURSES ROUTER WORKSPACE ================= */}
           {role !== 'guest' && activeTab !== 'landing' && (parsedRoute.route === 'courses-list' || parsedRoute.route === 'course-detail') && (
-            <div style={{ padding: '20px 0' }}>
+            <div style={{ padding: '0 0 20px 0' }}>
+              <Header
+                role={effectiveRole}
+                userProfile={currentUser}
+                theme={theme}
+                onToggleTheme={handleToggleTheme}
+                notifications={notifications}
+                onClearNotifications={() => setNotifications(prev => prev.map(n => ({ ...n, read: true })))}
+                onLogout={handleLogout}
+                onChangePassword={handleChangePassword}
+                onNavigateSettings={() => { navigateTo('/dashboard/settings'); }}
+                addLog={addLog}
+                cartCourses={cartCourses}
+                onCheckoutCourse={handleCheckoutCourse}
+                navigateTo={navigateTo}
+                currentPath={currentPath}
+                courses={courses}
+              />
+              <div style={{ padding: '20px' }}>
               {parsedRoute.route === 'courses-list' && (
                 role === 'student' ? (
                   <div className="cp-page-container">
@@ -2422,6 +2429,7 @@ export default function App() {
                   onCheckoutCourse={(course) => setCheckoutCourse(course)}
                 />
               )}
+              </div>
             </div>
           )}
 
@@ -2493,6 +2501,7 @@ export default function App() {
                     else navigateTo('/dashboard/home');
                   }}
                   navigateTo={navigateTo}
+                  onUpdateUser={handleSaveProfile}
                 />
               )}
 
@@ -2511,6 +2520,7 @@ export default function App() {
                   courses={courses}
                   currentUser={currentUser}
                   onSelectCourse={setActiveCourseDetails}
+                  onLearnCourse={(course) => navigateTo(`/learn/${course.id}`)}
                   onCheckoutCourse={handleCheckoutCourse}
                   onRegisterLead={handleRegisterLead}
                 />
@@ -3588,6 +3598,7 @@ export default function App() {
                 <Forum currentUser={currentUser} />
               ) : (
                 <TeacherDashboard
+                  currentUser={currentUser}
                   courses={courses}
                   onCreateCourse={handleCreateCourse}
                   onDeleteCourse={handleDeleteCourse}
@@ -3604,7 +3615,11 @@ export default function App() {
                     else if (tab === 'settings') navigateTo(`${prefix}/settings`);
                     else navigateTo(`${prefix}/home`);
                   }}
-                  setPreviewRole={setPreviewRole}
+                  onUpdateUser={(updated) => {
+                    setCurrentUser(updated);
+                    setUsersList(prev => prev.map(u => u.email === updated.email ? updated : u));
+                    localStorage.setItem('current_user', JSON.stringify(updated));
+                  }}
                 />
               )}
             </RouteGuard>
@@ -3655,7 +3670,6 @@ export default function App() {
                   setBooksList={setBooksList}
                   featureFlags={featureFlags}
                   setFeatureFlags={setFeatureFlags}
-                  setPreviewRole={setPreviewRole}
                 />
               )}
             </RouteGuard>
@@ -3667,8 +3681,17 @@ export default function App() {
       {checkoutCourse && (
         <CheckoutModal
           courses={cartCourses}
-          onClose={() => setCheckoutCourse(null)}
-          onPaymentSuccess={handlePaymentSuccess}
+          onClose={() => {
+            setCheckoutCourse(null);
+            if (paymentSuccessRedirect) {
+              navigateTo('/dashboard/courses');
+              setPaymentSuccessRedirect(false);
+            }
+          }}
+          onPaymentSuccess={(ids) => {
+            handlePaymentSuccess(ids);
+            setPaymentSuccessRedirect(true);
+          }}
           onRemoveCourse={(courseId) => {
             const updated = cartCourses.filter(c => c.id !== courseId);
             setCartCourses(updated);
@@ -3697,6 +3720,8 @@ export default function App() {
        parsedRoute.route !== 'learn' && 
        parsedRoute.tab !== 'path' && 
        parsedRoute.tab !== 'ai-qa' && 
+       activeTab !== 'login' &&
+       activeTab !== 'signup' &&
        !activeTestSimulator && (
         <ChatbotWidget />
       )}

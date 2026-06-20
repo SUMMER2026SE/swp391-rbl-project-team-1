@@ -1,193 +1,54 @@
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { toast } from '../utils/toast';
-import VideoPlayer from '../components/courses/VideoPlayer';
-import ProgressSidebar from '../components/courses/ProgressSidebar';
-import CourseMaterials from '../components/courses/CourseMaterials';
-import CourseDiscussion from '../components/courses/CourseDiscussion';
-import TeacherChat from '../components/courses/TeacherChat';
-import AiTutorChat from '../components/courses/AiTutorChat';
+import { HiSparkles, HiPlay, HiClock, HiChevronLeft, HiChevronRight, HiAcademicCap, HiMenu, HiX, HiOutlineLightBulb, HiInformationCircle, HiCheckCircle } from 'react-icons/hi';
 import useCourseProgress from '../hooks/useCourseProgress';
 import { mapDbCourseToMockFormat } from '../utils/courseMapper';
 import { api } from '../api';
 import { discussionService } from '../services/discussionService';
-import { aiService } from '../services/aiService';
 
-export default function LearningPage({ courseId, lessonId, currentUser, onSelectLesson, onBackToCourse }) {
+// Subcomponents
+import VideoPlayer from '../components/courses/learning/VideoPlayer';
+import LessonSidebar from '../components/courses/learning/LessonSidebar';
+import MaterialsTab from '../components/courses/learning/MaterialsTab';
+import DiscussionTab from '../components/courses/learning/DiscussionTab';
+import TeacherQATab from '../components/courses/learning/TeacherQATab';
+import TranscriptTab from '../components/courses/learning/TranscriptTab';
+import ExerciseTab from '../components/courses/learning/ExerciseTab';
+import AITutorPanel from '../components/courses/learning/AITutorPanel';
+import NotePanel from '../components/courses/learning/NotePanel';
+import KeyboardShortcutsOverlay from '../components/courses/learning/KeyboardShortcutsOverlay';
+import CompletionModal from '../components/courses/learning/CompletionModal';
+
+export default function LearningPage({ 
+  courseId, 
+  lessonId, 
+  currentUser, 
+  onSelectLesson, 
+  onBackToCourse 
+}) {
   const [course, setCourse] = useState(null);
   const [currentLesson, setCurrentLesson] = useState(null);
   const [materials, setMaterials] = useState([]);
   const [discussions, setDiscussions] = useState([]);
-  const [activeTab, setActiveTab] = useState('materials'); // materials, discussion, teacher, ai
+  const [activeTab, setActiveTab] = useState('materials'); // materials, discussion, teacher, transcript, exercise
   const [loading, setLoading] = useState(true);
 
-  // Notebook and AI chat state
-  const [notebookTab, setNotebookTab] = useState('notes'); // notes, ai
-  const [noteText, setNoteText] = useState('');
-  const [saveStatus, setSaveStatus] = useState('Đã lưu'); // Đã lưu, Đang lưu
-  const [aiMessages, setAiMessages] = useState([]);
-  const [aiInput, setAiInput] = useState('');
-  const [aiTyping, setAiTyping] = useState(false);
-  const messagesEndRef = useRef(null);
-
-  const videoRef = useRef(null);
-  const [timestampNotes, setTimestampNotes] = useState([]);
-  const [newNoteText, setNewNoteText] = useState('');
-  const [noteMode, setNoteMode] = useState('timeline'); // timeline, general
-  const [videoTime, setVideoTime] = useState(0);
-
-  const activeNoteId = useMemo(() => {
-    if (!timestampNotes || timestampNotes.length === 0) return null;
-    const matches = timestampNotes.filter(n => n.time <= videoTime);
-    if (matches.length === 0) return null;
-    return matches[matches.length - 1].id;
-  }, [timestampNotes, videoTime]);
-
-  useEffect(() => {
-    if (activeNoteId) {
-      const activeEl = document.getElementById(`note-item-${activeNoteId}`);
-      if (activeEl) {
-        activeEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      }
-    }
-  }, [activeNoteId]);
-
-  const formatTime = (secs) => {
-    const m = Math.floor(secs / 60);
-    const s = Math.floor(secs % 60);
-    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-  };
-
-  // Load timestamped notes
-  useEffect(() => {
-    if (!currentLesson || !courseId) return;
-    const key = `course_timenotes_${courseId}_lesson_${currentLesson.id}`;
-    const saved = localStorage.getItem(key);
-    if (saved) {
-      try {
-        setTimestampNotes(JSON.parse(saved));
-      } catch (_) {
-        setTimestampNotes([]);
-      }
-    } else {
-      setTimestampNotes([]);
-    }
-  }, [courseId, currentLesson]);
-
-  // Save timestamped notes helper
-  const saveTimestampNotes = (notesList) => {
-    setTimestampNotes(notesList);
-    if (currentLesson && courseId) {
-      const key = `course_timenotes_${courseId}_lesson_${currentLesson.id}`;
-      localStorage.setItem(key, JSON.stringify(notesList));
-    }
-  };
-
-  const handleAddTimestampNote = (e) => {
-    e.preventDefault();
-    if (!newNoteText.trim() || !videoRef.current) return;
-    
-    const currentTime = Math.floor(videoRef.current.currentTime);
-    const newNote = {
-      id: Date.now(),
-      time: currentTime,
-      text: newNoteText.trim()
-    };
-    
-    const updated = [...timestampNotes, newNote].sort((a, b) => a.time - b.time);
-    saveTimestampNotes(updated);
-    setNewNoteText('');
-    toast('Đã lưu ghi chú tại thời điểm phát!', 'success');
-  };
-
-  const handleDeleteTimestampNote = (id) => {
-    const updated = timestampNotes.filter(n => n.id !== id);
-    saveTimestampNotes(updated);
-  };
-
-  const handleSeekTo = (secs) => {
-    if (videoRef.current) {
-      videoRef.current.currentTime = secs;
-      videoRef.current.play().catch(() => {});
-    }
-  };
-
-  // Resizer state
-  const [notebookWidth, setNotebookWidth] = useState(380);
+  // Layout panels toggles and resizing
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [rightPanelTab, setRightPanelTab] = useState('ai'); // ai, notes
+  const [rightPanelOpen, setRightPanelOpen] = useState(true);
+  const [rightPanelWidth, setRightPanelWidth] = useState(380);
   const isResizingRef = useRef(false);
 
-  const handleMouseDown = useCallback((e) => {
-    e.preventDefault();
-    isResizingRef.current = true;
-    document.body.style.cursor = 'col-resize';
-    document.body.style.userSelect = 'none';
-  }, []);
+  // Video time tracker (synchronized with Player to drive seekable transcripts & discussions)
+  const [videoTime, setVideoTime] = useState(0);
+  const videoRef = useRef(null);
 
-  useEffect(() => {
-    const handleMouseMove = (e) => {
-      if (!isResizingRef.current) return;
-      const newWidth = window.innerWidth - e.clientX - 40;
-      if (newWidth >= 280 && newWidth <= 600) {
-        setNotebookWidth(newWidth);
-      }
-    };
+  // Modal displays
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [completionOpen, setCompletionOpen] = useState(false);
 
-    const handleMouseUp = () => {
-      if (isResizingRef.current) {
-        isResizingRef.current = false;
-        document.body.style.cursor = 'default';
-        document.body.style.userSelect = 'auto';
-      }
-    };
-
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-    return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-    };
-  }, []);
-
-  // Load notes per lesson
-  useEffect(() => {
-    if (!currentLesson || !courseId) return;
-    const key = `course_note_${courseId}_lesson_${currentLesson.id}`;
-    const saved = localStorage.getItem(key) || '';
-    setNoteText(saved);
-    setSaveStatus('Đã lưu');
-  }, [courseId, currentLesson]);
-
-  // Handle auto-save notes
-  const handleNoteChange = (e) => {
-    const text = e.target.value;
-    setNoteText(text);
-    setSaveStatus('Đang lưu...');
-    
-    if (currentLesson && courseId) {
-      const key = `course_note_${courseId}_lesson_${currentLesson.id}`;
-      localStorage.setItem(key, text);
-      setTimeout(() => {
-        setSaveStatus('Đã tự động lưu');
-      }, 500);
-    }
-  };
-
-  // Initialize AI messages for this lesson
-  useEffect(() => {
-    if (!currentLesson) return;
-    setAiMessages([
-      {
-        role: 'assistant',
-        content: `Chào em! Thầy là Gia sư AI đồng hành cùng em trong bài học "${currentLesson.title}". Hãy hỏi thầy bất cứ thắc mắc gì về lý thuyết hay bài tập của buổi học này nhé! 🤖`
-      }
-    ]);
-  }, [currentLesson]);
-
-  // Scroll to bottom of chat
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [aiMessages, aiTyping]);
-
-  // 1. Fetch Course from API
+  // 1. Fetch Course details from API
   useEffect(() => {
     const fetchCourse = async () => {
       try {
@@ -212,7 +73,7 @@ export default function LearningPage({ courseId, lessonId, currentUser, onSelect
     return course.curriculum.flatMap(chapter => chapter.lessons) || [];
   }, [course]);
 
-  // Determine current lesson
+  // Determine active current lesson
   useEffect(() => {
     if (allLessons.length === 0) return;
     const activeId = lessonId ? lessonId.toString() : allLessons[0].id.toString();
@@ -240,7 +101,6 @@ export default function LearningPage({ courseId, lessonId, currentUser, onSelect
     if (!currentLesson) return;
     setLoading(true);
 
-    // Load materials from backend documents or fallbacks
     const backendDocs = currentLesson.documents || [];
     if (backendDocs.length > 0) {
       setMaterials(backendDocs.map(doc => ({
@@ -252,13 +112,11 @@ export default function LearningPage({ courseId, lessonId, currentUser, onSelect
     } else {
       const fallbackMaterials = [
         { id: `${currentLesson.id}_m1`, title: `Sổ tay lý thuyết trọng tâm - ${currentLesson.title}`, file_type: 'PDF' },
-        { id: `${currentLesson.id}_m2`, title: `Bài tập trắc nghiệm tự luyện kèm giải chi tiết - ${currentLesson.title}`, file_type: 'PDF' },
-        { id: `${currentLesson.id}_m3`, title: `Slide bài giảng sơ đồ tư duy - ${currentLesson.title}`, file_type: 'Slide' }
+        { id: `${currentLesson.id}_m2`, title: `Bài tập trắc nghiệm tự luyện kèm giải chi tiết - ${currentLesson.title}`, file_type: 'PDF' }
       ];
       setMaterials(fallbackMaterials);
     }
 
-    // Fetch discussions properly
     const loadDiscussions = async () => {
       try {
         const discData = await discussionService.getDiscussionsByLessonId(Number(currentLesson.id));
@@ -272,7 +130,8 @@ export default function LearningPage({ courseId, lessonId, currentUser, onSelect
     loadDiscussions();
   }, [currentLesson]);
 
-  const handleAddComment = async (text, parentId = null) => {
+  // Add Comment/Discussion
+  const handleAddComment = async (text) => {
     if (!currentLesson || !currentUser) return;
     try {
       const newComment = await discussionService.createDiscussion(
@@ -280,749 +139,427 @@ export default function LearningPage({ courseId, lessonId, currentUser, onSelect
         currentUser.id,
         currentUser.fullName || currentUser.name || 'Học sinh',
         currentUser.avatar || 'U',
-        text,
-        parentId
+        text
       );
       setDiscussions(prev => [...prev, newComment]);
+      toast('Đăng câu hỏi thành công!', 'success');
     } catch (err) {
       console.error(err);
+      toast('Lỗi đăng câu hỏi.', 'error');
     }
   };
 
+  // Navigations (Linear next / prev)
+  const currentIdx = allLessons.findIndex(l => currentLesson && l.id.toString() === currentLesson.id.toString());
+  const hasPrev = currentIdx > 0;
+  const hasNext = currentIdx < allLessons.length - 1;
+  const nextLessonName = hasNext ? allLessons[currentIdx + 1].title : null;
+
   const handlePrevLesson = useCallback(() => {
-    if (!currentLesson || allLessons.length === 0) return;
-    const idx = allLessons.findIndex(l => l.id.toString() === currentLesson.id.toString());
-    if (idx > 0) {
-      // Find the first preceding lesson that is unlocked or owned
-      const prevLesson = allLessons[idx - 1];
-      onSelectLesson(courseId, prevLesson.id);
+    if (hasPrev) {
+      onSelectLesson(courseId, allLessons[currentIdx - 1].id);
     }
-  }, [currentLesson, allLessons, courseId, onSelectLesson]);
+  }, [hasPrev, currentIdx, allLessons, courseId, onSelectLesson]);
 
   const handleNextLesson = useCallback(() => {
-    if (!currentLesson || allLessons.length === 0) return;
-    const idx = allLessons.findIndex(l => l.id.toString() === currentLesson.id.toString());
-    if (idx < allLessons.length - 1) {
-      const nextLesson = allLessons[idx + 1];
-      onSelectLesson(courseId, nextLesson.id);
+    if (hasNext) {
+      onSelectLesson(courseId, allLessons[currentIdx + 1].id);
     }
-  }, [currentLesson, allLessons, courseId, onSelectLesson]);
+  }, [hasNext, currentIdx, allLessons, courseId, onSelectLesson]);
+
+  const handleVideoEnded = () => {
+    // Automatically mark lesson as completed
+    const numericLessonId = Number(currentLesson.id);
+    if (!completedLessons.includes(numericLessonId)) {
+      toggleCompleted(numericLessonId);
+    }
+
+    if (hasNext) {
+      // Handled by Custom VideoPlayer UpNext countdown triggers
+    } else {
+      // Last lesson concludes: Trigger celebration modal
+      setCompletionOpen(true);
+    }
+  };
+
+  // Draggable right sidebar handler
+  const handleMouseDown = useCallback((e) => {
+    e.preventDefault();
+    isResizingRef.current = true;
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+  }, []);
+
+  useEffect(() => {
+    const handleMouseMove = (e) => {
+      if (!isResizingRef.current) return;
+      const newWidth = window.innerWidth - e.clientX;
+      if (newWidth >= 300 && newWidth <= 600) {
+        setRightPanelWidth(newWidth);
+      }
+    };
+
+    const handleMouseUp = () => {
+      if (isResizingRef.current) {
+        isResizingRef.current = false;
+        document.body.style.cursor = 'default';
+        document.body.style.userSelect = 'auto';
+      }
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, []);
+
+  // Listen for materials download events
+  useEffect(() => {
+    const handleDownload = () => {
+      toast('Bắt đầu tải bộ tài liệu ôn tập của bài học!', 'success');
+    };
+    window.addEventListener('edupath-download-materials', handleDownload);
+    return () => window.removeEventListener('edupath-download-materials', handleDownload);
+  }, []);
+
+  // Sync seek to video player
+  const handleSeek = (secs) => {
+    const videoEl = videoRef.current;
+    if (videoEl) {
+      videoEl.currentTime = secs;
+      videoEl.play().catch(() => {});
+    }
+  };
 
   const isDemoMode = window.location.search.includes('demo=true');
   const isLocked = !isDemoMode && !isOwned && currentLesson && !currentLesson.isPreview;
 
-  const currentIdx = allLessons.findIndex(l => currentLesson && l.id.toString() === currentLesson.id.toString());
-  const hasPrev = currentIdx > 0;
-  const hasNext = currentIdx < allLessons.length - 1;
+  // Mock transcripts and quizzes for complete demonstration
+  const mockTranscript = [
+    { timeSeconds: 0, text: "Chào mừng các em học sinh đến với bài giảng luyện thi ngày hôm nay.", text_en: "Welcome students to today's prep lecture." },
+    { timeSeconds: 12, text: "Chúng ta sẽ phân tích sâu các dạng toán trắc nghiệm trọng tâm thi THPT Quốc Gia.", text_en: "We will deeply analyze core multiple-choice math formats in the high school graduation exam." },
+    { timeSeconds: 28, text: "Hãy lưu ý kỹ phương pháp giải nhanh và cách loại trừ đáp án nhiễu cực nhanh.", text_en: "Please carefully note the fast-solving method and how to eliminate distractors very quickly." },
+    { timeSeconds: 45, text: "Ghi chép công thức đặc biệt này vào sổ tay để tự tin làm bài nhé.", text_en: "Write this special formula in your notebook to solve papers confidently." }
+  ];
+
+  const mockQuizzes = [
+    {
+      question: `Bài tập củng cố: Khẳng định nào sau đây là ĐÚNG về chuyên đề "${currentLesson?.title}"?`,
+      options: ["Nên học thuộc lòng công thức giải.", "Cần hiểu bản chất kết hợp mẹo giải nhanh.", "Bấm máy tính Casio luôn giải được mọi bài.", "Đề thi không bao giờ ra phần này."],
+      correctOptionIndex: 1,
+      explanation: "Chuyên đề ôn thi tốt nghiệp THPT yêu cầu học sinh vừa nắm vững bản chất kiến thức để tránh bẫy lý thuyết, vừa linh hoạt áp dụng phương pháp bấm Casio hoặc loại trừ để tối ưu thời gian."
+    }
+  ];
 
   if (!course || !currentLesson) {
     return (
       <div className="cp-page-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
         <div style={{ textAlign: 'center', color: 'var(--stone-text-secondary)' }}>
           <div style={{ fontSize: '32px', animation: 'spin 2s linear infinite' }}>⏳</div>
-          <div style={{ fontSize: '14px', marginTop: '12px', fontWeight: 'bold' }}>Đang chuẩn bị lớp học...</div>
+          <div style={{ fontSize: '14px', marginTop: '12px', fontWeight: 'bold' }}>Đang tải phòng học trực tuyến...</div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="cp-page-container">
-      <div className="cp-page animate-in" style={{ gap: '24px' }}>
-        
-        {isDemoMode && (
-          <div 
-            style={{
-              background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-              color: '#ffffff',
-              padding: '14px 24px',
-              borderRadius: 'var(--radius-lg)',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              boxShadow: 'var(--shadow-warm-sm)',
-              flexWrap: 'wrap',
-              gap: '12px'
-            }}
-            className="animate-in"
+    <div className="learning-workspace-container">
+      {/* HEADER BANNER FOR DEMO */}
+      {isDemoMode && (
+        <div className="demo-header-strip animate-in">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span className="demo-icon">✨</span>
+            <span>Bạn đang trải nghiệm học thử (DEMO). Đăng ký ngay để sở hữu toàn bộ bộ đề thi VIP và Adaptive AI!</span>
+          </div>
+          <button 
+            type="button" 
+            onClick={() => onBackToCourse(`/courses/${courseId}`)}
+            className="btn-demo-enroll"
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '18px' }}>✨</span>
-              <span style={{ fontSize: '14px', fontWeight: 'bold' }}>
-                Bạn đang ở lớp học thử nghiệm (DEMO). Đăng ký khóa học ngay để mở khóa toàn bộ giáo trình VIP và được AI phân tích lộ trình!
-              </span>
-            </div>
-            <button 
-              onClick={() => onBackToCourse(`/courses/${courseId}`)}
-              style={{
-                backgroundColor: '#ffffff',
-                color: 'var(--emerald-primary)',
-                border: 'none',
-                padding: '8px 16px',
-                borderRadius: '8px',
-                fontWeight: '800',
-                fontSize: '12.5px',
-                cursor: 'pointer',
-                boxShadow: '0 4px 10px rgba(0,0,0,0.1)'
-              }}
-            >
-              ĐĂNG KÝ HỌC NGAY
-            </button>
-          </div>
-        )}
-        
-        {/* ── TOP CONTROL BAR ── */}
-        <div 
-          style={{ 
-            display: 'flex', 
-            justifyContent: 'space-between', 
-            alignItems: 'center', 
-            background: '#ffffff', 
-            padding: '16px 24px', 
-            borderRadius: 'var(--radius-lg)', 
-            border: '1.5px solid var(--border-warm)',
-            boxShadow: 'var(--shadow-warm-sm)',
-            flexWrap: 'wrap',
-            gap: '12px'
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <button 
-              className="cc-btn cc-btn--owned"
-              style={{ padding: '8px 16px', fontSize: '12px', fontWeight: '800' }}
-              onClick={() => onBackToCourse(isDemoMode ? '/courses' : `/courses/${courseId}`)}
-            >
-              {isDemoMode ? '◀ Quay lại khóa học' : '◀ Quay lại Chi tiết khóa'}
-            </button>
-            <div>
-              <span style={{ fontSize: '11px', color: 'var(--stone-text-muted)', display: 'block', fontWeight: '600' }}>
-                Học phần: {course.title}
-              </span>
-              <strong style={{ fontSize: '14px', color: 'var(--stone-text-main)' }}>
-                Bài {currentIdx + 1}: {currentLesson.title}
-              </strong>
-            </div>
-          </div>
+            Đăng ký học ngay
+          </button>
+        </div>
+      )}
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            {/* Mark complete checkbox */}
-            {!isLocked && currentUser && (
-              <label 
-                style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  gap: '8px', 
-                  fontSize: '12.5px', 
-                  color: completedLessons.includes(Number(currentLesson.id)) || completedLessons.includes(currentLesson.id.toString()) ? 'var(--emerald-primary)' : 'var(--stone-text-secondary)', 
-                  cursor: 'pointer', 
-                  background: completedLessons.includes(Number(currentLesson.id)) || completedLessons.includes(currentLesson.id.toString()) ? 'var(--emerald-light)' : '#ffffff', 
-                  border: '1.5px solid var(--border-warm)', 
-                  padding: '8px 16px', 
-                  borderRadius: '10px',
-                  fontWeight: '700',
-                  transition: 'all 0.2s'
-                }}
-              >
-                <input 
-                  type="checkbox" 
-                  checked={completedLessons.includes(Number(currentLesson.id)) || completedLessons.includes(currentLesson.id.toString())}
-                  onChange={() => toggleCompleted(currentLesson.id)}
-                  style={{ accentColor: 'var(--emerald-primary)', width: '16px', height: '16px', cursor: 'pointer' }}
-                />
-                {completedLessons.includes(Number(currentLesson.id)) || completedLessons.includes(currentLesson.id.toString()) ? '✓ Đã hoàn thành' : 'Đánh dấu hoàn thành'}
-              </label>
-            )}
-
-            <button 
-              className="cc-btn cc-btn--owned" 
-              style={{ padding: '8px 16px', fontSize: '12.5px', fontWeight: '700' }}
-              onClick={handlePrevLesson}
-              disabled={!hasPrev}
-            >
-              Bài trước
-            </button>
-            
-            <button 
-              className="cc-btn cc-btn--enroll" 
-              style={{ padding: '8px 18px', fontSize: '12.5px', fontWeight: '800' }}
-              onClick={handleNextLesson}
-              disabled={!hasNext}
-            >
-              Bài tiếp theo
-            </button>
+      {/* TOP CONTROL NAVIGATION ROW */}
+      <div className="learning-header-bar">
+        <div className="header-left">
+          <button 
+            type="button" 
+            onClick={() => onBackToCourse(isDemoMode ? '/courses' : `/courses/${courseId}`)}
+            className="btn-back-to-details"
+          >
+            Quay lại khóa học
+          </button>
+          <span className="header-divider">|</span>
+          <div className="course-title-group">
+            <span className="course-title-sub">Khóa: {course.title}</span>
+            <h2 className="current-lesson-title">{currentLesson.title}</h2>
           </div>
         </div>
 
-        {/* ── RESPONSIVE FLEX/GRID STYLING ── */}
-        <style>{`
-          .learning-layout-grid {
-            display: flex;
-            gap: 20px;
-            align-items: start;
-            margin-top: 20px;
-            width: 100%;
-          }
-          .sidebar-col {
-            width: 290px;
-            flex-shrink: 0;
-          }
-          .video-col {
-            flex: 1;
-            min-width: 0;
-          }
-          .resizer-bar {
-            width: 8px;
-            align-self: stretch;
-            cursor: ew-resize;
-            background: transparent;
-            transition: background 0.2s;
-            border-left: 2px dashed #cbd5e1;
-            margin: 0 -4px;
-            position: relative;
-            z-index: 10;
-          }
-          .resizer-bar:hover, .resizer-bar.active {
-            background: rgba(16, 185, 129, 0.1);
-            border-left: 2px solid var(--emerald-primary);
-          }
-          @media (max-width: 1200px) {
-            .learning-layout-grid {
-              flex-wrap: wrap;
-            }
-            .sidebar-col {
-              width: 260px;
-            }
-            .resizer-bar {
-              display: none;
-            }
-            .notebook-col {
-              width: 100% !important;
-            }
-          }
-          @media (max-width: 768px) {
-            .sidebar-col {
-              width: 100%;
-            }
-          }
-        `}</style>
+        <div className="header-right">
+          <button 
+            type="button" 
+            onClick={() => setShortcutsOpen(true)}
+            className="btn-shortcuts-info"
+            title="Xem phím tắt video"
+          >
+            <HiInformationCircle />
+            <span>Phím tắt</span>
+          </button>
+        </div>
+      </div>
 
-        {/* ── MAIN LAYOUT GRID ── */}
-        <div className="learning-layout-grid">
-          
-          {/* COLUMN 1: PROGRESS SIDEBAR (Left) */}
-          <div className="sidebar-col" style={{ height: '580px', position: 'sticky', top: '24px' }}>
-            <ProgressSidebar 
+      {/* THREE COLUMN GRID LAYOUT */}
+      <div className="learning-layout-grid">
+        {/* LEFT COLUMN: COLLAPSIBLE SIDEBAR LESSON LIST */}
+        {sidebarOpen && (
+          <div className="left-sidebar-wrapper animate-in">
+            <button 
+              type="button" 
+              onClick={() => setSidebarOpen(false)} 
+              className="btn-toggle-sidebar close"
+              title="Ẩn danh sách bài học"
+            >
+              <HiX />
+            </button>
+            <LessonSidebar
               curriculum={course.curriculum}
               currentLessonId={currentLesson.id}
-              onSelectLesson={(lesson) => onSelectLesson(course.id, lesson.id)}
+              onSelectLesson={(lesson) => onSelectLesson(courseId, lesson.id)}
               completedLessons={completedLessons}
               isOwned={isOwned}
+              courseTitle={course.title}
             />
           </div>
+        )}
 
-          {/* COLUMN 2: VIDEO PLAYER / LOCKS & DETAILS (Middle) */}
-          <div className="video-col" style={{ display: 'flex', flexDirection: 'column', gap: '24px', minWidth: 0 }}>
-            
+        {!sidebarOpen && (
+          <button 
+            type="button" 
+            onClick={() => setSidebarOpen(true)} 
+            className="btn-toggle-sidebar-floating"
+            title="Hiện danh sách bài học"
+          >
+            <HiMenu />
+          </button>
+        )}
+
+        {/* CENTER COLUMN: VIDEO & INTERACTIVE TABS */}
+        <div className="center-workspace-wrapper">
+          {/* Main Video Screen Container */}
+          <div className="main-video-screen">
             {isLocked ? (
-              <div 
-                style={{
-                  height: '420px',
-                  background: 'linear-gradient(135deg, #1c1917 0%, #292524 100%)',
-                  borderRadius: 'var(--radius-lg)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: '#fff',
-                  padding: '32px',
-                  textAlign: 'center',
-                  border: '1.5px solid var(--border-warm)',
-                  boxShadow: 'var(--shadow-warm-md)'
-                }}
-              >
-                <span style={{ fontSize: '56px', marginBottom: '20px' }}>🔒</span>
-                <h3 style={{ fontSize: '20px', fontWeight: '900', color: '#fff', margin: '0 0 10px 0' }}>
-                  Bài giảng này thuộc phạm vi VIP
-                </h3>
-                <p style={{ fontSize: '14px', color: '#d6d3d1', maxWidth: '440px', margin: '0 0 24px 0', lineHeight: 1.6 }}>
-                  Vui lòng đăng ký sở hữu trọn bộ khóa học để xem các bài giảng chuyên sâu nâng cao và truy cập tài liệu tự luyện trắc nghiệm.
-                </p>
+              <div className="video-locked-overlay animate-in">
+                <HiAcademicCap className="locked-icon" />
+                <h3>Bài học VIP đã bị khóa</h3>
+                <p>Bài học này nằm trong giáo trình trả phí. Vui lòng hoàn tất học phí để mở khóa bài học này nhé.</p>
                 <button 
-                  className="cc-btn cc-btn--enroll" 
-                  style={{ padding: '12px 28px', fontSize: '14px', fontWeight: '800', borderRadius: '10px' }}
+                  type="button" 
                   onClick={() => onBackToCourse(`/courses/${courseId}`)}
+                  className="btn-locked-purchase"
                 >
                   Đăng ký khóa học ngay
                 </button>
               </div>
             ) : (
-              <VideoPlayer 
+              <VideoPlayer
                 ref={videoRef}
-                videoUrl={currentLesson.videoUrl || "https://www.w3schools.com/html/mov_bbb.mp4"}
+                videoUrl={currentLesson.videoUrl || "https://sample-videos.com/video321/mp4/720/big_buck_bunny_720p_1mb.mp4"}
                 title={currentLesson.title}
-                onEnded={handleNextLesson} // Auto play next lesson when finished!
-                onTimeUpdate={setVideoTime}
+                lessonId={currentLesson.id}
+                nextLessonName={nextLessonName}
+                onEnded={handleVideoEnded}
+                onTimeUpdate={(t) => setVideoTime(t)}
+                chapters={[
+                  { title: "Phần 1: Giới thiệu chuyên đề", timeSeconds: 0 },
+                  { title: "Phần 2: Phương pháp giải nhanh", timeSeconds: 28 }
+                ]}
               />
             )}
 
-            {/* TABBED PANELS */}
-            {!isLocked && (
-              <>
-                <div style={{ display: 'flex', borderBottom: '2px solid var(--border-warm)', gap: '8px', flexWrap: 'wrap' }}>
-                  {[
-                    { id: 'materials', label: '📥 Tài liệu' },
-                    { id: 'discussion', label: '💬 Thảo luận lớp học' },
-                    { id: 'teacher', label: '👨‍🏫 Hỏi Giáo viên' }
-                  ].map(tab => (
-                    <button
-                      key={tab.id}
-                      onClick={() => setActiveTab(tab.id)}
-                      className={`detail-tab-btn ${activeTab === tab.id ? 'detail-tab-btn--active' : ''}`}
-                      style={{ padding: '10px 18px', fontSize: '13.5px' }}
-                    >
-                      {tab.label}
-                    </button>
-                  ))}
-                </div>
+            {/* Video navigation controller footer */}
+            <div className="video-nav-row">
+              <button 
+                type="button" 
+                onClick={handlePrevLesson} 
+                disabled={!hasPrev} 
+                className="btn-nav-arrow"
+              >
+                <HiChevronLeft /> Bài trước
+              </button>
+              
+              <button 
+                type="button" 
+                onClick={() => toggleCompleted(Number(currentLesson.id))}
+                className={`btn-toggle-complete ${completedLessons.includes(Number(currentLesson.id)) ? 'completed' : ''}`}
+              >
+                <HiCheckCircle />
+                {completedLessons.includes(Number(currentLesson.id)) ? 'Đã học xong' : 'Đánh dấu hoàn thành'}
+              </button>
 
-                <div>
-                  {activeTab === 'materials' && (
-                    <CourseMaterials 
-                      materials={materials}
-                      onDownload={(mat) => toast(`Bắt đầu tải tài liệu: ${mat.title}`, 'success')}
-                    />
-                  )}
-                  {activeTab === 'discussion' && (
-                    <CourseDiscussion 
-                      discussions={discussions}
-                      onAddComment={handleAddComment}
-                      currentUser={currentUser}
-                    />
-                  )}
-                  {activeTab === 'teacher' && (
-                    <TeacherChat 
-                      currentUser={currentUser}
-                      teacherName={course.instructor.name}
-                    />
-                  )}
-                </div>
-              </>
-            )}
-
+              <button 
+                type="button" 
+                onClick={handleNextLesson} 
+                disabled={!hasNext} 
+                className="btn-nav-arrow"
+              >
+                Bài sau <HiChevronRight />
+              </button>
+            </div>
           </div>
 
-          {/* DRAG RESIZER BAR */}
-          <div className="resizer-bar" onMouseDown={handleMouseDown} />
+          {/* Bottom Tabs Panel for Engagement & Materials */}
+          <div className="interactive-tabs-container">
+            <div className="interactive-tabs-header">
+              {[
+                { id: 'materials', label: 'Tài liệu bài học' },
+                { id: 'transcript', label: 'Bản dịch & Subtitle' },
+                { id: 'exercise', label: 'Luyện tập trắc nghiệm' },
+                { id: 'discussion', label: 'Thảo luận lớp học' },
+                { id: 'teacher', label: 'Hỏi đáp giáo viên' }
+              ].map(tab => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`tab-toggle-btn ${activeTab === tab.id ? 'active' : ''}`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
 
-          {/* COLUMN 3: NOTEBOOK / AI NOTES (Right) */}
-          <div className="notebook-col" style={{ width: `${notebookWidth}px`, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '16px', position: 'sticky', top: '24px' }}>
-            
-            {/* Spiral Binder Container */}
-            <div style={{
-              background: '#fffdf5',
-              border: '1.5px solid var(--border-warm)',
-              borderRadius: '16px',
-              boxShadow: 'var(--shadow-warm-md)',
-              display: 'flex',
-              flexDirection: 'column',
-              height: '560px',
-              overflow: 'hidden',
-              position: 'relative'
-            }}>
-              {/* Spiral rings simulation */}
-              <div style={{ 
-                height: '22px', 
-                background: '#e2e8f0', 
-                display: 'flex', 
-                justifyContent: 'space-around', 
-                alignItems: 'center', 
-                padding: '0 25px',
-                borderBottom: '1px solid #cbd5e1',
-                zIndex: 10
-              }}>
-                {[...Array(10)].map((_, i) => (
-                  <div key={i} style={{ 
-                    width: '8px', 
-                    height: '16px', 
-                    borderRadius: '4px', 
-                    background: 'linear-gradient(to right, #94a3b8, #cbd5e1, #94a3b8)',
-                    border: '1px solid #64748b',
-                    boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.15)' 
-                  }} />
-                ))}
+            <div className="interactive-tabs-content">
+              {activeTab === 'materials' && (
+                <MaterialsTab materials={materials} />
+              )}
+              {activeTab === 'transcript' && (
+                <TranscriptTab 
+                  transcript={mockTranscript} 
+                  videoTime={videoTime} 
+                  onSeek={handleSeek} 
+                />
+              )}
+              {activeTab === 'exercise' && (
+                <ExerciseTab 
+                  exercises={mockQuizzes} 
+                  onCompleteExercise={(score) => {
+                    toast(`Hoàn thành bài luyện tập với tỷ lệ ${score}%!`, 'success');
+                  }} 
+                />
+              )}
+              {activeTab === 'discussion' && (
+                <DiscussionTab
+                  discussions={discussions}
+                  currentUser={currentUser}
+                  onAddComment={handleAddComment}
+                  videoTime={videoTime}
+                  onSeek={handleSeek}
+                />
+              )}
+              {activeTab === 'teacher' && (
+                <TeacherQATab 
+                  currentUser={currentUser} 
+                  lesson={currentLesson} 
+                />
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* RIGHT COLUMN: DOUBLE PANEL SIDEBAR (AI TUTOR & NOTES) */}
+        {rightPanelOpen && (
+          <div 
+            className="right-sidebar-panel" 
+            style={{ width: `${rightPanelWidth}px` }}
+          >
+            {/* Panel resizer handle bar */}
+            <div 
+              onMouseDown={handleMouseDown} 
+              className="panel-resizer-bar" 
+            />
+
+            <div className="right-panel-inner">
+              <div className="panel-toggle-tabs">
+                <button
+                  type="button"
+                  onClick={() => setRightPanelTab('ai')}
+                  className={`panel-tab-btn ${rightPanelTab === 'ai' ? 'active' : ''}`}
+                >
+                  <HiSparkles />
+                  <span>Gia sư AI</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRightPanelTab('notes')}
+                  className={`panel-tab-btn ${rightPanelTab === 'notes' ? 'active' : ''}`}
+                >
+                  <HiOutlineLightBulb />
+                  <span>Ghi chú cá nhân</span>
+                </button>
+                
+                <button 
+                  type="button" 
+                  onClick={() => setRightPanelOpen(false)}
+                  className="btn-close-panel"
+                >
+                  <HiX />
+                </button>
               </div>
 
-              {/* Notebook Header / Tab Switcher */}
-              <div style={{ 
-                display: 'flex', 
-                background: '#f1f5f9', 
-                borderBottom: '1.5px solid var(--border-warm)',
-                padding: '8px 12px',
-                justifyContent: 'space-between',
-                alignItems: 'center'
-              }}>
-                <div style={{ display: 'flex', gap: '6px' }}>
-                  <button
-                    onClick={() => setNotebookTab('notes')}
-                    style={{
-                      padding: '6px 12px',
-                      fontSize: '12px',
-                      fontWeight: '800',
-                      border: 'none',
-                      borderRadius: '8px',
-                      background: notebookTab === 'notes' ? '#fffdf5' : 'transparent',
-                      color: notebookTab === 'notes' ? 'var(--stone-text-main)' : 'var(--stone-text-secondary)',
-                      boxShadow: notebookTab === 'notes' ? '0 2px 4px rgba(0,0,0,0.05)' : 'none',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '4px',
-                      transition: 'all 0.2s'
-                    }}
-                  >
-                    <span>📝</span> Ghi chép
-                  </button>
-                  <button
-                    onClick={() => setNotebookTab('ai')}
-                    style={{
-                      padding: '6px 12px',
-                      fontSize: '12px',
-                      fontWeight: '800',
-                      border: 'none',
-                      borderRadius: '8px',
-                      background: notebookTab === 'ai' ? '#fffdf5' : 'transparent',
-                      color: notebookTab === 'ai' ? 'var(--stone-text-main)' : 'var(--stone-text-secondary)',
-                      boxShadow: notebookTab === 'ai' ? '0 2px 4px rgba(0,0,0,0.05)' : 'none',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '4px',
-                      transition: 'all 0.2s'
-                    }}
-                  >
-                    <span>🤖</span> Hỏi AI buổi học
-                  </button>
-                </div>
-                {notebookTab === 'notes' && (
-                  <span style={{ fontSize: '11px', color: 'var(--stone-text-muted)', fontWeight: 'bold' }}>
-                    {saveStatus}
-                  </span>
-                )}
-              </div>
-
-              {/* Notebook Content */}
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative' }}>
-                {notebookTab === 'notes' ? (
-                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', position: 'relative' }}>
-                    {/* Toggle buttons for noteMode */}
-                    <div style={{ display: 'flex', borderBottom: '1.5px solid var(--border-warm)', background: '#FAF9F6', padding: '6px 12px', gap: '8px', zIndex: 10 }}>
-                      <button 
-                        onClick={() => setNoteMode('timeline')}
-                        style={{ padding: '4px 10px', fontSize: '11px', fontWeight: 'bold', border: '1.5px solid #000', borderRadius: '6px', background: noteMode === 'timeline' ? '#000' : '#fff', color: noteMode === 'timeline' ? '#fff' : '#000', cursor: 'pointer', transition: 'all 0.15s' }}
-                      >
-                        ⏱️ Ghi chú Timing
-                      </button>
-                      <button 
-                        onClick={() => setNoteMode('general')}
-                        style={{ padding: '4px 10px', fontSize: '11px', fontWeight: 'bold', border: '1.5px solid #000', borderRadius: '6px', background: noteMode === 'general' ? '#000' : '#fff', color: noteMode === 'general' ? '#fff' : '#000', cursor: 'pointer', transition: 'all 0.15s' }}
-                      >
-                        📝 Nháp tự do
-                      </button>
-                    </div>
-
-                    {noteMode === 'general' ? (
-                      <div style={{ flex: 1, position: 'relative', display: 'flex' }}>
-                        {/* Vertical Red Margin Line */}
-                        <div style={{
-                          position: 'absolute',
-                          top: 0,
-                          bottom: 0,
-                          left: '40px',
-                          width: '1px',
-                          background: 'rgba(239, 68, 68, 0.4)',
-                          borderRight: '1px solid rgba(239, 68, 68, 0.2)',
-                          pointerEvents: 'none'
-                        }} />
-
-                        {/* Textarea styled on top of lined paper */}
-                        <textarea
-                          placeholder="Ghi chú các công thức hay kiến thức quan trọng của buổi học vào đây..."
-                          value={noteText}
-                          onChange={handleNoteChange}
-                          style={{
-                            flex: 1,
-                            background: 'transparent',
-                            backgroundImage: 'linear-gradient(rgba(0, 0, 255, 0.06) 1px, transparent 1px)',
-                            backgroundSize: '100% 28px',
-                            border: 'none',
-                            outline: 'none',
-                            lineHeight: '28px',
-                            fontSize: '13.5px',
-                            fontFamily: 'inherit',
-                            padding: '10px 15px 10px 52px',
-                            color: 'var(--stone-text-main)',
-                            resize: 'none',
-                            zIndex: 2,
-                            minHeight: '100%'
-                          }}
-                        />
-                      </div>
-                    ) : (
-                      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', position: 'relative', paddingBottom: '50px' }}>
-                        {/* Vertical line */}
-                        <div style={{ position: 'absolute', top: 0, bottom: '50px', left: '40px', width: '1px', background: 'rgba(239, 68, 68, 0.3)', pointerEvents: 'none' }} />
-                        
-                        {/* List of timing notes */}
-                        <div style={{
-                          flex: 1,
-                          overflowY: 'auto',
-                          padding: '10px 12px 10px 52px',
-                          backgroundImage: 'linear-gradient(rgba(0, 0, 255, 0.05) 1px, transparent 1px)',
-                          backgroundSize: '100% 28px',
-                          lineHeight: '28px',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: '8px',
-                          maxHeight: '340px'
-                        }}>
-                          {timestampNotes.length > 0 ? (
-                            timestampNotes.map((note) => (
-                              <div key={note.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', lineHeight: '20px' }}>
-                                <button
-                                  onClick={() => handleSeekTo(note.time)}
-                                  style={{
-                                    background: 'var(--emerald-light)',
-                                    color: 'var(--emerald-primary)',
-                                    border: 'none',
-                                    borderRadius: '6px',
-                                    padding: '2px 6px',
-                                    fontSize: '11px',
-                                    fontWeight: 'bold',
-                                    cursor: 'pointer',
-                                    whiteSpace: 'nowrap'
-                                  }}
-                                  title="Click để chuyển tới đoạn này"
-                                >
-                                  ⏱️ {formatTime(note.time)}
-                                </button>
-                                <span style={{ fontSize: '13px', color: 'var(--stone-text-main)', flex: 1, wordBreak: 'break-all' }}>{note.text}</span>
-                                <button
-                                  onClick={() => handleDeleteTimestampNote(note.id)}
-                                  style={{ border: 'none', background: 'transparent', color: '#EF4444', cursor: 'pointer', fontSize: '11px' }}
-                                  title="Xóa ghi chú"
-                                >
-                                  ✕
-                                </button>
-                              </div>
-                            ))
-                          ) : (
-                            <p style={{ fontSize: '12.5px', color: 'var(--stone-text-muted)', fontStyle: 'italic', margin: '12px 0', lineHeight: '20px' }}>
-                              Chưa có ghi chú thời gian. Hãy nghe giảng và nhập ghi chú nhanh ở bên dưới!
-                            </p>
-                          )}
-                        </div>
-
-                        {/* Input form */}
-                        <form 
-                          onSubmit={handleAddTimestampNote}
-                          style={{
-                            height: '50px',
-                            borderTop: '1.5px solid var(--border-warm)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            padding: '8px 12px',
-                            background: '#FAF9F6',
-                            gap: '8px',
-                            position: 'absolute',
-                            bottom: 0,
-                            left: 0,
-                            right: 0,
-                            zIndex: 10
-                          }}
-                        >
-                          <input 
-                            type="text"
-                            placeholder="Ghi chú tại giây hiện tại..."
-                            value={newNoteText}
-                            onChange={(e) => setNewNoteText(e.target.value)}
-                            style={{
-                              flex: 1,
-                              fontSize: '12px',
-                              padding: '6px 10px',
-                              borderRadius: '6px',
-                              border: '1.5px solid var(--border-warm)',
-                              outline: 'none',
-                              background: '#ffffff'
-                            }}
-                            required
-                          />
-                          <button 
-                            type="submit"
-                            style={{
-                              background: 'var(--emerald-primary)',
-                              color: '#fff',
-                              border: 'none',
-                              borderRadius: '6px',
-                              padding: '6px 12px',
-                              cursor: 'pointer',
-                              fontSize: '12px',
-                              fontWeight: 'bold',
-                              whiteSpace: 'nowrap'
-                            }}
-                          >
-                            Lưu ⏱️
-                          </button>
-                        </form>
-                      </div>
-                    )}
-                  </div>
+              <div className="panel-tab-content">
+                {rightPanelTab === 'ai' ? (
+                  <AITutorPanel lesson={currentLesson} />
                 ) : (
-                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', position: 'relative' }}>
-                    {/* Lined Paper background for chat messages */}
-                    <div style={{
-                      position: 'absolute',
-                      top: 0,
-                      bottom: '60px',
-                      left: '40px',
-                      width: '1px',
-                      background: 'rgba(239, 68, 68, 0.3)',
-                      pointerEvents: 'none'
-                    }} />
-
-                    {/* Messages list */}
-                    <div style={{ 
-                      flex: 1, 
-                      overflowY: 'auto', 
-                      padding: '12px 12px 12px 52px',
-                      backgroundImage: 'linear-gradient(rgba(0, 0, 255, 0.05) 1px, transparent 1px)',
-                      backgroundSize: '100% 28px',
-                      lineHeight: '28px',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '12px',
-                      maxHeight: '420px'
-                    }}>
-                      {aiMessages.map((msg, idx) => {
-                        const isUser = msg.role === 'user';
-                        return (
-                          <div 
-                            key={idx} 
-                            style={{ 
-                              display: 'flex', 
-                              justifyContent: isUser ? 'flex-end' : 'flex-start',
-                              lineHeight: '20px',
-                              marginBottom: '6px'
-                            }}
-                          >
-                            <div style={{
-                              maxWidth: '85%',
-                              background: isUser ? '#e0f2fe' : '#f8fafc',
-                              color: 'var(--stone-text-main)',
-                              border: '1px solid var(--border-warm)',
-                              borderRadius: '12px',
-                              padding: '8px 12px',
-                              fontSize: '13px',
-                              boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
-                              whiteSpace: 'pre-line'
-                            }}>
-                              <strong style={{ display: 'block', fontSize: '11px', color: isUser ? '#0284c7' : 'var(--emerald-primary)', marginBottom: '4px' }}>
-                                {isUser ? 'Tôi' : 'Gia sư AI'}
-                              </strong>
-                              {msg.content}
-                            </div>
-                          </div>
-                        );
-                      })}
-                      {aiTyping && (
-                        <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: '6px' }}>
-                          <div style={{
-                            background: '#f8fafc',
-                            border: '1px solid var(--border-warm)',
-                            borderRadius: '12px',
-                            padding: '8px 12px',
-                            fontSize: '12px',
-                            color: 'var(--stone-text-muted)',
-                            fontStyle: 'italic'
-                          }}>
-                            AI đang suy nghĩ...
-                          </div>
-                        </div>
-                      )}
-                      <div ref={messagesEndRef} />
-                    </div>
-
-                    {/* Lined Paper input box */}
-                    <form 
-                      onSubmit={async (e) => {
-                        e.preventDefault();
-                        if (!aiInput.trim() || aiTyping) return;
-                        const userText = aiInput;
-                        setAiInput('');
-                        setAiMessages(prev => [...prev, { role: 'user', content: userText }]);
-                        setAiTyping(true);
-                        try {
-                          const response = await aiService.sendAiMessage(userText, currentLesson);
-                          setAiMessages(prev => [...prev, { role: 'assistant', content: response }]);
-                        } catch (err) {
-                          setAiMessages(prev => [...prev, { role: 'assistant', content: 'Thầy xin lỗi, hệ thống AI đang bận. Em thử lại nhé!' }]);
-                        } finally {
-                          setAiTyping(false);
-                        }
-                      }}
-                      style={{
-                        height: '60px',
-                        borderTop: '1.5px solid var(--border-warm)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        padding: '10px 12px',
-                        background: '#f8fafc',
-                        gap: '8px'
-                      }}
-                    >
-                      <input 
-                        type="text"
-                        placeholder="Hỏi AI về nội dung buổi học này..."
-                        value={aiInput}
-                        onChange={(e) => setAiInput(e.target.value)}
-                        disabled={aiTyping}
-                        style={{
-                          flex: 1,
-                          fontSize: '12.5px',
-                          padding: '8px 12px',
-                          borderRadius: '8px',
-                          border: '1.5px solid var(--border-warm)',
-                          outline: 'none',
-                          background: '#ffffff'
-                        }}
-                      />
-                      <button 
-                        type="submit"
-                        disabled={aiTyping || !aiInput.trim()}
-                        style={{
-                          background: aiInput.trim() ? 'var(--emerald-primary)' : '#cbd5e1',
-                          color: '#fff',
-                          border: 'none',
-                          borderRadius: '8px',
-                          width: '32px',
-                          height: '32px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          cursor: aiInput.trim() ? 'pointer' : 'default',
-                          fontSize: '14px'
-                        }}
-                      >
-                        ✈
-                      </button>
-                    </form>
-                  </div>
+                  <NotePanel 
+                    lesson={currentLesson} 
+                    videoTime={videoTime} 
+                    onSeek={handleSeek} 
+                  />
                 )}
               </div>
             </div>
           </div>
+        )}
 
+        {!rightPanelOpen && (
+          <button 
+            type="button" 
+            onClick={() => setRightPanelOpen(true)} 
+            className="btn-toggle-right-panel-floating"
+            title="Mở bảng Gia sư AI & Ghi chú"
+          >
+            <HiSparkles />
+          </button>
+        )}
       </div>
+
+      {/* OVERLAY MODALS */}
+      <KeyboardShortcutsOverlay 
+        isOpen={shortcutsOpen} 
+        onClose={() => setShortcutsOpen(false)} 
+      />
+
+      <CompletionModal
+        isOpen={completionOpen}
+        onClose={() => setCompletionOpen(false)}
+        courseTitle={course.title}
+        stats={{
+          totalLessons: totalLessonsCount,
+          totalQuizzes: allLessons.length > 2 ? 3 : 1,
+          averageScore: 90
+        }}
+        onRequestCertificate={() => {
+          return new Promise(resolve => setTimeout(resolve, 1500));
+        }}
+        onSubmitCourseReview={(review) => {
+          return new Promise(resolve => setTimeout(resolve, 1200));
+        }}
+      />
     </div>
-  </div>
-);
+  );
 }

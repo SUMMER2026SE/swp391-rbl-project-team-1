@@ -1788,5 +1788,92 @@
   border-color: rgba(255, 226, 89, 0.15) !important;
 }
 
+/* ---------- Pagination ---------- */
+.exambank-pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  margin-top: 40px;
+  margin-bottom: 20px;
+}
+
+.exambank-pagination__btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 2px solid #e8e2d6;
+  background: #faf8f4;
+  color: #64748b;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.25s;
+}
+
+.exambank-pagination__btn:hover:not(:disabled) {
+  border-color: #059669;
+  color: #059669;
+  background: #ecfdf5;
+}
+
+.exambank-pagination__btn--active {
+  background: linear-gradient(135deg, #059669, #10b981) !important;
+  color: white !important;
+  border-color: #059669 !important;
+  box-shadow: 0 2px 8px rgba(5, 150, 105, 0.25) !important;
+}
+
+.exambank-pagination__btn--active:hover {
+  background: linear-gradient(135deg, #047857, #059669) !important;
+}
+
+.exambank-pagination__btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.exambank-pagination__ellipsis {
+  font-size: 15px;
+  font-weight: 700;
+  color: #64748b;
+  width: 32px;
+  text-align: center;
+}
+
+/* Starry Night Dark Theme Override for Pagination */
+.exambank-page .exambank-pagination__btn {
+  background: #FFFFFF !important;
+  border-color: #FFFFFF !important;
+  color: #12120e !important;
+}
+
+.exambank-page .exambank-pagination__btn:hover:not(:disabled) {
+  background: #FFE259 !important;
+  border-color: #FFE259 !important;
+  color: #12120e !important;
+}
+
+.exambank-page .exambank-pagination__btn--active {
+  background: #5b75f3 !important; /* purple-blue color from screenshot */
+  color: #FFFFFF !important;
+  border-color: #5b75f3 !important;
+  box-shadow: 0 4px 12px rgba(91, 117, 243, 0.3) !important;
+}
+
+.exambank-page .exambank-pagination__btn:disabled {
+  background: #2F2F26 !important;
+  border-color: #2F2F26 !important;
+  color: #55554a !important;
+  opacity: 0.7 !important;
+}
+
+.exambank-page .exambank-pagination__ellipsis {
+  color: #F3F4F6 !important;
+}
+
 
 

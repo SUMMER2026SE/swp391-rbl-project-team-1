@@ -101,6 +101,10 @@ export const api = {
   login: (email, password) =>
     request('/login', { method: 'POST', body: { email, password } }),
 
+  getMe: () => request('/auth/me'),
+
+  updateProfile: (payload) => request('/auth/profile', { method: 'PATCH', body: payload }),
+
   sendOtp: (payload) =>
     request('/auth/send-otp', { method: 'POST', body: payload }),
 
@@ -215,6 +219,8 @@ export const api = {
   createVNPayPayment: (courseId) => request('/enrollments', { method: 'POST', body: { courseId } }),
 
   checkEnrollmentStatus: (courseId) => request(`/enrollments/status?courseId=${courseId}`),
+
+  enrollCourseDemo: (courseId) => request('/enrollments/demo', { method: 'POST', body: { courseId } }),
 
   checkProStatus: () => request('/users/pro-status'),
 
@@ -466,6 +472,8 @@ export const api = {
   // ADMIN MATERIALS MODERATION
   getAdminPendingMaterials: () => request('/admin/materials/pending'),
   approveMaterial: (id) => request(`/admin/materials/${id}/approve`, { method: 'POST' }),
-  rejectMaterial: (id) => request(`/admin/materials/${id}/reject`, { method: 'POST' })
+  rejectMaterial: (id) => request(`/admin/materials/${id}/reject`, { method: 'POST' }),
+
+  getTeacherStats: () => request('/teacher/stats')
 };
 

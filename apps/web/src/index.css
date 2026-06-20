@@ -2821,7 +2821,7 @@ body {
 .auth-floating-container {
   position: relative;
   width: 100%;
-  max-width: 630px; /* Expansive horizontal width constraint as requested */
+  max-width: 1050px; /* Wider container for horizontal split layout */
   z-index: 10;
 }
 
@@ -2847,7 +2847,7 @@ body {
   display: block;
 }
 
-/* The Wide Floating Card */
+/* The Wide Floating Card - Now a Split Horizontal layout */
 .auth-floating-card {
   position: relative;
   z-index: 2;
@@ -2857,7 +2857,153 @@ body {
   border-radius: 28px;
   box-shadow: 0 16px 45px rgba(0,0,0,0.06);
   overflow: hidden;
+  display: flex;
+  flex-direction: row;
   transition: transform 0.3s ease;
+}
+
+.auth-side-brand {
+  width: 42%;
+  background: #1C280F; /* Premium dark-olive green background matching the header */
+  color: #ffffff;
+  padding: 56px 48px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  border-right: 3.5px solid #000000;
+}
+
+.auth-side-form {
+  width: 58%;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Brand Panel Inner Styles */
+.auth-brand-content {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.auth-brand-logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.auth-brand-logo-circle {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: #FFC229;
+  color: #1C280F;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 17px;
+  font-weight: 950;
+  border: 2.5px solid #000000;
+  box-shadow: 2px 2px 0px #000000;
+}
+
+.auth-brand-logo h3 {
+  font-size: 18px;
+  font-weight: 900;
+  color: #ffffff;
+  margin: 0;
+  letter-spacing: -0.3px;
+}
+
+.auth-brand-slogan {
+  font-size: 32px;
+  font-weight: 950;
+  line-height: 1.25;
+  color: #ffffff;
+  margin: 0;
+  letter-spacing: -0.5px;
+}
+
+.auth-brand-desc {
+  font-size: 14.5px;
+  color: #9CCA7A;
+  font-weight: 600;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.auth-brand-features {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  margin-top: 10px;
+}
+
+.auth-brand-feature-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.auth-feature-bullet {
+  font-size: 20px;
+  line-height: 1;
+  padding: 8px;
+  background: rgba(255,255,255,0.08);
+  border: 2px solid rgba(255,255,255,0.15);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.auth-brand-feature-item strong {
+  display: block;
+  font-size: 14.5px;
+  font-weight: 800;
+  color: #ffffff;
+  margin-bottom: 2px;
+}
+
+.auth-brand-feature-item p {
+  font-size: 12.5px;
+  color: rgba(255,255,255,0.7);
+  margin: 0;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.auth-brand-footer {
+  font-size: 12px;
+  color: rgba(255,255,255,0.4);
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  margin-top: 24px;
+}
+
+/* Hide header logo side in form on desktop to prevent duplicate logo display */
+@media (min-width: 901px) {
+  .auth-side-form .auth-header-logo-side {
+    display: none;
+  }
+}
+
+/* Mobile responsive fallback */
+@media (max-width: 900px) {
+  .auth-floating-container {
+    max-width: 600px;
+  }
+  .auth-floating-card {
+    flex-direction: column;
+  }
+  .auth-side-brand {
+    display: none; /* Hide brand panel on mobile to optimize form space */
+  }
+  .auth-side-form {
+    width: 100%;
+  }
 }
 
 /* Olive Green Card Header Bar */
@@ -3031,6 +3177,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  position: relative;
 }
 
 .auth-input-group label {
@@ -8111,15 +8258,19 @@ body {
    PASSWORD STRENGTH METER (NEO-BRUTALIST)
    ═══════════════════════════════════════════ */
 .pwd-strength-wrapper {
-  margin-top: 10px;
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 100;
   display: flex;
   flex-direction: column;
   gap: 8px;
   padding: 14px;
-  background: #F8FAFC;
+  background: #ffffff;
   border: 2.5px solid #000000;
   border-radius: 14px;
-  box-shadow: 2px 2px 0px #000000;
+  box-shadow: 4px 4px 0px #000000;
 }
 
 .pwd-strength-bar {
@@ -8464,4 +8615,44 @@ body {
 .animate-slide-up {
   animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
+
+/* ===== VIETNAMESE TYPOGRAPHY & WORD BREAKING ===== */
+* {
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+  hyphens: none;
+}
+/* ===== VIETNAMESE TYPOGRAPHY & WORD BREAKING ===== */
+html, body {
+  max-width: 100vw;
+  overflow-x: hidden;
+}
+* {
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+.dash-grid > *,
+.cd-main-grid > * {
+  min-width: 0;
+}
+code, pre, a[href^="http"], .breakable {
+  word-break: break-all;
+  overflow-wrap: anywhere;
+}
+.no-wrap, .price-amount, .cta-button, button, .price-value, .currency {
+  white-space: nowrap;
+}
+.text-truncate-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.text-truncate-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
 

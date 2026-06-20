@@ -9,20 +9,21 @@ import { initSocket } from './lib/socket.js';
 import { prisma } from './lib/prisma.js';
 import { upload } from './lib/s3.js';
 
-import { login, logout, sendOtp, resendOtp, verifyOtpRegister, googleAuth, googleCompleteOnboarding, changePassword, forgotPassword, verifyResetOtp, resetPassword, requestRoleChange, getRoleChangeRequests, reviewRoleChange, refreshToken, getMe, registerAffiliate } from './controllers/auth.js';
+import { login, logout, sendOtp, resendOtp, verifyOtpRegister, googleAuth, googleCompleteOnboarding, changePassword, forgotPassword, verifyResetOtp, resetPassword, requestRoleChange, getRoleChangeRequests, reviewRoleChange, refreshToken, getMe, registerAffiliate, updateProfile } from './controllers/auth.js';
 import { getCourses, getCourseById, createCourse, getCourseStats, updateCourse, deleteCourse, updateLesson, deleteLesson } from './controllers/course.js';
 import { getExams, getExamById, startAttempt, saveAnswer, submitAttempt, getAttempts, getExamQuestionsPublic, getAttemptById, getAttemptResult, getExamHistory, recordViolation, recordExamEvent, getExamEvents, recordViolationDetail, generateAiCoach, createSmartRetake, importExam, generateSimilarQuestion, updateExamStatus, getWrongQuestions } from './controllers/exam.js';
 import { streamAIChat, refreshRoadmap, generateAIQuestions, generateMindmap, saveMindmap, getMindmaps, getMindmapById, deleteMindmap, generateFlashcards, getPublicMindmapById, generateNodeQuiz, submitNodeQuiz, getNodeProgress, generateWeaknessMindmap, uploadExamFile, generateExamMindmap } from './controllers/ai.js';
 
 import { chatbotConsult } from './controllers/chatbot.js';
 import { getDocumentResources, getDocumentComments, addDocumentComment } from './controllers/document.js';
-import { createVNPayPayment, vnpayWebhook, sepayWebhook, checkEnrollmentStatus, checkUserProStatus } from './controllers/payment.js';
+import { createVNPayPayment, vnpayWebhook, sepayWebhook, checkEnrollmentStatus, checkUserProStatus, createDemoEnrollment } from './controllers/payment.js';
 import { authenticateJWT, requireRole } from './middleware/auth.js';
 import { ownsCourse, ownsLesson, ownsAttempt } from './middleware/ownership.js';
 import { rateLimiter } from './middleware/rateLimit.js';
 import { auditLogger } from './middleware/audit.js';
 import { getAdminStats, getAdminUsers, toggleUserBan, getAdminLeads, createAdminLead, updateAdminLeadStatus, getFeatureFlags, toggleFeatureFlag, getUserDetail, blockUser, unblockUser } from './controllers/admin.js';
 import { getLeaderboardRankings, getActivityHeatmap } from './controllers/gamification.js';
+import { getTeacherStats } from './controllers/teacher.js';
 
 import {
   trackClick,
@@ -128,6 +129,7 @@ app.post('/auth/refresh', refreshToken);
 app.get('/auth/me', authenticateJWT, getMe);
 app.post('/auth/change-password', authenticateJWT, changePassword);
 app.post('/auth/register-affiliate', registerAffiliate);
+app.patch('/auth/profile', authenticateJWT, updateProfile);
 
 // File Upload Route
 app.post('/upload', authenticateJWT, upload.single('file'), (req, res) => {
@@ -212,6 +214,7 @@ app.get('/enrollments/webhook', vnpayWebhook);
 app.get('/enrollments/status', authenticateJWT, requireRole(['STUDENT']), checkEnrollmentStatus);
 app.post('/enrollments/sepay-webhook', sepayWebhook);
 app.get('/users/pro-status', authenticateJWT, requireRole(['STUDENT']), checkUserProStatus);
+app.post('/enrollments/demo', authenticateJWT, requireRole(['STUDENT']), createDemoEnrollment);
 
 // Protected AI Routes
 app.post('/ai/chat', (req, res, next) => {
@@ -324,6 +327,7 @@ app.post('/admin/affiliates/commissions/auto-approve', authenticateJWT, requireR
 // TEACHER MATERIALS SYSTEM ROUTING
 // =========================================================================
 // Teacher side
+app.get('/teacher/stats', authenticateJWT, requireRole(['TEACHER']), getTeacherStats);
 app.get('/teacher/materials', authenticateJWT, requireRole(['TEACHER']), getTeacherMaterials);
 app.post('/teacher/materials', authenticateJWT, requireRole(['TEACHER']), uploadValidation, createTeacherMaterial);
 app.put('/teacher/materials/:id', authenticateJWT, requireRole(['TEACHER']), updateTeacherMaterial);

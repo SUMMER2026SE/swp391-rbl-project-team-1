@@ -1,6 +1,19 @@
 export function mapDbCourseToMockFormat(c) {
   if (!c) return null;
 
+  if (c.priceOriginal !== undefined && c.priceSale !== undefined) {
+    if (c.priceOriginal <= c.priceSale) {
+      const saleVal = Number(c.priceSale);
+      if (saleVal === 0) {
+        c.priceOriginal = 199000 + (Number(c.id || 0) % 3) * 50000;
+      } else {
+        const markupOriginal = Math.round((saleVal * 1.4) / 10000) * 10000;
+        c.priceOriginal = markupOriginal > saleVal ? markupOriginal : saleVal + 150000;
+      }
+    }
+    return c;
+  }
+
   // Calculate rating
   const ratingVal = c.reviews && c.reviews.length > 0 
     ? Number((c.reviews.reduce((acc, r) => acc + r.rating, 0) / c.reviews.length).toFixed(1))
@@ -109,11 +122,16 @@ export function mapDbCourseToMockFormat(c) {
       title: c.teacher?.bio || "Thạc sĩ, Cố vấn học thuật EduPath",
       avatar: c.teacher?.user?.avatarUrl || "GV"
     },
-    priceOriginal: c.price,
-    priceSale: c.price * (1 - (c.discount || 0) / 100),
+    priceOriginal: Number(c.price) <= (Number(c.price) * (1 - (c.discount || 0) / 100))
+      ? (Number(c.price) === 0 ? (199000 + (Number(c.id || 0) % 3) * 50000) : (Math.round((Number(c.price) * (1 - (c.discount || 0) / 100) * 1.4) / 10000) * 10000 || Number(c.price) + 150000))
+      : Number(c.price),
+    priceSale: Number(c.price) * (1 - (c.discount || 0) / 100),
     discountPercent: c.discount || 0,
     level: levelVal,
     grade: c.grade,
-    curriculum: curriculumVal
+    curriculum: curriculumVal.map(c => ({
+      ...c,
+      title: c.title ? c.title.replace(/^Phần\s*\d+\s*[:.-]\s*/i, '').trim() : ''
+    }))
   };
 }

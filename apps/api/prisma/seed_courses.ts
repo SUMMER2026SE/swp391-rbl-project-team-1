@@ -632,6 +632,62 @@ async function main() {
     }
   });
 
+  // 4. Generate 30 additional dynamic courses to populate the database
+  console.log('[Seed Courses] Seeding 30 additional dynamic courses...');
+  const extraSubjects = ['Toán học', 'Vật lý', 'Hóa học', 'Sinh học', 'Tiếng Anh', 'Ngữ văn', 'Lịch sử', 'Địa lý'];
+  const extraTitles = [
+    'Bí quyết ôn thi cấp tốc {subject}',
+    'Tuyển tập 100 dạng bài {subject} nâng cao',
+    'Tổng hợp chuyên đề cốt lõi {subject} 2026',
+    'Bứt phá điểm 8+ cùng {subject}',
+    'Lấy gốc {subject} trong 10 ngày',
+    'Chinh phục đề thi thử THPTQG {subject}',
+    'Tổng ôn lý thuyết và bài tập {subject}'
+  ];
+  const extraDescriptions = [
+    'Khóa học được biên soạn bám sát cấu trúc đề thi chính thức của Bộ Giáo dục và Đào tạo.',
+    'Giúp học sinh hệ thống hóa kiến thức nhanh chóng và nhớ lâu qua sơ đồ tư duy.',
+    'Chuyên đề trọng tâm giúp học sinh đạt điểm số mong muốn trong kỳ thi THPT Quốc gia.',
+    'Tổng hợp các mẹo và phương pháp giải nhanh trắc nghiệm hiệu quả.',
+    'Lộ trình tinh gọn dành cho các em học sinh bận rộn muốn bứt phá điểm số.'
+  ];
+  const teachersList = [teacherA, teacherB, teacherC, teacherD, teacherE];
+  
+  for (let i = 0; i < 30; i++) {
+    const subject = extraSubjects[i % extraSubjects.length];
+    const teacher = teachersList[i % teachersList.length];
+    const titleTemplate = extraTitles[i % extraTitles.length];
+    const title = titleTemplate.replace('{subject}', subject === 'Toán học' ? 'Toán' : subject);
+    const description = extraDescriptions[i % extraDescriptions.length];
+    
+    // Some free, some paid
+    const isFree = i % 5 === 0;
+    const price = isFree ? 0.0 : (200000 + (i % 8) * 70000);
+    const discount = isFree ? 0 : (10 + (i % 5) * 10); // 10%, 20%, 30%, 40%, 50%
+    
+    await prisma.course.create({
+      data: {
+        title: `${title} (Kỳ ${i + 1})`,
+        description,
+        subject,
+        price,
+        discount,
+        isPublished: true,
+        isApproved: true,
+        teacherId: teacher.id,
+        lessons: {
+          create: [
+            { title: 'Bài 1: Khởi động và định hướng lộ trình', order: 1, duration: '12:00' },
+            { title: 'Bài 2: Kiến thức nền tảng bắt buộc phải nhớ', order: 2, duration: '18:15' },
+            { title: 'Bài 3: Các phương pháp và kỹ thuật giải nhanh', order: 3, duration: '22:30' },
+            { title: 'Bài 4: Thực hành giải chi tiết ví dụ minh họa', order: 4, duration: '20:45' },
+            { title: 'Bài 5: Tổng ôn và đánh giá kết quả chuyên đề', order: 5, duration: '25:00' }
+          ]
+        }
+      }
+    });
+  }
+
   // Post-process grades: distribute courses across grade 10, 11, 12 to populate filters
   console.log('[Seed Courses] Post-processing course grades...');
   const allSeededCourses = await prisma.course.findMany();

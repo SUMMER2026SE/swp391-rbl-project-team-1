@@ -28,6 +28,7 @@ async function main() {
   await prisma.forumComment.deleteMany({});
   await prisma.forumReport.deleteMany({});
   await prisma.forumPost.deleteMany({});
+  await prisma.forumTag.deleteMany({});
   await prisma.forumCategory.deleteMany({});
   
   await prisma.studentProfile.deleteMany({});
@@ -156,11 +157,16 @@ async function main() {
       teacherId: teacherA.id,
       lessons: {
         create: [
-          { title: 'Bài 1: Khái niệm tính đơn điệu hàm số', order: 1, duration: '15:20' },
-          { title: 'Bài 2: Kỹ thuật tìm cực trị hàm số nhanh', order: 2, duration: '18:45' },
-          { title: 'Bài 3: Bài toán min-max chứa tham số m', order: 3, duration: '22:10' },
-          { title: 'Bài 4: Khảo sát đồ thị và bài toán tiệm cận', order: 4, duration: '20:30' },
-          { title: 'Bài 5: Luyện đề tổng hợp cực trị hàm số', order: 5, duration: '28:15' }
+          { title: 'Bài 1: Sự đồng biến và nghịch biến của hàm số', order: 1, duration: '15:20', videoUrl: 'https://www.youtube.com/embed/V1y3_Tz1Gf4' },
+          { title: 'Bài 2: Cực trị của hàm số và kỹ thuật tính nhanh', order: 2, duration: '18:45', videoUrl: 'https://www.youtube.com/embed/3Q90uJdSpXo' },
+          { title: 'Bài 3: Giá trị lớn nhất và nhỏ nhất của hàm số', order: 3, duration: '22:10', videoUrl: 'https://www.youtube.com/embed/537bNfX-i64' },
+          { title: 'Bài 4: Đường tiệm cận của đồ thị hàm số', order: 4, duration: '20:30', videoUrl: 'https://www.youtube.com/embed/F91V6c_yO50' },
+          { title: 'Bài 5: Khảo sát sự biến thiên và đồ thị hàm số', order: 5, duration: '28:15', videoUrl: 'https://www.youtube.com/embed/bM7SZ5SBzyY' },
+          { title: 'Bài 6: Biện luận số nghiệm của phương trình bằng đồ thị', order: 6, duration: '24:12', videoUrl: 'https://www.youtube.com/embed/HGeUpeCjSbg' },
+          { title: 'Bài 7: Tiếp tuyến của đồ thị hàm số', order: 7, duration: '19:40', videoUrl: 'https://www.youtube.com/embed/01GzX1S6_sM' },
+          { title: 'Bài 8: Điểm cực trị hàm chứa dấu giá trị tuyệt đối', order: 8, duration: '26:15', videoUrl: 'https://www.youtube.com/embed/W6NZfCO5SIk' },
+          { title: 'Bài 9: Bài toán tương giao nâng cao', order: 9, duration: '21:05', videoUrl: 'https://www.youtube.com/embed/5_b7s1kGEXQ' },
+          { title: 'Bài 10: Tổng ôn trắc nghiệm khảo sát hàm số 9+', order: 10, duration: '35:00', videoUrl: 'https://www.youtube.com/embed/7Qn6Xf5nF7M' }
         ]
       }
     }
@@ -177,11 +183,16 @@ async function main() {
       teacherId: teacherA.id,
       lessons: {
         create: [
-          { title: 'Bài 1: Este lý thuyết căn bản', order: 1, duration: '12:15' },
-          { title: 'Bài 2: Tính chất hóa học Este nâng cao', order: 2, duration: '16:40' },
-          { title: 'Bài 3: Phản ứng thủy phân và bài toán xà phòng hóa', order: 3, duration: '24:20' },
-          { title: 'Bài 4: Lipit và chất béo cấu tạo', order: 4, duration: '18:30' },
-          { title: 'Bài 5: Tổng ôn Este - Lipit từ lý thuyết đến bài tập', order: 5, duration: '32:10' }
+          { title: 'Bài 1: Este lý thuyết căn bản và danh pháp', order: 1, duration: '12:15', videoUrl: 'https://www.youtube.com/embed/bM7SZ5SBzyY' },
+          { title: 'Bài 2: Tính chất hóa học Este và phản ứng thủy phân', order: 2, duration: '16:40', videoUrl: 'https://www.youtube.com/embed/HGeUpeCjSbg' },
+          { title: 'Bài 3: Phản ứng xà phòng hóa chất béo', order: 3, duration: '24:20', videoUrl: 'https://www.youtube.com/embed/01GzX1S6_sM' },
+          { title: 'Bài 4: Lipit và cấu tạo hóa học', order: 4, duration: '18:30', videoUrl: 'https://www.youtube.com/embed/W6NZfCO5SIk' },
+          { title: 'Bài 5: Bài toán đốt cháy Este lý thuyết và bài tập', order: 5, duration: '32:10', videoUrl: 'https://www.youtube.com/embed/5_b7s1kGEXQ' },
+          { title: 'Bài 6: Phản ứng este hóa và hiệu suất phản ứng', order: 6, duration: '20:15', videoUrl: 'https://www.youtube.com/embed/7Qn6Xf5nF7M' },
+          { title: 'Bài 7: Este đa chức lý thuyết nâng cao', order: 7, duration: '22:30', videoUrl: 'https://www.youtube.com/embed/V1y3_Tz1Gf4' },
+          { title: 'Bài 8: Chất béo và phương pháp dồn chất', order: 8, duration: '27:40', videoUrl: 'https://www.youtube.com/embed/3Q90uJdSpXo' },
+          { title: 'Bài 9: Sơ đồ chuyển hóa Este - Lipit chuyên sâu', order: 9, duration: '21:12', videoUrl: 'https://www.youtube.com/embed/537bNfX-i64' },
+          { title: 'Bài 10: Tổng ôn trắc nghiệm Este - Lipit toàn tập', order: 10, duration: '38:00', videoUrl: 'https://www.youtube.com/embed/F91V6c_yO50' }
         ]
       }
     }
@@ -198,11 +209,16 @@ async function main() {
       teacherId: teacherB.id,
       lessons: {
         create: [
-          { title: 'Bài 1: Khái niệm Dao động điều hòa cơ học', order: 1, duration: '20:15' },
-          { title: 'Bài 2: Con lắc lò xo và phương trình li độ', order: 2, duration: '22:45' },
-          { title: 'Bài 3: Con lắc đơn và bài toán tính chu kỳ', order: 3, duration: '18:30' },
-          { title: 'Bài 4: Dao động tắt dần, dao động cưỡng bức', order: 4, duration: '25:10' },
-          { title: 'Bài 5: Tổng ôn tập trắc nghiệm dao động cơ', order: 5, duration: '30:00' }
+          { title: 'Bài 1: Đại cương về Dao động điều hòa', order: 1, duration: '20:15', videoUrl: 'https://www.youtube.com/embed/537bNfX-i64' },
+          { title: 'Bài 2: Con lắc lò xo cấu tạo và tần số góc', order: 2, duration: '22:45', videoUrl: 'https://www.youtube.com/embed/F91V6c_yO50' },
+          { title: 'Bài 3: Năng lượng trong dao động điều hòa', order: 3, duration: '18:30', videoUrl: 'https://www.youtube.com/embed/bM7SZ5SBzyY' },
+          { title: 'Bài 4: Con lắc đơn và chu kỳ dao động', order: 4, duration: '25:10', videoUrl: 'https://www.youtube.com/embed/HGeUpeCjSbg' },
+          { title: 'Bài 5: Dao động tắt dần và dao động duy trì', order: 5, duration: '30:00', videoUrl: 'https://www.youtube.com/embed/01GzX1S6_sM' },
+          { title: 'Bài 6: Hiện tượng cộng hưởng cơ học lý thuyết', order: 6, duration: '17:25', videoUrl: 'https://www.youtube.com/embed/W6NZfCO5SIk' },
+          { title: 'Bài 7: Tổng hợp hai dao động điều hòa cùng phương', order: 7, duration: '23:40', videoUrl: 'https://www.youtube.com/embed/5_b7s1kGEXQ' },
+          { title: 'Bài 8: Phương pháp giản đồ Fre-nen giải bài tập', order: 8, duration: '28:15', videoUrl: 'https://www.youtube.com/embed/7Qn6Xf5nF7M' },
+          { title: 'Bài 9: Bài toán đồ thị dao động điều hòa', order: 9, duration: '24:50', videoUrl: 'https://www.youtube.com/embed/V1y3_Tz1Gf4' },
+          { title: 'Bài 10: Tổng ôn tập dao động cơ học đề thi THPT', order: 10, duration: '36:00', videoUrl: 'https://www.youtube.com/embed/3Q90uJdSpXo' }
         ]
       }
     }

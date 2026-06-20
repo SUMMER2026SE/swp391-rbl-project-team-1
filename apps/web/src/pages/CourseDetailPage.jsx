@@ -1,32 +1,66 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { toast } from '../utils/toast';
-import { HiStar, HiUserGroup, HiBookOpen, HiClock, HiCheck, HiChevronRight, HiAcademicCap } from 'react-icons/hi';
-import CurriculumAccordion from '../components/courses/CurriculumAccordion';
-import CourseReviews from '../components/courses/CourseReviews';
-import CoursePurchaseCard from '../components/courses/CoursePurchaseCard';
+import { 
+  HiArrowLeft, 
+  HiCheck 
+} from 'react-icons/hi';
 import { mapDbCourseToMockFormat } from '../utils/courseMapper';
 import { api } from '../api';
 import { enrollmentService } from '../services/enrollmentService';
 
-export default function CourseDetailPage({ courseId, currentUser, onNavigateToLearn, onUpdateUser, navigateTo, onAddToCart, onCheckoutCourse }) {
+// Subcomponents
+import HeroBanner from '../components/courses/detail/HeroBanner';
+import HeroVideoPlayer from '../components/courses/detail/HeroVideoPlayer';
+import PricingCard from '../components/courses/detail/PricingCard';
+import ContentCard from '../components/courses/detail/ContentCard';
+import CurriculumAccordion from '../components/courses/detail/CurriculumAccordion';
+import TabBar from '../components/courses/detail/TabBar';
+import InstructorCard from '../components/courses/detail/InstructorCard';
+import ReviewSection from '../components/courses/detail/ReviewSection';
+
+// Custom CSS
+import '../styles/courseDetail.css';
+
+const DEFAULT_OUTCOMES = [
+  'Nắm vững toàn bộ kiến thức trọng tâm bám sát cấu trúc của Bộ GD&ĐT.',
+  'Thành thạo phương pháp phân tích nhanh, loại trừ trắc nghiệm chuẩn xác.',
+  'Học các mẹo giải nhanh bằng máy tính Casio giúp tiết kiệm thời gian làm bài.',
+  'Tránh những bẫy nhận biết và thông hiểu kinh điển thường gặp trong đề thi.',
+  'Tiếp cận kho đề thi thử phong phú có lời giải chi tiết và video sửa lỗi sai.',
+  'Tự đánh giá năng lực qua bài thi kiểm tra đầu vào và định kỳ bằng Adaptive AI.',
+  'Tự tin nâng điểm số cấp tốc để đỗ nguyện vọng mong muốn vào trường Đại học.',
+  'Gia tăng tư duy phản xạ đề thi thực tế một cách hệ thống và khoa học nhất.'
+];
+
+export default function CourseDetailPage({ 
+  courseId, 
+  currentUser, 
+  onNavigateToLearn, 
+  onUpdateUser, 
+  navigateTo, 
+  onAddToCart, 
+  onCheckoutCourse 
+}) {
   const [course, setCourse] = useState(null);
   const [isOwned, setIsOwned] = useState(false);
   const [completedLessons, setCompletedLessons] = useState([]);
   const [reviews, setReviews] = useState([]);
-  const [activeTab, setActiveTab] = useState('overview'); // overview, curriculum, instructor, reviews
+  const [activeTab, setActiveTab] = useState('overview');
   const [loading, setLoading] = useState(true);
 
+  // Fetch course details
   useEffect(() => {
     setLoading(true);
-    const fetchCourseDetail = async () => {
+    const fetchDetails = async () => {
       try {
-        const data = await api.getCourseById(courseId);
-        if (data) {
-          const foundCourse = mapDbCourseToMockFormat(data);
+        const detailData = await api.getCourseById(courseId);
+        if (detailData) {
+          const foundCourse = mapDbCourseToMockFormat(detailData);
           setCourse(foundCourse);
 
           // Check ownership
-          const userEnrolled = currentUser?.unlockedCourses?.includes(Number(courseId)) || currentUser?.unlockedCourses?.includes(courseId?.toString());
+          const userEnrolled = currentUser?.unlockedCourses?.includes(Number(courseId)) || 
+                             currentUser?.unlockedCourses?.includes(courseId?.toString());
           setIsOwned(userEnrolled || false);
 
           // Load progress
@@ -40,7 +74,7 @@ export default function CourseDetailPage({ courseId, currentUser, onNavigateToLe
           }
 
           // Load reviews
-          const courseReviews = data.reviews?.map(r => ({
+          const courseReviews = detailData.reviews?.map(r => ({
             id: r.id,
             course_id: r.courseId,
             student_id: r.studentId,
@@ -50,7 +84,10 @@ export default function CourseDetailPage({ courseId, currentUser, onNavigateToLe
             comment: r.comment,
             created_at: r.createdAt
           })) || [];
-          setReviews(courseReviews);
+          
+          // Merge local reviews if saved in localStorage
+          const localSaved = JSON.parse(localStorage.getItem(`supabase_mock_reviews_${courseId}`)) || [];
+          setReviews([...localSaved, ...courseReviews]);
         } else {
           setCourse(null);
         }
@@ -61,12 +98,28 @@ export default function CourseDetailPage({ courseId, currentUser, onNavigateToLe
         setLoading(false);
       }
     };
-    fetchCourseDetail();
+    fetchDetails();
   }, [courseId, currentUser]);
 
+  const handleAddReview = (newReview) => {
+    const localSaved = JSON.parse(localStorage.getItem(`supabase_mock_reviews_${courseId}`)) || [];
+    const createdReview = {
+      id: `local-r-${Date.now()}`,
+      course_id: Number(courseId),
+      student_id: currentUser?.id || 101,
+      ...newReview
+    };
+    const updated = [createdReview, ...localSaved];
+    localStorage.setItem(`supabase_mock_reviews_${courseId}`, JSON.stringify(updated));
+    setReviews(prev => [createdReview, ...prev]);
+    toast('Cảm ơn em đã gửi đánh giá khóa học!', 'success');
+  };
+
   const handleEnroll = async (action) => {
-    const firstLessonId = course?.curriculum?.[0]?.lessons?.[0]?.id;
-    const firstPreviewLesson = course?.curriculum
+    if (!course) return;
+
+    const firstLessonId = course.curriculum?.[0]?.lessons?.[0]?.id;
+    const firstPreviewLesson = course.curriculum
       ?.flatMap(s => s.lessons)
       ?.find(l => l.isPreview)?.id || firstLessonId;
 
@@ -81,7 +134,6 @@ export default function CourseDetailPage({ courseId, currentUser, onNavigateToLe
     }
 
     if (action === 'preview') {
-      // Direct jump to first free preview lesson
       onNavigateToLearn(course.id, firstPreviewLesson);
       return;
     }
@@ -104,7 +156,6 @@ export default function CourseDetailPage({ courseId, currentUser, onNavigateToLe
       if (onCheckoutCourse) {
         onCheckoutCourse(course);
       } else {
-        // Purchase / Enroll flow
         try {
           if (currentUser) {
             await enrollmentService.enrollCourse(currentUser.id, course.id, course.priceSale);
@@ -128,23 +179,10 @@ export default function CourseDetailPage({ courseId, currentUser, onNavigateToLe
     }
   };
 
-  const handleAddReview = (newReview) => {
-    const allReviews = JSON.parse(localStorage.getItem('supabase_mock_reviews')) || [];
-    const createdReview = {
-      id: allReviews.length + 1,
-      course_id: Number(courseId),
-      student_id: currentUser?.id || 101,
-      ...newReview
-    };
-    const updated = [createdReview, ...allReviews];
-    localStorage.setItem('supabase_mock_reviews', JSON.stringify(updated));
-    setReviews(prev => [createdReview, ...prev]);
-  };
-
   if (loading) {
     return (
-      <div className="cp-page-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
-        <div style={{ textAlign: 'center', color: 'var(--stone-text-secondary)' }}>
+      <div className="course-detail-page-fts" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
+        <div style={{ textAlign: 'center', color: 'var(--fts-text-secondary)' }}>
           <div style={{ fontSize: '32px', animation: 'spin 2s linear infinite' }}>⏳</div>
           <div style={{ fontSize: '14px', marginTop: '12px', fontWeight: 'bold' }}>Đang tải chi tiết khóa học...</div>
         </div>
@@ -154,188 +192,170 @@ export default function CourseDetailPage({ courseId, currentUser, onNavigateToLe
 
   if (!course) {
     return (
-      <div className="cp-page-container">
-        <div style={{ textAlign: 'center', padding: '60px 20px', background: '#ffffff', borderRadius: '16px', border: '1px solid var(--border-warm)', maxWidth: '600px', margin: '40px auto' }}>
+      <div className="course-detail-page-fts">
+        <div style={{ textAlign: 'center', padding: '60px 20px', background: '#ffffff', borderRadius: '16px', border: '1px solid rgba(79,63,203,0.1)', maxWidth: '600px', margin: '40px auto' }}>
           <span style={{ fontSize: '48px' }}>📂</span>
-          <h3 style={{ fontSize: '18px', fontWeight: 'bold', color: 'var(--stone-text-main)', margin: '14px 0 6px 0' }}>Khóa học không tồn tại</h3>
-          <p style={{ fontSize: '14px', color: 'var(--stone-text-secondary)', marginBottom: '20px' }}>Khóa học này có thể đã bị gỡ hoặc đường dẫn không chính xác.</p>
-          <button className="cp-empty__btn" onClick={() => navigateTo('/courses')}>Quay lại trang khóa học</button>
+          <h3 style={{ fontSize: '18px', fontWeight: 'bold', color: 'var(--fts-text-primary)', margin: '14px 0 6px 0' }}>Khóa học không tồn tại</h3>
+          <p style={{ fontSize: '14px', color: 'var(--fts-text-secondary)', marginBottom: '20px' }}>Khóa học này có thể đã bị gỡ hoặc đường dẫn không chính xác.</p>
+          <button 
+            style={{ padding: '10px 20px', background: 'var(--fts-purple)', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}
+            onClick={() => navigateTo('/courses')}
+          >
+            Quay lại trang khóa học
+          </button>
         </div>
       </div>
     );
   }
 
+  const outcomesList = course.outcomes && course.outcomes.length > 0 ? course.outcomes : DEFAULT_OUTCOMES;
+  const lessonCountVal = course.curriculum?.flatMap(s => s.lessons).length || 0;
+
   return (
-    <div className="cp-page-container">
-      <div className="cp-page animate-in" style={{ gap: '24px' }}>
-        
-        {/* ── BREADCRUMB ── */}
-        <div className="cp-breadcrumb">
-          <a onClick={() => navigateTo('/courses')}>Khóa học</a>
-          <span className="cp-breadcrumb__separator"><HiChevronRight /></span>
-          <a onClick={() => navigateTo(`/courses?subject=${course.subject}`)}>{course.subject}</a>
-          <span className="cp-breadcrumb__separator"><HiChevronRight /></span>
-          <span style={{ color: 'var(--stone-text-main)', fontWeight: '700' }}>{course.title}</span>
-        </div>
+    <div className="course-detail-page-fts animate-in">
+      <div className="cd-container">
+        {/* Back Link */}
+        <a 
+          className="cd-back-link" 
+          onClick={() => navigateTo('/courses')}
+        >
+          <HiArrowLeft /> Quay lại danh sách khóa học
+        </a>
 
-        {/* ── main content header ── */}
-        <div className="cp-detail-header">
-          <div className="cp-detail-header__accent" />
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <span style={{ background: 'var(--emerald-light)', color: 'var(--emerald-primary)', fontSize: '11px', fontWeight: '800', padding: '4px 12px', borderRadius: '99px', border: '1px solid rgba(5, 150, 105, 0.1)' }}>
-              Luyện thi THPTQG
-            </span>
-            <span style={{ background: '#FAF6EE', color: 'var(--stone-text-secondary)', fontSize: '11px', fontWeight: '800', padding: '4px 12px', borderRadius: '99px', border: '1px solid var(--border-warm)' }}>
-              {course.block}
-            </span>
-          </div>
-
-          <h1 style={{ fontSize: '32px', fontWeight: '900', color: 'var(--stone-text-main)', margin: 0, lineHeight: '1.25', letterSpacing: '-0.5px' }}>
-            {course.title}
-          </h1>
-
-          <p style={{ fontSize: '15px', color: 'var(--stone-text-secondary)', margin: '4px 0 8px 0', maxWidth: '800px', lineHeight: '1.6' }}>
-            Khóa học được biên soạn chuẩn cấu trúc của Bộ Giáo dục & Đào tạo, trang bị đầy đủ lý thuyết cốt lõi, bài tập trắc nghiệm và chẩn đoán năng lực tự động bằng Adaptive AI giúp nâng cao điểm số cấp tốc.
-          </p>
-
-          <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', fontSize: '13.5px', color: 'var(--stone-text-secondary)', fontWeight: '600', borderTop: '1px solid var(--border-warm)', paddingTop: '16px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <HiStar style={{ color: '#fbbf24', fontSize: '18px' }} />
-              <strong style={{ color: 'var(--stone-text-main)', fontSize: '14.5px' }}>{course.rating.toFixed(1)}</strong> 
-              <span style={{ color: 'var(--stone-text-secondary)' }}>({reviews.length} đánh giá học sinh)</span>
-            </div>
-            <span style={{ color: 'var(--border-warm)' }}>|</span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <HiUserGroup style={{ fontSize: '16px', color: 'var(--stone-text-muted)' }} />
-              <strong>{course.studentCount.toLocaleString('vi-VN')}</strong> học viên đang theo học
-            </div>
-            <span style={{ color: 'var(--border-warm)' }}>|</span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <HiBookOpen style={{ fontSize: '16px', color: 'var(--stone-text-muted)' }} />
-              <strong>{course.lessonCount}</strong> bài học
-            </div>
-            <span style={{ color: 'var(--border-warm)' }}>|</span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <HiClock style={{ fontSize: '16px', color: 'var(--stone-text-muted)' }} />
-              <strong>{course.durationHours} giờ</strong> thời lượng
-            </div>
-          </div>
-        </div>
-
-        {/* ── Bố cục 2 cột chính ── */}
-        <div className="cp-detail-grid">
-          
-          {/* CỘT TRÁI (Nội dung chính & Tabs) */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
+        {/* 2-Column Grid */}
+        <div className="cd-main-grid">
+          {/* LEFT COLUMN */}
+          <div className="cd-left-col">
+            <HeroBanner course={course} reviewsCount={reviews.length} />
             
-            {/* Hệ thống Tabs */}
-            <div>
-              <div className="detail-tabs-header">
-                {[
-                  { id: 'overview', label: '💡 Tổng quan' },
-                  { id: 'curriculum', label: `📋 Giáo trình (${course.lessonCount})` },
-                  { id: 'instructor', label: '👨‍🏫 Giảng viên' },
-                  { id: 'reviews', label: `⭐ Đánh giá (${reviews.length})` }
-                ].map(t => (
-                  <button
-                    key={t.id}
-                    className={`detail-tab-btn ${activeTab === t.id ? 'detail-tab-btn--active' : ''}`}
-                    onClick={() => setActiveTab(t.id)}
-                  >
-                    {t.label}
-                  </button>
-                ))}
-              </div>
-
-              {/* Từng panel nội dung dựa trên Active Tab */}
-              <div className="cp-detail-panel">
-                {activeTab === 'overview' && (
-                  <div>
-                    <h3 style={{ fontSize: '16px', fontWeight: '800', marginBottom: '14px', color: 'var(--stone-text-main)' }}>
-                      Giới thiệu khóa học
-                    </h3>
-                    <p style={{ fontSize: '14.5px', lineHeight: '1.7', color: 'var(--stone-text-secondary)', margin: '0 0 24px 0' }}>
-                      {course.description}
-                    </p>
-
-                    <h3 style={{ fontSize: '16px', fontWeight: '800', marginBottom: '14px', color: 'var(--stone-text-main)' }}>
-                      Em sẽ học được những gì:
-                    </h3>
-                    <div className="cp-detail-checklist">
-                      <div className="cp-detail-checklist__item">
-                        <HiCheck style={{ color: 'var(--emerald-primary)', fontSize: '18px', flexShrink: 0 }} />
-                        <span>Nắm vững toàn bộ kiến thức trọng tâm bám sát cấu trúc của Bộ GD&ĐT.</span>
-                      </div>
-                      <div className="cp-detail-checklist__item">
-                        <HiCheck style={{ color: 'var(--emerald-primary)', fontSize: '18px', flexShrink: 0 }} />
-                        <span>Thành thạo phương pháp phân tích nhanh, loại trừ trắc nghiệm cực chuẩn.</span>
-                      </div>
-                      <div className="cp-detail-checklist__item">
-                        <HiCheck style={{ color: 'var(--emerald-primary)', fontSize: '18px', flexShrink: 0 }} />
-                        <span>Tránh những bẫy nhận biết và thông hiểu kinh điển hay gặp nhất.</span>
-                      </div>
-                      <div className="cp-detail-checklist__item">
-                        <HiCheck style={{ color: 'var(--emerald-primary)', fontSize: '18px', flexShrink: 0 }} />
-                        <span>Tiếp cận kho bài kiểm tra chẩn đoán năng lực bằng Adaptive AI.</span>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {activeTab === 'curriculum' && (
-                  <div>
-                    <CurriculumAccordion
-                      curriculum={course.curriculum}
-                      isOwned={isOwned}
-                      onSelectLesson={(lesson) => onNavigateToLearn(course.id, lesson.id)}
-                      completedLessons={completedLessons}
-                    />
-                  </div>
-                )}
-
-                {activeTab === 'instructor' && (
-                  <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '16px' }}>
-                      <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: 'var(--emerald-primary)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '20px' }}>
-                        {course.instructor.avatar || course.instructor.name.slice(0, 2).toUpperCase()}
-                      </div>
-                      <div>
-                        <h4 style={{ fontSize: '16px', fontWeight: '800', color: 'var(--stone-text-main)', margin: 0 }}>{course.instructor.name}</h4>
-                        <span style={{ fontSize: '12px', color: 'var(--stone-text-secondary)', fontWeight: '600' }}>Cố vấn học thuật EduPath AI</span>
-                      </div>
-                    </div>
-                    <p style={{ fontSize: '14.5px', color: 'var(--stone-text-secondary)', margin: 0, lineHeight: '1.6' }}>
-                      {course.instructor.title}. Thầy/Cô là chuyên gia uy tín với hàng ngàn học sinh đạt điểm giỏi trong các kỳ thi THPT Quốc Gia trước đây, có phương pháp tiếp cận trực quan, dễ hiểu giúp học sinh lấy lại căn bản và đột phá điểm số cấp tốc.
-                    </p>
-                  </div>
-                )}
-
-                {activeTab === 'reviews' && (
-                  <div>
-                    <CourseReviews
-                      reviews={reviews}
-                      currentUser={currentUser}
-                      onAddReview={handleAddReview}
-                    />
-                  </div>
-                )}
-              </div>
-            </div>
-
-          </div>
-
-          {/* CỘT PHẢI (Sticky Mua hàng) */}
-          <div className="purchase-card-sticky">
-            <CoursePurchaseCard
-              course={course}
-              isOwned={isOwned}
-              onEnroll={handleEnroll}
+            {/* Tab Navigation */}
+            <TabBar 
+              activeTab={activeTab} 
+              setActiveTab={setActiveTab}
+              lessonCount={lessonCountVal}
+              reviewCount={reviews.length}
             />
+
+            {/* Tab Contents */}
+            <div className="cd-tab-content">
+              {activeTab === 'overview' && (
+                <ContentCard title="Nội dung bài học">
+                  <p style={{ 
+                    fontSize: '15px', 
+                    lineHeight: '1.8', 
+                    color: 'var(--fts-text-secondary)', 
+                    marginBottom: '28px',
+                    wordBreak: 'keep-all'
+                  }}>
+                    {course.description}
+                  </p>
+
+                  <h4 style={{ fontSize: '16px', fontWeight: '700', color: 'var(--fts-text-primary)', marginBottom: '16px' }}>
+                    Bạn sẽ học được gì
+                  </h4>
+                  
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+                    gap: '16px'
+                  }}>
+                    {outcomesList.map((item, idx) => (
+                      <div key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+                        <HiCheck style={{ color: 'var(--fts-purple)', fontSize: '18px', flexShrink: 0, marginTop: '2px' }} />
+                        <span style={{ fontSize: '13.5px', lineHeight: '1.5', color: 'var(--fts-text-primary)', wordBreak: 'keep-all' }}>
+                          {item}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </ContentCard>
+              )}
+
+              {activeTab === 'curriculum' && (
+                <ContentCard title="Danh sách bài học">
+                  <CurriculumAccordion 
+                    curriculum={course.curriculum}
+                    isOwned={isOwned}
+                    onSelectLesson={(lesson) => onNavigateToLearn(course.id, lesson.id)}
+                    completedLessons={completedLessons}
+                  />
+                </ContentCard>
+              )}
+
+              {activeTab === 'instructor' && (
+                <InstructorCard 
+                  instructor={course.instructor}
+                  onSelectCourse={(c) => navigateTo(`/courses/${c.id}`)}
+                  onCheckoutCourse={onCheckoutCourse}
+                />
+              )}
+
+              {activeTab === 'reviews' && (
+                <ReviewSection
+                  reviews={reviews}
+                  currentUser={currentUser}
+                  onAddReview={handleAddReview}
+                  isOwned={isOwned}
+                />
+              )}
+
+              {activeTab === 'faq' && (
+                <ContentCard title="Các câu hỏi thường gặp (FAQ)">
+                  {[
+                    {
+                      q: 'Khóa học này kéo dài trong bao lâu?',
+                      a: 'Khóa học được thiết kế học tự do. Em có thể truy cập trọn đời và học bất kỳ lúc nào phù hợp với thời gian biểu của bản thân.'
+                    },
+                    {
+                      q: 'Tài liệu học tập đi kèm có mất thêm phí không?',
+                      a: 'Không, tất cả tài liệu PDF ôn tập, ngân hàng bài tập, và sơ đồ tư duy đi kèm đều hoàn toàn miễn phí và có thể tải xuống không giới hạn.'
+                    },
+                    {
+                      q: 'Nếu có bài tập không hiểu, em có thể hỏi ai?',
+                      a: 'Mỗi khóa học đều có nhóm hỏi đáp hỗ trợ 24/7. Em có thể gửi câu hỏi lên nhóm để các bạn học sinh khác và trợ lý/giảng viên hỗ trợ giải đáp nhanh nhất.'
+                    },
+                    {
+                      q: 'Chính sách hoàn tiền của khóa học như thế nào?',
+                      a: 'Nếu không hài lòng, em có thể yêu cầu hoàn tiền 100% trong vòng 7 ngày kể từ ngày đăng ký khóa học, miễn là chưa học quá 20% thời lượng khóa học.'
+                    }
+                  ].map((faq, idx) => (
+                    <div key={idx} style={{
+                      borderBottom: '1px solid #E5E7EB',
+                      paddingBottom: '16px',
+                      marginBottom: '16px'
+                    }}>
+                      <h4 style={{ fontSize: '15px', fontWeight: '800', color: 'var(--fts-text-primary)', marginBottom: '8px', display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+                        <span style={{ color: 'var(--fts-purple)' }}>Q.</span>
+                        <span>{faq.q}</span>
+                      </h4>
+                      <p style={{ fontSize: '14px', lineHeight: '1.6', color: 'var(--fts-text-secondary)', margin: 0, paddingLeft: '24px', wordBreak: 'keep-all' }}>
+                        {faq.a}
+                      </p>
+                    </div>
+                  ))}
+                </ContentCard>
+              )}
+            </div>
           </div>
 
+          {/* RIGHT COLUMN */}
+          <div className="cd-right-col">
+            <div className="cd-right-sticky">
+              <HeroVideoPlayer 
+                videoUrl={course.trailerUrl} 
+                courseTitle={course.title}
+                instructorName={course.instructor?.name}
+              />
+              <PricingCard 
+                course={course} 
+                isOwned={isOwned} 
+                onEnroll={handleEnroll} 
+              />
+            </div>
+          </div>
         </div>
-
       </div>
+
     </div>
   );
 }

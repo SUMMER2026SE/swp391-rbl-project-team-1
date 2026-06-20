@@ -1,51 +1,49 @@
-import { useState, useEffect, useMemo } from 'react';
-import { HiStar, HiSparkles } from 'react-icons/hi';
-import CourseCard from '../components/courses/CourseCard';
-import CourseFilter from '../components/courses/CourseFilter';
-import useCourseFilters from '../hooks/useCourseFilters';
+import React, { useState, useEffect, useMemo } from 'react';
+import { HiSparkles, HiStar, HiAdjustments, HiSelector, HiOutlineEmojiSad } from 'react-icons/hi';
+import { mapDbCourseToMockFormat } from '../utils/courseMapper';
 
-const STATS = [
-  { value: '50.000+', label: 'Học viên tin tưởng', icon: '👨‍🎓' },
-  { value: '100+',    label: 'Bài giảng chuyên sâu', icon: '📚' },
-  { value: '20+',     label: 'Giảng viên chuyên môn', icon: '👩‍🏫' },
-  { value: '98%',     label: 'Tỷ lệ đạt mục tiêu', icon: '🎯' },
-];
+// Modular components
+import ContinueLearningRail from '../components/courses/catalog/ContinueLearningRail';
+import CourseTabBar from '../components/courses/catalog/CourseTabBar';
+import FilterSidebar from '../components/courses/catalog/FilterSidebar';
+import CourseCard from '../components/courses/shared/CourseCard';
 
 function SkeletonCard() {
   return (
-    <div className="cc-skeleton">
-      <div className="cc-skeleton__thumb" />
-      <div className="cc-skeleton__body">
-        <div className="cc-skeleton__line cc-skeleton__line--short" />
-        <div className="cc-skeleton__line" />
-        <div className="cc-skeleton__line cc-skeleton__line--mid" />
-        <div className="cc-skeleton__line cc-skeleton__line--short" />
+    <div className="cc-list-skeleton">
+      <div className="cc-list-skeleton__thumb" />
+      <div className="cc-list-skeleton__body">
+        <div className="cc-list-skeleton__line cc-list-skeleton__line--short" />
+        <div className="cc-list-skeleton__line" />
+        <div className="cc-list-skeleton__line cc-list-skeleton__line--mid" />
       </div>
     </div>
   );
 }
 
-export default function CoursesPage({ courses, currentUser, onSelectCourse, onCheckoutCourse }) {
-  const {
-    search,
-    setSearch,
-    debouncedSearch,
-    subject,
-    setSubject,
-    block,
-    setBlock,
-    level,
-    setLevel,
-    grade,
-    setGrade,
-    sortBy,
-    setSortBy,
-    clearFilters,
-  } = useCourseFilters();
+export default function CoursesPage({ courses = [], currentUser, onSelectCourse, onCheckoutCourse, navigateTo }) {
+  // Main Search and Filter States
+  const [search, setSearch] = useState('');
+  const [subject, setSubject] = useState('All');
+  const [block, setBlock] = useState('All');
+  const [level, setLevel] = useState('All');
+  const [priceLimit, setPriceLimit] = useState(2000000);
+  const [onlyFree, setOnlyFree] = useState(false);
+  const [duration, setDuration] = useState('All');
+  const [ratingMin, setRatingMin] = useState(0);
+  const [language, setLanguage] = useState('All');
+  const [hasCert, setHasCert] = useState(false);
+  const [hasLive, setHasLive] = useState(false);
 
+  // Tabs and Sorting
   const [badgeFilter, setBadgeFilter] = useState('All');
-  const coursesList = courses || [];
+  const [sortBy, setSortBy] = useState('popular');
   const [loading, setLoading] = useState(true);
+
+  // Map backend courses to client mock format
+  const mappedCourses = useMemo(() => {
+    return (courses || []).map(mapDbCourseToMockFormat);
+  }, [courses]);
 
   // Simulate shimmer loading on filter/page transitions
   useEffect(() => {
@@ -54,13 +52,14 @@ export default function CoursesPage({ courses, currentUser, onSelectCourse, onCh
       setLoading(false);
     }, 450);
     return () => clearTimeout(timer);
-  }, [debouncedSearch, subject, block, level, grade, sortBy, badgeFilter]);
+  }, [search, subject, block, level, priceLimit, onlyFree, duration, ratingMin, language, hasCert, hasLive, sortBy, badgeFilter]);
 
-  // Combine filters in memory from standard database courses list
+  // Handle filtering
   const filteredCourses = useMemo(() => {
-    let result = [...coursesList];
-    const q = debouncedSearch.trim().toLowerCase();
+    let result = [...mappedCourses];
 
+    // Search query
+    const q = search.trim().toLowerCase();
     if (q) {
       result = result.filter(c =>
         c.title?.toLowerCase().includes(q) ||
@@ -69,10 +68,12 @@ export default function CoursesPage({ courses, currentUser, onSelectCourse, onCh
       );
     }
 
+    // Subject Filter
     if (subject !== 'All') {
       result = result.filter(c => c.subject === subject);
     }
 
+    // Exam Block Filter
     if (block !== 'All') {
       result = result.filter(c => {
         if (!c.block) return false;
@@ -81,19 +82,63 @@ export default function CoursesPage({ courses, currentUser, onSelectCourse, onCh
       });
     }
 
+    // Level Filter
     if (level !== 'All') {
       result = result.filter(c => c.level === level);
     }
 
-    if (grade !== 'All') {
-      result = result.filter(c => c.grade === Number(grade));
+    // Price Limit
+    if (priceLimit < 2000000) {
+      result = result.filter(c => c.priceSale <= priceLimit);
     }
 
+    // Only Free
+    if (onlyFree) {
+      result = result.filter(c => c.priceSale === 0 || c.badge?.toUpperCase() === 'MIỄN PHÍ');
+    }
+
+    // Duration Filter
+    if (duration !== 'All') {
+      result = result.filter(c => {
+        const hours = c.durationHours || 0;
+        if (duration === 'short') return hours < 2;
+        if (duration === 'medium') return hours >= 2 && hours <= 5;
+        if (duration === 'long') return hours > 5 && hours <= 10;
+        if (duration === 'unlimited') return hours > 10;
+        return true;
+      });
+    }
+
+    // Rating Filter
+    if (ratingMin > 0) {
+      result = result.filter(c => c.rating >= ratingMin);
+    }
+
+    // Language Filter
+    if (language !== 'All') {
+      result = result.filter(c => c.language === language || (language === 'Tiếng Việt' && (!c.language || c.language.includes('Việt'))));
+    }
+
+    // Certificate features
+    if (hasCert) {
+      result = result.filter(c => c.badge?.toUpperCase() === 'PRO' || c.id % 2 === 0);
+    }
+
+    // Live features
+    if (hasLive) {
+      result = result.filter(c => c.id % 3 === 0);
+    }
+
+    // Category Tabs (All, Bestsellers, New Releases, Recommendations, Free)
     if (badgeFilter !== 'All') {
       if (badgeFilter === 'MIỄN PHÍ') {
-        result = result.filter(c => c.badge?.toUpperCase() === 'MIỄN PHÍ' || c.priceSale === 0 || c.priceOriginal === 0);
-      } else {
-        result = result.filter(c => c.badge?.toUpperCase() === badgeFilter.toUpperCase());
+        result = result.filter(c => c.priceSale === 0 || c.badge?.toUpperCase() === 'MIỄN PHÍ');
+      } else if (badgeFilter === 'BÁN CHẠY') {
+        result = result.filter(c => c.badge?.toUpperCase() === 'BÁN CHẠY');
+      } else if (badgeFilter === 'HOT') {
+        result = result.filter(c => c.badge?.toUpperCase() === 'HOT');
+      } else if (badgeFilter === 'ĐỀ XUẤT') {
+        result = result.filter(c => c.badge?.toUpperCase() === 'ĐỀ XUẤT');
       }
     }
 
@@ -111,146 +156,126 @@ export default function CoursesPage({ courses, currentUser, onSelectCourse, onCh
     }
 
     return result;
-  }, [coursesList, debouncedSearch, subject, block, level, grade, sortBy, badgeFilter]);
+  }, [mappedCourses, search, subject, block, level, priceLimit, onlyFree, duration, ratingMin, language, hasCert, hasLive, sortBy, badgeFilter]);
 
   const handleClearFilters = () => {
-    clearFilters();
+    setSearch('');
+    setSubject('All');
+    setBlock('All');
+    setLevel('All');
+    setPriceLimit(2000000);
+    setOnlyFree(false);
+    setDuration('All');
+    setRatingMin(0);
+    setLanguage('All');
+    setHasCert(false);
+    setHasLive(false);
     setBadgeFilter('All');
+    setSortBy('popular');
   };
+
+  // Compile active enrolled courses to display (simulate using unlocked courses in user object)
+  const activeEnrolledCourses = useMemo(() => {
+    if (!currentUser || !currentUser.unlockedCourses) return [];
+    const ownedIds = currentUser.unlockedCourses.map(id => id.toString());
+    return mappedCourses.filter(c => ownedIds.includes(c.id));
+  }, [currentUser, mappedCourses]);
+
+  const subjectsList = ['Toán', 'Vật lý', 'Hóa học', 'Sinh học', 'Tiếng Anh', 'Ngữ văn'];
 
   return (
     <div className="cp-page-container">
       <div className="cp-page animate-in">
-        {/* ── HERO BANNER ── */}
-        <div className="cp-hero">
-          <div className="cp-hero__left">
-            <span className="cp-hero__eyebrow">
-              <HiSparkles style={{ marginRight: '6px', verticalAlign: 'middle', color: 'var(--emerald-primary)', fontSize: '14px' }} />
-              Nền tảng học trực tuyến thích ứng AI hàng đầu
-            </span>
-            <h1 className="cp-hero__title">
-              Khóa học luyện thi<br />
-              <span className="cp-hero__title-accent">THPT Quốc Gia 2026</span>
-            </h1>
-            <p className="cp-hero__desc">
-              Hệ thống bài giảng chuyên sâu bám sát cấu trúc Bộ Giáo dục, kết hợp ngân hàng đề phong phú và Trợ lý ảo AI chấm điểm chẩn đoán học thuật 24/7.
-            </p>
+        {/* 2. CONTINUE LEARNING RAIL (IF ENROLLED) */}
+        {activeEnrolledCourses.length > 0 && (
+          <ContinueLearningRail 
+            currentUser={currentUser}
+            courses={mappedCourses}
+            onSelectCourse={onSelectCourse} 
+          />
+        )}
 
-            {/* Stats */}
-            <div className="cp-stats">
-              {STATS.map((s) => (
-                <div key={s.label} className="cp-stat">
-                  <div className="cp-stat__value">{s.value}</div>
-                  <div className="cp-stat__label">{s.label}</div>
-                </div>
-              ))}
-            </div>
-          </div>
 
-          <div className="cp-hero__right">
-            <div className="cp-hero__img-wrap">
-              <img
-                src="/course_hero_students.png"
-                alt="Học sinh ôn tập thi cử cùng EduPath"
-                className="cp-hero__img"
-                onError={e => {
-                  e.target.onerror = null;
-                  e.target.src = 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?q=80&w=600&auto=format&fit=crop';
-                }}
-              />
-              {/* Floating trust badge */}
-              <div className="cp-hero__trust-badge">
-                <div style={{ display: 'flex', gap: '2px', color: '#F59E0B', marginBottom: '3px' }}>
-                  {Array.from({ length: 5 }).map((_, idx) => (
-                    <HiStar key={idx} style={{ fontSize: '15px' }} />
-                  ))}
-                </div>
-                <div>
-                  <strong>4.95/5 Điểm Đánh giá</strong>
-                  <span>từ 15,200+ học viên ôn thi</span>
-                </div>
-              </div>
-            </div>
-          </div>
+
+        {/* 4. COURSE TABS (Bestsellers, New, Recommended, Free) */}
+        <div style={{ margin: '12px 0 4px 0' }}>
+          <CourseTabBar activeTab={badgeFilter} onSelectTab={setBadgeFilter} />
         </div>
 
-        {/* ── FILTER TOOLBAR ── */}
-        <div className="cp-section">
-          <CourseFilter
+        {/* 5. DUAL LAYOUT: SIDEBAR FILTER & MAIN CONTENT AREA */}
+        <div className="catalog-layout">
+          {/* LEFT SIDEBAR FILTER PANEL */}
+          <FilterSidebar
+            subject={subject} setSubject={setSubject}
+            block={block} setBlock={setBlock}
+            level={level} setLevel={setLevel}
+            priceLimit={priceLimit} setPriceLimit={setPriceLimit}
+            onlyFree={onlyFree} setOnlyFree={setOnlyFree}
+            duration={duration} setDuration={setDuration}
+            ratingMin={ratingMin} setRatingMin={setRatingMin}
+            language={language} setLanguage={setLanguage}
+            hasCert={hasCert} setHasCert={setHasCert}
+            hasLive={hasLive} setHasLive={setHasLive}
+            clearAll={handleClearFilters}
+            subjectsList={subjectsList}
+            resultsCount={filteredCourses.length}
             search={search}
             setSearch={setSearch}
-            subject={subject}
-            setSubject={setSubject}
-            block={block}
-            setBlock={setBlock}
-            level={level}
-            setLevel={setLevel}
-            grade={grade}
-            setGrade={setGrade}
-            sortBy={sortBy}
-            setSortBy={setSortBy}
-            badgeFilter={badgeFilter}
-            setBadgeFilter={setBadgeFilter}
-            clearFilters={handleClearFilters}
           />
-        </div>
 
-        {/* ── RESULTS HEADER ── */}
-        <div className="cp-results-header">
-          <span className="cp-results-count">
-            Tìm thấy {filteredCourses.length} khóa học phù hợp
-            {subject !== 'All' ? ` môn ${subject}` : ''}
-            {block !== 'All' ? ` · ${block}` : ''}
-            {grade !== 'All' ? ` · Lớp ${grade}` : ''}
-          </span>
-          {(search || subject !== 'All' || block !== 'All' || level !== 'All' || grade !== 'All' || badgeFilter !== 'All') && (
-            <button
-              onClick={handleClearFilters}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: 'var(--emerald-primary)',
-                fontWeight: '700',
-                cursor: 'pointer',
-                fontSize: '13.5px',
-                textDecoration: 'underline'
-              }}
-            >
-              Đặt lại tất cả bộ lọc
-            </button>
-          )}
-        </div>
+          {/* RIGHT GRID & TOOLBAR AREA */}
+          <div className="catalog-main-content">
+            {/* Sorting and Summary Toolbar */}
+            <div className="catalog-toolbar">
+              <span className="results-count-text">
+                Tìm thấy <strong>{filteredCourses.length}</strong> khóa học phù hợp
+              </span>
+              
+              <div className="sorting-group">
+                <span className="sort-label">Sắp xếp theo:</span>
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  className="sort-dropdown-select"
+                >
+                  <option value="popular">Phổ biến nhất</option>
+                  <option value="rating">Đánh giá cao nhất</option>
+                  <option value="price_asc">Giá từ thấp đến cao</option>
+                  <option value="price_desc">Giá từ cao đến thấp</option>
+                  <option value="newest">Mới cập nhật</option>
+                </select>
+              </div>
+            </div>
 
-        {/* ── COURSE GRID ── */}
-        <div className="cp-section">
-          {loading ? (
-            <div className="cp-grid">
-              {[1, 2, 3, 4, 5, 6].map(i => <SkeletonCard key={i} />)}
-            </div>
-          ) : filteredCourses.length > 0 ? (
-            <div className="cp-grid">
-              {filteredCourses.map(course => (
-                <CourseCard
-                  key={course.id}
-                  course={course}
-                  isOwned={currentUser?.unlockedCourses?.includes(Number(course.id)) || currentUser?.unlockedCourses?.includes(course.id)}
-                  onSelect={onSelectCourse}
-                  onPurchase={onCheckoutCourse}
-                />
-              ))}
-            </div>
-          ) : (
-            <div className="cp-empty">
-              <div className="cp-empty__icon">🔍</div>
-              <h3 className="cp-empty__title">Không tìm thấy khóa học phù hợp</h3>
-              <p className="cp-empty__desc">
-                Rất tiếc, các bộ lọc hiện tại của em không khớp với bất kỳ khóa học nào. Hãy thử thay đổi từ khóa hoặc bộ lọc nhé.
-              </p>
-              <button className="cp-empty__btn" onClick={clearFilters}>
-                Xóa tất cả bộ lọc
-              </button>
-            </div>
-          )}
+            {/* Courses Card List */}
+            {loading ? (
+              <div className="cp-list">
+                {[1, 2, 3, 4, 5, 6].map(i => <SkeletonCard key={i} />)}
+              </div>
+            ) : filteredCourses.length > 0 ? (
+              <div className="cp-list">
+                {filteredCourses.map(course => (
+                  <CourseCard
+                    key={course.id}
+                    course={course}
+                    isOwned={currentUser?.unlockedCourses?.includes(Number(course.id)) || currentUser?.unlockedCourses?.includes(course.id)}
+                    onSelect={onSelectCourse}
+                    onPurchase={onCheckoutCourse}
+                    layout="list"
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="catalog-empty-state">
+                <HiOutlineEmojiSad className="empty-icon" />
+                <h3>Không tìm thấy khóa học nào phù hợp</h3>
+                <p>Em hãy thử đặt lại các bộ lọc hoặc tìm kiếm từ khóa khác xem sao nhé.</p>
+                <button type="button" onClick={handleClearFilters} className="btn-reset-catalog">
+                  Đặt lại toàn bộ bộ lọc
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

@@ -75,6 +75,7 @@ export default function ExamBankPage({ currentUser, navigateTo, hideHeader }) {
   const [searchQuery, setSearchQuery] = useState('');
   
   const [documents, setDocuments] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [previewDoc, setPreviewDoc] = useState(null);
@@ -410,6 +411,7 @@ export default function ExamBankPage({ currentUser, navigateTo, hideHeader }) {
         const data = await api.getDocumentResources(queryParams);
         if (active) {
           setDocuments(data);
+          setCurrentPage(1);
           setError(null);
         }
       } catch (err) {
@@ -432,6 +434,46 @@ export default function ExamBankPage({ currentUser, navigateTo, hideHeader }) {
       clearTimeout(delayDebounceFn);
     };
   }, [selectedSubject, selectedLevel, selectedPriceFilter, searchQuery]);
+
+  // Pagination Calculations & Helper functions
+  const itemsPerPage = 10;
+  const totalPages = Math.ceil(documents.length / itemsPerPage);
+  
+  const displayedDocs = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return documents.slice(startIndex, startIndex + itemsPerPage);
+  }, [documents, currentPage]);
+
+  const getPageNumbers = () => {
+    const pages = [];
+    const maxVisible = 5;
+    
+    if (totalPages <= maxVisible) {
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      pages.push(1);
+      
+      if (currentPage > 3) {
+        pages.push('...');
+      }
+      
+      const start = Math.max(2, currentPage - 1);
+      const end = Math.min(totalPages - 1, currentPage + 1);
+      
+      for (let i = start; i <= end; i++) {
+        pages.push(i);
+      }
+      
+      if (currentPage < totalPages - 2) {
+        pages.push('...');
+      }
+      
+      pages.push(totalPages);
+    }
+    return pages;
+  };
 
   // Compute metrics from fetched data
   const stats = useMemo(() => {
@@ -617,78 +659,117 @@ export default function ExamBankPage({ currentUser, navigateTo, hideHeader }) {
             <p className="exambank-empty__desc">Hãy thử thay đổi bộ lọc hoặc từ khóa tìm kiếm.</p>
           </div>
         ) : (
-          <div className="exambank-grid">
-            {documents.map((doc) => {
-              // Match subject color and emoji
-              const matchedSubject = SUBJECTS.find(s => s.dbName.toLowerCase() === doc.subject.toLowerCase());
-              const cardColor = matchedSubject ? matchedSubject.color : '#64748b';
-              const cardEmoji = matchedSubject ? matchedSubject.emoji : '📄';
-              
-              // Get file extension from title (e.g. PDF)
-              const ext = doc.title.split('.').pop()?.toUpperCase() || 'PDF';
-              const displayExt = ext.length > 4 ? 'DOC' : ext;
+          <>
+            <div className="exambank-grid">
+              {displayedDocs.map((doc) => {
+                // Match subject color and emoji
+                const matchedSubject = SUBJECTS.find(s => s.dbName.toLowerCase() === doc.subject.toLowerCase());
+                const cardColor = matchedSubject ? matchedSubject.color : '#64748b';
+                const cardEmoji = matchedSubject ? matchedSubject.emoji : '📄';
+                
+                // Get file extension from title (e.g. PDF)
+                const ext = doc.title.split('.').pop()?.toUpperCase() || 'PDF';
+                const displayExt = ext.length > 4 ? 'DOC' : ext;
 
-              return (
-                <article
-                  key={doc.id}
-                  className="exambank-card"
-                  style={{ '--card-color': cardColor }}
-                >
-                  <div className="exambank-card__header">
-                    <div className="exambank-card__year-badge" style={{ background: cardColor }}>
-                      <span>{displayExt}</span>
-                      <small>Định dạng</small>
-                    </div>
-                    <div className="exambank-card__info">
-                      <div className="exambank-card__subject-tag">
-                        {cardEmoji} {doc.subject}
+                return (
+                  <article
+                    key={doc.id}
+                    className="exambank-card"
+                    style={{ '--card-color': cardColor }}
+                  >
+                    <div className="exambank-card__header">
+                      <div className="exambank-card__year-badge" style={{ background: cardColor }}>
+                        <span>{displayExt}</span>
+                        <small>Định dạng</small>
                       </div>
-                      <h3 className="exambank-card__title" style={{ fontSize: '14px', fontWeight: '800', maxHeight: '42px', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
-                        {doc.title}
-                      </h3>
-                      <p className="exambank-card__subtitle" style={{ fontSize: '11.5px', marginTop: '4px' }}>
-                        Khối lớp: {doc.level === 'Sinh viên' ? 'Sinh viên' : `Lớp ${doc.level}`}
-                      </p>
+                      <div className="exambank-card__info">
+                        <div className="exambank-card__subject-tag">
+                          {cardEmoji} {doc.subject}
+                        </div>
+                        <h3 className="exambank-card__title" style={{ fontSize: '14px', fontWeight: '800', maxHeight: '42px', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                          {doc.title}
+                        </h3>
+                        <p className="exambank-card__subtitle" style={{ fontSize: '11.5px', marginTop: '4px' }}>
+                          Khối lớp: {doc.level === 'Sinh viên' ? 'Sinh viên' : `Lớp ${doc.level}`}
+                        </p>
+                      </div>
                     </div>
-                  </div>
 
-                  <div className="exambank-card__stats" style={{ background: '#FAF8F4' }}>
-                    <div className="exambank-card__stat">
-                      <span className="exambank-card__stat-value" style={{ color: doc.isFree ? '#22C55E' : '#E28743' }}>
-                        {doc.isFree ? 'Miễn phí' : 'Premium'}
-                      </span>
-                      <div className="exambank-card__stat-label">Bản quyền</div>
+                    <div className="exambank-card__stats" style={{ background: '#FAF8F4' }}>
+                      <div className="exambank-card__stat">
+                        <span className="exambank-card__stat-value" style={{ color: doc.isFree ? '#22C55E' : '#E28743' }}>
+                          {doc.isFree ? 'Miễn phí' : 'Premium'}
+                        </span>
+                        <div className="exambank-card__stat-label">Bản quyền</div>
+                      </div>
+                      <div className="exambank-card__stat">
+                        <span className="exambank-card__stat-value">
+                          {doc.price === 0 ? '0đ' : `${doc.price.toLocaleString('vi-VN')}đ`}
+                        </span>
+                        <div className="exambank-card__stat-label">Đơn giá</div>
+                      </div>
+                      <div className="exambank-card__stat">
+                        <span className="exambank-card__stat-value">Drive</span>
+                        <div className="exambank-card__stat-label">Lưu trữ</div>
+                      </div>
                     </div>
-                    <div className="exambank-card__stat">
-                      <span className="exambank-card__stat-value">
-                        {doc.price === 0 ? '0đ' : `${doc.price.toLocaleString('vi-VN')}đ`}
-                      </span>
-                      <div className="exambank-card__stat-label">Đơn giá</div>
-                    </div>
-                    <div className="exambank-card__stat">
-                      <span className="exambank-card__stat-value">Drive</span>
-                      <div className="exambank-card__stat-label">Lưu trữ</div>
-                    </div>
-                  </div>
 
-                  <div className="exambank-card__actions">
+                    <div className="exambank-card__actions">
+                      <button
+                        className="exambank-card__btn exambank-card__btn--view"
+                        onClick={() => setPreviewDoc(doc)}
+                      >
+                        <HiEye /> Xem chi tiết
+                      </button>
+                      <button
+                        className="exambank-card__btn exambank-card__btn--download"
+                        onClick={() => handleDownload(doc)}
+                      >
+                        <HiDownload /> Tải tài liệu
+                      </button>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+
+            {totalPages > 1 && (
+              <div className="exambank-pagination">
+                <button
+                  type="button"
+                  className="exambank-pagination__btn exambank-pagination__btn--nav"
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                >
+                  ←
+                </button>
+                
+                {getPageNumbers().map((page, idx) => (
+                  page === '...' ? (
+                    <span key={`ell-${idx}`} className="exambank-pagination__ellipsis">...</span>
+                  ) : (
                     <button
-                      className="exambank-card__btn exambank-card__btn--view"
-                      onClick={() => setPreviewDoc(doc)}
+                      key={`page-${page}`}
+                      type="button"
+                      className={`exambank-pagination__btn ${currentPage === page ? 'exambank-pagination__btn--active' : ''}`}
+                      onClick={() => setCurrentPage(page)}
                     >
-                      <HiEye /> Xem chi tiết
+                      {page}
                     </button>
-                    <button
-                      className="exambank-card__btn exambank-card__btn--download"
-                      onClick={() => handleDownload(doc)}
-                    >
-                      <HiDownload /> Tải tài liệu
-                    </button>
-                  </div>
-                </article>
-              );
-            })}
-          </div>
+                  )
+                ))}
+                
+                <button
+                  type="button"
+                  className="exambank-pagination__btn exambank-pagination__btn--nav"
+                  disabled={currentPage === totalPages}
+                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                >
+                  →
+                </button>
+              </div>
+            )}
+          </>
         )}
       </div>
 

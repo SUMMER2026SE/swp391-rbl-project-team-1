@@ -70,136 +70,254 @@ function buildPrevMonthKeys(filter: string, now: Date) {
 // Main Stats Handler
 // ────────────────────────────────────────────────────────────
 
+function getPeriodRanges(filter: string, customStart?: string, customEnd?: string) {
+  const now = new Date();
+  let startDate: Date;
+  let endDate: Date;
+  let prevStartDate: Date;
+  let prevEndDate: Date;
+
+  if (filter === 'this-month') {
+    startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+    endDate = new Date();
+    prevStartDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    prevEndDate = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
+  } else if (filter === 'last-month') {
+    startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    endDate = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
+    prevStartDate = new Date(now.getFullYear(), now.getMonth() - 2, 1);
+    prevEndDate = new Date(now.getFullYear(), now.getMonth() - 1, 0, 23, 59, 59, 999);
+  } else if (filter === '3-months') {
+    startDate = new Date(now.getFullYear(), now.getMonth() - 2, 1);
+    endDate = new Date();
+    prevStartDate = new Date(now.getFullYear(), now.getMonth() - 5, 1);
+    prevEndDate = new Date(now.getFullYear(), now.getMonth() - 2, 0, 23, 59, 59, 999);
+  } else if (filter === '6-months') {
+    startDate = new Date(now.getFullYear(), now.getMonth() - 5, 1);
+    endDate = new Date();
+    prevStartDate = new Date(now.getFullYear(), now.getMonth() - 11, 1);
+    prevEndDate = new Date(now.getFullYear(), now.getMonth() - 5, 0, 23, 59, 59, 999);
+  } else if (filter === 'this-year') {
+    startDate = new Date(now.getFullYear(), 0, 1);
+    endDate = new Date();
+    prevStartDate = new Date(now.getFullYear() - 1, 0, 1);
+    prevEndDate = new Date(now.getFullYear() - 1, 11, 31, 23, 59, 59, 999);
+  } else {
+    const start = customStart ? new Date(customStart) : new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const end = customEnd ? new Date(customEnd) : new Date();
+    end.setHours(23, 59, 59, 999);
+    
+    startDate = start;
+    endDate = end;
+    const diff = end.getTime() - start.getTime();
+    prevStartDate = new Date(start.getTime() - diff);
+    prevEndDate = new Date(start.getTime() - 1);
+  }
+
+  return { startDate, endDate, prevStartDate, prevEndDate };
+}
+
 export const getAdminStats = async (req: Request, res: Response) => {
   try {
     const filter = String(req.query.filter || 'this-month');
     const now = new Date();
     const periodLabel = getPeriodLabel(filter);
 
-    const monthKeys = buildMonthKeys(filter, now);
-    const prevMonthKeys = buildPrevMonthKeys(filter, now);
+    const { startDate, endDate, prevStartDate, prevEndDate } = getPeriodRanges(
+      filter,
+      req.query.startDate ? String(req.query.startDate) : undefined,
+      req.query.endDate ? String(req.query.endDate) : undefined
+    );
 
-    // ── Query MonthlyStatistic (dùng cho KPI và multi-month charts) ──
-    const monthlyRecords = await prisma.monthlyStatistic.findMany({
-      where: { OR: monthKeys.map(k => ({ month: k.month, year: k.year })) }
-    });
-    const prevMonthlyRecords = await prisma.monthlyStatistic.findMany({
-      where: { OR: prevMonthKeys.map(k => ({ month: k.month, year: k.year })) }
-    });
-
-    const findMonthly = (m: number, y: number) =>
-      monthlyRecords.find(r => r.month === m && r.year === y);
-
-    // ── KPI aggregated từ MonthlyStatistic ──
-    const newUsers       = monthlyRecords.reduce((s, r) => s + r.newUsers, 0);
-    const totalAttempts  = monthlyRecords.reduce((s, r) => s + r.totalAttempts, 0);
-    const totalAiQ       = monthlyRecords.reduce((s, r) => s + r.totalAiQuestions, 0);
-    const totalRevenue   = monthlyRecords.reduce((s, r) => s + r.revenue, 0);
-
-    const prevNewUsers      = prevMonthlyRecords.reduce((s, r) => s + r.newUsers, 0);
-    const prevTotalAttempts = prevMonthlyRecords.reduce((s, r) => s + r.totalAttempts, 0);
-    const prevTotalAiQ      = prevMonthlyRecords.reduce((s, r) => s + r.totalAiQuestions, 0);
-    const prevRevenue       = prevMonthlyRecords.reduce((s, r) => s + r.revenue, 0);
-
-    // ── Total users từ user.count() ──
+    // 1. Total registered users
     const totalUsers = await prisma.user.count();
     const prevTotalUsers = await prisma.user.count({
       where: {
-        createdAt: {
-          lt: new Date(
-            prevMonthKeys[0]
-              ? new Date(prevMonthKeys[0].year, prevMonthKeys[0].month - 1, 1)
-              : now
-          )
-        }
+        createdAt: { lt: startDate }
       }
     });
 
-    // ── Chart Data: logic khác nhau theo filter ──
+    // 2. New users registered in current and previous periods
+    const newUsers = await prisma.user.count({
+      where: {
+        createdAt: { gte: startDate, lte: endDate }
+      }
+    });
+    const prevNewUsers = await prisma.user.count({
+      where: {
+        createdAt: { gte: prevStartDate, lte: prevEndDate }
+      }
+    });
+
+    // 3. Total exam attempts in current and previous periods
+    const totalAttempts = await prisma.testAttempt.count({
+      where: {
+        startedAt: { gte: startDate, lte: endDate }
+      }
+    });
+    const prevTotalAttempts = await prisma.testAttempt.count({
+      where: {
+        startedAt: { gte: prevStartDate, lte: prevEndDate }
+      }
+    });
+
+    // 4. Total AI questions
+    const totalAiQ = await prisma.chatMessage.count({
+      where: {
+        role: 'user',
+        createdAt: { gte: startDate, lte: endDate }
+      }
+    });
+    const prevTotalAiQ = await prisma.chatMessage.count({
+      where: {
+        role: 'user',
+        createdAt: { gte: prevStartDate, lte: prevEndDate }
+      }
+    });
+
+    // 5. Total revenue
+    const enrollments = await prisma.enrollment.findMany({
+      where: {
+        paidAt: { gte: startDate, lte: endDate }
+      },
+      include: {
+        course: true
+      }
+    });
+    const totalRevenue = enrollments.reduce((sum, e) => {
+      const price = e.course?.price ?? 0;
+      const discount = e.course?.discount ?? 0;
+      const finalPrice = price * (1 - discount / 100);
+      return sum + finalPrice;
+    }, 0);
+
+    const prevEnrollments = await prisma.enrollment.findMany({
+      where: {
+        paidAt: { gte: prevStartDate, lte: prevEndDate }
+      },
+      include: {
+        course: true
+      }
+    });
+    const prevRevenue = prevEnrollments.reduce((sum, e) => {
+      const price = e.course?.price ?? 0;
+      const discount = e.course?.discount ?? 0;
+      const finalPrice = price * (1 - discount / 100);
+      return sum + finalPrice;
+    }, 0);
+
+    // --- Chart Data logic based on period range ---
     let attemptsChart: { date: string; count: number }[] = [];
     let aiQuestionsChart: { date: string; count: number }[] = [];
     let revenueChart: { label: string; revenue: number }[] = [];
 
-    const useDaily = filter === 'this-month' || filter === 'last-month';
+    const diffDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+    const showDaily = diffDays <= 32;
 
-    if (useDaily) {
-      // Xác định phạm vi ngày
-      let startDate: Date;
-      let endDate: Date;
-
-      if (filter === 'this-month') {
-        startDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
-        endDate   = startOfDayUTC(now); // đến hôm nay
-      } else {
-        // last-month
-        const lm = now.getMonth() === 0 ? 12 : now.getMonth();
-        const ly = now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear();
-        startDate = new Date(Date.UTC(ly, lm - 1, 1));
-        endDate   = new Date(Date.UTC(ly, lm, 0)); // last day of last month
-      }
-
-      // Query DailyStatistic
-      const dailyRecords = await prisma.dailyStatistic.findMany({
-        where: {
-          date: { gte: startDate, lte: endDate }
-        },
-        orderBy: { date: 'asc' }
+    if (showDaily) {
+      const attemptsList = await prisma.testAttempt.findMany({
+        where: { startedAt: { gte: startDate, lte: endDate } },
+        select: { startedAt: true }
+      });
+      const chatList = await prisma.chatMessage.findMany({
+        where: { role: 'user', createdAt: { gte: startDate, lte: endDate } },
+        select: { createdAt: true }
+      });
+      const enrollList = await prisma.enrollment.findMany({
+        where: { paidAt: { gte: startDate, lte: endDate } },
+        include: { course: true }
       });
 
-      const findDaily = (d: Date) => {
-        const key = d.toISOString().split('T')[0];
-        return dailyRecords.find(r => r.date.toISOString().split('T')[0] === key);
-      };
-
-      // Build array các ngày trong khoảng
-      const days: Date[] = [];
+      const daysList: Date[] = [];
       const cursor = new Date(startDate);
       while (cursor <= endDate) {
-        days.push(new Date(cursor));
-        cursor.setUTCDate(cursor.getUTCDate() + 1);
+        daysList.push(new Date(cursor));
+        cursor.setDate(cursor.getDate() + 1);
       }
 
-      attemptsChart = days.map(d => {
-        const rec = findDaily(d);
-        return { date: `${d.getUTCDate()}/${d.getUTCMonth() + 1}`, count: rec?.totalAttempts ?? 0 };
+      const formatDateKey = (d: Date) => `${d.getDate()}/${d.getMonth() + 1}`;
+
+      attemptsChart = daysList.map(d => {
+        const key = formatDateKey(d);
+        const count = attemptsList.filter(att => formatDateKey(new Date(att.startedAt)) === key).length;
+        return { date: key, count };
       });
 
-      aiQuestionsChart = days.map(d => {
-        const rec = findDaily(d);
-        return { date: `${d.getUTCDate()}/${d.getUTCMonth() + 1}`, count: rec?.totalAiQuestions ?? 0 };
+      aiQuestionsChart = daysList.map(d => {
+        const key = formatDateKey(d);
+        const count = chatList.filter(msg => formatDateKey(new Date(msg.createdAt)) === key).length;
+        return { date: key, count };
       });
 
-      revenueChart = days.map(d => {
-        const rec = findDaily(d);
-        return { label: `${d.getUTCDate()}/${d.getUTCMonth() + 1}`, revenue: rec?.revenue ?? 0 };
+      revenueChart = daysList.map(d => {
+        const key = formatDateKey(d);
+        const revenue = enrollList
+          .filter(e => formatDateKey(new Date(e.paidAt)) === key)
+          .reduce((sum, e) => {
+            const price = e.course?.price ?? 0;
+            const discount = e.course?.discount ?? 0;
+            return sum + price * (1 - discount / 100);
+          }, 0);
+        return { label: key, revenue };
       });
-
     } else {
-      // 3-months / 6-months / this-year → dùng MonthlyStatistic
-      const labels: Record<string, string> = {
-        '3-months': 'Tháng',
-        '6-months': 'Tháng',
-        'this-year': 'Thg'
-      };
-      const prefix = labels[filter] || 'Tháng';
-
-      attemptsChart = monthKeys.map(k => {
-        const rec = findMonthly(k.month, k.year);
-        return { date: `${prefix} ${k.month}`, count: rec?.totalAttempts ?? 0 };
+      const attemptsList = await prisma.testAttempt.findMany({
+        where: { startedAt: { gte: startDate, lte: endDate } },
+        select: { startedAt: true }
+      });
+      const chatList = await prisma.chatMessage.findMany({
+        where: { role: 'user', createdAt: { gte: startDate, lte: endDate } },
+        select: { createdAt: true }
+      });
+      const enrollList = await prisma.enrollment.findMany({
+        where: { paidAt: { gte: startDate, lte: endDate } },
+        include: { course: true }
       });
 
-      aiQuestionsChart = monthKeys.map(k => {
-        const rec = findMonthly(k.month, k.year);
-        return { date: `${prefix} ${k.month}`, count: rec?.totalAiQuestions ?? 0 };
+      const monthsList: { month: number; year: number }[] = [];
+      const cursor = new Date(startDate);
+      while (cursor <= endDate) {
+        const m = cursor.getMonth();
+        const y = cursor.getFullYear();
+        if (!monthsList.find(item => item.month === m && item.year === y)) {
+          monthsList.push({ month: m, year: y });
+        }
+        cursor.setMonth(cursor.getMonth() + 1);
+      }
+
+      const formatMonthKey = (m: number) => `Thg ${m + 1}`;
+
+      attemptsChart = monthsList.map(item => {
+        const count = attemptsList.filter(att => {
+          const d = new Date(att.startedAt);
+          return d.getMonth() === item.month && d.getFullYear() === item.year;
+        }).length;
+        return { date: formatMonthKey(item.month), count };
       });
 
-      revenueChart = monthKeys.map(k => {
-        const rec = findMonthly(k.month, k.year);
-        return { label: `${prefix} ${k.month}`, revenue: rec?.revenue ?? 0 };
+      aiQuestionsChart = monthsList.map(item => {
+        const count = chatList.filter(msg => {
+          const d = new Date(msg.createdAt);
+          return d.getMonth() === item.month && d.getFullYear() === item.year;
+        }).length;
+        return { date: formatMonthKey(item.month), count };
+      });
+
+      revenueChart = monthsList.map(item => {
+        const revenue = enrollList
+          .filter(e => {
+            const d = new Date(e.paidAt);
+            return d.getMonth() === item.month && d.getFullYear() === item.year;
+          })
+          .reduce((sum, e) => {
+            const price = e.course?.price ?? 0;
+            const discount = e.course?.discount ?? 0;
+            return sum + price * (1 - discount / 100);
+          }, 0);
+        return { label: formatMonthKey(item.month), revenue };
       });
     }
 
-    // ── Response ──
     res.json({
       success: true,
       data: {

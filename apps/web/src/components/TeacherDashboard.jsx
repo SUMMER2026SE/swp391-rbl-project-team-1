@@ -23,11 +23,22 @@ import {
   HiPencil, 
   HiAcademicCap,
   HiClipboardList,
-  HiBriefcase
+  HiBriefcase,
+  HiHome,
+  HiUser,
+  HiStar,
+  HiFire,
+  HiBell,
+  HiCog,
+  HiQuestionMarkCircle,
+  HiSearch,
+  HiChevronRight
 } from 'react-icons/hi';
 import { api } from '../api';
+import '../styles/teacherDashboard.css';
 
 export default function TeacherDashboard({
+  currentUser,
   courses: initialCourses,
   onCreateCourse,
   onDeleteCourse,
@@ -35,10 +46,10 @@ export default function TeacherDashboard({
   onAddQuestion,
   addLog,
   activeTab: propActiveTab = 'overview',
-  setActiveTab
+  setActiveTab,
+  onUpdateUser
 }) {
   // --- SUB TAB SYSTEM ---
-  // If activeTab is home/stats/questions etc, map to our tabs or maintain local sub tab
   const [localTab, setLocalTab] = useState(() => {
     if (propActiveTab === 'home' || propActiveTab === 'overview') return 'overview';
     if (propActiveTab === 'questions') return 'questions';
@@ -60,6 +71,40 @@ export default function TeacherDashboard({
   const [courses, setCourses] = useState(initialCourses || []);
   const [questionBank, setQuestionBank] = useState(initialQuestionBank || []);
   const [activeCoursePreview, setActiveCoursePreview] = useState(null);
+
+  // --- DATABASE DRIVEN STATES ---
+  const [dbStats, setDbStats] = useState(null);
+  const [loadingStats, setLoadingStats] = useState(true);
+
+  const loadTeacherStats = async () => {
+    try {
+      setLoadingStats(true);
+      const data = await api.getTeacherStats();
+      if (data) {
+        setDbStats(data);
+        if (data.classesList) {
+          setTeacherClasses(data.classesList);
+        }
+        if (data.recentMaterialsList) {
+          const mappedMaterials = data.recentMaterialsList.map(m => ({
+            id: m.id,
+            name: m.name,
+            type: m.type.toLowerCase(),
+            size: m.size,
+            date: m.date
+          }));
+          setTeacherMaterials(mappedMaterials);
+        }
+        if (data.studentsList) {
+          setStudents(data.studentsList);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load teacher stats:', err);
+    } finally {
+      setLoadingStats(false);
+    }
+  };
 
   // Sync props
   useEffect(() => {
@@ -108,12 +153,7 @@ export default function TeacherDashboard({
   const [examSubTab, setExamSubTab] = useState('list'); // list, build, moderate
 
   // --- STUDENTS: Enrolled directory ---
-  const [students, setStudents] = useState([
-    { id: 501, name: 'Nguyễn Minh Anh', grade: '12-A1', attempts: 9, avgScore: 8.5, streak: 9, status: 'Chăm chỉ', weakness: ['Cực trị hàm số', 'Tích phân hàm ẩn'] },
-    { id: 502, name: 'Lê Hải Nam', grade: '12-A1', attempts: 6, avgScore: 7.2, streak: 4, status: 'Tiến bộ', weakness: ['Hình học Oxyz', 'Dao động cơ'] },
-    { id: 503, name: 'Phạm Khánh Huyền', grade: '12-D2', attempts: 12, avgScore: 9.1, streak: 15, status: 'Xuất sắc', weakness: ['Đọc hiểu Tiếng Anh'] },
-    { id: 504, name: 'Nguyễn Đức Thắng', grade: '11-B3', attempts: 5, avgScore: 5.8, streak: 2, status: 'Cần chú ý', weakness: ['Sóng cơ học', 'Este - Lipit'] }
-  ]);
+  const [students, setStudents] = useState([]);
   const [selectedStudentId, setSelectedStudentId] = useState(null);
 
   // --- REVENUE: breakdowns ---
@@ -160,6 +200,123 @@ export default function TeacherDashboard({
       [9.8, 9.5, 9.0, 9.2], // student 3
       [5.5, 6.0, 5.0, 4.5], // student 4
     ]
+  };
+
+  // --- TEACHER REDESIGN STATES ---
+  const [teacherMaterials, setTeacherMaterials] = useState([]);
+  const [materialSearch, setMaterialSearch] = useState('');
+  
+  const [teacherClasses, setTeacherClasses] = useState([]);
+  const [newClassName, setNewClassName] = useState('');
+  const [newClassId, setNewClassId] = useState('');
+
+  const avatarInputRef = useRef(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [teacherName, setTeacherName] = useState(currentUser?.fullName || 'Thầy Nguyễn Thế Anh');
+  const [teacherPhone, setTeacherPhone] = useState(currentUser?.phone || '0987654321');
+  const [teacherEmail, setTeacherEmail] = useState(currentUser?.email || 'theanh.math@edupath.vn');
+  const [teacherBio, setTeacherBio] = useState(currentUser?.teacher?.bio || 'Giảng viên chuyên ôn Toán THPTQG với 12 năm kinh nghiệm.');
+
+  useEffect(() => {
+    if (currentUser) {
+      setTeacherName(currentUser.fullName || '');
+      setTeacherPhone(currentUser.phone || '');
+      setTeacherEmail(currentUser.email || '');
+      setTeacherBio(currentUser.teacher?.bio || '');
+    }
+  }, [currentUser]);
+
+  const teacherLeaderboard = [
+    { rank: 1, name: 'Thầy Nguyễn Thế Anh', coursesCount: 5, rating: 4.9, activeStudents: 245, points: 1250 },
+    { rank: 2, name: 'Cô Lê Thu Hương', coursesCount: 4, rating: 4.8, activeStudents: 198, points: 1080 },
+    { rank: 3, name: 'Cô Phạm Quỳnh Chi', coursesCount: 4, rating: 4.7, activeStudents: 185, points: 950 },
+    { rank: 4, name: 'Thầy Nguyễn Văn Chờ', coursesCount: 2, rating: 4.5, activeStudents: 88, points: 420 }
+  ];
+
+  const getVietnameseDate = () => {
+    const days = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
+    const now = new Date();
+    const dayName = days[now.getDay()];
+    const dateStr = now.toLocaleDateString('vi-VN', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
+    return `${dayName}, ${dateStr}`;
+  };
+
+  const handleAvatarChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setIsUploading(true);
+      const res = await api.uploadFile(file);
+      if (res && res.url) {
+        const updatedUser = await api.updateProfile({ avatarUrl: res.url });
+        if (onUpdateUser) {
+          onUpdateUser(updatedUser);
+        }
+        toast('Cập nhật ảnh đại diện thành công!', 'success');
+      }
+    } catch (err) {
+      console.error('[Avatar Upload Error]', err);
+      toast('Tải ảnh lên thất bại, vui lòng thử lại!', 'error');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleProfileSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const updatedUser = await api.updateProfile({
+        fullName: teacherName,
+        phone: teacherPhone,
+        bio: teacherBio
+      });
+      if (onUpdateUser) {
+        onUpdateUser(updatedUser);
+      }
+      toast('Cập nhật thông tin hồ sơ thành công!', 'success');
+    } catch (err) {
+      console.error('[Profile Update Submit Error]', err);
+      toast('Cập nhật hồ sơ thất bại, vui lòng thử lại!', 'error');
+    }
+  };
+
+  const handleCreateClass = (e) => {
+    e.preventDefault();
+    if (!newClassName.trim() || !newClassId.trim()) {
+      toast('Vui lòng nhập tên lớp và mã lớp!', 'warning');
+      return;
+    }
+    const newClass = {
+      id: newClassId.toUpperCase(),
+      name: newClassName,
+      students: 0,
+      pendingHomework: 0,
+      progress: 0,
+      avgScore: 0.0,
+      schedule: 'Chưa sắp xếp'
+    };
+    setTeacherClasses([...teacherClasses, newClass]);
+    setNewClassName('');
+    setNewClassId('');
+    toast(`Tạo lớp học ${newClassName} (${newClassId.toUpperCase()}) thành công!`, 'success');
+  };
+
+  const handleUploadMaterial = (e) => {
+    e.preventDefault();
+    toast('Tải lên tài liệu thành công!', 'success');
+    const newMat = {
+      id: teacherMaterials.length + 1,
+      name: 'Tài liệu mới tải lên_' + Date.now().toString().slice(-4),
+      type: 'pdf',
+      size: '1.2 MB',
+      date: new Date().toLocaleDateString('vi-VN')
+    };
+    setTeacherMaterials([newMat, ...teacherMaterials]);
   };
 
   // --- HANDLERS ---
@@ -229,8 +386,23 @@ export default function TeacherDashboard({
   };
 
   useEffect(() => {
+    loadTeacherStats();
     loadExamsList();
   }, []);
+
+  const excelPct = dbStats?.scoreDistribution?.excelPct ?? 18;
+  const goodPct = dbStats?.scoreDistribution?.goodPct ?? 32;
+  const fairPct = dbStats?.scoreDistribution?.fairPct ?? 28;
+  const avgPct = dbStats?.scoreDistribution?.avgPct ?? 18;
+  const weakPct = dbStats?.scoreDistribution?.weakPct ?? 6;
+  const averageScore = dbStats?.scoreDistribution?.averageScore ?? 7.85;
+
+  const offset1 = 25;
+  const offset2 = (offset1 - excelPct + 100) % 100;
+  const offset3 = (offset2 - goodPct + 100) % 100;
+  const offset4 = (offset3 - fairPct + 100) % 100;
+  const offset5 = (offset4 - avgPct + 100) % 100;
+
 
   const handleGradeEssay = (e) => {
     e.preventDefault();
@@ -292,7 +464,7 @@ export default function TeacherDashboard({
         if (prev >= 100) {
           clearInterval(interval);
           setExcelImporting(false);
-          // Insert 3 mock questions
+          // Insert 2 mock questions
           const mockQ = [
             { id: questionBank.length + 1, content: 'Tìm nguyên hàm của hàm số f(x) = e^2x.', options: [{key:'A',value:'1/2 e^2x + C'},{key:'B',value:'e^2x + C'},{key:'C',value:'2e^2x + C'},{key:'D',value:'e^x + C'}], correctAnswer: 'A', difficulty: 'EASY', topic: 'Tích phân', subject: 'Toán học', successRate: '92%' },
             { id: questionBank.length + 2, content: 'Một vật dao động điều hòa với chu kì T = 2s. Tần số góc của vật là:', options: [{key:'A',value:'pi rad/s'},{key:'B',value:'2pi rad/s'},{key:'C',value:'0.5pi rad/s'},{key:'D',value:'4pi rad/s'}], correctAnswer: 'A', difficulty: 'EASY', topic: 'Dao động cơ', subject: 'Vật lý', successRate: '88%' }
@@ -306,7 +478,6 @@ export default function TeacherDashboard({
     }, 400);
   };
 
-  // Lesson reordering
   const moveLesson = (courseId, lessonIndex, direction) => {
     const targetCourse = courses.find(c => c.id === courseId);
     if (!targetCourse) return;
@@ -331,7 +502,6 @@ export default function TeacherDashboard({
     toast('Đã thay đổi thứ tự bài học thành công!', 'success');
   };
 
-  // Exam Builder
   const handleToggleQuestionSelect = (qId) => {
     if (selectedQuestions.includes(qId)) {
       setSelectedQuestions(selectedQuestions.filter(id => id !== qId));
@@ -412,7 +582,6 @@ export default function TeacherDashboard({
     }
   };
 
-  // Filtered Questions
   const filteredQuestions = questionBank.filter(q => {
     const textMatch = q.content?.toLowerCase().includes(searchQuery.toLowerCase()) || 
                       q.question?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -423,166 +592,491 @@ export default function TeacherDashboard({
   });
 
   return (
-    <div className="teacher-dashboard-v2" style={{ padding: '20px', maxWidth: '1400px', margin: '0 auto', fontFamily: 'Outfit, sans-serif' }}>
-      
-      {/* ================= NEOBRUTALIST SUBTABS NAV ================= */}
-      <div style={{ 
-        display: 'flex', 
-        flexWrap: 'wrap', 
-        gap: '12px', 
-        marginBottom: '24px', 
-        background: '#FFFBEB', 
-        padding: '12px', 
-        borderRadius: '16px', 
-        border: '3px solid #000' 
-      }}>
-        {[
-          { id: 'overview', name: '📈 Tổng quan', color: '#E0F2FE' },
-          { id: 'courses', name: '📚 Khóa học', color: '#FEE2E2' },
-          { id: 'questions', name: '🗄️ Ngân hàng câu hỏi', color: '#FEF3C7' },
-          { id: 'exams', name: '📝 Đề kiểm tra', color: '#F3E8FF' },
-          { id: 'students', name: '👥 Học sinh', color: '#ECFDF5' },
-          { id: 'revenue', name: '💰 Doanh thu', color: '#EFF6FF' }
-        ].map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => handleTabChange(tab.id)}
-            style={{
-              padding: '10px 18px',
-              border: '2.5px solid #000',
-              borderRadius: '12px',
-              fontWeight: '900',
-              fontSize: '13.5px',
-              cursor: 'pointer',
-              background: localTab === tab.id ? '#000' : tab.color,
-              color: localTab === tab.id ? '#fff' : '#000',
-              boxShadow: localTab === tab.id ? 'none' : '3px 3px 0px #000',
-              transform: localTab === tab.id ? 'translate(2px, 2px)' : 'none',
-              transition: 'all 0.15s'
-            }}
-          >
-            {tab.name}
+    <div className="teacher-dashboard-layout">
+      {/* LEFT SIDEBAR */}
+      <aside className="tdb-left-sidebar">
+        <div className="tdb-logo-section">
+          <div className="tdb-logo-icon">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: '20px', height: '20px' }}>
+              <path d="M18 6H8.5a4 4 0 100 8h8" stroke="#FFFFFF" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M14 10H8.5" stroke="#FFFFFF" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+              <circle cx="18" cy="6" r="1.5" fill="#FFD234" />
+              <circle cx="16.5" cy="14" r="1.5" fill="#FFD234" />
+            </svg>
+          </div>
+          <span className="tdb-logo-text">EduPath <em>AI</em></span>
+        </div>
+
+        {/* Menu Navigation */}
+        <nav style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '10px' }}>
+          <ul className="tdb-menu-list">
+            <button 
+              className={`tdb-menu-item ${localTab === 'overview' ? 'active' : ''}`}
+              onClick={() => handleTabChange('overview')}
+            >
+              <span className="tdb-menu-icon"><HiHome /></span>
+              <span>Tổng quan</span>
+            </button>
+          </ul>
+
+          <div className="tdb-menu-category">Giảng dạy</div>
+          <ul className="tdb-menu-list">
+            <button 
+              className={`tdb-menu-item ${localTab === 'courses' ? 'active' : ''}`}
+              onClick={() => handleTabChange('courses')}
+            >
+              <span className="tdb-menu-icon"><HiAcademicCap /></span>
+              <span>Khóa học của tôi</span>
+            </button>
+            <button 
+              className={`tdb-menu-item ${localTab === 'materials' ? 'active' : ''}`}
+              onClick={() => handleTabChange('materials')}
+            >
+              <span className="tdb-menu-icon"><HiCollection /></span>
+              <span>Tài liệu giảng dạy</span>
+            </button>
+            <button 
+              className={`tdb-menu-item ${localTab === 'exams' ? 'active' : ''}`}
+              onClick={() => handleTabChange('exams')}
+            >
+              <span className="tdb-menu-icon"><HiClipboardList /></span>
+              <span>Đề thi & Bài kiểm tra</span>
+            </button>
+            <button 
+              className={`tdb-menu-item ${localTab === 'questions' ? 'active' : ''}`}
+              onClick={() => handleTabChange('questions')}
+            >
+              <span className="tdb-menu-icon"><HiDatabase /></span>
+              <span>Ngân hàng câu hỏi</span>
+            </button>
+          </ul>
+
+          <div className="tdb-menu-category">Quản lý lớp học</div>
+          <ul className="tdb-menu-list">
+            <button 
+              className={`tdb-menu-item ${localTab === 'classes' ? 'active' : ''}`}
+              onClick={() => handleTabChange('classes')}
+            >
+              <span className="tdb-menu-icon"><HiBriefcase /></span>
+              <span>Lớp học của tôi</span>
+            </button>
+            <button 
+              className={`tdb-menu-item ${localTab === 'students' ? 'active' : ''}`}
+              onClick={() => handleTabChange('students')}
+            >
+              <span className="tdb-menu-icon"><HiUsers /></span>
+              <span>Học sinh</span>
+            </button>
+          </ul>
+
+          <div className="tdb-menu-category">Công cụ hỗ trợ</div>
+          <ul className="tdb-menu-list">
+            <button 
+              className={`tdb-menu-item ${localTab === 'leaderboard' ? 'active' : ''}`}
+              onClick={() => handleTabChange('leaderboard')}
+            >
+              <span className="tdb-menu-icon"><HiChartBar /></span>
+              <span>Bảng xếp hạng</span>
+            </button>
+            <button 
+              className={`tdb-menu-item ${localTab === 'notifications' ? 'active' : ''}`}
+              onClick={() => handleTabChange('notifications')}
+            >
+              <span className="tdb-menu-icon"><HiBell /></span>
+              <span>Thông báo</span>
+              {essays.length > 0 && <span className="tdb-icon-badge" style={{ position: 'relative', top: 0, right: 0, marginLeft: 'auto', width: '18px', height: '18px' }}>{essays.length}</span>}
+            </button>
+          </ul>
+
+          <div className="tdb-menu-category">Khác</div>
+          <ul className="tdb-menu-list">
+            <button 
+              className={`tdb-menu-item ${localTab === 'settings' ? 'active' : ''}`}
+              onClick={() => handleTabChange('settings')}
+            >
+              <span className="tdb-menu-icon"><HiCog /></span>
+              <span>Cài đặt</span>
+            </button>
+            <button 
+              className={`tdb-menu-item ${localTab === 'help' ? 'active' : ''}`}
+              onClick={() => handleTabChange('help')}
+            >
+              <span className="tdb-menu-icon"><HiQuestionMarkCircle /></span>
+              <span>Trợ giúp</span>
+            </button>
+          </ul>
+        </nav>
+
+        {/* Upgrade Card */}
+        <div className="tdb-upgrade-card">
+          <span className="tdb-upgrade-cap">🎓</span>
+          <h4 className="tdb-upgrade-title">Nâng cấp tài khoản</h4>
+          <p className="tdb-upgrade-desc">Trải nghiệm đầy đủ tính năng dành cho giáo viên.</p>
+          <button className="tdb-upgrade-btn" onClick={() => toast('Tính năng nâng cấp tài khoản đang được phát triển!', 'info')}>
+            Nâng cấp ngay 🌟
           </button>
-        ))}
-      </div>
+        </div>
+      </aside>
 
-      {/* ================= TAB 1: OVERVIEW ================= */}
-      {localTab === 'overview' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-          {/* Metrics Row */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
-            {[
-              { label: 'Khóa học phụ trách', val: `${courses.length} lớp`, bg: '#FFF1F2', icon: <HiBookOpen /> },
-              { label: 'Học sinh đang học', val: '148 học viên', bg: '#F0FDF4', icon: <HiUsers /> },
-              { label: 'Điểm số lớp trung bình', val: '8.2 / 10đ', bg: '#EEF2FF', icon: <HiAcademicCap /> },
-              { label: 'Tổng doanh thu (Tạm tính)', val: revenueSummary.grossEarnings, bg: '#FFFBEB', icon: <HiCurrencyDollar /> }
-            ].map((card, i) => (
-              <div key={i} style={{ 
-                background: card.bg, border: '3.5px solid #000', borderRadius: '16px', padding: '16px', boxShadow: '4px 4px 0 #000',
-                display: 'flex', alignItems: 'center', gap: '14px'
-              }}>
-                <div style={{ width: '48px', height: '48px', border: '2.5px solid #000', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', background: '#fff' }}>
-                  {card.icon}
-                </div>
-                <div style={{ textAlign: 'left' }}>
-                  <div style={{ fontSize: '11px', fontWeight: '800', color: '#6B7280', textTransform: 'uppercase' }}>{card.label}</div>
-                  <div style={{ fontSize: '20px', fontWeight: '950', color: '#000' }}>{card.val}</div>
-                </div>
-              </div>
-            ))}
+      {/* RIGHT PANE: CONTENT AREA */}
+      <main className="tdb-content-pane">
+        {/* Top Header Row */}
+        <div className="tdb-header-bar">
+          <div style={{ textAlign: 'left' }}>
+            <h1 className="tdb-greeting-title">
+              Xin chào, {currentUser?.fullName || 'Thầy Nguyễn Thế Anh'}! 👋
+            </h1>
+            <p className="tdb-greeting-subtitle">Chào mừng bạn quay trở lại với EduPath AI</p>
           </div>
 
-          {/* Charts Row */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
-            <div style={{ border: '3.5px solid #000', borderRadius: '16px', padding: '20px', background: '#fff', boxShadow: '5px 5px 0 #000' }}>
-              <h3 style={{ fontSize: '15px', fontWeight: '950', textTransform: 'uppercase', marginBottom: '16px', borderBottom: '2.5px solid #000', paddingBottom: '8px', textAlign: 'left' }}>
-                📈 Học viên đăng ký mới
-              </h3>
-              <div style={{ width: '100%', height: '220px' }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={enrollmentChartData} margin={{ left: -20 }}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" style={{ fontWeight: '800', fontSize: '11px' }} />
-                    <YAxis style={{ fontWeight: '800', fontSize: '11px' }} />
-                    <Tooltip />
-                    <Area type="monotone" dataKey="students" stroke="#F43F5E" fill="#FECDD3" strokeWidth={3} />
-                  </AreaChart>
-                </ResponsiveContainer>
+          <div className="tdb-header-actions">
+            {/* Search Input with Ctrl+K shortcut badge */}
+            <div className="tdb-search-wrap">
+              <span className="tdb-search-icon"><HiSearch /></span>
+              <input 
+                type="text" 
+                placeholder="Tìm kiếm khóa học, học sinh, tài liệu..." 
+                className="tdb-search-input" 
+                onClick={() => toast('Tính năng tìm kiếm đang phát triển!', 'info')}
+              />
+              <kbd className="tdb-search-kbd">Ctrl + K</kbd>
+            </div>
+
+            {/* Notification Bell Icon */}
+            <button 
+              className="tdb-action-icon-btn" 
+              onClick={() => handleTabChange('notifications')}
+              title="Thông báo mới"
+            >
+              <HiBell />
+              {essays.length > 0 && <span className="tdb-icon-badge">{essays.length}</span>}
+            </button>
+
+            {/* Profile Avatar & Info */}
+            <div className="tdb-header-user">
+              {currentUser?.avatarUrl || currentUser?.avatar ? (
+                <img 
+                  src={currentUser.avatarUrl || currentUser.avatar} 
+                  alt="Avatar" 
+                  className="tdb-header-user-avatar"
+                />
+              ) : (
+                <div 
+                  className="tdb-header-user-avatar"
+                  style={{
+                    background: 'linear-gradient(135deg, #6366f1, #a5b4fc)',
+                    color: '#ffffff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontWeight: 'bold',
+                    fontSize: '14px'
+                  }}
+                >
+                  {(currentUser?.fullName || currentUser?.name || 'GV').slice(0, 2).toUpperCase()}
+                </div>
+              )}
+              <div className="tdb-header-user-text">
+                <h5 className="tdb-header-user-name">{currentUser?.fullName || 'Thầy Nguyễn Thế Anh'}</h5>
+                <p className="tdb-header-user-role">Giáo viên</p>
               </div>
             </div>
 
-            <div style={{ border: '3.5px solid #000', borderRadius: '16px', padding: '20px', background: '#fff', boxShadow: '5px 5px 0 #000' }}>
-              <h3 style={{ fontSize: '15px', fontWeight: '950', textTransform: 'uppercase', marginBottom: '16px', borderBottom: '2.5px solid #000', paddingBottom: '8px', textAlign: 'left' }}>
-                💰 Tốc độ doanh thu (Triệu VNĐ)
-              </h3>
-              <div style={{ width: '100%', height: '220px' }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={revenueChartData} margin={{ left: -20 }}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" style={{ fontWeight: '800', fontSize: '11px' }} />
-                    <YAxis style={{ fontWeight: '800', fontSize: '11px' }} />
-                    <Tooltip />
-                    <Bar dataKey="revenue" fill="#3B82F6" stroke="#000" strokeWidth={2.5} radius={[6, 6, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
+            {/* Date Widget */}
+            <div className="tdb-date-widget">
+              {getVietnameseDate()}
             </div>
           </div>
+        </div>
 
-          {/* Student Matrix & Essay reviews */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '24px' }}>
-            {/* Matrix heatmap */}
-            <div style={{ border: '3.5px solid #000', borderRadius: '16px', padding: '20px', background: '#fff', boxShadow: '5px 5px 0 #000' }}>
-              <h3 style={{ fontSize: '15px', fontWeight: '950', textTransform: 'uppercase', marginBottom: '16px', borderBottom: '2.5px solid #000', paddingBottom: '8px', textAlign: 'left' }}>
-                🟩 Ma trận điểm số lớp học (Heatmap)
-              </h3>
-              <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
-                  <thead>
-                    <tr>
-                      <th style={{ border: '2px solid #000', padding: '10px', background: '#F3F4F6' }}>Học viên</th>
-                      {heatmapData.exams.map((ex, i) => (
-                        <th key={i} style={{ border: '2px solid #000', padding: '10px', background: '#F3F4F6', fontWeight: '900' }}>{ex}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {heatmapData.students.map((st, sIdx) => (
-                      <tr key={sIdx}>
-                        <td style={{ border: '2px solid #000', padding: '10px', fontWeight: '900', background: '#FAF5FF', textAlign: 'left' }}>{st}</td>
-                        {heatmapData.matrix[sIdx].map((score, eIdx) => {
-                          let cellBg = '#FEE2E2'; // Red
-                          let cellText = '#991B1B';
-                          if (score >= 8.0) { cellBg = '#D1FAE5'; cellText = '#065F46'; } // Green
-                          else if (score >= 5.0) { cellBg = '#FEF3C7'; cellText = '#92400E'; } // Yellow
-                          return (
-                            <td 
-                              key={eIdx} 
-                              style={{ 
-                                border: '2px solid #000', 
-                                padding: '10px', 
-                                background: cellBg, 
-                                color: cellText, 
-                                fontWeight: '950',
-                                textAlign: 'center'
-                              }}
-                            >
-                              {score.toFixed(1)}đ
-                            </td>
-                          );
-                        })}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+        {/* ================= TAB 1: OVERVIEW ================= */}
+        {localTab === 'overview' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+            {/* Metrics Grid */}
+            <div className="tdb-metrics-grid">
+              <div className="tdb-metric-card">
+                <div className="tdb-metric-icon-wrap purple"><HiBookOpen /></div>
+                <div className="tdb-metric-info">
+                  <span className="tdb-metric-label">Khóa học đang dạy</span>
+                  <span className="tdb-metric-value">{dbStats?.metrics?.coursesCount ?? courses.length}</span>
+                  <span className="tdb-metric-trend">↑ Dữ liệu thực tế</span>
+                </div>
+              </div>
+
+              <div className="tdb-metric-card">
+                <div className="tdb-metric-icon-wrap green"><HiUsers /></div>
+                <div className="tdb-metric-info">
+                  <span className="tdb-metric-label">Tổng số học sinh</span>
+                  <span className="tdb-metric-value">{dbStats?.metrics?.studentsCount ?? 0}</span>
+                  <span className="tdb-metric-trend">↑ Từ các lớp đăng ký</span>
+                </div>
+              </div>
+
+              <div className="tdb-metric-card">
+                <div className="tdb-metric-icon-wrap orange"><HiAcademicCap /></div>
+                <div className="tdb-metric-info">
+                  <span className="tdb-metric-label">Đề thi đã tạo</span>
+                  <span className="tdb-metric-value">{dbStats?.metrics?.examsCount ?? exams.length}</span>
+                  <span className="tdb-metric-trend">↑ Luyện tập & khảo sát</span>
+                </div>
+              </div>
+
+              <div className="tdb-metric-card">
+                <div className="tdb-metric-icon-wrap blue"><HiCollection /></div>
+                <div className="tdb-metric-info">
+                  <span className="tdb-metric-label">Tài liệu đã đăng</span>
+                  <span className="tdb-metric-value">{dbStats?.metrics?.materialsCount ?? 0}</span>
+                  <span className="tdb-metric-trend">↑ Học liệu lưu hành</span>
+                </div>
+              </div>
+
+              <div className="tdb-metric-card">
+                <div className="tdb-metric-icon-wrap pink"><HiTrendingUp /></div>
+                <div className="tdb-metric-info">
+                  <span className="tdb-metric-label">Lượt thi (tuần)</span>
+                  <span className="tdb-metric-value">{dbStats?.metrics?.weeklyAttemptsCount ?? 0}</span>
+                  <span className="tdb-metric-trend">↑ Đánh giá năng lực</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Middle Row Layout */}
+            <div className="tdb-dashboard-grid">
+              {/* Chart 1: Hoạt động giảng dạy */}
+              <div className="tdb-card">
+                <div className="tdb-card-title-row">
+                  <h3 className="tdb-card-title">Hoạt động giảng dạy</h3>
+                  <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 600 }}>7 ngày qua ▾</span>
+                </div>
+                <div style={{ width: '100%', height: '220px' }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={dbStats?.chartData || [
+                      { name: '14/06', students: 0, submissions: 0 },
+                      { name: '15/06', students: 0, submissions: 0 },
+                      { name: '16/06', students: 0, submissions: 0 },
+                      { name: '17/06', students: 0, submissions: 0 },
+                      { name: '18/06', students: 0, submissions: 0 },
+                      { name: '19/06', students: 0, submissions: 0 },
+                      { name: '20/06', students: 0, submissions: 0 }
+                    ]} margin={{ left: -20, top: 10 }}>
+                      <defs>
+                        <linearGradient id="colorStudents" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#6366f1" stopOpacity={0.2}/>
+                          <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
+                        </linearGradient>
+                        <linearGradient id="colorSubmissions" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#10b981" stopOpacity={0.2}/>
+                          <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                      <XAxis dataKey="name" style={{ fontWeight: '600', fontSize: '11px', fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+                      <YAxis style={{ fontWeight: '600', fontSize: '11px', fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+                      <Tooltip />
+                      <Legend verticalAlign="top" height={36} iconType="circle" />
+                      <Area name="Lượt học tập" type="monotone" dataKey="students" stroke="#6366f1" fillOpacity={1} fill="url(#colorStudents)" strokeWidth={3} />
+                      <Area name="Lượt nộp bài" type="monotone" dataKey="submissions" stroke="#10b981" fillOpacity={1} fill="url(#colorSubmissions)" strokeWidth={3} />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              {/* Donut Chart: Phân bố điểm số */}
+              <div className="tdb-card">
+                <h3 className="tdb-card-title">Phân bố điểm số trung bình</h3>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: '10px' }}>
+                  <div style={{ position: 'relative', width: '130px', height: '130px', display: 'flex', alignItems: 'center', justifyItems: 'center', justifyContent: 'center' }}>
+                    <svg width="100%" height="100%" viewBox="0 0 42 42" className="donut">
+                      <circle className="donut-hole" cx="21" cy="21" r="15.91549430918954" fill="#fff"></circle>
+                      <circle className="donut-ring" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="#f1f5f9" strokeWidth="3"></circle>
+                      <circle cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="#6366f1" strokeWidth="4.5" strokeDasharray={`${excelPct} ${100 - excelPct}`} strokeDashoffset={offset1}></circle>
+                      <circle cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="#3b82f6" strokeWidth="4.5" strokeDasharray={`${goodPct} ${100 - goodPct}`} strokeDashoffset={offset2}></circle>
+                      <circle cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="#f59e0b" strokeWidth="4.5" strokeDasharray={`${fairPct} ${100 - fairPct}`} strokeDashoffset={offset3}></circle>
+                      <circle cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="#10b981" strokeWidth="4.5" strokeDasharray={`${avgPct} ${100 - avgPct}`} strokeDashoffset={offset4}></circle>
+                      <circle cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="#ef4444" strokeWidth="4.5" strokeDasharray={`${weakPct} ${100 - weakPct}`} strokeDashoffset={offset5}></circle>
+                    </svg>
+                    <div style={{ position: 'absolute', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                      <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>T.Bình lớp</span>
+                      <span style={{ fontSize: '18px', fontWeight: '800', color: '#0f172a' }}>{averageScore}</span>
+                    </div>
+                  </div>
+
+                  <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '11px', fontWeight: 600, color: '#475569' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#6366f1' }}></span>Xuất sắc (9.0-10.0)</span>
+                      <span>{excelPct}%</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#3b82f6' }}></span>Giỏi (8.0-8.9)</span>
+                      <span>{goodPct}%</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#f59e0b' }}></span>Khá (70-7.9)</span>
+                      <span>{fairPct}%</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#10b981' }}></span>Trung bình (5.0-6.9)</span>
+                      <span>{avgPct}%</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#ef4444' }}></span>Yếu (Dưới 5.0)</span>
+                      <span>{weakPct}%</span>
+                    </div>
+                  </div>
+
+                  <div style={{ background: '#f8fafc', padding: '6px 12px', borderRadius: '8px', fontSize: '11.5px', color: '#4338ca', fontWeight: 700, width: '100%', textAlign: 'center' }}>
+                    Điểm trung bình lớp của bạn: {averageScore}
+                  </div>
+                </div>
+              </div>
+
+              {/* Column 3: Thông báo mới */}
+              <div className="tdb-card">
+                <div className="tdb-card-title-row">
+                  <h3 className="tdb-card-title">Thông báo mới</h3>
+                  <span className="tdb-card-action-link" onClick={() => handleTabChange('notifications')}>Xem tất cả</span>
+                </div>
+                <div className="tdb-notif-list">
+                  {dbStats?.notifications && dbStats.notifications.length > 0 ? (
+                    dbStats.notifications.slice(0, 5).map((notif) => (
+                      <div key={notif.id} className="tdb-notif-item animate-in">
+                        <span className="tdb-notif-icon-dot orange">🔔</span>
+                        <div className="tdb-notif-body">
+                          <p className="tdb-notif-text">{notif.message}</p>
+                          <span className="tdb-notif-time">
+                            {new Date(notif.createdAt).toLocaleDateString('vi-VN')}
+                          </span>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <>
+                      <div className="tdb-notif-item">
+                        <span className="tdb-notif-icon-dot orange">✍️</span>
+                        <div className="tdb-notif-body">
+                          <p className="tdb-notif-text">Học sinh <strong>Trần Minh Hoàng</strong> nộp bài tập "Bài tập chương 3"</p>
+                          <span className="tdb-notif-time">2 phút trước</span>
+                        </div>
+                      </div>
+
+                      <div className="tdb-notif-item">
+                        <span className="tdb-notif-icon-dot tdb-notif-icon-green">🏆</span>
+                        <div className="tdb-notif-body">
+                          <p className="tdb-notif-text">Lớp <strong>12A1</strong> có 5 học sinh đạt điểm cao trong bài kiểm tra</p>
+                          <span className="tdb-notif-time">1 giờ trước</span>
+                        </div>
+                      </div>
+
+                      <div className="tdb-notif-item">
+                        <span className="tdb-notif-icon-dot tdb-notif-icon-purple">📢</span>
+                        <div className="tdb-notif-body">
+                          <p className="tdb-notif-text">Hệ thống cập nhật tài liệu mới <strong>"Hướng dẫn sử dụng tính năng thi thử"</strong></p>
+                          <span className="tdb-notif-time">3 giờ trước</span>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Bottom Row Layout */}
+            <div className="tdb-dashboard-grid">
+              {/* Lớp học của tôi */}
+              <div className="tdb-card">
+                <div className="tdb-card-title-row">
+                  <h3 className="tdb-card-title">Lớp học của tôi</h3>
+                  <span className="tdb-card-action-link" onClick={() => handleTabChange('classes')}>Xem tất cả</span>
+                </div>
+                <div className="tdb-class-list">
+                  {teacherClasses.length > 0 ? (
+                    teacherClasses.slice(0, 4).map((c, i) => {
+                      const tagColors = ['purple', 'blue', 'green', 'orange'];
+                      const tagColor = tagColors[i % tagColors.length];
+                      return (
+                        <div key={c.id} className="tdb-class-item">
+                          <span className={`tdb-class-tag ${tagColor}`}>{c.id.replace('C-', '')}</span>
+                          <div className="tdb-class-info">
+                            <h5 className="tdb-class-name">{c.name}</h5>
+                            <span className="tdb-class-subtext">{c.students} học sinh • Lịch học: {c.schedule}</span>
+                          </div>
+                          <div className="tdb-class-progress-wrap">
+                            <span className="tdb-class-progress-pct">{c.progress}%</span>
+                            <div className="tdb-class-progress-track">
+                              <div className="tdb-class-progress-bar" style={{ width: `${c.progress}%` }}></div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <div style={{ padding: '20px', color: '#64748b', fontSize: '13px', textAlign: 'center' }}>
+                      Chưa có lớp học nào phụ trách.
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Đề thi gần đây */}
+              <div className="tdb-card">
+                <div className="tdb-card-title-row">
+                  <h3 className="tdb-card-title">Đề thi gần đây</h3>
+                  <span className="tdb-card-action-link" onClick={() => handleTabChange('exams')}>Xem tất cả</span>
+                </div>
+                <div className="tdb-exam-list">
+                  {dbStats?.recentExamsList && dbStats.recentExamsList.length > 0 ? (
+                    dbStats.recentExamsList.map((ex, i) => {
+                      const icons = ['📝', '📝', '📝', '📝'];
+                      const colors = ['', 'green', 'orange', 'purple'];
+                      return (
+                        <div key={ex.id} className="tdb-exam-item">
+                          <span className={`tdb-exam-icon ${colors[i % colors.length]}`}>{icons[i % icons.length]}</span>
+                          <div className="tdb-exam-info">
+                            <h5 className="tdb-exam-name">{ex.title}</h5>
+                            <span className="tdb-exam-date">{ex.subject} • {ex.date}</span>
+                          </div>
+                          <span className="tdb-exam-pill">{ex.attemptsDisplay}</span>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <div style={{ padding: '20px', color: '#64748b', fontSize: '13px', textAlign: 'center' }}>
+                      Chưa có đề thi nào được tạo.
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Tài liệu mới nhất */}
+              <div className="tdb-card">
+                <div className="tdb-card-title-row">
+                  <h3 className="tdb-card-title">Tài liệu mới nhất</h3>
+                  <span className="tdb-card-action-link" onClick={() => handleTabChange('materials')}>Xem tất cả</span>
+                </div>
+                <div className="tdb-material-list">
+                  {teacherMaterials.length > 0 ? (
+                    teacherMaterials.slice(0, 4).map(m => (
+                      <div key={m.id} className="tdb-material-item" onClick={() => toast('Đang mở xem tài liệu...', 'info')} style={{ cursor: 'pointer' }}>
+                        <span className={`tdb-material-icon ${m.type}`}>{m.type.toUpperCase()}</span>
+                        <div className="tdb-material-info">
+                          <h5 className="tdb-material-name">{m.name}</h5>
+                          <span className="tdb-material-meta">{m.type.toUpperCase()} • {m.size}</span>
+                        </div>
+                        <span className="tdb-material-date">{m.date}</span>
+                      </div>
+                    ))
+                  ) : (
+                    <div style={{ padding: '20px', color: '#64748b', fontSize: '13px', textAlign: 'center' }}>
+                      Chưa có tài liệu nào được tải lên.
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
             {/* Pending Essay Grade Console */}
-            <div style={{ border: '3.5px solid #000', borderRadius: '16px', padding: '20px', background: '#EFF6FF', boxShadow: '5px 5px 0 #000', textAlign: 'left' }}>
-              <h3 style={{ fontSize: '15px', fontWeight: '950', textTransform: 'uppercase', marginBottom: '14px', borderBottom: '2.5px solid #000', paddingBottom: '8px' }}>
-                ✍️ Chấm thi tự luận ({essays.length})
-              </h3>
+            <div className="tdb-card" style={{ background: '#eff6ff' }}>
+              <h3 className="tdb-card-title">✍️ Chấm thi tự luận ({essays.length})</h3>
               {essays.length > 0 ? (
                 selectedEssayId === null ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -590,14 +1084,16 @@ export default function TeacherDashboard({
                       <div 
                         key={ess.id}
                         onClick={() => setSelectedEssayId(ess.id)}
-                        style={{ padding: '12px', border: '2px solid #000', borderRadius: '10px', background: '#fff', cursor: 'pointer' }}
+                        style={{ padding: '14px', border: '1px solid #cbd5e1', borderRadius: '12px', background: '#fff', cursor: 'pointer', transition: 'all 0.2s' }}
+                        onMouseEnter={(e) => e.currentTarget.style.borderColor = '#6366f1'}
+                        onMouseLeave={(e) => e.currentTarget.style.borderColor = '#cbd5e1'}
                       >
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', fontWeight: '800', color: '#4B5563', marginBottom: '4px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', fontWeight: 'bold', color: '#64748b', marginBottom: '6px' }}>
                           <span>{ess.studentName}</span>
                           <span>{ess.date}</span>
                         </div>
-                        <h4 style={{ fontSize: '12.5px', fontWeight: '900', margin: '0 0 6px 0' }}>{ess.topic}</h4>
-                        <p style={{ fontSize: '11px', color: '#6B7280', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        <h4 style={{ fontSize: '13.5px', fontWeight: 'bold', margin: '0 0 6px 0', color: '#0f172a' }}>{ess.topic}</h4>
+                        <p style={{ fontSize: '12px', color: '#475569', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           {ess.answer}
                         </p>
                       </div>
@@ -608,33 +1104,35 @@ export default function TeacherDashboard({
                     {(() => {
                       const ess = essays.find(e => e.id === selectedEssayId);
                       return (
-                        <form onSubmit={handleGradeEssay} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                          <div style={{ fontSize: '12px', fontWeight: '850' }}>Học viên: <strong>{ess.studentName}</strong></div>
-                          <div style={{ fontSize: '12px', fontWeight: '850' }}>Đề tài: <strong>{ess.topic}</strong></div>
+                        <form onSubmit={handleGradeEssay} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                          <div style={{ fontSize: '13px', fontWeight: 600 }}>Học viên: <strong style={{ color: '#0f172a' }}>{ess.studentName}</strong></div>
+                          <div style={{ fontSize: '13px', fontWeight: 600 }}>Đề tài: <strong style={{ color: '#0f172a' }}>{ess.topic}</strong></div>
                           <div style={{ 
-                            padding: '10px', border: '2.5px solid #000', borderRadius: '8px', background: '#fff', 
-                            fontSize: '12px', maxHeight: '120px', overflowY: 'auto', fontStyle: 'italic'
+                            padding: '12px', border: '1px solid #cbd5e1', borderRadius: '10px', background: '#fff', 
+                            fontSize: '12.5px', maxHeight: '120px', overflowY: 'auto', fontStyle: 'italic', color: '#334155'
                           }}>
                             "{ess.answer}"
                           </div>
                           
-                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '10px' }}>
-                            <div>
-                              <label style={{ fontSize: '11px', fontWeight: '800' }}>Điểm (0-10):</label>
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '12px' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                              <label style={{ fontSize: '12px', fontWeight: 'bold' }}>Điểm (0-10):</label>
                               <input 
                                 type="number" 
                                 min="0" max="10" step="0.5" 
-                                className="form-control" 
+                                className="tdb-search-input" 
+                                style={{ width: '100%', borderRadius: '8px' }}
                                 value={reviewScore}
                                 onChange={e => setReviewScore(e.target.value)}
                                 required 
                               />
                             </div>
-                            <div>
-                              <label style={{ fontSize: '11px', fontWeight: '800' }}>Nhận xét giáo viên:</label>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                              <label style={{ fontSize: '12px', fontWeight: 'bold' }}>Nhận xét giáo viên:</label>
                               <input 
                                 type="text" 
-                                className="form-control" 
+                                className="tdb-search-input" 
+                                style={{ width: '100%', borderRadius: '8px' }}
                                 placeholder="Bài viết tốt, lập luận chặt chẽ..."
                                 value={reviewComment}
                                 onChange={e => setReviewComment(e.target.value)}
@@ -642,11 +1140,11 @@ export default function TeacherDashboard({
                               />
                             </div>
                           </div>
-                          <div style={{ display: 'flex', gap: '8px' }}>
-                            <button type="submit" className="lp-btn--accent" style={{ flex: 1, padding: '8px', fontSize: '12px', border: '2px solid #000', borderRadius: '8px', fontWeight: '800' }}>
+                          <div style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>
+                            <button type="submit" className="tdb-upgrade-btn" style={{ flex: 1, background: '#6366f1', boxShadow: 'none' }}>
                               Lưu điểm
                             </button>
-                            <button type="button" onClick={() => setSelectedEssayId(null)} className="lp-btn--ghost" style={{ flex: 1, padding: '8px', fontSize: '12px', border: '2px solid #000', borderRadius: '8px', fontWeight: '800' }}>
+                            <button type="button" onClick={() => setSelectedEssayId(null)} className="tdb-upgrade-btn" style={{ flex: 1, background: '#ffffff', color: '#6366f1', border: '1px solid #6366f1', boxShadow: 'none' }}>
                               Quay lại
                             </button>
                           </div>
@@ -656,694 +1154,980 @@ export default function TeacherDashboard({
                   </div>
                 )
               ) : (
-                <div style={{ fontSize: '13px', color: '#6B7280', textAlign: 'center', padding: '20px' }}>
+                <div style={{ fontSize: '13.5px', color: '#64748b', textAlign: 'center', padding: '20px' }}>
                   🎉 Không có bài luận nào cần chấm điểm!
                 </div>
               )}
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* ================= TAB 2: COURSES ================= */}
-      {localTab === 'courses' && (
-        <div style={{ display: 'grid', gridTemplateColumns: '1.1fr 0.9fr', gap: '24px', textAlign: 'left' }}>
-          {/* Courses directory */}
-          <div style={{ border: '3.5px solid #000', borderRadius: '16px', padding: '20px', background: '#fff', boxShadow: '5px 5px 0 #000' }}>
-            <h3 style={{ fontSize: '15px', fontWeight: '950', textTransform: 'uppercase', marginBottom: '16px', borderBottom: '2.5px solid #000', paddingBottom: '8px' }}>
-              📚 Các khóa học của bạn
-            </h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              {courses.map((course) => (
-                <div 
-                  key={course.id} 
-                  style={{ 
-                    padding: '16px', border: '3px solid #000', borderRadius: '14px', background: '#FAF5FF',
-                    display: 'flex', justifyContent: 'space-between', alignItems: 'center'
-                  }}
-                >
-                  <div>
-                    <span className="lp-course-subject-badge">{course.subject}</span>
-                    <h4 style={{ fontSize: '15px', fontWeight: '950', margin: '8px 0 4px 0' }}>{course.title}</h4>
-                    <div style={{ display: 'flex', gap: '12px', fontSize: '11.5px', fontWeight: '800', color: '#6B7280' }}>
-                      <span>Bài học: {course.lessons?.length || 0} bài</span>
-                      <span>Học viên: {course.enrollments?.length || 12} học sinh</span>
-                      <span style={{ color: '#059669' }}>Phê duyệt: Đã kích hoạt</span>
+        {/* ================= TAB 2: COURSES ================= */}
+        {localTab === 'courses' && (
+          <div style={{ display: 'grid', gridTemplateColumns: '1.1fr 0.9fr', gap: '24px', textAlign: 'left' }}>
+            <div className="tdb-card">
+              <h3 className="tdb-card-title" style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: '14px', marginBottom: '10px' }}>
+                📚 Các khóa học của bạn
+              </h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                {courses.map((course) => (
+                  <div 
+                    key={course.id} 
+                    style={{ 
+                      padding: '16px', border: '1px solid #e2e8f0', borderRadius: '16px', background: '#f8fafc',
+                      display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+                    }}
+                  >
+                    <div>
+                      <span className="tdb-exam-pill">{course.subject}</span>
+                      <h4 style={{ fontSize: '15px', fontWeight: '800', margin: '8px 0 4px 0', color: '#0f172a' }}>{course.title}</h4>
+                      <div style={{ display: 'flex', gap: '12px', fontSize: '11.5px', fontWeight: '600', color: '#64748b' }}>
+                        <span>Bài học: {course.lessons?.length || 0} bài</span>
+                        <span>Học viên: {course.enrollments?.length || 12} học sinh</span>
+                        <span style={{ color: '#10b981' }}>Trạng thái: Đã kích hoạt</span>
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button 
+                        onClick={() => setSelectedCourseId(course.id)}
+                        className="tdb-upgrade-btn" 
+                        style={{ padding: '8px 12px', background: '#ffffff', color: '#6366f1', border: '1px solid #6366f1', boxShadow: 'none' }}
+                      >
+                        Chi tiết
+                      </button>
+                      <button 
+                        onClick={() => setActiveCoursePreview(course.id)}
+                        className="tdb-upgrade-btn" 
+                        style={{ padding: '8px 12px', background: '#6366f1', display: 'flex', alignItems: 'center', gap: '4px', boxShadow: 'none' }}
+                      >
+                        <HiEye /> Xem thử
+                      </button>
                     </div>
                   </div>
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <button 
-                      onClick={() => setSelectedCourseId(course.id)}
-                      className="lp-btn--ghost" 
-                      style={{ padding: '8px 12px', fontSize: '12px', border: '2px solid #000', borderRadius: '8px' }}
-                    >
-                      Chi tiết
-                    </button>
-                    <button 
-                      onClick={() => setActiveCoursePreview(course.id)}
-                      className="lp-btn--accent" 
-                      style={{ padding: '8px 12px', fontSize: '12px', border: '2px solid #000', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '4px' }}
-                    >
-                      <HiEye /> Xem thử
-                    </button>
-                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="tdb-card" style={{ background: '#fffbeb' }}>
+              <h3 className="tdb-card-title" style={{ borderBottom: '1px solid #fcd34d', paddingBottom: '14px', marginBottom: '10px' }}>
+                📝 Quản lý bài học (Thay đổi thứ tự)
+              </h3>
+              {selectedCourseId ? (
+                (() => {
+                  const course = courses.find(c => c.id === selectedCourseId);
+                  return (
+                    <div>
+                      <h4 style={{ fontSize: '13.5px', fontWeight: '800', color: '#1e293b', marginBottom: '12px' }}>{course.title}</h4>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        {course.lessons.map((lesson, idx) => (
+                          <div 
+                            key={lesson.id}
+                            style={{ 
+                              padding: '10px 14px', border: '1px solid #e2e8f0', borderRadius: '10px', background: '#fff',
+                              display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+                            }}
+                          >
+                            <span style={{ fontSize: '12.5px', fontWeight: '600', color: '#0f172a' }}>
+                              {idx + 1}. {lesson.name || lesson.title}
+                            </span>
+                            <div style={{ display: 'flex', gap: '4px' }}>
+                              <button 
+                                onClick={() => moveLesson(course.id, idx, -1)}
+                                disabled={idx === 0}
+                                style={{ padding: '2px 6px', background: '#fff', border: '1px solid #cbd5e1', borderRadius: '4px', cursor: 'pointer', opacity: idx === 0 ? 0.3 : 1 }}
+                              >
+                                <HiArrowUp />
+                              </button>
+                              <button 
+                                onClick={() => moveLesson(course.id, idx, 1)}
+                                disabled={idx === course.lessons.length - 1}
+                                style={{ padding: '2px 6px', background: '#fff', border: '1px solid #cbd5e1', borderRadius: '4px', cursor: 'pointer', opacity: idx === course.lessons.length - 1 ? 0.3 : 1 }}
+                              >
+                                <HiArrowDown />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()
+              ) : (
+                <div style={{ fontSize: '13.5px', color: '#64748b', padding: '30px', textAlign: 'center' }}>
+                  💡 Hãy chọn một khóa học ở cột bên trái để quản lý và thay đổi thứ tự các bài giảng học tập.
                 </div>
-              ))}
+              )}
             </div>
           </div>
+        )}
 
-          {/* Lesson Order & details panel */}
-          <div style={{ border: '3.5px solid #000', borderRadius: '16px', padding: '20px', background: '#FEF3C7', boxShadow: '5px 5px 0 #000' }}>
-            <h3 style={{ fontSize: '15px', fontWeight: '950', textTransform: 'uppercase', marginBottom: '16px', borderBottom: '2.5px solid #000', paddingBottom: '8px' }}>
-              📝 Quản lý bài học (Thay đổi thứ tự)
-            </h3>
-            {selectedCourseId ? (
-              (() => {
-                const course = courses.find(c => c.id === selectedCourseId);
-                return (
-                  <div>
-                    <h4 style={{ fontSize: '13.5px', fontWeight: '900', color: '#000', marginBottom: '12px' }}>{course.title}</h4>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      {course.lessons.map((lesson, idx) => (
-                        <div 
-                          key={lesson.id}
-                          style={{ 
-                            padding: '10px 14px', border: '2px solid #000', borderRadius: '10px', background: '#fff',
-                            display: 'flex', justifyContent: 'space-between', alignItems: 'center'
-                          }}
-                        >
-                          <span style={{ fontSize: '12.5px', fontWeight: '900' }}>
-                            {idx + 1}. {lesson.name || lesson.title}
-                          </span>
-                          <div style={{ display: 'flex', gap: '4px' }}>
-                            <button 
-                              onClick={() => moveLesson(course.id, idx, -1)}
-                              disabled={idx === 0}
-                              style={{ padding: '2px 6px', background: '#fff', border: '1.5px solid #000', borderRadius: '4px', cursor: 'pointer', opacity: idx === 0 ? 0.3 : 1 }}
-                            >
-                              <HiArrowUp />
-                            </button>
-                            <button 
-                              onClick={() => moveLesson(course.id, idx, 1)}
-                              disabled={idx === course.lessons.length - 1}
-                              style={{ padding: '2px 6px', background: '#fff', border: '1.5px solid #000', borderRadius: '4px', cursor: 'pointer', opacity: idx === course.lessons.length - 1 ? 0.3 : 1 }}
-                            >
-                              <HiArrowDown />
-                            </button>
-                          </div>
+        {/* ================= TAB 3: QUESTION BANK ================= */}
+        {localTab === 'questions' && (
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: '24px', textAlign: 'left' }}>
+            <div className="tdb-card" style={{ background: '#fffbeb' }}>
+              <h3 className="tdb-card-title" style={{ borderBottom: '1px solid #fcd34d', paddingBottom: '14px', marginBottom: '10px' }}>
+                ➕ Thêm câu hỏi vào ngân hàng
+              </h3>
+              <form onSubmit={handleAddQuestionLocal} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <label style={{ fontSize: '11.5px', fontWeight: 'bold' }}>Nội dung câu hỏi:</label>
+                  <textarea 
+                    className="tdb-search-input" 
+                    rows="2" 
+                    style={{ borderRadius: '8px', padding: '10px', height: '60px', boxSizing: 'border-box' }}
+                    value={qText}
+                    onChange={e => setQText(e.target.value)}
+                    placeholder="Ví dụ: Tính đạo hàm của y = tan(x)..." 
+                    required 
+                  />
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <label style={{ fontSize: '11.5px', fontWeight: 'bold' }}>Môn học:</label>
+                    <select className="tdb-search-input" style={{ borderRadius: '8px', height: '36px' }} value={qSubject} onChange={e => setQSubject(e.target.value)}>
+                      <option value="Toán học">Toán học</option>
+                      <option value="Vật lý">Vật lý</option>
+                      <option value="Hóa học">Hóa học</option>
+                      <option value="Tiếng Anh">Tiếng Anh</option>
+                    </select>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <label style={{ fontSize: '11.5px', fontWeight: 'bold' }}>Chương/Chuyên đề:</label>
+                    <input type="text" className="tdb-search-input" style={{ borderRadius: '8px', height: '36px' }} value={qTopic} onChange={e => setQTopic(e.target.value)} placeholder="Tích phân" required />
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <label style={{ fontSize: '11.5px', fontWeight: 'bold' }}>Độ khó:</label>
+                    <select className="tdb-search-input" style={{ borderRadius: '8px', height: '36px' }} value={qDiff} onChange={e => setQDiff(e.target.value)}>
+                      <option value="EASY">Dễ</option>
+                      <option value="MEDIUM">Trung bình</option>
+                      <option value="HARD">Khó</option>
+                    </select>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <label style={{ fontSize: '11.5px', fontWeight: 'bold' }}>Đáp án Đúng:</label>
+                    <select className="tdb-search-input" style={{ borderRadius: '8px', height: '36px' }} value={qCorrect} onChange={e => setQCorrect(e.target.value)}>
+                      <option value="A">A</option>
+                      <option value="B">B</option>
+                      <option value="C">C</option>
+                      <option value="D">D</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <label style={{ fontSize: '11px', fontWeight: 'bold' }}>Đáp án A:</label>
+                    <input type="text" className="tdb-search-input" style={{ borderRadius: '8px', height: '36px' }} value={optA} onChange={e => setOptA(e.target.value)} required />
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <label style={{ fontSize: '11px', fontWeight: 'bold' }}>Đáp án B:</label>
+                    <input type="text" className="tdb-search-input" style={{ borderRadius: '8px', height: '36px' }} value={optB} onChange={e => setOptB(e.target.value)} required />
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <label style={{ fontSize: '11px', fontWeight: 'bold' }}>Đáp án C:</label>
+                    <input type="text" className="tdb-search-input" style={{ borderRadius: '8px', height: '36px' }} value={optC} onChange={e => setOptC(e.target.value)} required />
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <label style={{ fontSize: '11px', fontWeight: 'bold' }}>Đáp án D:</label>
+                    <input type="text" className="tdb-search-input" style={{ borderRadius: '8px', height: '36px' }} value={optD} onChange={e => setOptD(e.target.value)} required />
+                  </div>
+                </div>
+
+                <button type="submit" className="tdb-upgrade-btn" style={{ background: '#6366f1', marginTop: '6px' }}>
+                  📥 Thêm vào ngân hàng đề
+                </button>
+              </form>
+
+              <div style={{ borderTop: '1px solid #fcd34d', marginTop: '16px', paddingTop: '16px' }}>
+                <h4 style={{ fontSize: '13px', fontWeight: 700, marginBottom: '8px' }}>🚀 Nhập đề từ Excel / CSV</h4>
+                <button 
+                  onClick={handleExcelImport}
+                  disabled={excelImporting}
+                  className="tdb-upgrade-btn"
+                  style={{ background: '#f8fafc', color: '#0f172a', border: '1px solid #cbd5e1', boxShadow: 'none' }}
+                >
+                  <HiUpload /> {excelImporting ? `Đang xử lý ${importProgress}%...` : 'Upload File Excel (.xlsx, .csv)'}
+                </button>
+              </div>
+            </div>
+
+            <div className="tdb-card">
+              <h3 className="tdb-card-title" style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: '14px', marginBottom: '10px' }}>
+                📂 Danh sách câu hỏi ({filteredQuestions.length})
+              </h3>
+              
+              <div style={{ display: 'flex', gap: '8px', marginBottom: '14px', flexWrap: 'wrap' }}>
+                <input 
+                  type="text" 
+                  className="tdb-search-input" 
+                  placeholder="Tìm nhanh..." 
+                  style={{ flex: 1, borderRadius: '8px' }}
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                />
+                <select className="tdb-search-input" style={{ width: '110px', borderRadius: '8px' }} value={filterSubject} onChange={e => setFilterSubject(e.target.value)}>
+                  <option value="All">Tất cả môn</option>
+                  <option value="Toán học">Toán học</option>
+                  <option value="Vật lý">Vật lý</option>
+                  <option value="Hóa học">Hóa học</option>
+                  <option value="Tiếng Anh">Tiếng Anh</option>
+                </select>
+                <select className="tdb-search-input" style={{ width: '100px', borderRadius: '8px' }} value={filterDifficulty} onChange={e => setFilterDifficulty(e.target.value)}>
+                  <option value="All">Mọi độ khó</option>
+                  <option value="EASY">Dễ</option>
+                  <option value="MEDIUM">Trung bình</option>
+                  <option value="HARD">Khó</option>
+                </select>
+              </div>
+
+              <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '420px' }}>
+                {filteredQuestions.map(q => (
+                  <div key={q.id} style={{ padding: '12px', border: '1px solid #e2e8f0', borderRadius: '12px', background: '#f8fafc' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10.5px', color: '#64748b', fontWeight: 'bold', marginBottom: '6px' }}>
+                      <span>#{q.id} • {q.subject} • Chuyên đề: {q.topic}</span>
+                      <span style={{ 
+                        color: q.difficulty === 'EASY' ? '#10b981' : (q.difficulty === 'MEDIUM' ? '#f59e0b' : '#ef4444')
+                      }}>
+                        {q.difficulty}
+                      </span>
+                    </div>
+                    <p style={{ fontSize: '13px', fontWeight: '700', margin: '0 0 8px 0', color: '#0f172a' }}>{q.content || q.question}</p>
+                    
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px', fontSize: '11.5px', color: '#475569', marginBottom: '8px' }}>
+                      {q.options?.map((opt, i) => (
+                        <div key={i} style={{ fontWeight: q.correctAnswer === opt.key ? 'bold' : 'normal', color: q.correctAnswer === opt.key ? '#10b981' : 'inherit' }}>
+                          {opt.key}. {opt.value}
                         </div>
                       ))}
                     </div>
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #e2e8f0', paddingTop: '6px', fontSize: '11px', fontWeight: '600' }}>
+                      <span style={{ color: '#2563eb' }}>📊 Tỷ lệ làm đúng: {q.successRate || '78%'}</span>
+                      <button 
+                        onClick={() => {
+                          setQuestionBank(questionBank.filter(item => item.id !== q.id));
+                          toast('Đã xóa câu hỏi khỏi ngân hàng đề!', 'info');
+                        }}
+                        style={{ border: 'none', background: 'none', color: '#ef4444', cursor: 'pointer', fontWeight: 'bold' }}
+                      >
+                        Xóa câu hỏi
+                      </button>
+                    </div>
                   </div>
-                );
-              })()
-            ) : (
-              <div style={{ fontSize: '13px', color: '#6B7280', padding: '30px', textAlign: 'center' }}>
-                💡 Hãy chọn một khóa học ở cột bên trái để quản lý và thay đổi thứ tự các bài giảng học tập.
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ================= TAB 4: EXAMS ================= */}
+        {localTab === 'exams' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', textAlign: 'left' }}>
+            <div style={{ display: 'flex', gap: '12px', borderBottom: '1px solid #e2e8f0', paddingBottom: '12px' }}>
+              {[
+                { id: 'list', name: '📋 Danh sách đề thi' },
+                { id: 'build', name: '🛠️ Soạn & Upload đề thi' },
+                { id: 'moderate', name: '⚖️ Kiểm duyệt đề thi (' + exams.filter(e => e.status === 'pending').length + ')' }
+              ].map(sub => (
+                <button
+                  key={sub.id}
+                  onClick={() => setExamSubTab(sub.id)}
+                  className="tdb-upgrade-btn"
+                  style={{
+                    width: 'auto',
+                    padding: '8px 16px',
+                    background: examSubTab === sub.id ? '#6366f1' : '#ffffff',
+                    color: examSubTab === sub.id ? '#ffffff' : '#6366f1',
+                    border: '1px solid #6366f1',
+                    boxShadow: 'none'
+                  }}
+                >
+                  {sub.name}
+                </button>
+              ))}
+            </div>
+
+            {/* Subtab 1: List */}
+            {examSubTab === 'list' && (
+              <div className="tdb-card">
+                <h3 className="tdb-card-title" style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: '14px', marginBottom: '10px' }}>
+                  📋 Danh sách đề thi hệ thống
+                </h3>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '16px' }}>
+                  {exams.map((ex) => (
+                    <div key={ex.id} style={{ padding: '14px', border: '1px solid #e2e8f0', borderRadius: '16px', background: '#f8fafc', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                      <div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '6px' }}>
+                          <h4 style={{ fontSize: '13.5px', fontWeight: '800', margin: 0, color: '#0f172a' }}>{ex.title}</h4>
+                          <span className="tdb-exam-pill" style={{ fontSize: '9px' }}>{ex.subject}</span>
+                        </div>
+                        <div style={{ display: 'flex', gap: '6px', marginBottom: '10px' }}>
+                          <span style={{ fontSize: '10px', fontWeight: 'bold', borderRadius: '6px', padding: '2px 6px', background: ex.status === 'pending' ? '#fef3c7' : '#d1fae5', color: ex.status === 'pending' ? '#d97706' : '#059669' }}>
+                            {ex.status === 'pending' ? '⏱️ CHỜ DUYỆT' : '✓ ĐÃ PHÁT HÀNH'}
+                          </span>
+                          {ex.grade && (
+                            <span style={{ fontSize: '10px', fontWeight: 'bold', borderRadius: '6px', padding: '2px 6px', background: '#e0e7ff', color: '#4f46e5' }}>
+                              Lớp {ex.grade}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px', background: '#fff', padding: '8px', border: '1px solid #e2e8f0', borderRadius: '12px', fontSize: '10px', fontWeight: '600', textAlign: 'center' }}>
+                        <div>
+                          <div style={{ color: '#64748b' }}>Câu hỏi</div>
+                          <div style={{ fontSize: '12px', color: '#0f172a', fontWeight: 'bold' }}>{ex.questionCount}</div>
+                        </div>
+                        <div>
+                          <div style={{ color: '#64748b' }}>Lượt thi</div>
+                          <div style={{ fontSize: '12px', color: '#2563eb', fontWeight: 'bold' }}>{ex.attempts}</div>
+                        </div>
+                        <div>
+                          <div style={{ color: '#64748b' }}>T.Bình</div>
+                          <div style={{ fontSize: '12px', color: '#f59e0b', fontWeight: 'bold' }}>{ex.avgScore ? `${ex.avgScore}đ` : '---'}</div>
+                        </div>
+                        <div>
+                          <div style={{ color: '#64748b' }}>Cao nhất</div>
+                          <div style={{ fontSize: '12px', color: '#10b981', fontWeight: 'bold' }}>{ex.maxScore ? `${ex.maxScore}đ` : '---'}</div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
-          </div>
-        </div>
-      )}
 
-      {/* ================= TAB 3: QUESTION BANK ================= */}
-      {localTab === 'questions' && (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: '24px', textAlign: 'left' }}>
-          {/* Question Maker form */}
-          <div style={{ border: '3.5px solid #000', borderRadius: '16px', padding: '20px', background: '#FFFBEB', boxShadow: '5px 5px 0 #000' }}>
-            <h3 style={{ fontSize: '15px', fontWeight: '950', textTransform: 'uppercase', marginBottom: '14px', borderBottom: '2.5px solid #000', paddingBottom: '8px' }}>
-              ➕ Thêm câu hỏi vào ngân hàng
-            </h3>
-            <form onSubmit={handleAddQuestionLocal} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <div className="form-group">
-                <label style={{ fontSize: '11px', fontWeight: '900' }}>Nội dung câu hỏi:</label>
-                <textarea 
-                  className="form-control" 
-                  rows="2" 
-                  style={{ border: '2px solid #000', borderRadius: '8px' }}
-                  value={qText}
-                  onChange={e => setQText(e.target.value)}
-                  placeholder="Ví dụ: Tính đạo hàm của y = tan(x)..." 
-                  required 
-                />
-              </div>
+            {/* Subtab 2: Build & Import */}
+            {examSubTab === 'build' && (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+                <div className="tdb-card" style={{ background: '#f5f3ff' }}>
+                  <h3 className="tdb-card-title" style={{ borderBottom: '1px solid #ddd6fe', paddingBottom: '14px', marginBottom: '10px' }}>
+                    🛠️ Soạn đề kiểm tra mới
+                  </h3>
+                  <form onSubmit={handleBuildExam} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <label style={{ fontSize: '11.5px', fontWeight: 'bold' }}>Tiêu đề đề thi:</label>
+                      <input 
+                        type="text" 
+                        className="tdb-search-input" 
+                        value={examTitle}
+                        onChange={e => setExamTitle(e.target.value)}
+                        placeholder="Ví dụ: Đề khảo sát chất lượng tháng 6" 
+                        required 
+                      />
+                    </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                <div className="form-group">
-                  <label style={{ fontSize: '11px', fontWeight: '900' }}>Môn học:</label>
-                  <select className="form-control" style={{ border: '2px solid #000', borderRadius: '8px' }} value={qSubject} onChange={e => setQSubject(e.target.value)}>
-                    <option value="Toán học">Toán học</option>
-                    <option value="Vật lý">Vật lý</option>
-                    <option value="Hóa học">Hóa học</option>
-                    <option value="Tiếng Anh">Tiếng Anh</option>
-                  </select>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <label style={{ fontSize: '11.5px', fontWeight: 'bold' }}>Bộ môn:</label>
+                        <select className="tdb-search-input" value={examSubject} onChange={e => setExamSubject(e.target.value)}>
+                          <option value="Toán học">Toán học</option>
+                          <option value="Vật lý">Vật lý</option>
+                          <option value="Hóa học">Hóa học</option>
+                          <option value="Tiếng Anh">Tiếng Anh</option>
+                        </select>
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <label style={{ fontSize: '11.5px', fontWeight: 'bold' }}>Thời gian (Phút):</label>
+                        <input type="number" className="tdb-search-input" value={examDuration} onChange={e => setExamDuration(e.target.value)} required />
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <label style={{ fontSize: '11.5px', fontWeight: 'bold' }}>Khối lớp:</label>
+                        <select className="tdb-search-input" value={examGrade} onChange={e => setExamGrade(e.target.value)}>
+                          <option value="10">Lớp 10</option>
+                          <option value="11">Lớp 11</option>
+                          <option value="12">Lớp 12</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label style={{ fontSize: '11.5px', fontWeight: 'bold', display: 'block', marginBottom: '6px' }}>
+                        Chọn câu hỏi từ ngân hàng ({selectedQuestions.length} đã chọn):
+                      </label>
+                      <div style={{ border: '1px solid #cbd5e1', borderRadius: '10px', background: '#fff', maxHeight: '180px', overflowY: 'auto', padding: '10px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        {questionBank.map(q => (
+                          <label key={q.id} style={{ display: 'flex', gap: '8px', alignItems: 'center', cursor: 'pointer', fontSize: '12px' }}>
+                            <input 
+                              type="checkbox" 
+                              checked={selectedQuestions.includes(q.id)}
+                              onChange={() => handleToggleQuestionSelect(q.id)}
+                            />
+                            <span><strong>#{q.id}</strong> ({q.subject}): {q.content || q.question}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+
+                    <button type="submit" className="tdb-upgrade-btn" style={{ background: '#6366f1' }}>
+                      🎉 Phát hành đề thi thử
+                    </button>
+                  </form>
                 </div>
-                <div className="form-group">
-                  <label style={{ fontSize: '11px', fontWeight: '900' }}>Chương/Chuyên đề:</label>
-                  <input type="text" className="form-control" style={{ border: '2px solid #000', borderRadius: '8px' }} value={qTopic} onChange={e => setQTopic(e.target.value)} placeholder="Tích phân" required />
-                </div>
-              </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                <div className="form-group">
-                  <label style={{ fontSize: '11px', fontWeight: '900' }}>Độ khó:</label>
-                  <select className="form-control" style={{ border: '2px solid #000', borderRadius: '8px' }} value={qDiff} onChange={e => setQDiff(e.target.value)}>
-                    <option value="EASY">Dễ</option>
-                    <option value="MEDIUM">Trung bình</option>
-                    <option value="HARD">Khó</option>
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label style={{ fontSize: '11px', fontWeight: '900' }}>Đáp án Đúng:</label>
-                  <select className="form-control" style={{ border: '2px solid #000', borderRadius: '8px' }} value={qCorrect} onChange={e => setQCorrect(e.target.value)}>
-                    <option value="A">A</option>
-                    <option value="B">B</option>
-                    <option value="C">C</option>
-                    <option value="D">D</option>
-                  </select>
-                </div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                <div className="form-group">
-                  <label style={{ fontSize: '10px', fontWeight: '800' }}>Đáp án A:</label>
-                  <input type="text" className="form-control" style={{ border: '2px solid #000', borderRadius: '8px' }} value={optA} onChange={e => setOptA(e.target.value)} required />
-                </div>
-                <div className="form-group">
-                  <label style={{ fontSize: '10px', fontWeight: '800' }}>Đáp án B:</label>
-                  <input type="text" className="form-control" style={{ border: '2px solid #000', borderRadius: '8px' }} value={optB} onChange={e => setOptB(e.target.value)} required />
-                </div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                <div className="form-group">
-                  <label style={{ fontSize: '10px', fontWeight: '800' }}>Đáp án C:</label>
-                  <input type="text" className="form-control" style={{ border: '2px solid #000', borderRadius: '8px' }} value={optC} onChange={e => setOptC(e.target.value)} required />
-                </div>
-                <div className="form-group">
-                  <label style={{ fontSize: '10px', fontWeight: '800' }}>Đáp án D:</label>
-                  <input type="text" className="form-control" style={{ border: '2px solid #000', borderRadius: '8px' }} value={optD} onChange={e => setOptD(e.target.value)} required />
-                </div>
-              </div>
-
-              <button type="submit" className="lp-btn--accent" style={{ padding: '10px', fontSize: '13px', borderRadius: '8px', border: '2.5px solid #000', fontWeight: '900', marginTop: '6px' }}>
-                📥 Thêm vào ngân hàng đề
-              </button>
-            </form>
-
-            {/* Excel Importer */}
-            <div style={{ borderTop: '2.5px dashed #000', marginTop: '16px', paddingTop: '16px' }}>
-              <h4 style={{ fontSize: '13px', fontWeight: '950', textTransform: 'uppercase', marginBottom: '8px' }}>🚀 Nhập đề từ Excel / CSV</h4>
-              <button 
-                onClick={handleExcelImport}
-                disabled={excelImporting}
-                style={{ 
-                  width: '100%', padding: '12px', border: '2.5px solid #000', borderRadius: '10px', background: '#F8FAFC',
-                  fontWeight: '900', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-                  boxShadow: '2.5px 2.5px 0 #000'
-                }}
-              >
-                <HiUpload /> {excelImporting ? `Đang xử lý ${importProgress}%...` : 'Upload File Excel (.xlsx, .csv)'}
-              </button>
-            </div>
-          </div>
-
-          {/* Question Directory list */}
-          <div style={{ border: '3.5px solid #000', borderRadius: '16px', padding: '20px', background: '#fff', boxShadow: '5px 5px 0 #000', display: 'flex', flexDirection: 'column' }}>
-            <h3 style={{ fontSize: '15px', fontWeight: '950', textTransform: 'uppercase', marginBottom: '14px', borderBottom: '2.5px solid #000', paddingBottom: '8px' }}>
-              📂 Danh sách câu hỏi ({filteredQuestions.length})
-            </h3>
-            
-            {/* Search/Filters */}
-            <div style={{ display: 'flex', gap: '8px', marginBottom: '14px', flexWrap: 'wrap' }}>
-              <input 
-                type="text" 
-                className="form-control" 
-                placeholder="Tìm nhanh..." 
-                style={{ flex: 1, border: '2px solid #000', borderRadius: '8px', padding: '8px' }}
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-              />
-              <select className="form-control" style={{ width: '110px', border: '2px solid #000', borderRadius: '8px' }} value={filterSubject} onChange={e => setFilterSubject(e.target.value)}>
-                <option value="All">Tất cả môn</option>
-                <option value="Toán học">Toán học</option>
-                <option value="Vật lý">Vật lý</option>
-                <option value="Hóa học">Hóa học</option>
-                <option value="Tiếng Anh">Tiếng Anh</option>
-              </select>
-              <select className="form-control" style={{ width: '100px', border: '2px solid #000', borderRadius: '8px' }} value={filterDifficulty} onChange={e => setFilterDifficulty(e.target.value)}>
-                <option value="All">Mọi độ khó</option>
-                <option value="EASY">Dễ</option>
-                <option value="MEDIUM">Trung bình</option>
-                <option value="HARD">Khó</option>
-              </select>
-            </div>
-
-            {/* List */}
-            <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '450px' }}>
-              {filteredQuestions.map(q => (
-                <div key={q.id} style={{ padding: '12px', border: '2px solid #000', borderRadius: '10px', background: '#F8FAFC' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10.5px', color: '#6B7280', fontWeight: '800', marginBottom: '6px' }}>
-                    <span>#{q.id} • {q.subject} • Chuyên đề: {q.topic}</span>
-                    <span style={{ 
-                      color: q.difficulty === 'EASY' ? '#059669' : (q.difficulty === 'MEDIUM' ? '#D97706' : '#DC2626'),
-                      fontWeight: '950'
-                    }}>
-                      {q.difficulty}
-                    </span>
-                  </div>
-                  <p style={{ fontSize: '13px', fontWeight: '900', margin: '0 0 8px 0' }}>{q.content || q.question}</p>
+                <div className="tdb-card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
+                  <span style={{ fontSize: '48px' }}>📄</span>
+                  <h3 style={{ fontSize: '16px', fontWeight: 800, margin: '16px 0 8px 0', color: '#0f172a' }}>
+                    Upload đề thi từ File .json
+                  </h3>
+                  <p style={{ fontSize: '13px', color: '#64748b', margin: '0 0 20px 0', maxWidth: '340px', textAlign: 'center', lineHeight: 1.5 }}>
+                    Nhập đề thi trắc nghiệm đầy đủ (kèm đáp án, giải thích chi tiết, âm thanh ngoại ngữ và hình ảnh) nhanh chóng bằng file cấu trúc chuẩn JSON.
+                  </p>
                   
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px', fontSize: '11px', color: '#4B5563', marginBottom: '8px' }}>
-                    {q.options?.map((opt, i) => (
-                      <div key={i} style={{ fontWeight: q.correctAnswer === opt.key ? 'bold' : 'normal', color: q.correctAnswer === opt.key ? '#059669' : 'inherit' }}>
-                        {opt.key}. {opt.value}
+                  <button 
+                    type="button" 
+                    onClick={() => fileInputRef.current?.click()}
+                    className="tdb-upgrade-btn"
+                    style={{ width: 'auto', padding: '12px 28px', background: '#e0f2fe', color: '#0369a1', boxShadow: 'none' }}
+                  >
+                    <HiUpload /> Upload File JSON đề thi
+                  </button>
+                  
+                  <input 
+                    type="file" 
+                    ref={fileInputRef} 
+                    onChange={handleUploadExamJson} 
+                    accept=".json" 
+                    style={{ display: 'none' }} 
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Subtab 3: Moderate */}
+            {examSubTab === 'moderate' && (
+              <div className="tdb-card">
+                <h3 className="tdb-card-title" style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: '14px', marginBottom: '10px' }}>
+                  ⚖️ Đề thi đang chờ kiểm duyệt & xuất bản
+                </h3>
+                {exams.filter(e => e.status === 'pending').length > 0 ? (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '16px' }}>
+                    {exams.filter(e => e.status === 'pending').map((ex) => (
+                      <div key={ex.id} style={{ padding: '16px', border: '1px solid #cbd5e1', borderRadius: '16px', background: '#FFFDF5', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                        <div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                            <h4 style={{ fontSize: '14px', fontWeight: '800', margin: 0, color: '#0f172a' }}>{ex.title}</h4>
+                            <span className="tdb-exam-pill" style={{ fontSize: '9px' }}>{ex.subject}</span>
+                          </div>
+                          <div style={{ display: 'flex', gap: '6px', marginBottom: '12px', fontSize: '11.5px', fontWeight: '600', color: '#64748b' }}>
+                            <span>Số câu hỏi: <strong>{ex.questionCount} câu</strong></span>
+                            <span>•</span>
+                            <span>Thời gian: <strong>{ex.duration} phút</strong></span>
+                            {ex.grade && (
+                              <>
+                                <span>•</span>
+                                <span style={{ color: '#4f46e5' }}>Lớp {ex.grade}</span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                        
+                        <div style={{ display: 'flex', gap: '8px', borderTop: '1px dashed #cbd5e1', paddingTop: '12px', marginTop: '10px' }}>
+                          <button 
+                            onClick={() => handleApproveExam(ex.id)}
+                            className="tdb-upgrade-btn"
+                            style={{ flex: 1, background: '#d1fae5', color: '#065f46', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', boxShadow: 'none' }}
+                          >
+                            <HiCheck /> Duyệt đề thi
+                          </button>
+                          <button 
+                            onClick={() => {
+                              setExams(exams.filter(e => e.id !== ex.id));
+                              toast('Đã từ chối và xóa đề thi khỏi hàng đợi kiểm duyệt.', 'info');
+                            }}
+                            className="tdb-upgrade-btn"
+                            style={{ width: 'auto', padding: '8px 12px', background: '#fee2e2', color: '#b91c1c', boxShadow: 'none' }}
+                          >
+                            Từ chối
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>
-
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #E2E8F0', paddingTop: '6px', fontSize: '11px', fontWeight: '800', color: '#374151' }}>
-                    <span style={{ color: '#2563EB' }}>📊 Tỷ lệ làm đúng: {q.successRate || '78%'}</span>
-                    <button 
-                      onClick={() => {
-                        setQuestionBank(questionBank.filter(item => item.id !== q.id));
-                        toast('Đã xóa câu hỏi khỏi ngân hàng đề!', 'info');
-                      }}
-                      style={{ border: 'none', background: 'none', color: '#EF4444', cursor: 'pointer' }}
-                    >
-                      Xóa câu hỏi
-                    </button>
+                ) : (
+                  <div style={{ padding: '40px', textAlign: 'center', color: '#64748b', fontSize: '13.5px' }}>
+                    🎉 Không có đề thi nào đang chờ phê duyệt. Tất cả các đề đã được kiểm duyệt!
                   </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ================= TAB 5: STUDENTS ================= */}
+        {localTab === 'students' && (
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: '24px', textAlign: 'left' }}>
+            <div className="tdb-card">
+              <h3 className="tdb-card-title" style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: '14px', marginBottom: '10px' }}>
+                👥 Danh sách học viên lớp học
+              </h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {students.map(st => (
+                  <div 
+                    key={st.id}
+                    onClick={() => setSelectedStudentId(st.id)}
+                    style={{ 
+                      padding: '12px', border: '1px solid #e2e8f0', borderRadius: '12px', cursor: 'pointer',
+                      background: selectedStudentId === st.id ? '#d1fae5' : '#f8fafc',
+                      display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+                    }}
+                  >
+                    <div>
+                      <h4 style={{ fontSize: '13.5px', fontWeight: '800', margin: '0 0 2px 0', color: '#0f172a' }}>{st.name}</h4>
+                      <span style={{ fontSize: '11px', color: '#64748b', fontWeight: '600' }}>Lớp: {st.grade} • Lượt kiểm tra: {st.attempts} bài</span>
+                    </div>
+                    <span style={{ 
+                      fontSize: '11px', fontWeight: '700', borderRadius: '20px', padding: '2px 8px',
+                      background: st.status === 'Xuất sắc' || st.status === 'Chăm chỉ' ? '#d1fae5' : '#fef3c7',
+                      color: st.status === 'Xuất sắc' || st.status === 'Chăm chỉ' ? '#065f46' : '#d97706'
+                    }}>
+                      {st.status}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="tdb-card" style={{ background: '#ecfdf5' }}>
+              <h3 className="tdb-card-title" style={{ borderBottom: '1px solid #a7f3d0', paddingBottom: '14px', marginBottom: '10px' }}>
+                🔬 Phân tích tiến độ chi tiết
+              </h3>
+              
+              {selectedStudentId ? (
+                (() => {
+                  const st = students.find(s => s.id === selectedStudentId);
+                  return (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <h4 style={{ fontSize: '16px', fontWeight: '800', color: '#065f46' }}>{st.name}</h4>
+                        <strong style={{ fontSize: '13px', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '4px 8px', background: '#fff', color: '#0f172a' }}>🔥 Streak: {st.streak} ngày</strong>
+                      </div>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                        <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '12px' }}>
+                          <div style={{ fontSize: '10px', color: '#64748b', fontWeight: 'bold' }}>ĐIỂM TRUNG BÌNH</div>
+                          <div style={{ fontSize: '22px', fontWeight: '800', color: '#059669' }}>{st.avgScore} / 10đ</div>
+                        </div>
+                        <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '12px' }}>
+                          <div style={{ fontSize: '10px', color: '#64748b', fontWeight: 'bold' }}>XẾP HẠNG LỚP</div>
+                          <div style={{ fontSize: '22px', fontWeight: '800', color: '#2563eb' }}>Top 5</div>
+                        </div>
+                      </div>
+
+                      <div>
+                        <h5 style={{ fontSize: '12.5px', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '6px', color: '#0f172a' }}>📚 Kiến thức cần bồi dưỡng thêm:</h5>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                          {st.weakness.map((w, idx) => (
+                            <span key={idx} style={{ background: '#fee2e2', color: '#b91c1c', border: '1px solid #fca5a5', padding: '4px 10px', borderRadius: '8px', fontSize: '11px', fontWeight: '700' }}>
+                              ⚠️ {w}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div>
+                        <h5 style={{ fontSize: '12.5px', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '6px', color: '#0f172a' }}>⏱ Nhật ký học tập gần nhất:</h5>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '12px', color: '#334155', background: '#fff', padding: '12px', border: '1px solid #e2e8f0', borderRadius: '12px' }}>
+                          <div>• Đã hoàn thành Đề ôn tập Giải tích 12: <strong>8.8 điểm</strong></div>
+                          <div>• Luyện 15 câu trắc nghiệm Tích phân phân thức</div>
+                          <div>• Đọc tài liệu bài giảng Dao động tắt dần</div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()
+              ) : (
+                <div style={{ fontSize: '13.5px', color: '#64748b', padding: '30px', textAlign: 'center' }}>
+                  💡 Chọn một học viên ở cột bên trái để hiển thị thông tin phân tích học tập chi tiết và lịch sử làm đề của họ.
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ================= TAB 6: REVENUE ================= */}
+        {localTab === 'revenue' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', textAlign: 'left' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+              {[
+                { title: 'Doanh thu phát sinh', val: revenueSummary.grossEarnings, desc: 'Tổng học viên thanh toán khóa học', bg: '#ffffff' },
+                { title: 'Hoa hồng thụ hưởng (80%)', val: revenueSummary.netEarnings, desc: 'Lợi nhuận thực tế sau chiết khấu', bg: '#ecfdf5' },
+                { title: 'Tỷ lệ thụ hưởng', val: revenueSummary.payoutRate, desc: 'Cấu hình chiết khấu của giáo viên', bg: '#fffbeb' },
+                { title: 'Số dư chờ thanh toán', val: revenueSummary.pendingPayout, desc: 'Kỳ thanh toán tiếp theo: ' + revenueSummary.nextPayoutDate, bg: '#eff6ff' }
+              ].map((box, i) => (
+                <div key={i} style={{ background: box.bg, border: '1px solid #e2e8f0', borderRadius: '16px', padding: '18px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.01)' }}>
+                  <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#64748b', textTransform: 'uppercase', marginBottom: '4px' }}>{box.title}</div>
+                  <div style={{ fontSize: '24px', fontWeight: '800', color: '#0f172a', marginBottom: '4px' }}>{box.val}</div>
+                  <div style={{ fontSize: '11px', color: '#64748b', fontWeight: '500' }}>{box.desc}</div>
                 </div>
               ))}
             </div>
-          </div>
-        </div>
-      )}
 
-      {/* ================= TAB 4: EXAMS ================= */}
-      {localTab === 'exams' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', textAlign: 'left' }}>
-          {/* Exams inner subtabs */}
-          <div style={{ display: 'flex', gap: '12px', borderBottom: '2.5px solid #000', paddingBottom: '12px' }}>
-            {[
-              { id: 'list', name: '📋 Danh sách đề thi' },
-              { id: 'build', name: '🛠️ Soạn & Upload đề thi' },
-              { id: 'moderate', name: '⚖️ Kiểm duyệt đề thi (' + exams.filter(e => e.status === 'pending').length + ')' }
-            ].map(sub => (
-              <button
-                key={sub.id}
-                onClick={() => setExamSubTab(sub.id)}
-                style={{
-                  padding: '8px 16px',
-                  border: '2px solid #000',
-                  borderRadius: '10px',
-                  fontSize: '12.5px',
-                  fontWeight: '800',
-                  cursor: 'pointer',
-                  background: examSubTab === sub.id ? '#000' : '#fff',
-                  color: examSubTab === sub.id ? '#fff' : '#000',
-                  boxShadow: examSubTab === sub.id ? 'none' : '2px 2px 0px #000',
-                  transform: examSubTab === sub.id ? 'translate(1px, 1px)' : 'none',
-                  transition: 'all 0.1s'
-                }}
-              >
-                {sub.name}
-              </button>
-            ))}
-          </div>
+            <div className="tdb-card">
+              <div className="tdb-card-title-row" style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: '14px', marginBottom: '10px' }}>
+                <h3 className="tdb-card-title">🧾 Nhật ký giao dịch mua khóa học</h3>
+                <button 
+                  onClick={() => {
+                    toast('Đang khởi tạo tải xuống file CSV giao dịch...', 'info');
+                    setTimeout(() => {
+                      toast('Đã tải xuống file báo cáo doanh thu thành công!', 'success');
+                    }, 800);
+                  }}
+                  className="tdb-upgrade-btn"
+                  style={{ width: 'auto', padding: '6px 12px', background: '#ffffff', color: '#6366f1', border: '1px solid #6366f1', boxShadow: 'none' }}
+                >
+                  <HiDownload /> Xuất báo cáo doanh thu (CSV)
+                </button>
+              </div>
 
-          {/* Subtab 1: List */}
-          {examSubTab === 'list' && (
-            <div style={{ border: '3.5px solid #000', borderRadius: '16px', padding: '20px', background: '#fff', boxShadow: '5px 5px 0 #000' }}>
-              <h3 style={{ fontSize: '15px', fontWeight: '950', textTransform: 'uppercase', marginBottom: '14px', borderBottom: '2.5px solid #000', paddingBottom: '8px' }}>
-                📋 Danh sách đề thi hệ thống
-              </h3>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '16px' }}>
-                {exams.map((ex) => (
-                  <div key={ex.id} style={{ padding: '14px', border: '2.5px solid #000', borderRadius: '12px', background: '#F8FAFC', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                    <div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '6px' }}>
-                        <h4 style={{ fontSize: '13.5px', fontWeight: '900', margin: 0 }}>{ex.title}</h4>
-                        <span className="lp-course-subject-badge" style={{ fontSize: '9px' }}>{ex.subject}</span>
-                      </div>
-                      <div style={{ display: 'flex', gap: '6px', marginBottom: '10px' }}>
-                        <span style={{ fontSize: '10px', fontWeight: 'bold', border: '1.5px solid #000', borderRadius: '6px', padding: '2px 6px', background: ex.status === 'pending' ? '#FEF3C7' : '#D1FAE5', color: ex.status === 'pending' ? '#D97706' : '#059669' }}>
-                          {ex.status === 'pending' ? '⏱️ CHỜ DUYỆT' : '✓ ĐÃ PHÁT HÀNH'}
-                        </span>
-                        {ex.grade && (
-                          <span style={{ fontSize: '10px', fontWeight: 'bold', border: '1.5px solid #000', borderRadius: '6px', padding: '2px 6px', background: '#EEF2FF', color: '#4F46E5' }}>
-                            Lớp {ex.grade}
-                          </span>
-                        )}
-                      </div>
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13.5px' }}>
+                  <thead>
+                    <tr style={{ background: '#f8fafc', textAlign: 'left', borderBottom: '2px solid #e2e8f0' }}>
+                      <th style={{ padding: '12px' }}>Mã hóa đơn</th>
+                      <th style={{ padding: '12px' }}>Học viên</th>
+                      <th style={{ padding: '12px' }}>Tên khóa học</th>
+                      <th style={{ padding: '12px' }}>Ngày giao dịch</th>
+                      <th style={{ padding: '12px' }}>Học phí</th>
+                      <th style={{ padding: '12px' }}>Trích hoa hồng</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {invoices.map(inv => (
+                      <tr key={inv.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                        <td style={{ padding: '12px', fontWeight: 'bold', color: '#0f172a' }}>{inv.id}</td>
+                        <td style={{ padding: '12px', fontWeight: '700', color: '#334155' }}>{inv.studentName}</td>
+                        <td style={{ padding: '12px', textAlign: 'left' }}>{inv.courseName}</td>
+                        <td style={{ padding: '12px', color: '#64748b' }}>{inv.date}</td>
+                        <td style={{ padding: '12px', fontWeight: 'bold', color: '#059669' }}>{inv.amount}</td>
+                        <td style={{ padding: '12px', fontWeight: 'bold', color: '#6366f1' }}>{inv.commission}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ================= NEW TAB: MATERIALS ================= */}
+        {localTab === 'materials' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', textAlign: 'left' }}>
+            <div className="tdb-card">
+              <div className="tdb-card-title-row" style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: '14px', marginBottom: '10px' }}>
+                <h3 className="tdb-card-title">📚 Kho tài liệu giảng dạy của tôi</h3>
+                <form onSubmit={handleUploadMaterial} style={{ display: 'flex', gap: '10px' }}>
+                  <button type="submit" className="tdb-upgrade-btn" style={{ width: 'auto', background: '#6366f1' }}>
+                    + Tải lên tài liệu mới
+                  </button>
+                </form>
+              </div>
+
+              <div style={{ display: 'flex', gap: '12px', margin: '10px 0 14px 0' }}>
+                <div className="tdb-search-wrap" style={{ width: '100%', maxWidth: '400px' }}>
+                  <span className="tdb-search-icon"><HiSearch /></span>
+                  <input 
+                    type="text" 
+                    placeholder="Tìm kiếm tài liệu..." 
+                    className="tdb-search-input" 
+                    value={materialSearch}
+                    onChange={e => setMaterialSearch(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="tdb-material-list" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                {teacherMaterials.filter(m => m.name.toLowerCase().includes(materialSearch.toLowerCase())).map(m => (
+                  <div key={m.id} className="tdb-material-item" style={{ padding: '16px', border: '1px solid #e2e8f0', borderRadius: '16px' }}>
+                    <span className={`tdb-material-icon ${m.type}`} style={{ width: '42px', height: '42px', fontSize: '12px' }}>{m.type.toUpperCase()}</span>
+                    <div className="tdb-material-info" style={{ padding: '0 16px' }}>
+                      <h5 className="tdb-material-name" style={{ fontSize: '14px' }}>{m.name}</h5>
+                      <span className="tdb-material-meta">{m.size} • Đăng ngày {m.date}</span>
                     </div>
-                    
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px', background: '#fff', padding: '8px', border: '1.5px solid #000', borderRadius: '8px', fontSize: '10px', fontWeight: '800', textAlign: 'center' }}>
-                      <div>
-                        <div style={{ color: '#6B7280' }}>Câu hỏi</div>
-                        <div style={{ fontSize: '12px', color: '#000' }}>{ex.questionCount}</div>
-                      </div>
-                      <div>
-                        <div style={{ color: '#6B7280' }}>Lượt thi</div>
-                        <div style={{ fontSize: '12px', color: '#2563EB' }}>{ex.attempts}</div>
-                      </div>
-                      <div>
-                        <div style={{ color: '#6B7280' }}>T.Bình</div>
-                        <div style={{ fontSize: '12px', color: '#D97706' }}>{ex.avgScore ? `${ex.avgScore}đ` : '---'}</div>
-                      </div>
-                      <div>
-                        <div style={{ color: '#6B7280' }}>Cao nhất</div>
-                        <div style={{ fontSize: '12px', color: '#059669' }}>{ex.maxScore ? `${ex.maxScore}đ` : '---'}</div>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button className="tdb-action-icon-btn" onClick={() => toast('Đang tải tài liệu...', 'success')} title="Tải xuống"><HiDownload /></button>
+                      <button className="tdb-action-icon-btn" onClick={() => {
+                        setTeacherMaterials(teacherMaterials.filter(item => item.id !== m.id));
+                        toast('Đã xóa tài liệu khỏi hệ thống!', 'info');
+                      }} title="Xóa" style={{ color: '#ef4444' }}><HiTrash /></button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ================= NEW TAB: CLASSES ================= */}
+        {localTab === 'classes' && (
+          <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '24px', textAlign: 'left' }}>
+            <div className="tdb-card">
+              <h3 className="tdb-card-title" style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: '14px', marginBottom: '10px' }}>
+                🏫 Danh sách lớp học phụ trách
+              </h3>
+              <div className="tdb-class-list" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                {teacherClasses.map(c => (
+                  <div key={c.id} className="tdb-class-item" style={{ padding: '16px' }}>
+                    <span className={`tdb-class-tag ${c.id === '12A1' ? 'purple' : c.id === '11B2' ? 'blue' : c.id === '10A3' ? 'green' : 'orange'}`}>{c.id}</span>
+                    <div className="tdb-class-info">
+                      <h5 className="tdb-class-name" style={{ fontSize: '15px' }}>{c.name}</h5>
+                      <span className="tdb-class-subtext">Sĩ số: {c.students} học sinh • Điểm trung bình: {c.avgScore}đ • Lịch học: {c.schedule}</span>
+                    </div>
+                    <div className="tdb-class-progress-wrap" style={{ width: '120px' }}>
+                      <span className="tdb-class-progress-pct">Hoàn thành: {c.progress}%</span>
+                      <div className="tdb-class-progress-track">
+                        <div className="tdb-class-progress-bar" style={{ width: `${c.progress}%`, backgroundColor: c.progress >= 70 ? '#10b981' : '#f59e0b' }}></div>
                       </div>
                     </div>
                   </div>
                 ))}
               </div>
             </div>
-          )}
 
-          {/* Subtab 2: Build & Import */}
-          {examSubTab === 'build' && (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
-              <div style={{ border: '3.5px solid #000', borderRadius: '16px', padding: '20px', background: '#F3E8FF', boxShadow: '5px 5px 0 #000' }}>
-                <h3 style={{ fontSize: '15px', fontWeight: '950', textTransform: 'uppercase', marginBottom: '14px', borderBottom: '2.5px solid #000', paddingBottom: '8px' }}>
-                  🛠️ Soạn đề kiểm tra mới
-                </h3>
-                <form onSubmit={handleBuildExam} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                  <div className="form-group">
-                    <label style={{ fontSize: '11.5px', fontWeight: '900' }}>Tiêu đề đề thi:</label>
-                    <input 
-                      type="text" 
-                      className="form-control" 
-                      value={examTitle}
-                      onChange={e => setExamTitle(e.target.value)}
-                      placeholder="Ví dụ: Đề khảo sát chất lượng tháng 6" 
-                      required 
-                    />
-                  </div>
-
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
-                    <div className="form-group">
-                      <label style={{ fontSize: '11.5px', fontWeight: '900' }}>Bộ môn:</label>
-                      <select className="form-control" value={examSubject} onChange={e => setExamSubject(e.target.value)}>
-                        <option value="Toán học">Toán học</option>
-                        <option value="Vật lý">Vật lý</option>
-                        <option value="Hóa học">Hóa học</option>
-                        <option value="Tiếng Anh">Tiếng Anh</option>
-                      </select>
-                    </div>
-                    <div className="form-group">
-                      <label style={{ fontSize: '11.5px', fontWeight: '900' }}>Thời gian (Phút):</label>
-                      <input type="number" className="form-control" value={examDuration} onChange={e => setExamDuration(e.target.value)} required />
-                    </div>
-                    <div className="form-group">
-                      <label style={{ fontSize: '11.5px', fontWeight: '900' }}>Khối lớp:</label>
-                      <select className="form-control" value={examGrade} onChange={e => setExamGrade(e.target.value)}>
-                        <option value="10">Lớp 10</option>
-                        <option value="11">Lớp 11</option>
-                        <option value="12">Lớp 12</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label style={{ fontSize: '11.5px', fontWeight: '900', display: 'block', marginBottom: '6px' }}>
-                      Chọn câu hỏi từ ngân hàng ({selectedQuestions.length} đã chọn):
-                    </label>
-                    <div style={{ border: '2px solid #000', borderRadius: '10px', background: '#fff', maxHeight: '180px', overflowY: 'auto', padding: '10px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      {questionBank.map(q => (
-                        <label key={q.id} style={{ display: 'flex', gap: '8px', alignItems: 'center', cursor: 'pointer', fontSize: '12px' }}>
-                          <input 
-                            type="checkbox" 
-                            checked={selectedQuestions.includes(q.id)}
-                            onChange={() => handleToggleQuestionSelect(q.id)}
-                          />
-                          <span><strong>#{q.id}</strong> ({q.subject}): {q.content || q.question}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-
-                  <button type="submit" className="lp-btn--accent" style={{ padding: '10px', borderRadius: '8px', border: '2.5px solid #000', fontWeight: '900' }}>
-                    🎉 Phát hành đề thi thử
-                  </button>
-                </form>
-              </div>
-
-              <div style={{ border: '3.5px solid #000', borderRadius: '16px', padding: '20px', background: '#FFFBEB', boxShadow: '5px 5px 0 #000', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
-                <span style={{ fontSize: '48px' }}>📄</span>
-                <h3 style={{ fontSize: '16px', fontWeight: '950', textTransform: 'uppercase', margin: '16px 0 8px 0' }}>
-                  Upload đề thi từ File .json
-                </h3>
-                <p style={{ fontSize: '13px', color: '#4B5563', margin: '0 0 20px 0', maxWidth: '340px', textAlign: 'center', lineHeight: 1.5 }}>
-                  Nhập đề thi trắc nghiệm đầy đủ (kèm đáp án, giải thích chi tiết, âm thanh ngoại ngữ và hình ảnh) nhanh chóng bằng file cấu trúc chuẩn JSON.
-                </p>
-                
-                <button 
-                  type="button" 
-                  onClick={() => fileInputRef.current?.click()}
-                  style={{ 
-                    padding: '12px 28px', border: '2.5px solid #000', borderRadius: '12px', background: '#E0F2FE',
-                    fontWeight: '900', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px',
-                    boxShadow: '3px 3px 0 #000', transition: 'all 0.15s'
-                  }}
-                  onMouseEnter={(e) => e.currentTarget.style.transform = 'translate(-1px, -1px)'}
-                  onMouseLeave={(e) => e.currentTarget.style.transform = 'none'}
-                >
-                  <HiUpload /> Upload File JSON đề thi
+            <div className="tdb-card" style={{ background: '#f8fafc' }}>
+              <h3 className="tdb-card-title" style={{ borderBottom: '1px solid #cbd5e1', paddingBottom: '10px' }}>➕ Tạo lớp học mới</h3>
+              <form onSubmit={handleCreateClass} style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginTop: '10px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <label style={{ fontSize: '12px', fontWeight: 'bold' }}>Mã lớp học (Ví dụ: 12A2, 10B5):</label>
+                  <input 
+                    type="text" 
+                    className="tdb-search-input" 
+                    style={{ width: '100%', borderRadius: '10px' }} 
+                    value={newClassId}
+                    onChange={e => setNewClassId(e.target.value)}
+                    placeholder="Nhập mã lớp..."
+                    required
+                  />
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <label style={{ fontSize: '12px', fontWeight: 'bold' }}>Tên môn học & Phân nhóm:</label>
+                  <input 
+                    type="text" 
+                    className="tdb-search-input" 
+                    style={{ width: '100%', borderRadius: '10px' }} 
+                    value={newClassName}
+                    onChange={e => setNewClassName(e.target.value)}
+                    placeholder="Ví dụ: Toán học 12 - Cơ bản..."
+                    required
+                  />
+                </div>
+                <button type="submit" className="tdb-upgrade-btn" style={{ background: '#6366f1', marginTop: '10px' }}>
+                  Xác nhận tạo lớp học
                 </button>
-                
-                <input 
-                  type="file" 
-                  ref={fileInputRef} 
-                  onChange={handleUploadExamJson} 
-                  accept=".json" 
-                  style={{ display: 'none' }} 
-                />
-              </div>
+              </form>
             </div>
-          )}
+          </div>
+        )}
 
-          {/* Subtab 3: Moderate */}
-          {examSubTab === 'moderate' && (
-            <div style={{ border: '3.5px solid #000', borderRadius: '16px', padding: '20px', background: '#fff', boxShadow: '5px 5px 0 #000' }}>
-              <h3 style={{ fontSize: '15px', fontWeight: '950', textTransform: 'uppercase', marginBottom: '14px', borderBottom: '2.5px solid #000', paddingBottom: '8px' }}>
-                ⚖️ Đề thi đang chờ kiểm duyệt & xuất bản
+        {/* ================= NEW TAB: LEADERBOARD ================= */}
+        {localTab === 'leaderboard' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', textAlign: 'left' }}>
+            <div className="tdb-card">
+              <h3 className="tdb-card-title" style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: '14px', marginBottom: '10px' }}>
+                🏆 Bảng xếp hạng giáo viên tích cực tuần này
               </h3>
-              {exams.filter(e => e.status === 'pending').length > 0 ? (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '16px' }}>
-                  {exams.filter(e => e.status === 'pending').map((ex) => (
-                    <div key={ex.id} style={{ padding: '16px', border: '2.5px solid #000', borderRadius: '14px', background: '#FFFDF5', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                      <div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
-                          <h4 style={{ fontSize: '14px', fontWeight: '950', margin: 0 }}>{ex.title}</h4>
-                          <span className="lp-course-subject-badge" style={{ fontSize: '9px' }}>{ex.subject}</span>
-                        </div>
-                        <div style={{ display: 'flex', gap: '6px', marginBottom: '12px', fontSize: '11px', fontWeight: '800', color: '#6B7280' }}>
-                          <span>Số câu hỏi: <strong>{ex.questionCount} câu</strong></span>
-                          <span>•</span>
-                          <span>Thời gian: <strong>{ex.duration} phút</strong></span>
-                          {ex.grade && (
-                            <>
-                              <span>•</span>
-                              <span style={{ color: '#4F46E5' }}>Lớp {ex.grade}</span>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                      
-                      <div style={{ display: 'flex', gap: '8px', borderTop: '1.5px dashed #000', paddingTop: '12px', marginTop: '10px' }}>
-                        <button 
-                          onClick={() => handleApproveExam(ex.id)}
-                          style={{ flex: 1, padding: '8px', border: '2px solid #000', borderRadius: '8px', background: '#ECFDF5', color: '#047857', fontWeight: '900', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}
-                        >
-                          <HiCheck /> Duyệt đề thi
-                        </button>
-                        <button 
-                          onClick={() => {
-                            setExams(exams.filter(e => e.id !== ex.id));
-                            toast('Đã từ chối và xóa đề thi khỏi hàng đợi kiểm duyệt.', 'info');
-                          }}
-                          style={{ padding: '8px 12px', border: '2px solid #000', borderRadius: '8px', background: '#FEE2E2', color: '#B91C1C', fontWeight: '800', cursor: 'pointer' }}
-                        >
-                          Từ chối
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div style={{ padding: '40px', textAlign: 'center', color: '#6B7280', fontSize: '13.5px' }}>
-                  🎉 Không có đề thi nào đang chờ phê duyệt. Tất cả các đề đã được kiểm duyệt!
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* ================= TAB 5: STUDENTS ================= */}
-      {localTab === 'students' && (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: '24px', textAlign: 'left' }}>
-          {/* Students list */}
-          <div style={{ border: '3.5px solid #000', borderRadius: '16px', padding: '20px', background: '#fff', boxShadow: '5px 5px 0 #000' }}>
-            <h3 style={{ fontSize: '15px', fontWeight: '950', textTransform: 'uppercase', marginBottom: '16px', borderBottom: '2.5px solid #000', paddingBottom: '8px' }}>
-              👥 Danh sách học viên lớp học
-            </h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {students.map(st => (
-                <div 
-                  key={st.id}
-                  onClick={() => setSelectedStudentId(st.id)}
-                  style={{ 
-                    padding: '12px', border: '2.5px solid #000', borderRadius: '12px', cursor: 'pointer',
-                    background: selectedStudentId === st.id ? '#D1FAE5' : '#F9FAFB',
-                    display: 'flex', justifyContent: 'space-between', alignItem: 'center'
-                  }}
-                >
-                  <div>
-                    <h4 style={{ fontSize: '13.5px', fontWeight: '950', margin: '0 0 2px 0' }}>{st.name}</h4>
-                    <span style={{ fontSize: '11px', color: '#4B5563', fontWeight: '800' }}>Lớp: {st.grade} • Lượt kiểm tra: {st.attempts} bài</span>
-                  </div>
-                  <span style={{ 
-                    fontSize: '11px', fontWeight: '900', border: '1.5px solid #000', padding: '2px 8px', borderRadius: '20px', alignSelf: 'center',
-                    background: st.status === 'Xuất sắc' || st.status === 'Chăm chỉ' ? '#DEF7EC' : '#FEF3C7',
-                    color: st.status === 'Xuất sắc' || st.status === 'Chăm chỉ' ? '#03543F' : '#92400E'
-                  }}>
-                    {st.status}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Student Profile / logs & weakness */}
-          <div style={{ border: '3.5px solid #000', borderRadius: '16px', padding: '20px', background: '#ECFDF5', boxShadow: '5px 5px 0 #000' }}>
-            <h3 style={{ fontSize: '15px', fontWeight: '950', textTransform: 'uppercase', marginBottom: '16px', borderBottom: '2.5px solid #000', paddingBottom: '8px' }}>
-              🔬 Phân tích tiến độ chi tiết
-            </h3>
-            
-            {selectedStudentId ? (
-              (() => {
-                const st = students.find(s => s.id === selectedStudentId);
-                return (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <h4 style={{ fontSize: '16px', fontWeight: '950', color: '#065F46' }}>{st.name}</h4>
-                      <strong style={{ fontSize: '13px', border: '1.5px solid #000', borderRadius: '8px', padding: '4px 8px', background: '#fff' }}>🔥 Streak: {st.streak} ngày</strong>
-                    </div>
-
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                      <div style={{ background: '#fff', border: '2px solid #000', borderRadius: '10px', padding: '10px' }}>
-                        <div style={{ fontSize: '10px', color: '#6B7280', fontWeight: '800' }}>ĐIỂM TRUNG BÌNH</div>
-                        <div style={{ fontSize: '22px', fontWeight: '950', color: '#047857' }}>{st.avgScore} / 10đ</div>
-                      </div>
-                      <div style={{ background: '#fff', border: '2px solid #000', borderRadius: '10px', padding: '10px' }}>
-                        <div style={{ fontSize: '10px', color: '#6B7280', fontWeight: '800' }}>XẾP HẠNG LỚP</div>
-                        <div style={{ fontSize: '22px', fontWeight: '950', color: '#1E40AF' }}>Top 5</div>
-                      </div>
-                    </div>
-
-                    <div>
-                      <h5 style={{ fontSize: '12px', fontWeight: '900', textTransform: 'uppercase', marginBottom: '6px' }}>📚 Kiến thức cần bồi dưỡng thêm:</h5>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                        {st.weakness.map((w, idx) => (
-                          <span key={idx} style={{ background: '#FEE2E2', color: '#991B1B', border: '1.5px solid #000', padding: '4px 10px', borderRadius: '8px', fontSize: '11px', fontWeight: '900' }}>
-                            ⚠️ {w}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div>
-                      <h5 style={{ fontSize: '12px', fontWeight: '900', textTransform: 'uppercase', marginBottom: '6px' }}>⏱ Nhật ký học tập gần nhất:</h5>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '11.5px', color: '#374151', background: '#fff', padding: '10px', border: '2px solid #000', borderRadius: '10px' }}>
-                        <div>• Đã hoàn thành Đề ôn tập Giải tích 12: <strong>8.8 điểm</strong></div>
-                        <div>• Luyện 15 câu trắc nghiệm Tích phân phân thức</div>
-                        <div>• Đọc tài liệu bài giảng Dao động tắt dần</div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })()
-            ) : (
-              <div style={{ fontSize: '13px', color: '#6B7280', padding: '30px', textAlign: 'center' }}>
-                💡 Chọn một học viên ở cột bên trái để hiển thị thông tin phân tích học tập chi tiết và lịch sử làm đề của họ.
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* ================= TAB 6: REVENUE ================= */}
-      {localTab === 'revenue' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', textAlign: 'left' }}>
-          {/* Revenue summary tiles */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
-            {[
-              { title: 'Doanh thu phát sinh', val: revenueSummary.grossEarnings, desc: 'Tổng học viên thanh toán khóa học', bg: '#F8FAFC' },
-              { title: 'Hoa hồng thụ hưởng (80%)', val: revenueSummary.netEarnings, desc: 'Lợi nhuận thực tế sau chiết khấu', bg: '#ECFDF5' },
-              { title: 'Tỷ lệ thụ hưởng', val: revenueSummary.payoutRate, desc: 'Cấu hình chiết khấu của giáo viên', bg: '#FFFBEB' },
-              { title: 'Số dư chờ thanh toán', val: revenueSummary.pendingPayout, desc: 'Kỳ thanh toán tiếp theo: ' + revenueSummary.nextPayoutDate, bg: '#EFF6FF' }
-            ].map((box, i) => (
-              <div key={i} style={{ background: box.bg, border: '3.5px solid #000', borderRadius: '16px', padding: '18px', boxShadow: '4px 4px 0 #000' }}>
-                <div style={{ fontSize: '11px', fontWeight: '800', color: '#6B7280', textTransform: 'uppercase', marginBottom: '4px' }}>{box.title}</div>
-                <div style={{ fontSize: '24px', fontWeight: '950', color: '#000', marginBottom: '4px' }}>{box.val}</div>
-                <div style={{ fontSize: '10.5px', color: '#6B7280', fontWeight: '700' }}>{box.desc}</div>
-              </div>
-            ))}
-          </div>
-
-          {/* Invoice logs */}
-          <div style={{ border: '3.5px solid #000', borderRadius: '16px', padding: '20px', background: '#fff', boxShadow: '5px 5px 0 #000' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '2.5px solid #000', paddingBottom: '8px' }}>
-              <h3 style={{ fontSize: '15px', fontWeight: '950', textTransform: 'uppercase', margin: 0 }}>
-                🧾 Nhật ký giao dịch mua khóa học
-              </h3>
-              <button 
-                onClick={() => {
-                  toast('Đang khởi tạo tải xuống file CSV giao dịch...', 'info');
-                  setTimeout(() => {
-                    toast('Đã tải xuống file báo cáo doanh thu thành công!', 'success');
-                  }, 800);
-                }}
-                className="lp-btn--ghost" 
-                style={{ padding: '6px 12px', fontSize: '12px', border: '2.5px solid #000', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '4px' }}
-              >
-                <HiDownload /> Xuất báo cáo doanh thu (CSV)
-              </button>
-            </div>
-
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
                 <thead>
-                  <tr style={{ background: '#F8FAFC', textAlign: 'left' }}>
-                    <th style={{ border: '2px solid #000', padding: '10px' }}>Mã hóa đơn</th>
-                    <th style={{ border: '2px solid #000', padding: '10px' }}>Học viên</th>
-                    <th style={{ border: '2px solid #000', padding: '10px' }}>Tên khóa học</th>
-                    <th style={{ border: '2px solid #000', padding: '10px' }}>Ngày giao dịch</th>
-                    <th style={{ border: '2px solid #000', padding: '10px' }}>Học phí</th>
-                    <th style={{ border: '2px solid #000', padding: '10px' }}>Trích hoa hồng</th>
+                  <tr style={{ borderBottom: '2px solid #cbd5e1', textAlign: 'left', background: '#f8fafc' }}>
+                    <th style={{ padding: '12px 16px' }}>Hạng</th>
+                    <th style={{ padding: '12px 16px' }}>Giáo viên</th>
+                    <th style={{ padding: '12px 16px' }}>Số khóa học</th>
+                    <th style={{ padding: '12px 16px' }}>Đánh giá trung bình</th>
+                    <th style={{ padding: '12px 16px' }}>Học sinh đang theo học</th>
+                    <th style={{ padding: '12px 16px', textAlign: 'right' }}>Điểm tích cực</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {invoices.map(inv => (
-                    <tr key={inv.id}>
-                      <td style={{ border: '2px solid #000', padding: '10px', fontWeight: '900' }}>{inv.id}</td>
-                      <td style={{ border: '2px solid #000', padding: '10px', fontWeight: '700' }}>{inv.studentName}</td>
-                      <td style={{ border: '2px solid #000', padding: '10px', textAlign: 'left' }}>{inv.courseName}</td>
-                      <td style={{ border: '2px solid #000', padding: '10px' }}>{inv.date}</td>
-                      <td style={{ border: '2px solid #000', padding: '10px', fontWeight: '900', color: '#059669' }}>{inv.amount}</td>
-                      <td style={{ border: '2px solid #000', padding: '10px', fontWeight: '900', color: '#4F46E5' }}>{inv.commission}</td>
+                  {teacherLeaderboard.map((t) => (
+                    <tr key={t.rank} style={{ borderBottom: '1px solid #e2e8f0', background: t.rank === 1 ? 'rgba(99, 102, 241, 0.03)' : 'transparent' }}>
+                      <td style={{ padding: '16px', fontWeight: 'bold' }}>
+                        {t.rank === 1 ? '🥇 1' : t.rank === 2 ? '🥈 2' : t.rank === 3 ? '🥉 3' : `${t.rank}`}
+                      </td>
+                      <td style={{ padding: '16px', fontWeight: 'bold', color: '#0f172a' }}>{t.name}</td>
+                      <td style={{ padding: '16px' }}>{t.coursesCount} lớp học</td>
+                      <td style={{ padding: '16px', color: '#f59e0b', fontWeight: 'bold' }}>⭐ {t.rating}</td>
+                      <td style={{ padding: '16px' }}>{t.activeStudents} học sinh</td>
+                      <td style={{ padding: '16px', textAlign: 'right', fontWeight: 'bold', color: '#6366f1' }}>{t.points} XP</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
           </div>
-        </div>
-      )}
+        )}
+
+        {/* ================= NEW TAB: NOTIFICATIONS ================= */}
+        {localTab === 'notifications' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', textAlign: 'left' }}>
+            <div className="tdb-card">
+              <h3 className="tdb-card-title" style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: '14px', marginBottom: '10px' }}>
+                🔔 Hộp thư thông báo giáo vụ & hệ thống
+              </h3>
+              <div className="tdb-notif-list" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                {dbStats?.notifications && dbStats.notifications.length > 0 ? (
+                  dbStats.notifications.map((notif) => (
+                    <div key={notif.id} className="tdb-notif-item animate-in" style={{ padding: '12px 0' }}>
+                      <span className="tdb-notif-icon-dot orange">🔔</span>
+                      <div className="tdb-notif-body">
+                        <p className="tdb-notif-text">{notif.message}</p>
+                        <span className="tdb-notif-time">
+                          {new Date(notif.createdAt).toLocaleString('vi-VN')}
+                        </span>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <>
+                    <div className="tdb-notif-item" style={{ padding: '12px 0' }}>
+                      <span className="tdb-notif-icon-dot orange">✍️</span>
+                      <div className="tdb-notif-body">
+                        <p className="tdb-notif-text">Học sinh <strong>Trần Minh Hoàng</strong> vừa nộp bài tự luận chuyên đề <strong>Tây Tiến</strong></p>
+                        <span className="tdb-notif-time">2 phút trước</span>
+                      </div>
+                      <button className="tdb-upgrade-btn" style={{ width: 'auto', background: '#6366f1', padding: '6px 12px' }} onClick={() => handleTabChange('overview')}>Chấm bài ngay</button>
+                    </div>
+
+                    <div className="tdb-notif-item" style={{ padding: '12px 0' }}>
+                      <span className="tdb-notif-icon-dot tdb-notif-icon-green">🏆</span>
+                      <div className="tdb-notif-body">
+                        <p className="tdb-notif-text">Lớp <strong>12A1</strong> hoàn thành bài thi thử chương 3 với điểm trung bình đạt <strong>8.5</strong></p>
+                        <span className="tdb-notif-time">1 giờ trước</span>
+                      </div>
+                    </div>
+
+                    <div className="tdb-notif-item" style={{ padding: '12px 0' }}>
+                      <span className="tdb-notif-icon-dot tdb-notif-icon-purple">📢</span>
+                      <div className="tdb-notif-body">
+                        <p className="tdb-notif-text">Hệ thống cập nhật thành công tài liệu giảng dạy <strong>"Phương pháp rèn luyện kỹ năng bấm Casio tích phân"</strong></p>
+                        <span className="tdb-notif-time">3 giờ trước</span>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ================= NEW TAB: HELP ================= */}
+        {localTab === 'help' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', textAlign: 'left' }}>
+            <div className="tdb-card">
+              <h3 className="tdb-card-title" style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: '14px', marginBottom: '10px' }}>
+                ❓ Trợ giúp giáo viên & FAQs
+              </h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', fontSize: '14.5px', lineHeight: 1.5 }}>
+                <div>
+                  <h4 style={{ fontWeight: 'bold', margin: '0 0 6px 0', color: '#0f172a' }}>1. Làm thế nào để tạo đề thi thử trắc nghiệm?</h4>
+                  <p style={{ color: '#475569', margin: 0 }}>Bạn có thể vào tab <strong>Đề thi & Bài kiểm tra</strong>, chọn <strong>Soạn đề từ ngân hàng câu hỏi</strong> hoặc trực tiếp upload file có định dạng <strong>JSON chuẩn</strong> cấu trúc đề thi để phát hành nhanh.</p>
+                </div>
+                <div>
+                  <h4 style={{ fontWeight: 'bold', margin: '0 0 6px 0', color: '#0f172a' }}>2. Cơ chế kiểm duyệt tài liệu của tôi diễn ra thế nào?</h4>
+                  <p style={{ color: '#475569', margin: 0 }}>Mọi tài liệu sau khi đăng tải sẽ ở trạng thái <strong>Chờ phê duyệt</strong>. Đội ngũ Quản trị viên (Admin) sẽ kiểm tra nội dung và phê duyệt hiển thị trên thư viện công cộng trong vòng 24 giờ.</p>
+                </div>
+                <div>
+                  <h4 style={{ fontWeight: 'bold', margin: '0 0 6px 0', color: '#0f172a' }}>3. Cách liên hệ với ban kỹ thuật khi gặp sự cố?</h4>
+                  <p style={{ color: '#475569', margin: 0 }}>Vui lòng gửi email trực tiếp tới <strong>support@edupath.vn</strong> hoặc gọi hotline hỗ trợ dành riêng cho giáo viên: <strong>1900 6088</strong>.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ================= NEW TAB: SETTINGS ================= */}
+        {localTab === 'settings' && (
+          <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '24px', textAlign: 'left' }}>
+            <div className="tdb-card">
+              <h3 className="tdb-card-title" style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: '14px', marginBottom: '10px' }}>
+                ⚙️ Cài đặt cấu hình hồ sơ giáo viên
+              </h3>
+              <form onSubmit={handleProfileSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <label style={{ fontSize: '12px', fontWeight: 'bold' }}>Họ và tên giáo viên:</label>
+                  <input 
+                    type="text" 
+                    className="tdb-search-input" 
+                    style={{ width: '100%', borderRadius: '10px' }} 
+                    value={teacherName}
+                    onChange={e => setTeacherName(e.target.value)}
+                    required
+                  />
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <label style={{ fontSize: '12px', fontWeight: 'bold' }}>Số điện thoại liên lạc:</label>
+                  <input 
+                    type="text" 
+                    className="tdb-search-input" 
+                    style={{ width: '100%', borderRadius: '10px' }} 
+                    value={teacherPhone}
+                    onChange={e => setTeacherPhone(e.target.value)}
+                    required
+                  />
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <label style={{ fontSize: '12px', fontWeight: 'bold' }}>Email đăng nhập:</label>
+                  <input 
+                    type="email" 
+                    className="tdb-search-input" 
+                    style={{ width: '100%', borderRadius: '10px', backgroundColor: '#f1f5f9', cursor: 'not-allowed' }} 
+                    value={teacherEmail}
+                    disabled
+                  />
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <label style={{ fontSize: '12px', fontWeight: 'bold' }}>Tiểu sử & Kinh nghiệm chuyên môn:</label>
+                  <textarea 
+                    className="tdb-search-input" 
+                    style={{ width: '100%', height: '80px', borderRadius: '10px', padding: '10px', boxSizing: 'border-box' }} 
+                    value={teacherBio}
+                    onChange={e => setTeacherBio(e.target.value)}
+                    required
+                  />
+                </div>
+                <button type="submit" className="tdb-upgrade-btn" style={{ background: '#6366f1', marginTop: '10px' }}>
+                  Lưu thay đổi hồ sơ
+                </button>
+              </form>
+            </div>
+
+            <div className="tdb-card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#f8fafc' }}>
+              <div style={{ position: 'relative', width: '100px', height: '100px', borderRadius: '50%', overflow: 'hidden', border: '3px solid #6366f1', marginBottom: '14px' }}>
+                {currentUser?.avatarUrl || currentUser?.avatar ? (
+                  <img src={currentUser.avatarUrl || currentUser.avatar} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                ) : (
+                  <div style={{ width: '100%', height: '100%', background: '#6366f1', color: '#fff', fontSize: '28px', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    {(teacherName || 'GV').slice(0, 2).toUpperCase()}
+                  </div>
+                )}
+              </div>
+              <h4 style={{ fontSize: '16px', fontWeight: 'bold', margin: '0 0 4px 0' }}>{teacherName}</h4>
+              <p style={{ fontSize: '12px', color: '#64748b', margin: '0 0 16px 0' }}>Chuyên môn: Toán THPTQG</p>
+              <button 
+                className="tdb-upgrade-btn" 
+                style={{ width: 'auto', background: '#ffffff', color: '#6366f1', border: '1px solid #6366f1', boxShadow: 'none' }} 
+                onClick={() => avatarInputRef.current?.click()}
+                disabled={isUploading}
+              >
+                {isUploading ? 'Đang tải lên...' : 'Thay đổi ảnh đại diện'}
+              </button>
+              <input 
+                type="file" 
+                ref={avatarInputRef} 
+                onChange={handleAvatarChange} 
+                accept="image/*" 
+                style={{ display: 'none' }} 
+              />
+            </div>
+          </div>
+        )}
+      </main>
 
       {/* ================= OPTIONAL PREVIEW OVERLAY ================= */}
       {activeCoursePreview !== null && (
@@ -1395,7 +2179,6 @@ export default function TeacherDashboard({
           </div>
         </div>
       )}
-
     </div>
   );
 }

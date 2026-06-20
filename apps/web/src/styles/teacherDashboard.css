@@ -1,0 +1,749 @@
+/* teacherDashboard.css - Premium SaaS-style Teacher Dashboard */
+
+.teacher-dashboard-layout {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  min-height: 100vh;
+  background-color: #f8fafc;
+  font-family: 'Outfit', sans-serif;
+  color: #1e293b;
+}
+
+/* ==========================================
+   LEFT SIDEBAR
+   ========================================== */
+.tdb-left-sidebar {
+  background-color: #ffffff;
+  border-right: 1px solid #e2e8f0;
+  padding: 24px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  height: 100vh;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  overflow-y: auto;
+}
+
+.tdb-left-sidebar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.tdb-left-sidebar::-webkit-scrollbar-thumb {
+  background-color: #cbd5e1;
+  border-radius: 4px;
+}
+
+.tdb-logo-section {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 8px;
+}
+
+.tdb-logo-icon {
+  background-color: #6366f1;
+  border-radius: 10px;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+}
+
+.tdb-logo-text {
+  font-size: 20px;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.5px;
+}
+
+.tdb-logo-text em {
+  color: #6366f1;
+  font-style: normal;
+}
+
+.tdb-menu-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.tdb-menu-category {
+  font-size: 11px;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  padding: 12px 12px 6px;
+  text-align: left;
+}
+
+.tdb-menu-item {
+  width: 100%;
+  padding: 10px 14px;
+  border: none;
+  border-radius: 12px;
+  background: none;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+}
+
+.tdb-menu-item:hover {
+  background-color: #f1f5f9;
+  color: #0f172a;
+}
+
+.tdb-menu-item.active {
+  background: #6366f1;
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.25);
+}
+
+.tdb-menu-icon {
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+}
+
+.tdb-upgrade-card {
+  margin-top: auto;
+  background: linear-gradient(135deg, #e0e7ff 0%, #e0f2fe 100%);
+  border-radius: 16px;
+  padding: 18px;
+  position: relative;
+  overflow: hidden;
+  text-align: left;
+  border: 1px solid rgba(99, 102, 241, 0.1);
+}
+
+.tdb-upgrade-cap {
+  font-size: 28px;
+  margin-bottom: 8px;
+  display: inline-block;
+}
+
+.tdb-upgrade-title {
+  font-size: 14px;
+  font-weight: 800;
+  color: #1e1b4b;
+  margin: 0 0 6px 0;
+}
+
+.tdb-upgrade-desc {
+  font-size: 11.5px;
+  color: #4338ca;
+  font-weight: 600;
+  line-height: 1.4;
+  margin: 0 0 14px 0;
+}
+
+.tdb-upgrade-btn {
+  width: 100%;
+  padding: 8px 14px;
+  background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%);
+  color: #ffffff;
+  border: none;
+  border-radius: 10px;
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 4px 10px rgba(79, 70, 229, 0.2);
+}
+
+.tdb-upgrade-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(79, 70, 229, 0.3);
+}
+
+/* ==========================================
+   CENTER MAIN PANE
+   ========================================== */
+.tdb-content-pane {
+  padding: 24px 32px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  height: 100vh;
+  box-sizing: border-box;
+}
+
+.tdb-content-pane::-webkit-scrollbar {
+  width: 6px;
+}
+
+.tdb-content-pane::-webkit-scrollbar-thumb {
+  background-color: #cbd5e1;
+  border-radius: 4px;
+}
+
+/* Top Header Bar */
+.tdb-header-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.tdb-greeting-title {
+  font-size: 24px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0 0 4px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tdb-greeting-subtitle {
+  font-size: 13.5px;
+  color: #64748b;
+  font-weight: 500;
+  margin: 0;
+  text-align: left;
+}
+
+.tdb-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+/* Search Box styling */
+.tdb-search-wrap {
+  position: relative;
+  width: 320px;
+}
+
+.tdb-search-input {
+  width: 100%;
+  height: 40px;
+  padding: 8px 16px 8px 36px;
+  border: 1px solid #cbd5e1;
+  border-radius: 999px;
+  font-size: 13px;
+  background-color: #ffffff;
+  outline: none;
+  transition: all 0.2s;
+}
+
+.tdb-search-input:focus {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.tdb-search-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94a3b8;
+  font-size: 14px;
+  pointer-events: none;
+}
+
+.tdb-search-kbd {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  background-color: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 10px;
+  color: #94a3b8;
+  pointer-events: none;
+  font-family: inherit;
+}
+
+/* Header action circular buttons */
+.tdb-action-icon-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 18px;
+  color: #64748b;
+  position: relative;
+  transition: all 0.15s;
+}
+
+.tdb-action-icon-btn:hover {
+  background-color: #f1f5f9;
+  color: #0f172a;
+}
+
+.tdb-icon-badge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  background-color: #ef4444;
+  color: #ffffff;
+  border-radius: 50%;
+  width: 16px;
+  height: 16px;
+  font-size: 9px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #ffffff;
+}
+
+/* User header widget */
+.tdb-header-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.tdb-header-user-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1.5px solid #6366f1;
+}
+
+.tdb-header-user-text {
+  text-align: left;
+}
+
+.tdb-header-user-name {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+}
+
+.tdb-header-user-role {
+  font-size: 11.5px;
+  color: #64748b;
+  margin: 0;
+}
+
+/* Date indicator */
+.tdb-date-widget {
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 8px 14px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #475569;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ==========================================
+   METRICS GRID
+   ========================================== */
+.tdb-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 16px;
+}
+
+.tdb-metric-card {
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px -1px rgba(0, 0, 0, 0.02);
+  transition: transform 0.2s, box-shadow 0.2s;
+  text-align: left;
+}
+
+.tdb-metric-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+.tdb-metric-icon-wrap {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.tdb-metric-icon-wrap.purple { background-color: #e0e7ff; color: #6366f1; }
+.tdb-metric-icon-wrap.green { background-color: #d1fae5; color: #10b981; }
+.tdb-metric-icon-wrap.orange { background-color: #ffedd5; color: #f97316; }
+.tdb-metric-icon-wrap.blue { background-color: #e0f2fe; color: #0284c7; }
+.tdb-metric-icon-wrap.pink { background-color: #fae8ff; color: #d946ef; }
+
+.tdb-metric-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.tdb-metric-label {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #64748b;
+  margin-bottom: 2px;
+}
+
+.tdb-metric-value {
+  font-size: 20px;
+  font-weight: 800;
+  color: #0f172a;
+  margin-bottom: 4px;
+}
+
+.tdb-metric-trend {
+  font-size: 10.5px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  color: #10b981;
+}
+
+/* ==========================================
+   DASHBOARD GRIDS (Middle and Bottom Rows)
+   ========================================== */
+.tdb-dashboard-grid {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr 1fr;
+  gap: 24px;
+}
+
+.tdb-card {
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px -1px rgba(0, 0, 0, 0.02);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  text-align: left;
+}
+
+.tdb-card-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.tdb-card-title {
+  font-size: 16px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0;
+}
+
+.tdb-card-action-link {
+  font-size: 12.5px;
+  color: #6366f1;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.tdb-card-action-link:hover {
+  text-decoration: underline;
+}
+
+/* Notifications widget list */
+.tdb-notif-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.tdb-notif-item {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.tdb-notif-item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.tdb-notif-icon-dot {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.tdb-notif-icon-dot.orange { background-color: #ffedd5; color: #f97316; }
+.tdb-notif-icon-green { background-color: #d1fae5; color: #10b981; }
+.tdb-notif-icon-purple { background-color: #e0e7ff; color: #6366f1; }
+.tdb-notif-icon-blue { background-color: #e0f2fe; color: #0284c7; }
+
+.tdb-notif-body {
+  flex: 1;
+}
+
+.tdb-notif-text {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #334155;
+  margin: 0 0 2px 0;
+  line-height: 1.4;
+}
+
+.tdb-notif-text strong {
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.tdb-notif-time {
+  font-size: 11px;
+  color: #94a3b8;
+  font-weight: 600;
+}
+
+/* My Classes Progress list */
+.tdb-class-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.tdb-class-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+}
+
+.tdb-class-tag {
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-size: 11.5px;
+  font-weight: 800;
+  min-width: 48px;
+  text-align: center;
+}
+
+.tdb-class-tag.purple { background-color: #f3e8ff; color: #7c3aed; }
+.tdb-class-tag.blue { background-color: #e0f2fe; color: #0284c7; }
+.tdb-class-tag.green { background-color: #d1fae5; color: #059669; }
+.tdb-class-tag.orange { background-color: #ffedd5; color: #ea580c; }
+
+.tdb-class-info {
+  flex: 1;
+  padding: 0 16px;
+  text-align: left;
+}
+
+.tdb-class-name {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 2px 0;
+}
+
+.tdb-class-subtext {
+  font-size: 11px;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.tdb-class-progress-wrap {
+  width: 90px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: flex-end;
+}
+
+.tdb-class-progress-pct {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.tdb-class-progress-track {
+  width: 100%;
+  height: 5px;
+  background-color: #e2e8f0;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.tdb-class-progress-bar {
+  height: 100%;
+  background-color: #10b981;
+  border-radius: 3px;
+}
+
+.tdb-class-progress-bar.warning {
+  background-color: #f59e0b;
+}
+
+/* Recent Exams list */
+.tdb-exam-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.tdb-exam-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border: 1px solid #f1f5f9;
+  border-radius: 12px;
+  background-color: #ffffff;
+  transition: background-color 0.2s;
+}
+
+.tdb-exam-item:hover {
+  background-color: #f8fafc;
+}
+
+.tdb-exam-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background-color: #eff6ff;
+  color: #2563eb;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.tdb-exam-icon.green { background-color: #ecfdf5; color: #059669; }
+.tdb-exam-icon.orange { background-color: #fff7ed; color: #ea580c; }
+.tdb-exam-icon.purple { background-color: #faf5ff; color: #7c3aed; }
+
+.tdb-exam-info {
+  flex: 1;
+  padding: 0 14px;
+  text-align: left;
+}
+
+.tdb-exam-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 2px 0;
+}
+
+.tdb-exam-date {
+  font-size: 11px;
+  color: #94a3b8;
+  font-weight: 600;
+}
+
+.tdb-exam-pill {
+  padding: 3px 8px;
+  background-color: #e0f2fe;
+  color: #0369a1;
+  border-radius: 20px;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+/* Latest Materials list */
+.tdb-material-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.tdb-material-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border: 1px solid #f1f5f9;
+  border-radius: 12px;
+  background-color: #ffffff;
+  transition: background-color 0.2s;
+}
+
+.tdb-material-item:hover {
+  background-color: #f8fafc;
+}
+
+.tdb-material-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 800;
+  color: #ffffff;
+  flex-shrink: 0;
+}
+
+.tdb-material-icon.pdf { background-color: #ef4444; }
+.tdb-material-icon.docx { background-color: #3b82f6; }
+.tdb-material-icon.pptx { background-color: #f97316; }
+.tdb-material-icon.xlsx { background-color: #10b981; }
+
+.tdb-material-info {
+  flex: 1;
+  padding: 0 14px;
+  text-align: left;
+}
+
+.tdb-material-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 2px 0;
+}
+
+.tdb-material-meta {
+  font-size: 11px;
+  color: #94a3b8;
+  font-weight: 600;
+}
+
+.tdb-material-date {
+  font-size: 11.5px;
+  color: #64748b;
+  font-weight: 600;
+}

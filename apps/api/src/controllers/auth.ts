@@ -50,7 +50,8 @@ function buildUserPayload(user: any) {
     role: user.role,
     isPro: user.isPro,
     emailVerified: user.emailVerified,
-    subjectGroup: user.student?.subjectGroup || null
+    subjectGroup: user.student?.subjectGroup || null,
+    teacher: user.teacher || null
   };
 }
 
@@ -154,9 +155,18 @@ export async function updateProfile(req: Request, res: Response) {
     return res.status(401).json({ success: false, error: 'Chưa xác thực!' });
   }
 
-  const { fullName, avatarUrl, subjectGroup, phone, city, school, targetScore, targetUniversity, combo } = req.body;
+  const { fullName, avatarUrl, subjectGroup, phone, city, school, targetScore, targetUniversity, combo, bio } = req.body;
 
   try {
+    // Update teacher bio if provided first
+    if (bio !== undefined) {
+      await prisma.teacher.upsert({
+        where: { userId },
+        create: { userId, bio },
+        update: { bio }
+      });
+    }
+
     // Update base user info
     const updatedUser = await prisma.user.update({
       where: { id: userId },
@@ -172,7 +182,8 @@ export async function updateProfile(req: Request, res: Response) {
               select: { courseId: true, paidAt: true, id: true }
             }
           }
-        }
+        },
+        teacher: true
       }
     });
 
@@ -193,10 +204,12 @@ export async function updateProfile(req: Request, res: Response) {
         email: updatedUser.email,
         fullName: updatedUser.fullName,
         avatarUrl: updatedUser.avatarUrl,
+        phone: updatedUser.phone,
         role: updatedUser.role,
         isPro: updatedUser.isPro,
         subjectGroup: subjectGroup || updatedUser.student?.subjectGroup || null,
-        enrollments: updatedUser.student?.enrollments || []
+        enrollments: updatedUser.student?.enrollments || [],
+        teacher: updatedUser.teacher || null
       }
     });
   } catch (err: any) {

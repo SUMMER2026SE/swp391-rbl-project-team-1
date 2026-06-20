@@ -208,6 +208,7 @@ export default function AuthPage({ defaultMode = 'login', onAuthSuccess, usersLi
   const [generatedOtp, setGeneratedOtp] = useState('');
   const [typedOtp, setTypedOtp] = useState('');
   const [resetToken, setResetToken] = useState(null);
+  const [passwordFocus, setPasswordFocus] = useState(false);
 
   // ── Countdown hooks ──
   const otpExpiry = useCountdown(otpExpiryTime);
@@ -347,6 +348,7 @@ export default function AuthPage({ defaultMode = 'login', onAuthSuccess, usersLi
       // Admin demo bypass (keep for development fallback)
       if ((email.toLowerCase() === 'admin@edupath.vn' || email.toLowerCase() === 'tranvanthuan2005tt@gmail.com') && password === 'admin123') {
         setLoading(false);
+        localStorage.setItem('access_token', 'demo_bypass_token');
         addLog('Quản trị viên đăng nhập thành công (bypass)', 'sys');
         onAuthSuccess({ name: email.toLowerCase() === 'tranvanthuan2005tt@gmail.com' ? 'Trần Văn Thuần' : 'Quản trị viên Hệ thống', email: email.toLowerCase(), role: 'admin', avatar: 'AD' });
         return;
@@ -566,6 +568,51 @@ export default function AuthPage({ defaultMode = 'login', onAuthSuccess, usersLi
 
         {/* The Wide Card */}
         <div className="auth-floating-card">
+          
+          {/* Left Branding Side */}
+          <div className="auth-side-brand">
+            <div className="auth-brand-content">
+              <div className="auth-brand-logo" onClick={onBackToLanding} style={{ cursor: 'pointer' }}>
+                <div className="auth-brand-logo-circle">EP</div>
+                <h3>EduPath AI</h3>
+              </div>
+              <h1 className="auth-brand-slogan">Học đúng hướng,<br />Thi đúng đích 🚀</h1>
+              <p className="auth-brand-desc">
+                Hệ sinh thái học tập tích hợp trí tuệ nhân tạo (AI) giúp bứt phá điểm số thi THPT Quốc Gia.
+              </p>
+              
+              <div className="auth-brand-features">
+                <div className="auth-brand-feature-item">
+                  <span className="auth-feature-bullet">🎯</span>
+                  <div>
+                    <strong>Lộ trình học cá nhân hóa</strong>
+                    <p>Phù hợp năng lực và mục tiêu từng học sinh</p>
+                  </div>
+                </div>
+                <div className="auth-brand-feature-item">
+                  <span className="auth-feature-bullet">🤖</span>
+                  <div>
+                    <strong>Trợ lý AI Coach 24/7</strong>
+                    <p>Giải đáp thắc mắc, phân tích lời giải chi tiết</p>
+                  </div>
+                </div>
+                <div className="auth-brand-feature-item">
+                  <span className="auth-feature-bullet">📊</span>
+                  <div>
+                    <strong>Ngân hàng đề & Học liệu</strong>
+                    <p>Hàng ngàn đề thi thử chuẩn cấu trúc Bộ GD&ĐT</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="auth-brand-footer">
+              EduPath AI © 2026
+            </div>
+          </div>
+
+          {/* Right Form Side */}
+          <div className="auth-side-form">
           
           {/* Olive Green Card Header Bar */}
           <div className="auth-card-header-bar">
@@ -890,12 +937,14 @@ export default function AuthPage({ defaultMode = 'login', onAuthSuccess, usersLi
                       value={password}
                       onChange={e => setPassword(e.target.value)}
                       required
+                      onFocus={() => setPasswordFocus(true)}
+                      onBlur={() => setTimeout(() => setPasswordFocus(false), 200)}
                     />
                     <button type="button" className="auth-eye-btn" onClick={() => setShowPassword(!showPassword)} tabIndex={-1}>
                       {showPassword ? <HiEyeOff /> : <HiEye />}
                     </button>
                   </div>
-                  <PasswordStrengthMeter password={password} />
+                  {passwordFocus && <PasswordStrengthMeter password={password} />}
                 </div>
 
                 <div className="auth-input-group">
@@ -992,12 +1041,14 @@ export default function AuthPage({ defaultMode = 'login', onAuthSuccess, usersLi
                         value={password}
                         onChange={e => setPassword(e.target.value)}
                         required
+                        onFocus={() => setPasswordFocus(true)}
+                        onBlur={() => setTimeout(() => setPasswordFocus(false), 200)}
                       />
                       <button type="button" className="auth-eye-btn" onClick={() => setShowPassword(!showPassword)} tabIndex={-1}>
                         {showPassword ? <HiEyeOff /> : <HiEye />}
                       </button>
                     </div>
-                    {mode === 'signup' && <PasswordStrengthMeter password={password} />}
+                    {mode === 'signup' && passwordFocus && <PasswordStrengthMeter password={password} />}
                   </div>
                 </div>
 
@@ -1061,6 +1112,7 @@ export default function AuthPage({ defaultMode = 'login', onAuthSuccess, usersLi
             <div className="auth-footer-lock">
               <span>🛡️ THÔNG TIN ĐƯỢC BẢO MẬT TUYỆT ĐỐI</span>
             </div>
+          </div>
           </div>
         </div>
       </div>

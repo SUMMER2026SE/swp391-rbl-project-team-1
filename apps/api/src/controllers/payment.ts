@@ -238,6 +238,19 @@ export async function sepayWebhook(req: any, res: Response) {
       }
     });
 
+    // Create notification for the teacher
+    try {
+      await prisma.notification.create({
+        data: {
+          userId: course.teacherId,
+          title: 'Đăng ký khóa học mới',
+          message: `Học sinh ${studentUser.fullName} đã đăng ký khóa học "${course.title}".`
+        }
+      });
+    } catch (notifErr) {
+      console.error('[Notification Error] Failed to create teacher notification (SePay):', notifErr);
+    }
+
     console.log(`[SePay Webhook] Đã kích hoạt thành công khóa học "${course.title}" cho học sinh "${studentUser.fullName}".`);
 
     // Cập nhật doanh thu hàng tháng
@@ -347,6 +360,19 @@ export async function createDemoEnrollment(req: AuthRequest, res: Response) {
         paidAt: new Date()
       }
     });
+
+    // Create notification for the teacher
+    try {
+      await prisma.notification.create({
+        data: {
+          userId: course.teacherId,
+          title: 'Đăng ký khóa học mới',
+          message: `Học sinh ${studentUser.fullName} đã đăng ký khóa học "${course.title}".`
+        }
+      });
+    } catch (notifErr) {
+      console.error('[Notification Error] Failed to create teacher notification (Demo):', notifErr);
+    }
 
     console.log(`[Demo Enrollment] Đã kích hoạt khóa học ID=${courseId} cho học sinh ID=${studentId} (Demo Mode).`);
 
