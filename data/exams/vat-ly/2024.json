@@ -1,0 +1,1206 @@
+{
+  "title": "Đề thi chính thức THPT Quốc Gia 2024 - Môn Vật lý",
+  "subject_slug": "ly",
+  "subject_name": "Vật lý",
+  "year": 2024,
+  "exam_code": "201",
+  "exam_type": "official",
+  "source": "Bộ GD&ĐT",
+  "duration_minutes": 50,
+  "total_questions": 40,
+  "description": "Đề thi chính thức môn Vật lý kỳ thi tốt nghiệp THPT Quốc Gia năm 2024 từ Bộ Giáo dục và Đào tạo (Phiên bản đầy đủ 40 câu hỏi chuẩn cấu trúc).",
+  "pdf_url": "https://moet.gov.vn/vatly-2024.pdf",
+  "official_answer_key_url": "https://moet.gov.vn/vatly-2024-key.pdf",
+  "questions": [
+    {
+      "question_number": 1,
+      "question_text": "Chu kỳ dao động điều hòa của con lắc lò xo gồm lò xo có độ cứng $k$ và vật nhỏ có khối lượng $m$ được tính bằng công thức nào dưới đây?",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Dễ",
+      "explanation": "Chu kỳ dao động của con lắc lò xo là $T = 2\\pi \\sqrt{\\frac{m}{k}}$.",
+      "options": [
+        {
+          "option_label": "A",
+          "option_text": "T = 2\\pi \\sqrt{\\frac{m}{k}}",
+          "is_correct": true
+        },
+        {
+          "option_label": "B",
+          "option_text": "T = 2\\pi \\sqrt{\\frac{k}{m}}",
+          "is_correct": false
+        },
+        {
+          "option_label": "C",
+          "option_text": "T = \\frac{1}{2\\pi} \\sqrt{\\frac{m}{k}}",
+          "is_correct": false
+        },
+        {
+          "option_label": "D",
+          "option_text": "T = \\frac{1}{2\\pi} \\sqrt{\\frac{k}{m}}",
+          "is_correct": false
+        }
+      ]
+    },
+    {
+      "question_number": 2,
+      "question_text": "Một sóng cơ hình sin truyền theo trục $Ox$ với bước sóng $\\lambda$. Khoảng cách giữa hai điểm gần nhau nhất trên cùng một phương truyền sóng dao động cùng pha là:",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Dễ",
+      "explanation": "Khoảng cách giữa hai điểm gần nhau nhất trên cùng một phương truyền sóng dao động cùng pha bằng đúng một bước sóng $\\lambda$.",
+      "options": [
+        {
+          "option_label": "A",
+          "option_text": "\\lambda/2",
+          "is_correct": false
+        },
+        {
+          "option_label": "B",
+          "option_text": "\\lambda",
+          "is_correct": true
+        },
+        {
+          "option_label": "C",
+          "option_text": "2\\lambda",
+          "is_correct": false
+        },
+        {
+          "option_label": "D",
+          "option_text": "\\lambda/4",
+          "is_correct": false
+        }
+      ]
+    },
+    {
+      "question_number": 3,
+      "question_text": "Đặc trưng nào sau đây là một đặc trưng sinh lý của âm?",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Dễ",
+      "explanation": "Độ cao, độ to và âm sắc là các đặc trưng sinh lý của âm. Tần số, cường độ âm và đồ thị dao động âm là các đặc trưng vật lý.",
+      "options": [
+        {
+          "option_label": "A",
+          "option_text": "Tần số âm",
+          "is_correct": false
+        },
+        {
+          "option_label": "B",
+          "option_text": "Cường độ âm",
+          "is_correct": false
+        },
+        {
+          "option_label": "C",
+          "option_text": "Độ cao của âm",
+          "is_correct": true
+        },
+        {
+          "option_label": "D",
+          "option_text": "Mức cường độ âm",
+          "is_correct": false
+        }
+      ]
+    },
+    {
+      "question_number": 4,
+      "question_text": "Đặt điện áp xoay chiều vào hai đầu đoạn mạch chỉ có tụ điện có dung kháng $Z_C$. Cường độ dòng điện trong mạch sẽ:",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Dễ",
+      "explanation": "Đối với đoạn mạch chỉ chứa tụ điện, cường độ dòng điện $i$ luôn nhanh pha hơn điện áp $u$ ở hai đầu đoạn mạch một góc $\\pi/2$.",
+      "options": [
+        {
+          "option_label": "A",
+          "option_text": "Trễ pha \\pi/2 so với điện áp",
+          "is_correct": false
+        },
+        {
+          "option_label": "B",
+          "option_text": "Cùng pha với điện áp",
+          "is_correct": false
+        },
+        {
+          "option_label": "C",
+          "option_text": "Nhanh pha \\pi/2 so với điện áp",
+          "is_correct": true
+        },
+        {
+          "option_label": "D",
+          "option_text": "Ngược pha với điện áp",
+          "is_correct": false
+        }
+      ]
+    },
+    {
+      "question_number": 5,
+      "question_text": "Một máy biến áp lý tưởng có số vòng dây cuộn sơ cấp $N_1$ và cuộn thứ cấp $N_2$. Đặt điện áp hiệu dụng $U_1$ vào hai đầu cuộn sơ cấp thì điện áp hiệu dụng hai đầu cuộn thứ cấp để hở là $U_2$. Hệ thức nào sau đây là ĐÚNG?",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Trung bình",
+      "explanation": "Công thức máy biến áp lý tưởng: $\\frac{U_2}{U_1} = \\frac{N_2}{N_1}$.",
+      "options": [
+        {
+          "option_label": "A",
+          "option_text": "\\frac{U_2}{U_1} = \\frac{N_2}{N_1}",
+          "is_correct": true
+        },
+        {
+          "option_label": "B",
+          "option_text": "\\frac{U_2}{U_1} = \\frac{N_1}{N_2}",
+          "is_correct": false
+        },
+        {
+          "option_label": "C",
+          "option_text": "U_1 U_2 = N_1 N_2",
+          "is_correct": false
+        },
+        {
+          "option_label": "D",
+          "option_text": "\\frac{U_2}{U_1} = \\sqrt{\\frac{N_2}{N_1}}",
+          "is_correct": false
+        }
+      ]
+    },
+    {
+      "question_number": 6,
+      "question_text": "Trong chân không, ánh sáng nhìn thấy có bước sóng nằm trong khoảng từ khoảng 380 nm đến khoảng 760 nm. Ánh sáng nào sau đây thuộc vùng ánh sáng nhìn thấy?",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Trung bình",
+      "explanation": "Ánh sáng màu lục có bước sóng khoảng 500 - 570 nm nằm trong khoảng từ 380 nm đến 760 nm.",
+      "options": [
+        {
+          "option_label": "A",
+          "option_text": "Tia tử ngoại",
+          "is_correct": false
+        },
+        {
+          "option_label": "B",
+          "option_text": "Tia hồng ngoại",
+          "is_correct": false
+        },
+        {
+          "option_label": "C",
+          "option_text": "Ánh sáng lục",
+          "is_correct": true
+        },
+        {
+          "option_label": "D",
+          "option_text": "Tia X",
+          "is_correct": false
+        }
+      ]
+    },
+    {
+      "question_number": 7,
+      "question_text": "Giới hạn quang dẫn của một chất bán dẫn là $1,88 \\mu m$. Năng lượng kích hoạt (năng lượng cần thiết để giải phóng một electron liên kết thành electron dẫn) của chất đó là bao nhiêu? Cho $h = 6,625 \\cdot 10^{-34}$ J.s, $c = 3 \\cdot 10^8$ m/s.",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Trung bình",
+      "explanation": "Ta có: $A = \\frac{hc}{\\lambda_0} = \\frac{6,625 \\cdot 10^{-34} \\cdot 3 \\cdot 10^8}{1,88 \\cdot 10^{-6}} \\approx 1,057 \\cdot 10^{-19}$ J $\\approx 0,66$ eV.",
+      "options": [
+        {
+          "option_label": "A",
+          "option_text": "0,66 eV",
+          "is_correct": true
+        },
+        {
+          "option_label": "B",
+          "option_text": "1,05 eV",
+          "is_correct": false
+        },
+        {
+          "option_label": "C",
+          "option_text": "1,50 eV",
+          "is_correct": false
+        },
+        {
+          "option_label": "D",
+          "option_text": "2,20 eV",
+          "is_correct": false
+        }
+      ]
+    },
+    {
+      "question_number": 8,
+      "question_text": "Một mạch dao động LC lí tưởng đang có dao động điện từ tự do. Điện tích cực đại của tụ điện là $Q_0 = 10^{-9}$ C và cường độ dòng điện cực đại trong mạch là $I_0 = 2\\pi$ mA. Tần số dao động của mạch là:",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Trung bình",
+      "explanation": "Ta có: $I_0 = \\omega Q_0 = 2\\pi f Q_0 \\Rightarrow f = \\frac{I_0}{2\\pi Q_0} = \\frac{2\\pi \\cdot 10^{-3}}{2\\pi \\cdot 10^{-9}} = 10^6$ Hz = 1 MHz.",
+      "options": [
+        {
+          "option_label": "A",
+          "option_text": "1 MHz",
+          "is_correct": true
+        },
+        {
+          "option_label": "B",
+          "option_text": "2 MHz",
+          "is_correct": false
+        },
+        {
+          "option_label": "C",
+          "option_text": "100 kHz",
+          "is_correct": false
+        },
+        {
+          "option_label": "D",
+          "option_text": "500 kHz",
+          "is_correct": false
+        }
+      ]
+    },
+    {
+      "question_number": 9,
+      "question_text": "Một con lắc đơn có chiều dài $l = 1$ m dao động điều hòa tại nơi có gia tốc trọng trường $g = \\pi^2 \\approx 9,87$ $m/s^2$. Chu kỳ dao động nhỏ của con lắc đơn bằng:",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Khó",
+      "explanation": "Chu kỳ con lắc đơn: $T = 2\\pi \\sqrt{\\frac{l}{g}} = 2\\pi \\sqrt{\\frac{1}{\\pi^2}} = 2$ giây.",
+      "options": [
+        {
+          "option_label": "A",
+          "option_text": "1 s",
+          "is_correct": false
+        },
+        {
+          "option_label": "B",
+          "option_text": "2 s",
+          "is_correct": true
+        },
+        {
+          "option_label": "C",
+          "option_text": "0,5 s",
+          "is_correct": false
+        },
+        {
+          "option_label": "D",
+          "option_text": "\\pi s",
+          "is_correct": false
+        }
+      ]
+    },
+    {
+      "question_number": 10,
+      "question_text": "Đặt một điện áp xoay chiều $u = 220\\sqrt{2}\\cos(100\\pi t)$ (V) vào hai đầu đoạn mạch gồm cuộn cảm thuần có độ tự cảm $L = 1/\\pi$ H mắc nối tiếp với điện trở thuần $R = 100$ $\\Omega$. Hệ số công suất của đoạn mạch bằng:",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Khó",
+      "explanation": "Cảm kháng: $Z_L = \\omega L = 100\\pi \\cdot \\frac{1}{\\pi} = 100$ $\\Omega$. Tổng trở $Z = \\sqrt{R^2 + Z_L^2} = 100\\sqrt{2}$ $\\Omega$. Hệ số công suất $\\cos\\varphi = \\frac{R}{Z} = \\frac{100}{100\\sqrt{2}} = \\frac{\\sqrt{2}}{2} \\approx 0,707$.",
+      "options": [
+        {
+          "option_label": "A",
+          "option_text": "0,5",
+          "is_correct": false
+        },
+        {
+          "option_label": "B",
+          "option_text": "0,866",
+          "is_correct": false
+        },
+        {
+          "option_label": "C",
+          "option_text": "0,707",
+          "is_correct": true
+        },
+        {
+          "option_label": "D",
+          "option_text": "1",
+          "is_correct": false
+        }
+      ]
+    },
+    {
+      "question_number": 11,
+      "question_text": "Một sóng cơ lan truyền trong một môi trường đàn hồi với tần số $f = 50$ Hz. Tốc độ truyền sóng là $v = 20$ m/s. Bước sóng của sóng này bằng:",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Dễ",
+      "explanation": "Bước sóng của sóng cơ: $\\lambda = \\frac{v}{f} = \\frac{20}{50} = 0,4$ m = 40 cm.",
+      "topic": "Dao động và sóng điện từ",
+      "options": [
+        {
+          "option_label": "A",
+          "option_text": "0,4 m",
+          "is_correct": true
+        },
+        {
+          "option_label": "B",
+          "option_text": "2,5 m",
+          "is_correct": false
+        },
+        {
+          "option_label": "C",
+          "option_text": "1000 m",
+          "is_correct": false
+        },
+        {
+          "option_label": "D",
+          "option_text": "40 cm",
+          "is_correct": false
+        }
+      ]
+    },
+    {
+      "question_number": 12,
+      "question_text": "Một sóng cơ lan truyền trong một môi trường đàn hồi với tần số $f = 50$ Hz. Tốc độ truyền sóng là $v = 20$ m/s. Bước sóng của sóng này bằng:",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Khó",
+      "explanation": "Bước sóng của sóng cơ: $\\lambda = \\frac{v}{f} = \\frac{20}{50} = 0,4$ m = 40 cm.",
+      "topic": "Sóng ánh sáng",
+      "options": [
+        {
+          "option_label": "A",
+          "option_text": "0,4 m",
+          "is_correct": true
+        },
+        {
+          "option_label": "B",
+          "option_text": "2,5 m",
+          "is_correct": false
+        },
+        {
+          "option_label": "C",
+          "option_text": "1000 m",
+          "is_correct": false
+        },
+        {
+          "option_label": "D",
+          "option_text": "40 cm",
+          "is_correct": false
+        }
+      ]
+    },
+    {
+      "question_number": 13,
+      "question_text": "Một sóng cơ lan truyền trong một môi trường đàn hồi với tần số $f = 50$ Hz. Tốc độ truyền sóng là $v = 20$ m/s. Bước sóng của sóng này bằng:",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Dễ",
+      "explanation": "Bước sóng của sóng cơ: $\\lambda = \\frac{v}{f} = \\frac{20}{50} = 0,4$ m = 40 cm.",
+      "topic": "Lượng tử ánh sáng",
+      "options": [
+        {
+          "option_label": "A",
+          "option_text": "0,4 m",
+          "is_correct": true
+        },
+        {
+          "option_label": "B",
+          "option_text": "2,5 m",
+          "is_correct": false
+        },
+        {
+          "option_label": "C",
+          "option_text": "1000 m",
+          "is_correct": false
+        },
+        {
+          "option_label": "D",
+          "option_text": "40 cm",
+          "is_correct": false
+        }
+      ]
+    },
+    {
+      "question_number": 14,
+      "question_text": "Một sóng cơ lan truyền trong một môi trường đàn hồi với tần số $f = 50$ Hz. Tốc độ truyền sóng là $v = 20$ m/s. Bước sóng của sóng này bằng:",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Trung bình",
+      "explanation": "Bước sóng của sóng cơ: $\\lambda = \\frac{v}{f} = \\frac{20}{50} = 0,4$ m = 40 cm.",
+      "topic": "Hạt nhân nguyên tử",
+      "options": [
+        {
+          "option_label": "A",
+          "option_text": "0,4 m",
+          "is_correct": true
+        },
+        {
+          "option_label": "B",
+          "option_text": "2,5 m",
+          "is_correct": false
+        },
+        {
+          "option_label": "C",
+          "option_text": "1000 m",
+          "is_correct": false
+        },
+        {
+          "option_label": "D",
+          "option_text": "40 cm",
+          "is_correct": false
+        }
+      ]
+    },
+    {
+      "question_number": 15,
+      "question_text": "Một sóng cơ lan truyền trong một môi trường đàn hồi với tần số $f = 50$ Hz. Tốc độ truyền sóng là $v = 20$ m/s. Bước sóng của sóng này bằng:",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Khó",
+      "explanation": "Bước sóng của sóng cơ: $\\lambda = \\frac{v}{f} = \\frac{20}{50} = 0,4$ m = 40 cm.",
+      "topic": "Cơ học chất lưu",
+      "options": [
+        {
+          "option_label": "A",
+          "option_text": "0,4 m",
+          "is_correct": true
+        },
+        {
+          "option_label": "B",
+          "option_text": "2,5 m",
+          "is_correct": false
+        },
+        {
+          "option_label": "C",
+          "option_text": "1000 m",
+          "is_correct": false
+        },
+        {
+          "option_label": "D",
+          "option_text": "40 cm",
+          "is_correct": false
+        }
+      ]
+    },
+    {
+      "question_number": 16,
+      "question_text": "Một con lắc lò xo gồm lò xo nhẹ có độ cứng $k = 100$ N/m và vật nhỏ có khối lượng $m = 250$ g. Chu kỳ dao động riêng của con lắc bằng:",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Trung bình",
+      "explanation": "Chu kỳ dao động của con lắc lò xo: $T = 2\\pi \\sqrt{\\frac{m}{k}} = 2\\pi \\sqrt{\\frac{0,25}{100}} = \\frac{\\pi}{10} \\approx 0,314$ s.",
+      "topic": "Dao động cơ",
+      "options": [
+        {
+          "option_label": "A",
+          "option_text": "0,314 s",
+          "is_correct": true
+        },
+        {
+          "option_label": "B",
+          "option_text": "3,14 s",
+          "is_correct": false
+        },
+        {
+          "option_label": "C",
+          "option_text": "0,628 s",
+          "is_correct": false
+        },
+        {
+          "option_label": "D",
+          "option_text": "6,28 s",
+          "is_correct": false
+        }
+      ]
+    },
+    {
+      "question_number": 17,
+      "question_text": "Một sóng cơ lan truyền trong một môi trường đàn hồi với tần số $f = 50$ Hz. Tốc độ truyền sóng là $v = 20$ m/s. Bước sóng của sóng này bằng:",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Dễ",
+      "explanation": "Bước sóng của sóng cơ: $\\lambda = \\frac{v}{f} = \\frac{20}{50} = 0,4$ m = 40 cm.",
+      "topic": "Sóng cơ và sóng âm",
+      "options": [
+        {
+          "option_label": "A",
+          "option_text": "0,4 m",
+          "is_correct": true
+        },
+        {
+          "option_label": "B",
+          "option_text": "2,5 m",
+          "is_correct": false
+        },
+        {
+          "option_label": "C",
+          "option_text": "1000 m",
+          "is_correct": false
+        },
+        {
+          "option_label": "D",
+          "option_text": "40 cm",
+          "is_correct": false
+        }
+      ]
+    },
+    {
+      "question_number": 18,
+      "question_text": "Đặt điện áp xoay chiều có tần số góc $\\omega$ vào hai đầu cuộn cảm thuần có độ tự cảm $L$. Cảm kháng của cuộn cảm là:",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Khó",
+      "explanation": "Công thức tính cảm kháng của cuộn cảm thuần: $Z_L = \\omega L$.",
+      "topic": "Dòng điện xoay chiều",
+      "options": [
+        {
+          "option_label": "A",
+          "option_text": "Z_L = \\omega L",
+          "is_correct": true
+        },
+        {
+          "option_label": "B",
+          "option_text": "Z_L = 1 / (\\omega L)",
+          "is_correct": false
+        },
+        {
+          "option_label": "C",
+          "option_text": "Z_L = \\omega / L",
+          "is_correct": false
+        },
+        {
+          "option_label": "D",
+          "option_text": "Z_L = L / \\omega",
+          "is_correct": false
+        }
+      ]
+    },
+    {
+      "question_number": 19,
+      "question_text": "Một sóng cơ lan truyền trong một môi trường đàn hồi với tần số $f = 50$ Hz. Tốc độ truyền sóng là $v = 20$ m/s. Bước sóng của sóng này bằng:",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Dễ",
+      "explanation": "Bước sóng của sóng cơ: $\\lambda = \\frac{v}{f} = \\frac{20}{50} = 0,4$ m = 40 cm.",
+      "topic": "Dao động và sóng điện từ",
+      "options": [
+        {
+          "option_label": "A",
+          "option_text": "0,4 m",
+          "is_correct": true
+        },
+        {
+          "option_label": "B",
+          "option_text": "2,5 m",
+          "is_correct": false
+        },
+        {
+          "option_label": "C",
+          "option_text": "1000 m",
+          "is_correct": false
+        },
+        {
+          "option_label": "D",
+          "option_text": "40 cm",
+          "is_correct": false
+        }
+      ]
+    },
+    {
+      "question_number": 20,
+      "question_text": "Một sóng cơ lan truyền trong một môi trường đàn hồi với tần số $f = 50$ Hz. Tốc độ truyền sóng là $v = 20$ m/s. Bước sóng của sóng này bằng:",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Trung bình",
+      "explanation": "Bước sóng của sóng cơ: $\\lambda = \\frac{v}{f} = \\frac{20}{50} = 0,4$ m = 40 cm.",
+      "topic": "Sóng ánh sáng",
+      "options": [
+        {
+          "option_label": "A",
+          "option_text": "0,4 m",
+          "is_correct": true
+        },
+        {
+          "option_label": "B",
+          "option_text": "2,5 m",
+          "is_correct": false
+        },
+        {
+          "option_label": "C",
+          "option_text": "1000 m",
+          "is_correct": false
+        },
+        {
+          "option_label": "D",
+          "option_text": "40 cm",
+          "is_correct": false
+        }
+      ]
+    },
+    {
+      "question_number": 21,
+      "question_text": "Một sóng cơ lan truyền trong một môi trường đàn hồi với tần số $f = 50$ Hz. Tốc độ truyền sóng là $v = 20$ m/s. Bước sóng của sóng này bằng:",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Khó",
+      "explanation": "Bước sóng của sóng cơ: $\\lambda = \\frac{v}{f} = \\frac{20}{50} = 0,4$ m = 40 cm.",
+      "topic": "Lượng tử ánh sáng",
+      "options": [
+        {
+          "option_label": "A",
+          "option_text": "0,4 m",
+          "is_correct": true
+        },
+        {
+          "option_label": "B",
+          "option_text": "2,5 m",
+          "is_correct": false
+        },
+        {
+          "option_label": "C",
+          "option_text": "1000 m",
+          "is_correct": false
+        },
+        {
+          "option_label": "D",
+          "option_text": "40 cm",
+          "is_correct": false
+        }
+      ]
+    },
+    {
+      "question_number": 22,
+      "question_text": "Một sóng cơ lan truyền trong một môi trường đàn hồi với tần số $f = 50$ Hz. Tốc độ truyền sóng là $v = 20$ m/s. Bước sóng của sóng này bằng:",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Trung bình",
+      "explanation": "Bước sóng của sóng cơ: $\\lambda = \\frac{v}{f} = \\frac{20}{50} = 0,4$ m = 40 cm.",
+      "topic": "Hạt nhân nguyên tử",
+      "options": [
+        {
+          "option_label": "A",
+          "option_text": "0,4 m",
+          "is_correct": true
+        },
+        {
+          "option_label": "B",
+          "option_text": "2,5 m",
+          "is_correct": false
+        },
+        {
+          "option_label": "C",
+          "option_text": "1000 m",
+          "is_correct": false
+        },
+        {
+          "option_label": "D",
+          "option_text": "40 cm",
+          "is_correct": false
+        }
+      ]
+    },
+    {
+      "question_number": 23,
+      "question_text": "Một sóng cơ lan truyền trong một môi trường đàn hồi với tần số $f = 50$ Hz. Tốc độ truyền sóng là $v = 20$ m/s. Bước sóng của sóng này bằng:",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Dễ",
+      "explanation": "Bước sóng của sóng cơ: $\\lambda = \\frac{v}{f} = \\frac{20}{50} = 0,4$ m = 40 cm.",
+      "topic": "Cơ học chất lưu",
+      "options": [
+        {
+          "option_label": "A",
+          "option_text": "0,4 m",
+          "is_correct": true
+        },
+        {
+          "option_label": "B",
+          "option_text": "2,5 m",
+          "is_correct": false
+        },
+        {
+          "option_label": "C",
+          "option_text": "1000 m",
+          "is_correct": false
+        },
+        {
+          "option_label": "D",
+          "option_text": "40 cm",
+          "is_correct": false
+        }
+      ]
+    },
+    {
+      "question_number": 24,
+      "question_text": "Một con lắc lò xo gồm lò xo nhẹ có độ cứng $k = 100$ N/m và vật nhỏ có khối lượng $m = 250$ g. Chu kỳ dao động riêng của con lắc bằng:",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Khó",
+      "explanation": "Chu kỳ dao động của con lắc lò xo: $T = 2\\pi \\sqrt{\\frac{m}{k}} = 2\\pi \\sqrt{\\frac{0,25}{100}} = \\frac{\\pi}{10} \\approx 0,314$ s.",
+      "topic": "Dao động cơ",
+      "options": [
+        {
+          "option_label": "A",
+          "option_text": "0,314 s",
+          "is_correct": true
+        },
+        {
+          "option_label": "B",
+          "option_text": "3,14 s",
+          "is_correct": false
+        },
+        {
+          "option_label": "C",
+          "option_text": "0,628 s",
+          "is_correct": false
+        },
+        {
+          "option_label": "D",
+          "option_text": "6,28 s",
+          "is_correct": false
+        }
+      ]
+    },
+    {
+      "question_number": 25,
+      "question_text": "Một sóng cơ lan truyền trong một môi trường đàn hồi với tần số $f = 50$ Hz. Tốc độ truyền sóng là $v = 20$ m/s. Bước sóng của sóng này bằng:",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Dễ",
+      "explanation": "Bước sóng của sóng cơ: $\\lambda = \\frac{v}{f} = \\frac{20}{50} = 0,4$ m = 40 cm.",
+      "topic": "Sóng cơ và sóng âm",
+      "options": [
+        {
+          "option_label": "A",
+          "option_text": "0,4 m",
+          "is_correct": true
+        },
+        {
+          "option_label": "B",
+          "option_text": "2,5 m",
+          "is_correct": false
+        },
+        {
+          "option_label": "C",
+          "option_text": "1000 m",
+          "is_correct": false
+        },
+        {
+          "option_label": "D",
+          "option_text": "40 cm",
+          "is_correct": false
+        }
+      ]
+    },
+    {
+      "question_number": 26,
+      "question_text": "Đặt điện áp xoay chiều có tần số góc $\\omega$ vào hai đầu cuộn cảm thuần có độ tự cảm $L$. Cảm kháng của cuộn cảm là:",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Trung bình",
+      "explanation": "Công thức tính cảm kháng của cuộn cảm thuần: $Z_L = \\omega L$.",
+      "topic": "Dòng điện xoay chiều",
+      "options": [
+        {
+          "option_label": "A",
+          "option_text": "Z_L = \\omega L",
+          "is_correct": true
+        },
+        {
+          "option_label": "B",
+          "option_text": "Z_L = 1 / (\\omega L)",
+          "is_correct": false
+        },
+        {
+          "option_label": "C",
+          "option_text": "Z_L = \\omega / L",
+          "is_correct": false
+        },
+        {
+          "option_label": "D",
+          "option_text": "Z_L = L / \\omega",
+          "is_correct": false
+        }
+      ]
+    },
+    {
+      "question_number": 27,
+      "question_text": "Một sóng cơ lan truyền trong một môi trường đàn hồi với tần số $f = 50$ Hz. Tốc độ truyền sóng là $v = 20$ m/s. Bước sóng của sóng này bằng:",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Khó",
+      "explanation": "Bước sóng của sóng cơ: $\\lambda = \\frac{v}{f} = \\frac{20}{50} = 0,4$ m = 40 cm.",
+      "topic": "Dao động và sóng điện từ",
+      "options": [
+        {
+          "option_label": "A",
+          "option_text": "0,4 m",
+          "is_correct": true
+        },
+        {
+          "option_label": "B",
+          "option_text": "2,5 m",
+          "is_correct": false
+        },
+        {
+          "option_label": "C",
+          "option_text": "1000 m",
+          "is_correct": false
+        },
+        {
+          "option_label": "D",
+          "option_text": "40 cm",
+          "is_correct": false
+        }
+      ]
+    },
+    {
+      "question_number": 28,
+      "question_text": "Một sóng cơ lan truyền trong một môi trường đàn hồi với tần số $f = 50$ Hz. Tốc độ truyền sóng là $v = 20$ m/s. Bước sóng của sóng này bằng:",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Trung bình",
+      "explanation": "Bước sóng của sóng cơ: $\\lambda = \\frac{v}{f} = \\frac{20}{50} = 0,4$ m = 40 cm.",
+      "topic": "Sóng ánh sáng",
+      "options": [
+        {
+          "option_label": "A",
+          "option_text": "0,4 m",
+          "is_correct": true
+        },
+        {
+          "option_label": "B",
+          "option_text": "2,5 m",
+          "is_correct": false
+        },
+        {
+          "option_label": "C",
+          "option_text": "1000 m",
+          "is_correct": false
+        },
+        {
+          "option_label": "D",
+          "option_text": "40 cm",
+          "is_correct": false
+        }
+      ]
+    },
+    {
+      "question_number": 29,
+      "question_text": "Một sóng cơ lan truyền trong một môi trường đàn hồi với tần số $f = 50$ Hz. Tốc độ truyền sóng là $v = 20$ m/s. Bước sóng của sóng này bằng:",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Dễ",
+      "explanation": "Bước sóng của sóng cơ: $\\lambda = \\frac{v}{f} = \\frac{20}{50} = 0,4$ m = 40 cm.",
+      "topic": "Lượng tử ánh sáng",
+      "options": [
+        {
+          "option_label": "A",
+          "option_text": "0,4 m",
+          "is_correct": true
+        },
+        {
+          "option_label": "B",
+          "option_text": "2,5 m",
+          "is_correct": false
+        },
+        {
+          "option_label": "C",
+          "option_text": "1000 m",
+          "is_correct": false
+        },
+        {
+          "option_label": "D",
+          "option_text": "40 cm",
+          "is_correct": false
+        }
+      ]
+    },
+    {
+      "question_number": 30,
+      "question_text": "Một sóng cơ lan truyền trong một môi trường đàn hồi với tần số $f = 50$ Hz. Tốc độ truyền sóng là $v = 20$ m/s. Bước sóng của sóng này bằng:",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Khó",
+      "explanation": "Bước sóng của sóng cơ: $\\lambda = \\frac{v}{f} = \\frac{20}{50} = 0,4$ m = 40 cm.",
+      "topic": "Hạt nhân nguyên tử",
+      "options": [
+        {
+          "option_label": "A",
+          "option_text": "0,4 m",
+          "is_correct": true
+        },
+        {
+          "option_label": "B",
+          "option_text": "2,5 m",
+          "is_correct": false
+        },
+        {
+          "option_label": "C",
+          "option_text": "1000 m",
+          "is_correct": false
+        },
+        {
+          "option_label": "D",
+          "option_text": "40 cm",
+          "is_correct": false
+        }
+      ]
+    },
+    {
+      "question_number": 31,
+      "question_text": "Một sóng cơ lan truyền trong một môi trường đàn hồi với tần số $f = 50$ Hz. Tốc độ truyền sóng là $v = 20$ m/s. Bước sóng của sóng này bằng:",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Dễ",
+      "explanation": "Bước sóng của sóng cơ: $\\lambda = \\frac{v}{f} = \\frac{20}{50} = 0,4$ m = 40 cm.",
+      "topic": "Cơ học chất lưu",
+      "options": [
+        {
+          "option_label": "A",
+          "option_text": "0,4 m",
+          "is_correct": true
+        },
+        {
+          "option_label": "B",
+          "option_text": "2,5 m",
+          "is_correct": false
+        },
+        {
+          "option_label": "C",
+          "option_text": "1000 m",
+          "is_correct": false
+        },
+        {
+          "option_label": "D",
+          "option_text": "40 cm",
+          "is_correct": false
+        }
+      ]
+    },
+    {
+      "question_number": 32,
+      "question_text": "Một con lắc lò xo gồm lò xo nhẹ có độ cứng $k = 100$ N/m và vật nhỏ có khối lượng $m = 250$ g. Chu kỳ dao động riêng của con lắc bằng:",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Trung bình",
+      "explanation": "Chu kỳ dao động của con lắc lò xo: $T = 2\\pi \\sqrt{\\frac{m}{k}} = 2\\pi \\sqrt{\\frac{0,25}{100}} = \\frac{\\pi}{10} \\approx 0,314$ s.",
+      "topic": "Dao động cơ",
+      "options": [
+        {
+          "option_label": "A",
+          "option_text": "0,314 s",
+          "is_correct": true
+        },
+        {
+          "option_label": "B",
+          "option_text": "3,14 s",
+          "is_correct": false
+        },
+        {
+          "option_label": "C",
+          "option_text": "0,628 s",
+          "is_correct": false
+        },
+        {
+          "option_label": "D",
+          "option_text": "6,28 s",
+          "is_correct": false
+        }
+      ]
+    },
+    {
+      "question_number": 33,
+      "question_text": "Một sóng cơ lan truyền trong một môi trường đàn hồi với tần số $f = 50$ Hz. Tốc độ truyền sóng là $v = 20$ m/s. Bước sóng của sóng này bằng:",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Khó",
+      "explanation": "Bước sóng của sóng cơ: $\\lambda = \\frac{v}{f} = \\frac{20}{50} = 0,4$ m = 40 cm.",
+      "topic": "Sóng cơ và sóng âm",
+      "options": [
+        {
+          "option_label": "A",
+          "option_text": "0,4 m",
+          "is_correct": true
+        },
+        {
+          "option_label": "B",
+          "option_text": "2,5 m",
+          "is_correct": false
+        },
+        {
+          "option_label": "C",
+          "option_text": "1000 m",
+          "is_correct": false
+        },
+        {
+          "option_label": "D",
+          "option_text": "40 cm",
+          "is_correct": false
+        }
+      ]
+    },
+    {
+      "question_number": 34,
+      "question_text": "Đặt điện áp xoay chiều có tần số góc $\\omega$ vào hai đầu cuộn cảm thuần có độ tự cảm $L$. Cảm kháng của cuộn cảm là:",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Trung bình",
+      "explanation": "Công thức tính cảm kháng của cuộn cảm thuần: $Z_L = \\omega L$.",
+      "topic": "Dòng điện xoay chiều",
+      "options": [
+        {
+          "option_label": "A",
+          "option_text": "Z_L = \\omega L",
+          "is_correct": true
+        },
+        {
+          "option_label": "B",
+          "option_text": "Z_L = 1 / (\\omega L)",
+          "is_correct": false
+        },
+        {
+          "option_label": "C",
+          "option_text": "Z_L = \\omega / L",
+          "is_correct": false
+        },
+        {
+          "option_label": "D",
+          "option_text": "Z_L = L / \\omega",
+          "is_correct": false
+        }
+      ]
+    },
+    {
+      "question_number": 35,
+      "question_text": "Một sóng cơ lan truyền trong một môi trường đàn hồi với tần số $f = 50$ Hz. Tốc độ truyền sóng là $v = 20$ m/s. Bước sóng của sóng này bằng:",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Dễ",
+      "explanation": "Bước sóng của sóng cơ: $\\lambda = \\frac{v}{f} = \\frac{20}{50} = 0,4$ m = 40 cm.",
+      "topic": "Dao động và sóng điện từ",
+      "options": [
+        {
+          "option_label": "A",
+          "option_text": "0,4 m",
+          "is_correct": true
+        },
+        {
+          "option_label": "B",
+          "option_text": "2,5 m",
+          "is_correct": false
+        },
+        {
+          "option_label": "C",
+          "option_text": "1000 m",
+          "is_correct": false
+        },
+        {
+          "option_label": "D",
+          "option_text": "40 cm",
+          "is_correct": false
+        }
+      ]
+    },
+    {
+      "question_number": 36,
+      "question_text": "Một sóng cơ lan truyền trong một môi trường đàn hồi với tần số $f = 50$ Hz. Tốc độ truyền sóng là $v = 20$ m/s. Bước sóng của sóng này bằng:",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Khó",
+      "explanation": "Bước sóng của sóng cơ: $\\lambda = \\frac{v}{f} = \\frac{20}{50} = 0,4$ m = 40 cm.",
+      "topic": "Sóng ánh sáng",
+      "options": [
+        {
+          "option_label": "A",
+          "option_text": "0,4 m",
+          "is_correct": true
+        },
+        {
+          "option_label": "B",
+          "option_text": "2,5 m",
+          "is_correct": false
+        },
+        {
+          "option_label": "C",
+          "option_text": "1000 m",
+          "is_correct": false
+        },
+        {
+          "option_label": "D",
+          "option_text": "40 cm",
+          "is_correct": false
+        }
+      ]
+    },
+    {
+      "question_number": 37,
+      "question_text": "Một sóng cơ lan truyền trong một môi trường đàn hồi với tần số $f = 50$ Hz. Tốc độ truyền sóng là $v = 20$ m/s. Bước sóng của sóng này bằng:",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Dễ",
+      "explanation": "Bước sóng của sóng cơ: $\\lambda = \\frac{v}{f} = \\frac{20}{50} = 0,4$ m = 40 cm.",
+      "topic": "Lượng tử ánh sáng",
+      "options": [
+        {
+          "option_label": "A",
+          "option_text": "0,4 m",
+          "is_correct": true
+        },
+        {
+          "option_label": "B",
+          "option_text": "2,5 m",
+          "is_correct": false
+        },
+        {
+          "option_label": "C",
+          "option_text": "1000 m",
+          "is_correct": false
+        },
+        {
+          "option_label": "D",
+          "option_text": "40 cm",
+          "is_correct": false
+        }
+      ]
+    },
+    {
+      "question_number": 38,
+      "question_text": "Một sóng cơ lan truyền trong một môi trường đàn hồi với tần số $f = 50$ Hz. Tốc độ truyền sóng là $v = 20$ m/s. Bước sóng của sóng này bằng:",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Trung bình",
+      "explanation": "Bước sóng của sóng cơ: $\\lambda = \\frac{v}{f} = \\frac{20}{50} = 0,4$ m = 40 cm.",
+      "topic": "Hạt nhân nguyên tử",
+      "options": [
+        {
+          "option_label": "A",
+          "option_text": "0,4 m",
+          "is_correct": true
+        },
+        {
+          "option_label": "B",
+          "option_text": "2,5 m",
+          "is_correct": false
+        },
+        {
+          "option_label": "C",
+          "option_text": "1000 m",
+          "is_correct": false
+        },
+        {
+          "option_label": "D",
+          "option_text": "40 cm",
+          "is_correct": false
+        }
+      ]
+    },
+    {
+      "question_number": 39,
+      "question_text": "Một sóng cơ lan truyền trong một môi trường đàn hồi với tần số $f = 50$ Hz. Tốc độ truyền sóng là $v = 20$ m/s. Bước sóng của sóng này bằng:",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Khó",
+      "explanation": "Bước sóng của sóng cơ: $\\lambda = \\frac{v}{f} = \\frac{20}{50} = 0,4$ m = 40 cm.",
+      "topic": "Cơ học chất lưu",
+      "options": [
+        {
+          "option_label": "A",
+          "option_text": "0,4 m",
+          "is_correct": true
+        },
+        {
+          "option_label": "B",
+          "option_text": "2,5 m",
+          "is_correct": false
+        },
+        {
+          "option_label": "C",
+          "option_text": "1000 m",
+          "is_correct": false
+        },
+        {
+          "option_label": "D",
+          "option_text": "40 cm",
+          "is_correct": false
+        }
+      ]
+    },
+    {
+      "question_number": 40,
+      "question_text": "Một con lắc lò xo gồm lò xo nhẹ có độ cứng $k = 100$ N/m và vật nhỏ có khối lượng $m = 250$ g. Chu kỳ dao động riêng của con lắc bằng:",
+      "question_type": "multiple_choice_single",
+      "difficulty": "Trung bình",
+      "explanation": "Chu kỳ dao động của con lắc lò xo: $T = 2\\pi \\sqrt{\\frac{m}{k}} = 2\\pi \\sqrt{\\frac{0,25}{100}} = \\frac{\\pi}{10} \\approx 0,314$ s.",
+      "topic": "Dao động cơ",
+      "options": [
+        {
+          "option_label": "A",
+          "option_text": "0,314 s",
+          "is_correct": true
+        },
+        {
+          "option_label": "B",
+          "option_text": "3,14 s",
+          "is_correct": false
+        },
+        {
+          "option_label": "C",
+          "option_text": "0,628 s",
+          "is_correct": false
+        },
+        {
+          "option_label": "D",
+          "option_text": "6,28 s",
+          "is_correct": false
+        }
+      ]
+    }
+  ]
+}

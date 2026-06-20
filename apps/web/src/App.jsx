@@ -25,9 +25,11 @@ import CourseMall from './components/CourseMall';
 import ChatbotWidget from './components/ChatbotWidget.jsx';
 import OCRScanner from './components/OCRScanner.jsx';
 import StudentDashboard from './components/dashboard/StudentDashboard';
+import ContributionHeatmap from './components/ContributionHeatmap';
 
 import CoursesPage from './pages/CoursesPage';
 import CourseDetailPage from './pages/CourseDetailPage';
+import { mapDbCourseToMockFormat } from './utils/courseMapper';
 import LearningPage from './pages/LearningPage';
 import MockExamsPage from './pages/MockExamsPage';
 import MockExamDetailPage from './pages/MockExamDetailPage';
@@ -39,56 +41,22 @@ import './styles/dashboard.css';
 import './styles/courses.css';
 import AITutorPage from './pages/AITutorPage';
 import './styles/aitutor.css';
+<<<<<<< HEAD
 import ExamBankPage from './pages/ExamBankPage';
 import './styles/exambank.css';
+=======
+import FlashcardPage from './pages/FlashcardPage';
+import './styles/flashcards.css';
+import ExamBankPage from './pages/ExamBankPage';
+import './styles/exambank.css';
+import ConfirmEmailPage from './pages/ConfirmEmailPage';
+>>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
 
 
-import { HiPlay, HiDocumentDownload, HiBeaker, HiX } from 'react-icons/hi';
+import { HiPlay, HiDocumentDownload, HiBeaker, HiX, HiBookOpen } from 'react-icons/hi';
 import { api } from './api';
 
-// Initial Database preloads
-const initialCourses = [
-  {
-    id: 1,
-    title: "Ứng dụng đạo hàm khảo sát đồ thị hàm số",
-    subject: "Toán học",
-    price: "499.000",
-    teacherName: "Thầy Thế Anh",
-    isUnlocked: true,
-    lessons: [
-      { id: 101, name: "Bài 1: Sự đồng biến, nghịch biến của hàm số", duration: "18:45" },
-      { id: 102, name: "Bài 2: Cực trị của hàm số và kỹ thuật bấm máy Casio", duration: "25:30" },
-      { id: 103, name: "Bài 3: Giá trị lớn nhất, nhỏ nhất trên đoạn", duration: "22:15" },
-      { id: 104, name: "Bài 4: Khảo sát sự biến thiên và vẽ đồ thị nâng cao", duration: "32:10" }
-    ]
-  },
-  {
-    id: 2,
-    title: "Chinh phục toàn diện Dao động cơ & Sóng cơ học",
-    subject: "Vật lý",
-    price: "599.000",
-    teacherName: "Cô Thu Hương",
-    isUnlocked: false,
-    lessons: [
-      { id: 201, name: "Bài 1: Khái niệm Dao động điều hòa và các phương trình cốt lõi", duration: "20:15" },
-      { id: 202, name: "Bài 2: Con lắc lò xo và bài toán năng lượng", duration: "26:40" },
-      { id: 203, name: "Bài 3: Con lắc đơn và sự biến thiên chu kỳ", duration: "18:30" }
-    ]
-  },
-  {
-    id: 3,
-    title: "Ngữ pháp Tiếng Anh trọng tâm thi THPTQG 2026",
-    subject: "Tiếng Anh",
-    price: "399.000",
-    teacherName: "Cô Quỳnh Chi",
-    isUnlocked: false,
-    lessons: [
-      { id: 301, name: "Bài 1: Trọn bộ 12 thì trong Tiếng Anh và dấu hiệu nhận biết", duration: "15:45" },
-      { id: 302, name: "Bài 2: Câu bị động và các dạng đặc biệt thường gặp", duration: "22:20" },
-      { id: 303, name: "Bài 3: Câu điều kiện và Mệnh đề giả định", duration: "20:10" }
-    ]
-  }
-];
+
 
 const initialUsers = [
   {
@@ -101,7 +69,8 @@ const initialUsers = [
     grade: '12',
     avatar: 'MA',
     isBanned: false,
-    unlockedCourses: [1]
+    unlockedCourses: [1],
+    registeredDate: '2026-06-12'
   },
   {
     id: 102,
@@ -111,7 +80,8 @@ const initialUsers = [
     role: 'teacher',
     avatar: 'TA',
     isBanned: false,
-    status: 'active'
+    status: 'active',
+    registeredDate: '2026-06-10'
   },
   {
     id: 103,
@@ -121,9 +91,11 @@ const initialUsers = [
     role: 'admin',
     avatar: 'AD',
     isBanned: false,
-    status: 'active'
+    status: 'active',
+    registeredDate: '2026-06-08'
   }
 ];
+
 
 const initialQuestions = [
   {
@@ -398,12 +370,71 @@ function LibraryCabinet({ addLog }) {
 const generateMassiveExamsList = (backendExams) => {
   if (!backendExams || backendExams.length === 0) return [];
 
-  const mathExams = backendExams.filter(e => e.subject === 'Toán học');
-  const physicsExams = backendExams.filter(e => e.subject === 'Vật lý');
-  const chemistryExams = backendExams.filter(e => e.subject === 'Hóa học');
-  const biologyExams = backendExams.filter(e => e.subject === 'Sinh học');
-  const englishExams = backendExams.filter(e => e.subject === 'Tiếng Anh');
-  const aptitudeExams = backendExams.filter(e => e.subject.includes('Đánh giá năng lực') || e.title.includes('HSA') || e.title.includes('ĐGNL'));
+  const getSlug = (subject) => {
+    if (subject === 'Toán học') return 'toan';
+    if (subject === 'Tiếng Anh') return 'anh';
+    if (subject === 'Vật lý') return 'ly';
+    if (subject === 'Hóa học') return 'hoa';
+    return 'toan';
+  };
+
+  const getIcon = (subject) => {
+    if (subject === 'Toán học') return '📐';
+    if (subject === 'Tiếng Anh') return '🗣️';
+    if (subject === 'Vật lý') return '⚛️';
+    if (subject === 'Hóa học') return '🧪';
+    return '🎯';
+  };
+
+  const getSubjectId = (subject) => {
+    if (subject === 'Toán học') return 1;
+    if (subject === 'Tiếng Anh') return 2;
+    if (subject === 'Vật lý') return 3;
+    if (subject === 'Hóa học') return 4;
+    return 1;
+  };
+
+  const mapBackendExam = (e) => {
+    const years = [2026, 2025, 2024, 2023, 2022, 2021, 2020];
+    const matchedYear = years.find(y => e.title.includes(String(y))) || 2024;
+    const matchedCode = e.title.match(/Mã đề (\d+)/)?.[1] || '101';
+    const isOfficial = e.title.toLowerCase().includes('chính thức');
+    const subjectSlug = getSlug(e.subject);
+    const subjectIcon = getIcon(e.subject);
+    const subjectId = getSubjectId(e.subject);
+
+    return {
+      id: String(e.id),
+      subject_id: subjectId,
+      title: e.title,
+      year: matchedYear,
+      exam_code: matchedCode,
+      exam_type: isOfficial ? 'official' : 'mock',
+      source: isOfficial ? 'Bộ GD&ĐT' : 'Trường chuyên',
+      duration_minutes: e.duration,
+      total_questions: e.examQuestions ? e.examQuestions.length : (e.totalQuestions || 0),
+      description: e.description || `Đề thi ôn luyện môn ${e.subject} thi tốt nghiệp THPT Quốc Gia.`,
+      status: 'published',
+      exam_subjects: {
+        id: subjectId,
+        name: e.subject,
+        slug: subjectSlug,
+        icon: subjectIcon,
+        description: `Môn ${e.subject} ôn thi THPT Quốc Gia`
+      },
+      attempts_count: 0,
+      examQuestions: e.examQuestions || []
+    };
+  };
+
+  const mappedBackend = backendExams.map(mapBackendExam);
+
+  const mathExams = mappedBackend.filter(e => e.exam_subjects?.name === 'Toán học');
+  const physicsExams = mappedBackend.filter(e => e.exam_subjects?.name === 'Vật lý');
+  const chemistryExams = mappedBackend.filter(e => e.exam_subjects?.name === 'Hóa học');
+  const biologyExams = mappedBackend.filter(e => e.exam_subjects?.name === 'Sinh học');
+  const englishExams = mappedBackend.filter(e => e.exam_subjects?.name === 'Tiếng Anh');
+  const aptitudeExams = mappedBackend.filter(e => e.exam_subjects?.name.includes('Đánh giá năng lực') || e.title.includes('HSA') || e.title.includes('ĐGNL'));
 
   const getMappedId = (subject) => {
     let list = [];
@@ -414,12 +445,12 @@ const generateMassiveExamsList = (backendExams) => {
     else if (subject === 'Tiếng Anh') list = englishExams;
     else list = aptitudeExams;
 
-    if (list.length === 0) return backendExams[0]?.id;
+    if (list.length === 0) return mappedBackend[0]?.id;
     const randomIndex = Math.floor(Math.random() * list.length);
     return list[randomIndex]?.id;
   };
 
-  const list = [...backendExams];
+  const list = [...mappedBackend];
 
   const schools = [
     'Chuyên Hà Nội - Amsterdam', 'Chuyên Lam Sơn Thanh Hóa', 'Chuyên Phan Bội Châu Nghệ An',
@@ -452,14 +483,32 @@ const generateMassiveExamsList = (backendExams) => {
       for (let subject of subjects) {
         count++;
         const mappedId = getMappedId(subject);
-        const examObj = backendExams.find(e => e.id === mappedId);
+        const examObj = mappedBackend.find(e => e.id === mappedId);
+        
+        const subjectSlug = getSlug(subject);
+        const subjectIcon = getIcon(subject);
+        const subjectId = getSubjectId(subject);
+
         list.push({
-          id: count,
+          id: String(count),
           title: `Đề thi thử ${subject} THPTQG ${year} - ${school}`,
-          subject,
-          subjectGroup: subject === 'Tiếng Anh' ? 'D01' : (subject === 'Sinh học' ? 'B00' : 'A01'),
-          duration: subject === 'Toán học' ? 90 : (subject === 'Tiếng Anh' ? 60 : 50),
-          isPublic: true,
+          subject_id: subjectId,
+          year: Number(year),
+          exam_code: String(count % 100 + 101),
+          exam_type: 'mock',
+          source: 'Trường chuyên',
+          duration_minutes: subject === 'Toán học' ? 90 : (subject === 'Tiếng Anh' ? 60 : 50),
+          total_questions: examObj?.total_questions || 50,
+          description: `Đề thi ôn luyện môn ${subject} thi tốt nghiệp THPT Quốc Gia.`,
+          status: 'published',
+          exam_subjects: {
+            id: subjectId,
+            name: subject,
+            slug: subjectSlug,
+            icon: subjectIcon,
+            description: `Môn ${subject} ôn thi THPT Quốc Gia`
+          },
+          attempts_count: 0,
           isGenerated: true,
           dbExamId: mappedId,
           examQuestions: examObj?.examQuestions || []
@@ -472,14 +521,33 @@ const generateMassiveExamsList = (backendExams) => {
   for (let i = 0; i < aptitudeTitles.length; i++) {
     count++;
     const mappedId = getMappedId('Đánh giá năng lực');
-    const examObj = backendExams.find(e => e.id === mappedId);
+    const examObj = mappedBackend.find(e => e.id === mappedId);
+    
+    const subject = 'Đánh giá năng lực';
+    const subjectSlug = getSlug(subject);
+    const subjectIcon = getIcon(subject);
+    const subjectId = getSubjectId(subject);
+
     list.push({
-      id: count,
+      id: String(count),
       title: aptitudeTitles[i],
-      subject: 'Đánh giá năng lực',
-      subjectGroup: 'A01',
-      duration: 150,
-      isPublic: true,
+      subject_id: subjectId,
+      year: 2024,
+      exam_code: String(count % 100 + 101),
+      exam_type: 'mock',
+      source: 'Trường chuyên',
+      duration_minutes: 150,
+      total_questions: examObj?.total_questions || 50,
+      description: `Đề thi ôn luyện môn ${subject} thi tốt nghiệp THPT Quốc Gia.`,
+      status: 'published',
+      exam_subjects: {
+        id: subjectId,
+        name: subject,
+        slug: subjectSlug,
+        icon: subjectIcon,
+        description: `Môn ${subject} ôn thi THPT Quốc Gia`
+      },
+      attempts_count: 0,
       isGenerated: true,
       dbExamId: mappedId,
       examQuestions: examObj?.examQuestions || []
@@ -496,14 +564,32 @@ const generateMassiveExamsList = (backendExams) => {
       for (let code of codes) {
         count++;
         const mappedId = getMappedId(subject);
-        const examObj = backendExams.find(e => e.id === mappedId);
+        const examObj = mappedBackend.find(e => e.id === mappedId);
+        
+        const subjectSlug = getSlug(subject);
+        const subjectIcon = getIcon(subject);
+        const subjectId = getSubjectId(subject);
+
         list.push({
-          id: count,
+          id: String(count),
           title: `Đề thi chính thức THPT QG Môn ${subject} ${year} - Mã đề ${code}`,
-          subject,
-          subjectGroup: subject === 'Tiếng Anh' ? 'D01' : (subject === 'Sinh học' ? 'B00' : 'A01'),
-          duration: subject === 'Toán học' ? 90 : (subject === 'Tiếng Anh' ? 60 : 50),
-          isPublic: true,
+          subject_id: subjectId,
+          year: Number(year),
+          exam_code: code,
+          exam_type: 'official',
+          source: 'Bộ GD&ĐT',
+          duration_minutes: subject === 'Toán học' ? 90 : (subject === 'Tiếng Anh' ? 60 : 50),
+          total_questions: examObj?.total_questions || 50,
+          description: `Đề thi chính thức môn ${subject} năm ${year} của Bộ Giáo dục và Đào tạo.`,
+          status: 'published',
+          exam_subjects: {
+            id: subjectId,
+            name: subject,
+            slug: subjectSlug,
+            icon: subjectIcon,
+            description: `Môn ${subject} ôn thi THPT Quốc Gia`
+          },
+          attempts_count: 0,
           isGenerated: true,
           dbExamId: mappedId,
           examQuestions: examObj?.examQuestions || []
@@ -514,6 +600,394 @@ const generateMassiveExamsList = (backendExams) => {
 
   return list;
 };
+
+function LeaderboardTab({ currentUser }) {
+  const [grade, setGrade] = useState('');
+  const [subject, setSubject] = useState('');
+  const [province, setProvince] = useState('');
+  const [search, setSearch] = useState('');
+  const [rankings, setRankings] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+
+  useEffect(() => {
+    let active = true;
+    const fetchRankings = async () => {
+      setLoading(true);
+      try {
+        const filters = { page, limit: 10 };
+        if (grade) filters.grade = grade;
+        if (subject) filters.subject = subject;
+        if (province) filters.province = province;
+        if (search) filters.search = search;
+
+        const res = await api.getAdvancedLeaderboard(filters);
+        if (active && res) {
+          setRankings(res.rankings || []);
+          setTotalPages(res.pagination?.totalPages || 1);
+        }
+      } catch (err) {
+        console.error('Lỗi tải bảng xếp hạng:', err);
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
+    fetchRankings();
+    return () => { active = false; };
+  }, [grade, subject, province, search, page]);
+
+  const top3 = rankings.slice(0, 3);
+  const rest = rankings.slice(3);
+
+  const getStreakDisplay = (student) => {
+    if (subject) {
+      return `🔥 ${student.subjectStreak || 0} ngày (${subject.toUpperCase()})`;
+    }
+    return `🔥 ${student.streak || 0} ngày`;
+  };
+
+  const renderAvatar = (avatar, name, size = 64, borderSize = 3) => {
+    const isUrl = typeof avatar === 'string' && (avatar.startsWith('http') || avatar.startsWith('/') || avatar.startsWith('data:'));
+    
+    if (isUrl) {
+      return (
+        <img
+          src={avatar}
+          alt={name}
+          style={{
+            width: `${size}px`,
+            height: `${size}px`,
+            borderRadius: '50%',
+            border: `${borderSize}px solid #000`,
+            objectFit: 'cover',
+            display: 'inline-block',
+            margin: size > 40 ? '14px 0' : '0',
+            boxShadow: '1.5px 1.5px 0px #000'
+          }}
+          onError={(e) => {
+            e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(name || 'HS')}&background=6c5ce7&color=fff`;
+          }}
+        />
+      );
+    }
+
+    return (
+      <div style={{
+        width: `${size}px`,
+        height: `${size}px`,
+        borderRadius: '50%',
+        background: 'linear-gradient(135deg, #6c5ce7, #a29bfe)',
+        color: '#fff',
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontWeight: 'bold',
+        fontSize: size > 40 ? '18px' : '11px',
+        border: `${borderSize}px solid #000`,
+        margin: size > 40 ? '14px 0' : '0',
+        boxShadow: '1.5px 1.5px 0px #000',
+        textTransform: 'uppercase'
+      }}>
+        {avatar || name?.substring(0, 2).toUpperCase() || 'HS'}
+      </div>
+    );
+  };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+      {/* Search and Filters Section */}
+      <div className="card" style={{
+        border: '3px solid #000',
+        boxShadow: '4px 4px 0px #000',
+        padding: '20px',
+        background: 'var(--bg-card)',
+        display: 'flex',
+        flexWrap: 'wrap',
+        gap: '12px',
+        alignItems: 'center'
+      }}>
+        <div style={{ flex: '1 1 200px' }}>
+          <input
+            type="text"
+            className="form-control"
+            placeholder="🔍 Tìm học sinh bằng họ tên..."
+            value={search}
+            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+            style={{
+              width: '100%',
+              border: '2px solid #000',
+              padding: '10px 14px',
+              borderRadius: '8px',
+              fontSize: '13px',
+              background: 'var(--bg-main)'
+            }}
+          />
+        </div>
+
+        <div style={{ flex: '1 1 150px' }}>
+          <input
+            type="text"
+            className="form-control"
+            placeholder="📍 Tìm kiếm tỉnh thành..."
+            value={province}
+            onChange={(e) => { setProvince(e.target.value); setPage(1); }}
+            style={{
+              width: '100%',
+              border: '2px solid #000',
+              padding: '10px 14px',
+              borderRadius: '8px',
+              fontSize: '13px',
+              background: 'var(--bg-main)'
+            }}
+          />
+        </div>
+
+        <div style={{ flex: '0 0 120px' }}>
+          <select
+            value={grade}
+            onChange={(e) => { setGrade(e.target.value); setPage(1); }}
+            style={{
+              width: '100%',
+              border: '2px solid #000',
+              padding: '10px',
+              borderRadius: '8px',
+              fontSize: '13px',
+              fontWeight: 'bold',
+              background: 'var(--bg-main)',
+              cursor: 'pointer'
+            }}
+          >
+            <option value="">Khối lớp</option>
+            <option value="10">Khối 10</option>
+            <option value="11">Khối 11</option>
+            <option value="12">Khối 12</option>
+          </select>
+        </div>
+
+        <div style={{ flex: '0 0 140px' }}>
+          <select
+            value={subject}
+            onChange={(e) => { setSubject(e.target.value); setPage(1); }}
+            style={{
+              width: '100%',
+              border: '2px solid #000',
+              padding: '10px',
+              borderRadius: '8px',
+              fontSize: '13px',
+              fontWeight: 'bold',
+              background: 'var(--bg-main)',
+              cursor: 'pointer'
+            }}
+          >
+            <option value="">Tất cả môn</option>
+            <option value="toán học">Toán học</option>
+            <option value="vật lý">Vật lý</option>
+            <option value="hóa học">Hóa học</option>
+            <option value="sinh học">Sinh học</option>
+            <option value="tiếng anh">Tiếng Anh</option>
+          </select>
+        </div>
+      </div>
+
+      {loading ? (
+        <div style={{ textAlign: 'center', padding: '50px 0', fontSize: '15px', fontWeight: 'bold' }}>
+          Đang tải bảng xếp hạng chiến thần học tập... 🏆
+        </div>
+      ) : (
+        <>
+          {/* Top 3 High-contrast Cards */}
+          {top3.length > 0 && (
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+              gap: '24px'
+            }}>
+              {top3.map((student, index) => {
+                const colors = [
+                  { bg: 'linear-gradient(135deg, #fef9c3, #fef08a)', medal: '🥇', label: 'Thủ khoa', text: '#854d0e' },
+                  { bg: 'linear-gradient(135deg, #f1f5f9, #e2e8f0)', medal: '🥈', label: 'Á khoa', text: '#475569' },
+                  { bg: 'linear-gradient(135deg, #ffedd5, #fed7aa)', medal: '🥉', label: 'Tam khoa', text: '#c2410c' }
+                ][index] || { bg: '#fff', medal: '⭐', label: 'Vinh danh', text: '#000' };
+
+                const cardClass = index === 0 ? "leaderboard-top-card leaderboard-top1-card animate-slide-up" : "leaderboard-top-card animate-slide-up";
+
+                return (
+                  <div
+                    key={student.userId}
+                    className={cardClass}
+                    style={{
+                      background: colors.bg,
+                      border: '3px solid #000',
+                      borderRadius: '16px',
+                      padding: '24px 16px',
+                      textAlign: 'center',
+                      boxShadow: '4px 4px 0px #000',
+                      position: 'relative'
+                    }}
+                  >
+                    <span style={{
+                      position: 'absolute',
+                      top: '12px',
+                      right: '16px',
+                      fontSize: '11px',
+                      fontWeight: '900',
+                      background: '#000',
+                      color: '#fff',
+                      padding: '2px 8px',
+                      borderRadius: '10px'
+                    }}>
+                      Hạng {student.rank}
+                    </span>
+                    <span style={{ fontSize: '36px', display: 'block', marginBottom: '8px' }}>{colors.medal}</span>
+                    <h3 style={{ fontSize: '15px', fontWeight: '955', textTransform: 'uppercase', color: colors.text, margin: 0 }}>
+                      {colors.label} {subject ? subject.toUpperCase() : 'Toàn sàn'}
+                    </h3>
+                    
+                    {renderAvatar(student.avatar, student.name, 64, 3)}
+
+                    <h4 style={{ fontSize: '16px', fontWeight: '900', color: '#000', margin: '10px 0 4px 0' }}>{student.name}</h4>
+                    <p style={{ fontSize: '12px', color: '#4b5563', margin: '0 0 6px 0' }}>
+                      Khối {student.grade || 'Chưa rõ'} • Tỉnh: {student.province || 'Chưa cập nhật'}
+                    </p>
+                    <p style={{ fontSize: '13px', fontWeight: '900', color: colors.text, margin: 0 }}>
+                      XP: <strong>{student.xp.toLocaleString()}</strong> • {getStreakDisplay(student)}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Table rankings */}
+          <div className="card animate-slide-up" style={{
+            border: '3px solid #000',
+            boxShadow: '4px 4px 0px #000',
+            padding: '24px',
+            background: 'var(--bg-card)',
+            overflowX: 'auto'
+          }}>
+            {rankings.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '20px 0', fontSize: '14px', color: 'var(--text-secondary)' }}>
+                Không tìm thấy học sinh nào phù hợp với bộ lọc hiện tại. 🔍
+              </div>
+            ) : (
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                <thead>
+                  <tr style={{ borderBottom: '3.5px solid #000', color: '#000' }}>
+                    <th style={{ padding: '12px 10px', fontWeight: '950', fontSize: '13px', textTransform: 'uppercase' }}>Hạng</th>
+                    <th style={{ padding: '12px 10px', fontWeight: '950', fontSize: '13px', textTransform: 'uppercase' }}>Học sinh</th>
+                    <th style={{ padding: '12px 10px', fontWeight: '950', fontSize: '13px', textTransform: 'uppercase' }}>Khối lớp</th>
+                    <th style={{ padding: '12px 10px', fontWeight: '950', fontSize: '13px', textTransform: 'uppercase' }}>Tỉnh thành</th>
+                    <th style={{ padding: '12px 10px', fontWeight: '950', fontSize: '13px', textTransform: 'uppercase' }}>Chuỗi học</th>
+                    <th style={{ padding: '12px 10px', fontWeight: '950', fontSize: '13px', textTransform: 'uppercase', textAlign: 'right' }}>Tổng điểm XP</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rankings.map((student) => (
+                    <tr
+                      key={student.userId}
+                      className="leaderboard-row animate-slide-up"
+                      style={{
+                        borderBottom: '2.5px solid #000',
+                        background: student.userId === currentUser?.id ? 'rgba(108, 92, 231, 0.08)' : 'transparent',
+                        fontWeight: student.userId === currentUser?.id ? 'bold' : 'normal'
+                      }}
+                    >
+                      <td style={{ padding: '12px 10px' }}>
+                        <span style={{
+                          fontWeight: '900',
+                          fontSize: '13px',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          width: '28px',
+                          height: '28px',
+                          borderRadius: '50%',
+                          border: '2px solid #000',
+                          background: student.rank === 1 ? '#fef08a' : (student.rank === 2 ? '#e2e8f0' : (student.rank === 3 ? '#fed7aa' : 'transparent')),
+                          boxShadow: '1.5px 1.5px 0px #000'
+                        }}>
+                          {student.rank}
+                        </span>
+                      </td>
+                      <td style={{ padding: '12px 10px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          {renderAvatar(student.avatar, student.name, 32, 2)}
+                          <div>
+                            <div style={{ fontWeight: '900', fontSize: '13.5px' }}>{student.name}</div>
+                            {student.userId === currentUser?.id && (
+                              <span style={{ fontSize: '10px', background: '#00b894', color: '#fff', padding: '1px 6px', borderRadius: '4px', fontWeight: '900' }}>BẠN</span>
+                            )}
+                          </div>
+                        </div>
+                      </td>
+                      <td style={{ padding: '12px 10px', fontSize: '13px', fontWeight: '800' }}>
+                        Khối {student.grade || 'Chưa cập nhật'}
+                      </td>
+                      <td style={{ padding: '12px 10px', color: 'var(--text-secondary)', fontSize: '13px' }}>
+                        📍 {student.province || 'Chưa rõ'}
+                      </td>
+                      <td style={{ padding: '12px 10px', fontWeight: '800', color: '#d97706', fontSize: '13px' }}>
+                        {getStreakDisplay(student)}
+                      </td>
+                      <td style={{ padding: '12px 10px', textAlign: 'right', fontWeight: '955', fontSize: '14px' }}>
+                        {student.xp.toLocaleString()} XP
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginTop: '20px' }}>
+                <button
+                  disabled={page === 1}
+                  onClick={() => setPage(page - 1)}
+                  style={{
+                    border: '2px solid #000',
+                    background: page === 1 ? 'var(--border)' : 'var(--bg-card)',
+                    color: '#000',
+                    fontWeight: '800',
+                    padding: '8px 16px',
+                    borderRadius: '8px',
+                    fontSize: '13px',
+                    cursor: page === 1 ? 'not-allowed' : 'pointer',
+                    boxShadow: page === 1 ? 'none' : '2px 2px 0px #000'
+                  }}
+                >
+                  ◀ Trang trước
+                </button>
+                <span style={{ display: 'inline-flex', alignItems: 'center', padding: '0 12px', fontWeight: '900', fontSize: '13px' }}>
+                  {page} / {totalPages}
+                </span>
+                <button
+                  disabled={page === totalPages}
+                  onClick={() => setPage(page + 1)}
+                  style={{
+                    border: '2px solid #000',
+                    background: page === totalPages ? 'var(--border)' : 'var(--bg-card)',
+                    color: '#000',
+                    fontWeight: '800',
+                    padding: '8px 16px',
+                    borderRadius: '8px',
+                    fontSize: '13px',
+                    cursor: page === totalPages ? 'not-allowed' : 'pointer',
+                    boxShadow: page === totalPages ? 'none' : '2px 2px 0px #000'
+                  }}
+                >
+                  Trang sau ▶
+                </button>
+              </div>
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
 
 export default function App() {
   // Global Application States
@@ -532,20 +1006,37 @@ export default function App() {
     const handleAuthRedirect = (e) => {
       setActiveTab(e.detail.mode);
     };
+<<<<<<< HEAD
     window.addEventListener('popstate', handlePopState);
     window.addEventListener('edupath-auth-redirect', handleAuthRedirect);
     return () => {
       window.removeEventListener('popstate', handlePopState);
       window.removeEventListener('edupath-auth-redirect', handleAuthRedirect);
+=======
+    const handleAuthLogout = () => {
+      handleLogout();
+      showToast.current?.('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!', 'warning');
+    };
+    window.addEventListener('popstate', handlePopState);
+    window.addEventListener('edupath-auth-redirect', handleAuthRedirect);
+    window.addEventListener('edupath-auth-logout', handleAuthLogout);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+      window.removeEventListener('edupath-auth-redirect', handleAuthRedirect);
+      window.removeEventListener('edupath-auth-logout', handleAuthLogout);
+>>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
     };
   }, []);
 
-  const navigateTo = (path) => {
-    window.history.pushState({}, '', path);
+  const navigateTo = (path, state = null) => {
+    window.history.pushState(state || {}, '', path);
     setCurrentPath(path);
   };
 
   const getParsedRoute = () => {
+    if (currentPath === '/admin' || currentPath.startsWith('/admin/')) {
+      return { route: 'admin' };
+    }
     if (currentPath === '/courses') {
       return { route: 'courses-list' };
     }
@@ -577,10 +1068,28 @@ export default function App() {
       return { route: 'ai-tutor' };
     }
 
+<<<<<<< HEAD
+=======
+    if (currentPath.startsWith('/flashcards')) {
+      return { route: 'flashcards' };
+    }
+
+>>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
     if (currentPath === '/exam-bank') {
       return { route: 'exam-bank' };
     }
 
+<<<<<<< HEAD
+=======
+    if (currentPath === '/forum' || currentPath === '/community' || currentPath === '/direct') {
+      return { route: 'forum' };
+    }
+
+    if (currentPath.startsWith('/confirm-email')) {
+      return { route: 'confirm-email' };
+    }
+
+>>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
     return { route: 'legacy' };
   };
 
@@ -610,14 +1119,125 @@ export default function App() {
     }
     return list;
   });
-  const [courses, setCourses] = useState(() => JSON.parse(localStorage.getItem('app_courses')) || initialCourses);
+  const [courses, setCourses] = useState([]);
   const [examsList, setExamsList] = useState([]);
   const [attemptsHistory, setAttemptsHistory] = useState([]);
   const [questionBank, setQuestionBank] = useState(() => JSON.parse(localStorage.getItem('app_questions')) || initialQuestions);
-  const [submissions, setSubmissions] = useState(() => JSON.parse(localStorage.getItem('app_submissions')) || []);
+  const [submissions, setSubmissions] = useState(() => {
+    const saved = localStorage.getItem('app_submissions');
+    if (saved) return JSON.parse(saved);
+    
+    // Generate dynamic pre-seeded submissions for the last 7 days relative to today
+    const list = [];
+    const topics = [
+      { name: "Đề thi thử Toán THPTQG 2026", subject: "Toán học", failed: ["Hàm số Mũ & Lôgarit", "Hàm số & Đồ thị"] },
+      { name: "Đề thi thử Vật Lý THPTQG 2026", subject: "Vật lý", failed: ["Chương I: Dao động cơ học"] },
+      { name: "Đề thi thử Hóa học THPTQG 2026", subject: "Hóa học", failed: ["Chương I: Este - Lipit"] },
+      { name: "Đề thi thử Tiếng Anh THPTQG 2026", subject: "Tiếng Anh", failed: ["Ngữ pháp cốt lõi"] }
+    ];
+
+    for (let i = 0; i < 20; i++) {
+      const d = new Date();
+      d.setDate(d.getDate() - Math.floor(i / 3)); // 2-3 attempts per day
+      const dateStr = d.toISOString().split('T')[0];
+      const topicInfo = topics[i % topics.length];
+      const score = parseFloat((6.0 + Math.random() * 3.5).toFixed(1)); // score between 6.0 and 9.5
+      const total = 50;
+      const correct = Math.round((score / 10) * total);
+      
+      list.push({
+        id: 1000 + i,
+        email: "student@gmail.com",
+        testName: topicInfo.name,
+        score: score,
+        correct: correct,
+        total: total,
+        failedTopics: score < 8 ? topicInfo.failed : [],
+        date: dateStr
+      });
+    }
+    return list;
+  });
+
+  // Dynamic Leads List state lifted from AdminDashboard
+  const [leadsList, setLeadsList] = useState(() => {
+    return JSON.parse(localStorage.getItem('admin_leads')) || [
+      {
+        id: 1,
+        name: "Lê Tuấn Tú",
+        phone: "0912345678",
+        email: "tuantu@gmail.com",
+        target: "Toán - Lý - Hóa (A00) • Mục tiêu 27 điểm",
+        registeredDate: "2026-06-15",
+        status: "Chờ tư vấn"
+      },
+      {
+        id: 2,
+        name: "Nguyễn Hương Giang",
+        phone: "0987654321",
+        email: "giangnguyen@gmail.com",
+        target: "Toán - Lý - Anh (A01) • Mục tiêu 26.5 điểm",
+        registeredDate: "2026-06-14",
+        status: "Đã liên hệ"
+      },
+      {
+        id: 3,
+        name: "Trần Minh Anh",
+        phone: "0905678912",
+        email: "minhanh@gmail.com",
+        target: "Toán - Văn - Anh (D01) • Mục tiêu 28 điểm",
+        registeredDate: "2026-06-13",
+        status: "Thành công"
+      },
+      {
+        id: 4,
+        name: "Phạm Quốc Bảo",
+        phone: "0971223344",
+        email: "baopq@gmail.com",
+        target: "Toán - Hóa - Sinh (B00) • Mục tiêu Y Hà Nội",
+        registeredDate: "2026-06-12",
+        status: "Chờ tư vấn"
+      }
+    ];
+  });
+
+  // Dynamic Recommended Books List state lifted from AdminDashboard
+  const [booksList, setBooksList] = useState(() => {
+    return JSON.parse(localStorage.getItem('admin_books_rec')) || [
+      {
+        id: 1,
+        title: "Bộ đề ôn luyện THPTQG môn Toán 2026",
+        author: "Thầy Thế Anh",
+        coverUrl: "https://images.unsplash.com/photo-1543002588-bfa74002ed7e?auto=format&fit=crop&q=80&w=200",
+        description: "Tổng hợp 20 đề thi thử bám sát cấu trúc mới nhất của Bộ GD&ĐT kèm giải chi tiết và kỹ thuật bấm máy nhanh.",
+        price: "129.000đ",
+        link: "https://shopee.vn"
+      },
+      {
+        id: 2,
+        title: "Chinh phục Ngữ pháp Tiếng Anh THPTQG",
+        author: "Cô Quỳnh Chi",
+        coverUrl: "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&q=80&w=200",
+        description: "Hệ thống hóa toàn bộ kiến thức ngữ pháp trọng tâm và các phương pháp giải nhanh điểm 9+.",
+        price: "99.000đ",
+        link: "https://tiki.vn"
+      },
+      {
+        id: 3,
+        title: "Sổ tay công thức nhanh Vật Lý 12",
+        author: "Cô Thu Hương",
+        coverUrl: "https://images.unsplash.com/photo-1506880018603-83d5b814b5a6?auto=format&fit=crop&q=80&w=200",
+        description: "Tóm gọn toàn bộ công thức cốt lõi và các dạng bài tập chuyên đề dao động, sóng cơ, sóng điện từ.",
+        price: "79.000đ",
+        link: "https://shopee.vn"
+      }
+    ];
+  });
+
   const [notifications, setNotifications] = useState(() => JSON.parse(localStorage.getItem('app_notifications')) || [
     { id: 1, text: "Chào mừng bạn gia nhập EduPath AI! Hãy bắt đầu khám phá lộ trình của bạn.", time: "Vừa xong", read: false }
   ]);
+
 
   const [systemLogs, setSystemLogs] = useState(() => JSON.parse(localStorage.getItem('app_logs')) || [
     { id: 1, time: new Date().toLocaleTimeString(), tag: 'sys', text: "Hệ thống Adaptive AI-Assisted Learning khởi động thành công..." },
@@ -639,6 +1259,7 @@ export default function App() {
   ]);
 
   const [forumPosts, setForumPosts] = useState(() => JSON.parse(localStorage.getItem('app_forum_posts')) || initialForumPosts);
+  const [featureFlags, setFeatureFlags] = useState([]);
 
   // View state controllers
   const [activeCourseDetails, setActiveCourseDetails] = useState(null);
@@ -659,7 +1280,14 @@ export default function App() {
   }, [examFilterSubject, examFilterYear, examSearchQuery, examCategory]);
 
   const [checkoutCourse, setCheckoutCourse] = useState(null);
+  const [cartCourse, setCartCourse] = useState(() => JSON.parse(localStorage.getItem('app_cart_course')) || null);
   const [showUpgradePRO, setShowUpgradePRO] = useState(false);
+
+  const handleAddToCart = (course) => {
+    setCartCourse(course);
+    localStorage.setItem('app_cart_course', JSON.stringify(course));
+    showToast.current?.(`Đã thêm khóa học "${course.title}" vào giỏ hàng!`, 'success');
+  };
 
   // Settings-specific local states
   const [settingsName, setSettingsName] = useState('');
@@ -681,6 +1309,23 @@ export default function App() {
   const [settingsNewPass, setSettingsNewPass] = useState('');
   const [settingsConfirmNewPass, setSettingsConfirmNewPass] = useState('');
 
+  // Toast notifications
+  const [toasts, setToasts] = useState([]);
+  const showToast = useRef(null);
+  showToast.current = (message, type = 'success') => {
+    const id = Date.now() + Math.random();
+    setToasts(prev => [...prev, { id, message, type }]);
+    setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 4200);
+  };
+  useEffect(() => {
+    const handler = (e) => showToast.current(e.detail.message, e.detail.type);
+    window.addEventListener('app:toast', handler);
+    return () => window.removeEventListener('app:toast', handler);
+  }, []);
+
+  // AI feedback modal
+  const [aiFeedbackModal, setAiFeedbackModal] = useState(null);
+
   // Sync settings states when current user changes or tab is settings
   const [resetToken, setResetToken] = useState(null);
 
@@ -694,6 +1339,15 @@ export default function App() {
       setRole('guest');
     }
   }, []);
+
+  // Redirect guest users away from mock exams
+  useEffect(() => {
+    if ((role === 'guest' || !currentUser) && parsedRoute.route.startsWith('mock-')) {
+      showToast.current?.('Vui lòng đăng nhập để sử dụng chức năng thi thử!', 'warning');
+      navigateTo('/');
+      setActiveTab('login');
+    }
+  }, [currentUser, role, parsedRoute.route]);
 
   useEffect(() => {
     if (currentUser) {
@@ -713,6 +1367,26 @@ export default function App() {
     }
   }, [currentUser, activeTab]);
 
+  // Guard admin routes and redirect to login if not authenticated with real credentials
+  useEffect(() => {
+    if (currentPath === '/admin') {
+      const token = localStorage.getItem('access_token');
+      const savedUser = JSON.parse(localStorage.getItem('current_user') || 'null');
+      
+      if (!token || !savedUser || savedUser.role.toLowerCase() !== 'admin') {
+        toast('Vui lòng đăng nhập tài khoản Quản trị viên để truy cập cơ sở dữ liệu thực!', 'warning');
+        navigateTo('/');
+        setActiveTab('login');
+      } else {
+        setCurrentUser(savedUser);
+        setRole('admin');
+        setActiveTab('home');
+      }
+    } else if (currentPath === '/' && role === 'admin') {
+      setActiveTab('landing');
+    }
+  }, [currentPath, role]);
+
   // Sync state data to localStorage
   useEffect(() => {
     localStorage.setItem('current_user', JSON.stringify(currentUser));
@@ -726,7 +1400,9 @@ export default function App() {
     localStorage.setItem('app_logs', JSON.stringify(systemLogs));
     localStorage.setItem('app_approvals', JSON.stringify(courseApprovals));
     localStorage.setItem('app_forum_posts', JSON.stringify(forumPosts));
-  }, [currentUser, role, theme, usersList, courses, questionBank, submissions, notifications, systemLogs, courseApprovals, forumPosts]);
+    localStorage.setItem('admin_leads', JSON.stringify(leadsList));
+    localStorage.setItem('admin_books_rec', JSON.stringify(booksList));
+  }, [currentUser, role, theme, usersList, courses, questionBank, submissions, notifications, systemLogs, courseApprovals, forumPosts, leadsList, booksList]);
 
   // Dark theme trigger
   useEffect(() => {
@@ -740,23 +1416,24 @@ export default function App() {
   // Sync live backend data if logged in
   const fetchInitialData = async () => {
     if (!currentUser) return;
+
+    // Fetch feature flags for routing controls
+    try {
+      const flags = await api.getFeatureFlags();
+      if (flags) setFeatureFlags(flags);
+    } catch (err) {
+      console.warn('[App] Không thể tải Feature Flags:', err);
+    }
+
     try {
       // 1. Fetch courses from backend
       const backendCourses = await api.getCourses();
       if (backendCourses && backendCourses.length > 0) {
-        const mapped = backendCourses.map(c => ({
-          id: c.id,
-          title: c.title,
-          subject: c.subject,
-          price: c.price.toLocaleString('vi-VN'),
-          teacherName: c.teacher?.user?.fullName || c.teacherName || 'Giảng viên',
-          isUnlocked: c.isUnlocked || currentUser?.unlockedCourses?.includes(c.id) || false,
-          lessons: c.lessons || []
-        }));
+        const mapped = backendCourses.map(c => mapDbCourseToMockFormat(c));
         setCourses(mapped);
       }
     } catch (err) {
-      console.warn("Không thể tải danh sách khóa học từ backend API, sử dụng mock thay thế.");
+      console.warn('[App] Không thể fetch courses:', err);
     }
 
     try {
@@ -773,7 +1450,10 @@ export default function App() {
       // 3. Fetch exams from backend
       const backendExams = await api.getExams();
       if (backendExams && backendExams.length > 0) {
-        setExamsList(generateMassiveExamsList(backendExams));
+        const validExams = backendExams.filter(e => e.examQuestions && e.examQuestions.length > 0);
+        const massiveList = generateMassiveExamsList(validExams);
+        setExamsList(massiveList);
+        localStorage.setItem('supabase_mock_exams', JSON.stringify(massiveList));
       }
     } catch (err) {
       console.warn("Không thể tải danh sách đề thi từ backend API.");
@@ -788,11 +1468,43 @@ export default function App() {
     } catch (err) {
       console.warn("Không thể tải lịch sử thi thử từ backend API.");
     }
+
+    // Dynamic loading of admin lists from PostgreSQL / Supabase
+    if (role === 'admin' || currentUser.role === 'admin') {
+      try {
+        const dbUsers = await api.getAdminUsers();
+        if (dbUsers) setUsersList(dbUsers);
+      } catch (err) {
+        console.warn('[App] Không thể tải danh sách user từ DB:', err);
+      }
+
+      try {
+        const dbLeads = await api.getAdminLeads();
+        if (dbLeads) setLeadsList(dbLeads);
+      } catch (err) {
+        console.warn('[App] Không thể tải danh sách Lead từ DB:', err);
+      }
+    }
   };
 
   useEffect(() => {
     fetchInitialData();
   }, [currentUser, activeTab]);
+
+  useEffect(() => {
+    const loadCourses = async () => {
+      try {
+        const backendCourses = await api.getCourses();
+        if (backendCourses && backendCourses.length > 0) {
+          const mapped = backendCourses.map(c => mapDbCourseToMockFormat(c));
+          setCourses(mapped);
+        }
+      } catch (err) {
+        console.warn('[App] Không thể fetch courses on mount:', err);
+      }
+    };
+    loadCourses();
+  }, []);
 
   useEffect(() => {
     if (activeTab === 'tests') {
@@ -812,6 +1524,21 @@ export default function App() {
     setSystemLogs(prev => [newLog, ...prev]);
   };
 
+  // Register dynamic student leads
+  const handleRegisterLead = (leadInfo) => {
+    const newLead = {
+      id: Date.now(),
+      name: leadInfo.name,
+      phone: leadInfo.phone || 'Chưa cung cấp',
+      email: leadInfo.email,
+      target: leadInfo.target || 'Tư vấn lộ trình thích ứng',
+      registeredDate: new Date().toISOString().split('T')[0],
+      status: 'Chờ tư vấn'
+    };
+    setLeadsList(prev => [newLead, ...prev]);
+    addLog(`Lead đăng ký tư vấn mới: "${leadInfo.name}" (${leadInfo.email})`, 'sys');
+  };
+
   const handleToggleTheme = () => {
     const nextTheme = theme === 'dark' ? 'light' : 'dark';
     setTheme(nextTheme);
@@ -820,22 +1547,38 @@ export default function App() {
 
   // Safe Authentication Handlers
   const handleAuthSuccess = (user, newlyRegisteredUser = null) => {
-    if (newlyRegisteredUser) {
+    const targetUser = newlyRegisteredUser || user;
+    if (targetUser) {
       setUsersList(prev => {
-        const filtered = prev.filter(u => u.email !== newlyRegisteredUser.email);
-        return [...filtered, newlyRegisteredUser];
+        const exists = prev.some(u => u.email.toLowerCase() === targetUser.email.toLowerCase());
+        if (!exists) {
+          const userWithDate = {
+            ...targetUser,
+            registeredDate: targetUser.registeredDate || new Date().toISOString().split('T')[0]
+          };
+          return [...prev, userWithDate];
+        }
+        return prev;
       });
-      return;
     }
 
     setCurrentUser(user);
-    setRole(user.role);
-    setActiveTab('landing');
+    const lowercaseRole = user.role.toLowerCase();
+    setRole(lowercaseRole);
+    if (lowercaseRole === 'admin') {
+      navigateTo('/admin');
+      setActiveTab('home');
+    } else {
+      setActiveTab('landing');
+    }
   };
+
 
   const handleBackToDashboard = (targetTab) => {
     if (targetTab === 'courses') {
       navigateTo('/courses');
+    } else if (targetTab === 'forum') {
+      navigateTo('/forum');
     } else {
       navigateTo('/');
       setActiveTab(targetTab || 'home');
@@ -847,6 +1590,10 @@ export default function App() {
 
   const handleLogout = () => {
     addLog(`Người dùng "${currentUser?.name}" đăng xuất an toàn khỏi hệ thống`, 'sys');
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+    localStorage.removeItem('current_user');
+    localStorage.removeItem('user_role');
     navigateTo('/');
     setCurrentUser(null);
     setRole('guest');
@@ -869,9 +1616,9 @@ export default function App() {
       setCurrentUser(updatedUser);
       
       addLog(`Người dùng "${currentUser.name}" đổi mật khẩu tài khoản thành công (UC-04)`, 'sys');
-      alert('Đổi mật khẩu thành công!');
+      showToast.current('Đổi mật khẩu thành công!', 'success');
     } catch (err) {
-      alert(err.message || 'Đổi mật khẩu thất bại!');
+      showToast.current(err.message || 'Đổi mật khẩu thất bại!', 'error');
     }
   };
 
@@ -880,39 +1627,39 @@ export default function App() {
     const updatedList = usersList.map(u => u.email === updatedProfile.email ? updatedProfile : u);
     setUsersList(updatedList);
     addLog(`Người dùng "${updatedProfile.name}" cập nhật thông tin cá nhân thành công`, 'sys');
-    alert('Lưu thông tin cá nhân thành công!');
+    showToast.current('Lưu thông tin cá nhân thành công!', 'success');
   };
 
   const handleSettingsPasswordChange = async (oldPass, newPass, confirmPass) => {
     if (!oldPass || !newPass || !confirmPass) {
-      alert('Vui lòng nhập đầy đủ các trường đổi mật khẩu!');
+      showToast.current('Vui lòng nhập đầy đủ các trường đổi mật khẩu!', 'warning');
       return;
     }
     if (newPass.length < 6) {
-      alert('Mật khẩu mới phải từ 6 ký tự trở lên!');
+      showToast.current('Mật khẩu mới phải từ 6 ký tự trở lên!', 'warning');
       return;
     }
     if (newPass !== confirmPass) {
-      alert('Xác nhận mật khẩu mới không trùng khớp!');
+      showToast.current('Xác nhận mật khẩu mới không trùng khớp!', 'warning');
       return;
     }
 
     try {
       await api.changePassword(oldPass, newPass);
-      
+
       const updatedList = usersList.map(u => u.email === currentUser.email ? { ...u, password: newPass } : u);
       setUsersList(updatedList);
-      
+
       const updatedUser = { ...currentUser, password: newPass };
       setCurrentUser(updatedUser);
-      
+
       addLog(`Người dùng "${currentUser.name}" đổi mật khẩu thành công từ cài đặt cá nhân`, 'sys');
-      alert('Đổi mật khẩu thành công!');
+      showToast.current('Đổi mật khẩu thành công!', 'success');
       setSettingsOldPass('');
       setSettingsNewPass('');
       setSettingsConfirmNewPass('');
     } catch (err) {
-      alert(err.message || 'Đổi mật khẩu thất bại!');
+      showToast.current(err.message || 'Đổi mật khẩu thất bại!', 'error');
     }
   };
 
@@ -921,8 +1668,10 @@ export default function App() {
     // Write payment & enrollment rows into local storage db / Supabase tables
     if (currentUser) {
       try {
-        const targetCourse = courses.find(c => c.id === courseId);
-        const priceNum = targetCourse ? parseFloat(String(targetCourse.price).replace(/\D/g, '')) : 499000;
+        const targetCourse = courses.find(c => c.id.toString() === courseId.toString());
+        const priceNum = targetCourse 
+          ? parseFloat(String(targetCourse.priceSale || targetCourse.price || targetCourse.priceOriginal).replace(/\D/g, '')) 
+          : 499000;
         await enrollmentService.enrollCourse(currentUser.id, courseId, priceNum);
       } catch (err) {
         console.error('Failed to log payment enrollment data:', err);
@@ -933,7 +1682,8 @@ export default function App() {
     const updatedUsers = usersList.map(u => {
       if (u.email === currentUser.email) {
         const unlocked = u.unlockedCourses || [];
-        return { ...u, unlockedCourses: [...unlocked, courseId] };
+        const newUnlocked = Array.from(new Set([...unlocked, courseId, Number(courseId), courseId.toString()]));
+        return { ...u, unlockedCourses: newUnlocked };
       }
       return u;
     });
@@ -941,12 +1691,15 @@ export default function App() {
 
     // Sync active session unlockedCourses
     const activeUnlocked = currentUser?.unlockedCourses || [];
+    const newActiveUnlocked = Array.from(new Set([...activeUnlocked, courseId, Number(courseId), courseId.toString()]));
     setCurrentUser({
       ...currentUser,
-      unlockedCourses: [...activeUnlocked, courseId]
+      unlockedCourses: newActiveUnlocked
     });
 
     setCheckoutCourse(null);
+    setCartCourse(null);
+    localStorage.removeItem('app_cart_course');
   };
 
   // Student upgrades to PRO membership success
@@ -1059,9 +1812,18 @@ export default function App() {
     setQuestionBank(prev => [newQ, ...prev]);
   };
 
-  // Admin Workspace Actions
-  const handleToggleUserBan = (userId) => {
-    setUsersList(prev => prev.map(u => u.id === userId ? { ...u, isBanned: !u.isBanned } : u));
+  const handleToggleUserBan = async (userId) => {
+    try {
+      const res = await api.banAdminUser(userId);
+      if (res) {
+        setUsersList(prev => prev.map(u => u.id === userId ? { ...u, isBanned: res.isBanned } : u));
+        addLog(`Cập nhật trạng thái tài khoản ID ${userId}: ${res.isBanned ? 'Khóa' : 'Hoạt động'} thành công`, 'sys');
+      }
+    } catch (err) {
+      console.error('[App] Lỗi toggle ban user in DB:', err);
+      // fallback
+      setUsersList(prev => prev.map(u => u.id === userId ? { ...u, isBanned: !u.isBanned } : u));
+    }
   };
 
   const handleApproveTeacher = (teacherName, subject) => {
@@ -1100,7 +1862,7 @@ export default function App() {
 
   // Filter dynamic list of course purchases for current user session
   const activeUserCourses = courses.map(c => {
-    const isUnlocked = c.id === 1 || currentUser?.unlockedCourses?.includes(c.id);
+    const isUnlocked = c.priceSale === 0 || currentUser?.unlockedCourses?.includes(Number(c.id)) || currentUser?.unlockedCourses?.includes(c.id.toString());
     return { ...c, isUnlocked };
   });
 
@@ -1108,11 +1870,16 @@ export default function App() {
 
   return (
     <div className="app-layout">
-      {/* Sidebar - Guarded against guest visitors */}
-      {role !== 'guest' && activeTab !== 'landing' && (
+      {/* Sidebar - Guarded against guest visitors and focused exam sessions */}
+      {role !== 'guest' && role !== 'admin' && activeTab !== 'landing' && parsedRoute.route !== 'mock-exam-taking' && !parsedRoute.route.startsWith('mock-') && parsedRoute.route !== 'learn' && parsedRoute.route !== 'admin' && (
         <Sidebar
           role={role}
+<<<<<<< HEAD
           active={parsedRoute.route !== 'legacy' ? (parsedRoute.route.startsWith('mock-') ? 'tests' : (parsedRoute.route === 'ai-tutor' ? 'ai-qa' : (parsedRoute.route === 'exam-bank' ? 'library' : 'courses'))) : activeTab}
+=======
+          featureFlags={featureFlags}
+          active={parsedRoute.route !== 'legacy' ? (parsedRoute.route.startsWith('mock-') ? 'tests' : (parsedRoute.route === 'ai-tutor' ? 'ai-qa' : (parsedRoute.route === 'flashcards' ? 'path' : (parsedRoute.route === 'exam-bank' ? 'library' : (parsedRoute.route === 'forum' ? 'forum' : 'courses'))))) : activeTab}
+>>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
           setActive={(tab) => {
             if (tab === 'courses') {
               navigateTo('/courses');
@@ -1120,8 +1887,17 @@ export default function App() {
               navigateTo('/mock-exams');
             } else if (tab === 'ai-qa') {
               navigateTo('/ai-tutor');
+<<<<<<< HEAD
             } else if (tab === 'library') {
               navigateTo('/exam-bank');
+=======
+            } else if (tab === 'path') {
+              navigateTo('/flashcards');
+            } else if (tab === 'library') {
+              navigateTo('/exam-bank');
+            } else if (tab === 'forum') {
+              navigateTo('/forum');
+>>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
             } else {
               navigateTo('/');
               setActiveTab(tab);
@@ -1136,33 +1912,58 @@ export default function App() {
         />
       )}
 
-      <div className="main-wrapper" style={{ marginLeft: (role === 'guest' || activeTab === 'landing') ? 0 : 'var(--sidebar-width)' }}>
-        <main className="main-content" style={(role === 'guest' || activeTab === 'landing') ? { maxWidth: '100%', padding: 0 } : { maxWidth: '100%' }}>
+      <div className="main-wrapper" style={{ marginLeft: (role === 'guest' || role === 'admin' || activeTab === 'landing' || parsedRoute.route.startsWith('mock-') || parsedRoute.route === 'learn' || parsedRoute.route === 'admin') ? 0 : 'var(--sidebar-width)' }}>
+        <main className="main-content" style={(role === 'guest' || role === 'admin' || activeTab === 'landing' || parsedRoute.route.startsWith('mock-') || parsedRoute.route === 'learn' || parsedRoute.route === 'flashcards' || parsedRoute.route === 'ai-tutor' || parsedRoute.route === 'admin') ? { maxWidth: '100%', padding: 0 } : { maxWidth: '100%' }}>
+          {currentUser && parsedRoute.route.startsWith('mock-') && parsedRoute.route !== 'mock-exam-taking' && (
+            <div className="mock-exams-simple-header">
+              <button onClick={() => navigateTo('/')} className="mock-exams-back-btn">
+                ← Quay lại Trang chủ
+              </button>
+              <div className="mock-exams-user-profile">
+                <div className="mock-exams-user-avatar">
+                  {currentUser.avatar || currentUser.name?.substring(0, 2).toUpperCase() || 'HS'}
+                </div>
+                <span className="mock-exams-user-name">{currentUser.name}</span>
+              </div>
+            </div>
+          )}
+
           {role !== 'guest' && activeTab !== 'landing' ? (
-            <Header
-              role={role}
-              userProfile={currentUser}
-              theme={theme}
-              onToggleTheme={handleToggleTheme}
-              notifications={notifications}
-              onClearNotifications={() => setNotifications(prev => prev.map(n => ({ ...n, read: true })))}
-              onLogout={handleLogout}
-              onChangePassword={handleChangePassword}
-              addLog={addLog}
-            />
+            !parsedRoute.route.startsWith('mock-') && parsedRoute.route !== 'flashcards' && parsedRoute.route !== 'ai-tutor' && parsedRoute.route !== 'learn' && (
+              <Header
+                role={role}
+                userProfile={currentUser}
+                theme={theme}
+                onToggleTheme={handleToggleTheme}
+                notifications={notifications}
+                onClearNotifications={() => setNotifications(prev => prev.map(n => ({ ...n, read: true })))}
+                onLogout={handleLogout}
+                onChangePassword={handleChangePassword}
+                onNavigateSettings={() => { navigateTo('/'); setActiveTab('settings'); setActiveCourseDetails(null); setActiveTestSimulator(null); setActiveOCRScanner(null); }}
+                addLog={addLog}
+                cartCourse={cartCourse}
+                onCheckoutCourse={(course) => setCheckoutCourse(course)}
+              />
+            )
           ) : (
             // Minimal Header for Guests
-            theme === 'dark' && (
-              <div style={{ position: 'fixed', top: '16px', right: '16px', zIndex: 100 }}>
-                <button className="header-icon-btn" onClick={handleToggleTheme}>
-                  ☀️
-                </button>
-              </div>
-            )
+            <>
+              {theme === 'dark' && parsedRoute.route !== 'mock-exam-taking' && (
+                <div style={{ position: 'fixed', top: '16px', right: '16px', zIndex: 100 }}>
+                  <button className="header-icon-btn" onClick={handleToggleTheme}>
+                    ☀️
+                  </button>
+                </div>
+              )}
+            </>
           )}
 
           {/* ================= PUBLIC OR PREVIEW LANDING PAGE ================= */}
+<<<<<<< HEAD
           {(role === 'guest' || activeTab === 'landing') && !parsedRoute.route.startsWith('mock-') && parsedRoute.route !== 'ai-tutor' && parsedRoute.route !== 'exam-bank' && (
+=======
+          {(role === 'guest' || role === 'admin' || activeTab === 'landing') && parsedRoute.route !== 'admin' && !parsedRoute.route.startsWith('mock-') && parsedRoute.route !== 'ai-tutor' && parsedRoute.route !== 'exam-bank' && parsedRoute.route !== 'flashcards' && (
+>>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
             <div>
               {role === 'guest' && activeTab === 'reset-password' ? (
                 <div className="auth-page-layout" style={{ position: 'relative', display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '80vh', padding: '20px' }}>
@@ -1177,20 +1978,20 @@ export default function App() {
                         const password = e.target.password.value;
                         const confirm = e.target.confirm.value;
                         if (password.length < 6) {
-                          alert('Mật khẩu mới phải có tối thiểu 6 ký tự!');
+                          showToast.current('Mật khẩu mới phải có tối thiểu 6 ký tự!', 'warning');
                           return;
                         }
                         if (password !== confirm) {
-                          alert('Mật khẩu xác nhận không khớp! Vui lòng nhập lại.');
+                          showToast.current('Mật khẩu xác nhận không khớp! Vui lòng nhập lại.', 'warning');
                           return;
                         }
                         try {
                           await api.resetPassword(resetToken, password);
-                          alert('Đặt lại mật khẩu thành công! Em có thể đăng nhập bằng mật khẩu mới.');
+                          showToast.current('Đặt lại mật khẩu thành công! Hãy đăng nhập bằng mật khẩu mới.', 'success');
                           setResetToken(null);
                           setActiveTab('login');
                         } catch (err) {
-                          alert(err.message || 'Lỗi đặt lại mật khẩu.');
+                          showToast.current(err.message || 'Lỗi đặt lại mật khẩu.', 'error');
                         }
                       }}>
                         <div className="form-group" style={{ marginBottom: '16px' }}>
@@ -1229,6 +2030,7 @@ export default function App() {
                 />
               ) : (
                 <LandingPage
+                  courses={courses}
                   currentUser={currentUser}
                   onNavigateToAuth={(mode) => setActiveTab(mode)}
                   onBackToDashboard={handleBackToDashboard}
@@ -1253,19 +2055,34 @@ export default function App() {
                   }}
                   currentPath={currentPath}
                   navigateTo={navigateTo}
+                  cartCourse={cartCourse}
+                  onAddToCart={handleAddToCart}
                 />
               )}
             </div>
           )}
 
+          {/* ================= CONFIRM EMAIL WORKSPACE ================= */}
+          {parsedRoute.route === 'confirm-email' && (
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh', padding: '40px 20px' }}>
+              <ConfirmEmailPage
+                onAuthSuccess={(user) => {
+                  handleAuthSuccess(user);
+                }}
+                navigateTo={navigateTo}
+              />
+            </div>
+          )}
+
           {/* ================= MOCK EXAMS ROUTER WORKSPACE (PUBLIC ACCESS) ================= */}
           {parsedRoute.route.startsWith('mock-') && (
-            <div style={{ padding: '20px 0' }}>
+            <div className="mock-exams-workspace-wrapper" style={{ padding: '20px 0' }}>
               {parsedRoute.route === 'mock-exams-list' && (
                 <MockExamsPage
                   currentUser={currentUser}
                   onSelectExam={(examId) => navigateTo(`/mock-exams/${examId}`)}
                   navigateTo={navigateTo}
+                  examsList={examsList}
                 />
               )}
 
@@ -1302,12 +2119,28 @@ export default function App() {
           {role !== 'guest' && activeTab !== 'landing' && (parsedRoute.route === 'courses-list' || parsedRoute.route === 'course-detail') && (
             <div style={{ padding: '20px 0' }}>
               {parsedRoute.route === 'courses-list' && (
-                <CoursesPage
-                  currentUser={currentUser}
-                  onSelectCourse={(course) => navigateTo(`/courses/${course.id}`)}
-                  onCheckoutCourse={(course) => setCheckoutCourse(course)}
-                  navigateTo={navigateTo}
-                />
+                role === 'student' ? (
+                  <div className="cp-page-container">
+                    <div className="cp-page animate-in">
+                      <CourseMall
+                        courses={courses}
+                        currentUser={currentUser}
+                        onSelectCourse={(course) => navigateTo(`/courses/${course.id}`)}
+                        onLearnCourse={(course) => navigateTo(`/learn/${course.id}`)}
+                        onCheckoutCourse={(course) => setCheckoutCourse(course)}
+                        onRegisterLead={handleRegisterLead}
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <CoursesPage
+                    courses={courses}
+                    currentUser={currentUser}
+                    onSelectCourse={(course) => navigateTo(`/courses/${course.id}`)}
+                    onCheckoutCourse={(course) => setCheckoutCourse(course)}
+                    navigateTo={navigateTo}
+                  />
+                )
               )}
 
               {parsedRoute.route === 'course-detail' && (
@@ -1324,6 +2157,8 @@ export default function App() {
                     setUsersList(updatedList);
                   }}
                   navigateTo={navigateTo}
+                  onAddToCart={handleAddToCart}
+                  onCheckoutCourse={(course) => setCheckoutCourse(course)}
                 />
               )}
             </div>
@@ -1331,7 +2166,11 @@ export default function App() {
 
           {/* ================= AI TUTOR WORKSPACE ================= */}
           {parsedRoute.route === 'ai-tutor' && (
+<<<<<<< HEAD
             <div style={{ padding: '20px 0' }}>
+=======
+            <div style={{ padding: '0', background: '#141410', minHeight: '100vh' }}>
+>>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
               <AITutorPage
                 currentUser={currentUser}
                 navigateTo={navigateTo}
@@ -1340,6 +2179,20 @@ export default function App() {
             </div>
           )}
 
+<<<<<<< HEAD
+=======
+          {/* ================= FLASHCARDS WORKSPACE ================= */}
+          {parsedRoute.route === 'flashcards' && (
+            <div style={{ padding: '0', background: '#141410', minHeight: '100vh' }}>
+              <FlashcardPage
+                currentUser={currentUser}
+                navigateTo={navigateTo}
+                addLog={addLog}
+              />
+            </div>
+          )}
+
+>>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
           {/* ================= EXAM BANK PAGE ================= */}
           {parsedRoute.route === 'exam-bank' && (
             <div style={{ padding: '0' }}>
@@ -1350,6 +2203,16 @@ export default function App() {
             </div>
           )}
 
+<<<<<<< HEAD
+=======
+          {/* ================= FORUM WORKSPACE ================= */}
+          {parsedRoute.route === 'forum' && (
+            <div style={{ padding: '0' }}>
+              <Forum currentUser={currentUser} />
+            </div>
+          )}
+
+>>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
           {/* ================= STUDENT LEARNING WORKSPACE ================= */}
           {(role === 'student' || window.location.search.includes('demo=true')) && activeTab !== 'landing' && parsedRoute.route === 'learn' && (
             <div style={{ padding: '20px 0' }}>
@@ -1358,7 +2221,11 @@ export default function App() {
                 lessonId={parsedRoute.lessonId}
                 currentUser={currentUser}
                 onSelectLesson={(courseId, lessonId) => navigateTo(`/learn/${courseId}/lesson/${lessonId}${window.location.search}`)}
+<<<<<<< HEAD
                 onBackToCourse={() => navigateTo(`/courses/${parsedRoute.courseId}`)}
+=======
+                onBackToCourse={(targetPath) => navigateTo(targetPath || `/courses/${parsedRoute.courseId}`)}
+>>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
               />
             </div>
           )}
@@ -1377,11 +2244,10 @@ export default function App() {
 
               {/* Learning path adaptive roadmap tab */}
               {activeTab === 'path' && (
-                <AISystemCenter 
-                  submissions={activeUserSubmissions} 
-                  addLog={addLog} 
+                <FlashcardPage
                   currentUser={currentUser}
                   navigateTo={navigateTo}
+                  addLog={addLog}
                 />
               )}
 
@@ -1392,6 +2258,7 @@ export default function App() {
                   currentUser={currentUser}
                   onSelectCourse={setActiveCourseDetails}
                   onCheckoutCourse={setCheckoutCourse}
+                  onRegisterLead={handleRegisterLead}
                 />
               )}
 
@@ -1415,63 +2282,7 @@ export default function App() {
                     <span style={{ fontSize: '32px' }}>🏆</span>
                   </div>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px', marginBottom: '28px' }}>
-                    <div style={{ background: 'linear-gradient(135deg, #fef9c3, #fef08a)', border: '2px solid #000', borderRadius: '16px', padding: '16px', textAlign: 'center', boxShadow: '3px 3px 0px #000' }}>
-                      <span style={{ fontSize: '24px' }}>🥇 Thủ khoa Tuần</span>
-                      <h4 style={{ fontSize: '16px', fontWeight: '900', margin: '8px 0 2px 0' }}>Nguyễn Lâm Vy</h4>
-                      <p style={{ fontSize: '12px', color: '#854d0e', margin: 0 }}>Khối A01 – Điểm trung bình: <strong>9.8</strong></p>
-                    </div>
-                    <div style={{ background: 'linear-gradient(135deg, #f1f5f9, #e2e8f0)', border: '2px solid #000', borderRadius: '16px', padding: '16px', textAlign: 'center', boxShadow: '3px 3px 0px #000' }}>
-                      <span style={{ fontSize: '24px' }}>🥈 Á khoa Tuần</span>
-                      <h4 style={{ fontSize: '16px', fontWeight: '900', margin: '8px 0 2px 0' }}>Trần Minh Đức</h4>
-                      <p style={{ fontSize: '12px', color: '#475569', margin: 0 }}>Khối B00 – Điểm trung bình: <strong>9.6</strong></p>
-                    </div>
-                    <div style={{ background: 'linear-gradient(135deg, #ffedd5, #fed7aa)', border: '2px solid #000', borderRadius: '16px', padding: '16px', textAlign: 'center', boxShadow: '3px 3px 0px #000' }}>
-                      <span style={{ fontSize: '24px' }}>🥉 Tam khoa Tuần</span>
-                      <h4 style={{ fontSize: '16px', fontWeight: '900', margin: '8px 0 2px 0' }}>Lê Quỳnh Chi</h4>
-                      <p style={{ fontSize: '12px', color: '#c2410c', margin: 0 }}>Khối D01 – Điểm trung bình: <strong>9.4</strong></p>
-                    </div>
-                  </div>
-
-                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }} className="exams-sidebar-table">
-                    <thead>
-                      <tr style={{ borderBottom: '2px solid #000' }}>
-                        <th style={{ padding: '12px 8px', fontWeight: '900' }}>Hạng</th>
-                        <th style={{ padding: '12px 8px', fontWeight: '900' }}>Học sinh</th>
-                        <th style={{ padding: '12px 8px', fontWeight: '900' }}>Tổ hợp môn</th>
-                        <th style={{ padding: '12px 8px', fontWeight: '900' }}>Chuỗi học (Streak)</th>
-                        <th style={{ padding: '12px 8px', fontWeight: '900', textAlign: 'right' }}>Điểm số</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {[
-                        { rank: 1, name: "Nguyễn Lâm Vy", combo: "A01 (Toán - Lý - Anh)", streak: 42, score: "9.8", avatar: "LV" },
-                        { rank: 2, name: "Trần Minh Đức", combo: "B00 (Toán - Hóa - Sinh)", streak: 35, score: "9.6", avatar: "MĐ" },
-                        { rank: 3, name: "Lê Quỳnh Chi", combo: "D01 (Toán - Văn - Anh)", streak: 28, score: "9.4", avatar: "QC" },
-                        { rank: 4, name: "Phạm Minh Hoàng", combo: "A01 (Toán - Lý - Anh)", streak: 21, score: "9.0", avatar: "MH" },
-                        { rank: 5, name: "Đỗ Gia Bảo", combo: "B00 (Toán - Hóa - Sinh)", streak: 17, score: "8.8", avatar: "GB" }
-                      ].map(student => (
-                        <tr key={student.rank} style={{ borderBottom: '1px solid #e2e8f0' }}>
-                          <td style={{ padding: '12px 8px' }}>
-                            <span className={student.rank <= 3 ? `rank-${student.rank}` : 'rank-other'}>
-                              {student.rank}
-                            </span>
-                          </td>
-                          <td style={{ padding: '12px 8px' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                              <div style={{ width: '30px', height: '30px', borderRadius: '50%', background: '#6c5ce7', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '11px' }}>
-                                {student.avatar}
-                              </div>
-                              <strong>{student.name}</strong>
-                            </div>
-                          </td>
-                          <td style={{ padding: '12px 8px', color: '#4b5563', fontSize: '13px' }}>{student.combo}</td>
-                          <td style={{ padding: '12px 8px', fontWeight: '700', color: '#d97706' }}>🔥 {student.streak} ngày</td>
-                          <td style={{ padding: '12px 8px', textAlign: 'right', fontWeight: '900', fontSize: '15px' }}>{student.score}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                  <LeaderboardTab currentUser={currentUser} />
                 </div>
               )}
 
@@ -1520,8 +2331,8 @@ export default function App() {
                       className="card animate-in"
                       style={{
                         padding: '20px 24px',
-                        background: 'linear-gradient(135deg, rgba(240, 253, 244, 0.6), rgba(220, 252, 231, 0.6))',
-                        border: '1px solid rgba(16, 185, 129, 0.2)',
+                        background: 'linear-gradient(135deg, rgba(255, 226, 89, 0.05), rgba(255, 167, 81, 0.05))',
+                        border: '1px solid rgba(255, 226, 89, 0.25)',
                         borderRadius: '16px',
                         boxShadow: 'var(--shadow-md)',
                         display: 'flex',
@@ -1532,13 +2343,13 @@ export default function App() {
                       }}
                     >
                       <div style={{ flex: '1', minWidth: '280px' }}>
-                        <span className="badge-pill" style={{ background: 'var(--accent-green)', color: '#fff', fontWeight: 'bold', fontSize: '10px', textTransform: 'uppercase' }}>
+                        <span className="badge-pill" style={{ background: 'var(--fc-gold, #FFE259)', color: '#12120e', fontWeight: 'bold', fontSize: '10px', textTransform: 'uppercase' }}>
                           ⚡ Tính năng Mới
                         </span>
-                        <h3 style={{ fontSize: '16px', fontWeight: '700', color: '#14532d', margin: '6px 0 4px 0' }}>
+                        <h3 style={{ fontSize: '16px', fontWeight: '700', color: 'var(--fc-gold, #FFE259)', margin: '6px 0 4px 0' }}>
                           📸 Tự động chấm điểm nhanh qua Camera (OCR)
                         </h3>
-                        <p style={{ fontSize: '12.5px', color: '#166534', margin: 0, lineHeight: 1.4 }}>
+                        <p style={{ fontSize: '12.5px', color: '#9CA3AF', margin: 0, lineHeight: 1.4 }}>
                           Làm bài ra giấy hoặc tô phiếu trắc nghiệm rồi chụp ảnh tải lên. AI sẽ tự động đọc kết quả, đối chiếu đáp án chính thức của Bộ GD&ĐT và chấm điểm ngay lập tức!
                         </p>
                       </div>
@@ -1547,14 +2358,14 @@ export default function App() {
                         onClick={() => setActiveOCRScanner(true)}
                         className="btn-primary"
                         style={{
-                          background: 'linear-gradient(135deg, #10b981, #059669)',
-                          color: '#fff',
+                          background: 'var(--fc-gold, #FFE259)',
+                          color: '#12120e',
                           border: 'none',
                           padding: '10px 22px',
                           fontSize: '13px',
                           fontWeight: '600',
                           borderRadius: 'var(--radius-sm)',
-                          boxShadow: '0 4px 12px rgba(16, 185, 129, 0.2)',
+                          boxShadow: '0 4px 12px rgba(255, 226, 89, 0.2)',
                           display: 'flex',
                           alignItems: 'center',
                           gap: '6px',
@@ -1600,7 +2411,7 @@ export default function App() {
                                         <button
                                           onClick={() => {
                                             const feedback = typeof att.aiFeedback === 'string' ? JSON.parse(att.aiFeedback) : att.aiFeedback;
-                                            alert(`🤖 [CHẨN ĐOÁN AI - Đề: ${att.exam?.title}]\n\n📝 Đánh giá chung: ${feedback.assessment || 'Chưa có đánh giá.'}\n\n⚠️ Lỗ hổng kiến thức: ${(feedback.knowledgeGaps || []).join(', ') || 'Không phát hiện lỗ hổng lớn.'}\n\n💡 Lời khuyên: \n${(feedback.advice || []).map(a => `- ${a}`).join('\n')}`);
+                                            setAiFeedbackModal({ feedback, exam: att.exam });
                                           }}
                                           style={{
                                             padding: '4px 10px',
@@ -2061,7 +2872,11 @@ export default function App() {
 
               {/* AI Q&A Tutor tab */}
               {activeTab === 'ai-qa' && (
-                <AITutorChat addLog={addLog} />
+                <AITutorPage
+                  currentUser={currentUser}
+                  navigateTo={navigateTo}
+                  addLog={addLog}
+                />
               )}
 
               {/* Library docs downloads tab */}
@@ -2141,7 +2956,7 @@ export default function App() {
                                   const file = e.target.files[0];
                                   if (file) {
                                     if (file.size > 2 * 1024 * 1024) {
-                                      alert('Dung lượng ảnh tối đa là 2MB!');
+                                      showToast.current('Dung lượng ảnh tối đa là 2MB!', 'warning');
                                       return;
                                     }
                                     const reader = new FileReader();
@@ -2508,14 +3323,7 @@ export default function App() {
           {/* ================= TEACHER WORKSPACE ================= */}
           {role === 'teacher' && activeTab !== 'landing' && (
             activeTab === 'forum' ? (
-              <Forum
-                forumPosts={forumPosts}
-                onAddPost={handleForumAddPost}
-                onLikePost={handleForumLikePost}
-                onAddComment={handleForumAddComment}
-                onAcceptCommentSolution={handleForumAcceptCommentSolution}
-                currentUser={currentUser}
-              />
+              <Forum currentUser={currentUser} />
             ) : (
               <TeacherDashboard
                 courses={courses}
@@ -2531,16 +3339,9 @@ export default function App() {
           )}
 
           {/* ================= ADMIN WORKSPACE ================= */}
-          {role === 'admin' && activeTab !== 'landing' && (
+          {parsedRoute.route === 'admin' && role === 'admin' && activeTab !== 'landing' && (
             activeTab === 'forum' ? (
-              <Forum
-                forumPosts={forumPosts}
-                onAddPost={handleForumAddPost}
-                onLikePost={handleForumLikePost}
-                onAddComment={handleForumAddComment}
-                onAcceptCommentSolution={handleForumAcceptCommentSolution}
-                currentUser={currentUser}
-              />
+              <Forum currentUser={currentUser} />
             ) : (
               <AdminDashboard
                 users={usersList}
@@ -2554,6 +3355,14 @@ export default function App() {
                 addLog={addLog}
                 activeTab={activeTab}
                 setActiveTab={setActiveTab}
+                navigateTo={navigateTo}
+                submissions={submissions}
+                leadsList={leadsList}
+                setLeadsList={setLeadsList}
+                booksList={booksList}
+                setBooksList={setBooksList}
+                featureFlags={featureFlags}
+                setFeatureFlags={setFeatureFlags}
               />
             )
           )}
@@ -2580,8 +3389,67 @@ export default function App() {
       )}
 
       {/* Public Chatbot AI floating button and chat dialog */}
-      <ChatbotWidget />
+      {parsedRoute.route !== 'flashcards' && activeTab !== 'path' && (
+        <ChatbotWidget />
+      )}
 
+      {/* ── Toast Notifications ── */}
+      <div className="app-toasts-container">
+        {toasts.map(t => (
+          <div key={t.id} className={`app-toast app-toast-${t.type}`}>
+            <span className="app-toast-icon">
+              {t.type === 'success' ? '✅' : t.type === 'error' ? '❌' : '⚠️'}
+            </span>
+            <span>{t.message}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* ── AI Feedback Modal ── */}
+      {aiFeedbackModal && (
+        <div className="ai-feedback-modal-overlay" onClick={() => setAiFeedbackModal(null)}>
+          <div className="ai-feedback-modal" onClick={e => e.stopPropagation()}>
+            <h3>🤖 Chẩn đoán AI — {aiFeedbackModal.exam?.title || 'Đề tự luyện'}</h3>
+
+            <div className="ai-feedback-section">
+              <div className="ai-feedback-section-label">📝 Đánh giá chung</div>
+              <div className="ai-feedback-section-body">
+                {aiFeedbackModal.feedback.assessment || 'Chưa có đánh giá.'}
+              </div>
+            </div>
+
+            <div className="ai-feedback-section">
+              <div className="ai-feedback-section-label">⚠️ Lỗ hổng kiến thức</div>
+              <div className="ai-feedback-section-body">
+                {(aiFeedbackModal.feedback.knowledgeGaps || []).length > 0
+                  ? (aiFeedbackModal.feedback.knowledgeGaps).map((gap, i) => (
+                      <span key={i} className="ai-feedback-gap-tag">{gap}</span>
+                    ))
+                  : <span style={{ color: 'var(--accent-green)' }}>Không phát hiện lỗ hổng lớn ✓</span>
+                }
+              </div>
+            </div>
+
+            {(aiFeedbackModal.feedback.advice || []).length > 0 && (
+              <div className="ai-feedback-section">
+                <div className="ai-feedback-section-label">💡 Lời khuyên cải thiện</div>
+                <div className="ai-feedback-section-body" style={{ padding: '6px 14px' }}>
+                  {(aiFeedbackModal.feedback.advice).map((item, i) => (
+                    <div key={i} className="ai-feedback-advice-item">
+                      <span style={{ color: 'var(--primary)', fontWeight: 800 }}>→</span>
+                      <span>{item}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <button className="ai-feedback-close-btn" onClick={() => setAiFeedbackModal(null)}>
+              Đã hiểu, đóng lại
+            </button>
+          </div>
+        </div>
+      )}
 
     </div>
   );

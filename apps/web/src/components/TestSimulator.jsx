@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { toast } from '../utils/toast';
 import { HiClock, HiCheckCircle, HiChevronRight, HiChevronLeft, HiSparkles, HiFlag } from 'react-icons/hi';
 import studentLearningImg from '../assets/student_learning.png';
 import { api } from '../api';
@@ -189,7 +190,7 @@ export default function TestSimulator({ exam, testName, onFinished, addLog }) {
           }
         } catch (err) {
           console.error("Lỗi khi tải đề thi từ server:", err);
-          alert("Không thể tải đề thi từ hệ thống. Sử dụng đề thi thử nghiệm!");
+          toast("Không thể tải đề thi từ hệ thống. Sử dụng đề thi thử nghiệm!", 'warning');
           setQuestions(sampleQuizQuestions);
         } finally {
           setLoading(false);
@@ -289,7 +290,7 @@ export default function TestSimulator({ exam, testName, onFinished, addLog }) {
         }
       } catch (err) {
         console.error("Lỗi khi nộp bài thi:", err);
-        alert("Có lỗi xảy ra khi gửi kết quả lên hệ thống.");
+        toast("Có lỗi xảy ra khi gửi kết quả lên hệ thống.", 'error');
       } finally {
         setLoading(false);
       }

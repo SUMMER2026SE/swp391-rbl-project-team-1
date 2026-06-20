@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcrypt';
+import { seedRealExamData } from '../src/utils/examImporter.js';
 
 const prisma = new PrismaClient();
 
@@ -11,6 +12,8 @@ async function main() {
   await prisma.question.deleteMany({});
   await prisma.exam.deleteMany({});
   await prisma.course.deleteMany({});
+  await prisma.forumCategory.deleteMany({});
+
 
   console.log('[Seed] Seeding default admin account...');
   const adminHash = await bcrypt.hash('Admin@123', 12);
@@ -1333,6 +1336,331 @@ async function main() {
     teacherB.id
   );
 
+  console.log('[Seed] Seeding default forum categories...');
+  const defaultCategories = [
+    { name: 'Toán học', slug: 'toan-hoc', description: 'Thảo luận và học hỏi kiến thức môn Toán học THPTQG' },
+    { name: 'Vật lý', slug: 'vat-ly', description: 'Trao đổi lời giải bài tập Vật lý và đề thi thử' },
+    { name: 'Hóa học', slug: 'hoa-hoc', description: 'Góc học tập môn Hóa học lớp 10, 11, 12' },
+    { name: 'Tiếng Anh', slug: 'tieng-anh', description: 'Chia sẻ từ vựng, ngữ pháp và đề thi mẫu THPTQG' },
+    { name: 'Sinh học', slug: 'sinh-hoc', description: 'Nơi thảo luận về môn Sinh học và kiến thức liên quan' },
+    { name: 'Thảo luận chung', slug: 'thao-luan-chung', description: 'Chia sẻ kinh nghiệm thi cử, phương pháp học tập chung' }
+  ];
+
+  for (const cat of defaultCategories) {
+    await prisma.forumCategory.create({
+      data: {
+        name: cat.name,
+        slug: cat.slug,
+        description: cat.description,
+        allowedRoles: ['STUDENT', 'TEACHER', 'ADMIN']
+      }
+    });
+  }
+
+  // =========================================================================
+  // SEED ADDITIONAL EDTECH & FORUM RELATION TABLES (ENSURING NO EMPTY TABLES)
+  // =========================================================================
+  console.log('[Seed] Seeding Reviews...');
+  await prisma.review.create({
+    data: {
+      courseId: courseA.id,
+      studentId: studentList[0].id,
+      rating: 5,
+      comment: 'Khóa học cực kỳ chi tiết, giúp em củng cố lý thuyết rất nhiều!'
+    }
+  });
+  await prisma.review.create({
+    data: {
+      courseId: courseB.id,
+      studentId: studentList[1].id,
+      rating: 4,
+      comment: 'Thầy dạy hay và ví dụ minh họa dễ hiểu, em rất thích bài giảng Este.'
+    }
+  });
+
+  console.log('[Seed] Seeding Enrollments...');
+  await prisma.enrollment.create({
+    data: {
+      studentId: studentList[0].id,
+      courseId: courseA.id,
+      transactionId: 'TX1000000001',
+      paidAt: new Date()
+    }
+  });
+  await prisma.enrollment.create({
+    data: {
+      studentId: studentList[1].id,
+      courseId: courseB.id,
+      transactionId: 'TX1000000002',
+      paidAt: new Date()
+    }
+  });
+
+  console.log('[Seed] Seeding Lesson Documents...');
+  const lessonsA = await prisma.lesson.findMany({ where: { courseId: courseA.id } });
+  if (lessonsA.length > 0) {
+    await prisma.document.create({
+      data: {
+        title: 'Tài liệu bài giảng Khảo sát hàm số',
+        fileUrl: 'https://edupath.vn/docs/khao-sat-ham-so.pdf',
+        fileType: 'PDF',
+        lessonId: lessonsA[0].id,
+        uploadedBy: teacherA.id
+      }
+    });
+  }
+
+  console.log('[Seed] Seeding ChatMessages...');
+  await prisma.chatMessage.create({
+    data: {
+      studentId: studentList[0].id,
+      role: 'user',
+      content: 'Em muốn hỏi công thức tính nhanh thể tích khối chóp tứ diện đều?',
+      roomId: 'room-math-101'
+    }
+  });
+  await prisma.chatMessage.create({
+    data: {
+      studentId: studentList[0].id,
+      role: 'assistant',
+      content: 'Công thức tính nhanh thể tích tứ diện đều cạnh $a$ là: $V = \\frac{a^3\\sqrt{2}}{12}$.',
+      roomId: 'room-math-101'
+    }
+  });
+
+  console.log('[Seed] Seeding Notifications...');
+  await prisma.notification.create({
+    data: {
+      userId: studentList[0].id,
+      title: 'Chúc mừng bạn gia nhập EduPath!',
+      message: 'Hãy bắt đầu thi thử hoặc đăng ký các khóa học để ôn tập tốt nhất.',
+      isRead: false
+    }
+  });
+
+  console.log('[Seed] Seeding Roadmaps...');
+  await prisma.roadmap.create({
+    data: {
+      studentId: studentList[0].id,
+      content: {
+        currentLevel: 'Trung bình',
+        targetScore: 9.0,
+        focusTopics: ['Số phức', 'Khối đa diện', 'Oxyz'],
+        weeklyPlan: [
+          { week: 1, topic: 'Ôn tập Hàm số nâng cao', completed: true },
+          { week: 2, topic: 'Luyện đề thi thử 2024', completed: false }
+        ]
+      }
+    }
+  });
+
+  console.log('[Seed] Seeding OtpVerification...');
+  await prisma.otpVerification.create({
+    data: {
+      email: 'student_temp@gmail.com',
+      otpHash: await bcrypt.hash('123456', 12),
+      purpose: 'REGISTRATION',
+      expiresAt: new Date(Date.now() + 3600000)
+    }
+  });
+
+  console.log('[Seed] Seeding RoleChangeRequest...');
+  await prisma.roleChangeRequest.create({
+    data: {
+      userId: studentList[2].id,
+      currentRole: 'STUDENT',
+      requestedRole: 'TEACHER',
+      reason: 'Tôi muốn đóng góp các bài giảng luyện đề môn Tiếng Anh và Hóa học.',
+      status: 'PENDING'
+    }
+  });
+
+  console.log('[Seed] Seeding Forum tables...');
+  const category = await prisma.forumCategory.create({
+    data: {
+      name: 'Thảo luận môn Toán',
+      slug: 'thao-luan-mon-toan',
+      description: 'Nơi trao đổi bài tập khó, phương pháp giải nhanh trắc nghiệm môn Toán.'
+    }
+  });
+  const post = await prisma.forumPost.create({
+    data: {
+      title: 'Cách bấm máy tính giải nhanh số phức THPTQG 2024?',
+      slug: 'cach-bam-may-tinh-giai-nhanh-so-phuc-thptqg-2024',
+      content: 'Mọi người cho em hỏi có mẹo nào dùng Casio fx-580 để tìm nhanh căn bậc hai của số phức không ạ?',
+      categoryId: category.id,
+      authorId: studentList[0].id,
+      postType: 'QA'
+    }
+  });
+  const comment = await prisma.forumComment.create({
+    data: {
+      postId: post.id,
+      authorId: teacherA.id,
+      content: 'Chào em, em có thể sử dụng tính năng Mode 2 (Complex) rồi bấm căn bậc hai của số phức bình thường. Đối với các bài tìm căn bậc hai phức tạp, ta có thể dùng công thức đổi qua dạng lượng giác hoặc thử ngược lại đáp án nhé.'
+    }
+  });
+  await prisma.forumReaction.create({
+    data: {
+      userId: studentList[1].id,
+      postId: post.id,
+      type: 'LIKE'
+    }
+  });
+  const tag = await prisma.forumTag.create({
+    data: {
+      name: 'CasioToan',
+      slug: 'casio-toan'
+    }
+  });
+  // Link tag to post
+  await prisma.forumPost.update({
+    where: { id: post.id },
+    data: {
+      tags: { connect: { id: tag.id } }
+    }
+  });
+
+  console.log('[Seed] Seeding Study Groups...');
+  const group = await prisma.studyGroup.create({
+    data: {
+      name: 'Chiến thần chinh phục 9+ Toán Lý Hóa',
+      description: 'Nhóm dành cho các học sinh ôn thi khối A00 và A01 quyết tâm đạt điểm cao.',
+      creatorId: teacherA.id
+    }
+  });
+  await prisma.studyGroupMember.create({
+    data: {
+      groupId: group.id,
+      userId: studentList[0].id,
+      role: 'MEMBER'
+    }
+  });
+  await prisma.groupAnnouncement.create({
+    data: {
+      groupId: group.id,
+      title: 'Lịch thi thử chung tuần này',
+      content: 'Chúng ta sẽ thi thử chung đề Toán 2024 vào tối thứ Bảy lúc 20h00 nhé các em.',
+      authorId: teacherA.id
+    }
+  });
+
+  console.log('[Seed] Seeding ResourceShare...');
+  const resourcePost = await prisma.forumPost.create({
+    data: {
+      title: 'Tóm tắt toàn bộ công thức giải nhanh Vật lý 12',
+      slug: 'tom-tat-toan-bo-cong-thuc-giai-nhanh-vat-ly-12',
+      content: 'Chia sẻ tài liệu PDF tóm tắt đầy đủ công thức giải nhanh 7 chương Vật lý 12 cực kỳ hữu ích.',
+      categoryId: category.id,
+      authorId: teacherB.id,
+      postType: 'RESOURCE'
+    }
+  });
+  await prisma.resourceShare.create({
+    data: {
+      postId: resourcePost.id,
+      fileUrl: 'https://edupath.vn/resources/vatly12-quick.pdf',
+      fileType: 'PDF',
+      fileSize: 4500000,
+      status: 'APPROVED',
+      reviewedById: adminUser.id,
+      reviewedAt: new Date()
+    }
+  });
+
+  console.log('[Seed] Seeding Reputation and Badges...');
+  await prisma.reputationHistory.create({
+    data: {
+      userId: studentList[0].id,
+      points: 10,
+      action: 'POST_CREATED'
+    }
+  });
+  const badge = await prisma.badge.create({
+    data: {
+      name: 'Chăm Chỉ',
+      description: 'Đăng bài viết hỏi đáp đầu tiên trên diễn đàn.',
+      iconUrl: 'badge_first_post',
+      category: 'POSTING',
+      criteria: { count: 1 }
+    }
+  });
+  await prisma.userBadge.create({
+    data: {
+      userId: studentList[0].id,
+      badgeId: badge.id
+    }
+  });
+  await prisma.userGamification.create({
+    data: {
+      userId: studentList[0].id,
+      level: 2,
+      xp: 250,
+      streakDays: 3,
+      lastActiveDate: new Date()
+    }
+  });
+
+  console.log('[Seed] Seeding ForumReport and AuditLogs...');
+  await prisma.forumReport.create({
+    data: {
+      reporterId: studentList[1].id,
+      postId: post.id,
+      reason: 'Nội dung chứa liên kết quảng cáo spam.',
+      status: 'PENDING'
+    }
+  });
+  await prisma.forumAuditLog.create({
+    data: {
+      actorId: adminUser.id,
+      action: 'DELETE_POST',
+      targetId: String(post.id),
+      details: 'Xóa bài viết spam theo báo cáo từ người dùng.',
+      ipAddress: '127.0.0.1'
+    }
+  });
+
+  const firstMathExam = await prisma.exam.findFirst({ where: { subject: 'Toán học' } });
+  const targetExamId = firstMathExam ? firstMathExam.id : 1;
+
+  console.log('[Seed] Seeding TestAttempts & TestAttemptAnswers...');
+  const attempt = await prisma.testAttempt.create({
+    data: {
+      studentId: studentList[0].id,
+      examId: targetExamId,
+      score: 8.4,
+      startedAt: new Date(Date.now() - 3600000),
+      submittedAt: new Date(),
+      durationUsed: 2700,
+      correctCount: 42,
+      wrongCount: 8,
+      skippedCount: 0,
+      status: 'SUBMITTED',
+      aiFeedback: {
+        assessment: 'Kết quả khá tốt! Bạn đạt 8.4 điểm.',
+        knowledgeGaps: ['Số phức nâng cao'],
+        strongAreas: ['Khảo sát hàm số', 'Tích phân'],
+        advice: ['Luyện thêm các câu số phức vận dụng cao.'],
+        encouragement: 'Tiếp tục cố gắng phát huy nhé!'
+      }
+    }
+  });
+
+  // Fetch created math questions for this exam
+  const examMathQuestions = await prisma.examQuestion.findMany({ where: { examId: targetExamId } });
+  if (examMathQuestions.length > 0) {
+    await prisma.testAttemptAnswer.create({
+      data: {
+        attemptId: attempt.id,
+        questionId: examMathQuestions[0].questionId,
+        selectedAnswer: 'A',
+        isCorrect: true
+      }
+    });
+  }
+
+  await seedRealExamData();
+
   console.log('[Seed] Database seeding completed successfully!');
 }
 
@@ -1859,7 +2187,7 @@ async function createPastExam(
     }
   });
 
-  const questionPromises = [];
+  const createdQuestions = [];
   for (let i = 0; i < answers.length; i++) {
     const ans = answers[i];
     const qIndex = i + 1;
@@ -1874,7 +2202,7 @@ async function createPastExam(
     const topic = customQ ? customQ.topic : fallbackQ.topic;
     const difficulty = customQ ? customQ.difficulty : fallbackQ.difficulty;
 
-    const p = prisma.question.create({
+    const question = await prisma.question.create({
       data: {
         content,
         options,
@@ -1885,22 +2213,19 @@ async function createPastExam(
         difficulty,
         createdBy: teacherId
       }
-    }).then(question => ({ questionId: question.id, order: qIndex }));
-    questionPromises.push(p);
+    });
+    createdQuestions.push({ questionId: question.id, order: qIndex });
   }
 
-  const createdQuestions = await Promise.all(questionPromises);
-
-  const examQuestionPromises = createdQuestions.map(item => {
-    return prisma.examQuestion.create({
+  for (const item of createdQuestions) {
+    await prisma.examQuestion.create({
       data: {
         examId: exam.id,
         questionId: item.questionId,
         order: item.order
       }
     });
-  });
-  await Promise.all(examQuestionPromises);
+  }
 
   console.log(`[Seed] Created past exam "${title}" with ${answers.length} questions.`);
 }

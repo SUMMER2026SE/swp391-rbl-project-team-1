@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { HiSearch, HiBell, HiSun, HiMoon, HiUser, HiLockClosed, HiLogout, HiX } from 'react-icons/hi';
+import { toast } from '../utils/toast';
+import { HiSearch, HiBell, HiSun, HiMoon, HiUser, HiLockClosed, HiLogout, HiX, HiCog, HiShoppingCart } from 'react-icons/hi';
 
 export default function Header({
   role,
@@ -10,7 +11,10 @@ export default function Header({
   onClearNotifications,
   onLogout,
   onChangePassword,
-  addLog
+  onNavigateSettings,
+  addLog,
+  cartCourse,
+  onCheckoutCourse
 }) {
   const [showNotif, setShowNotif] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
@@ -39,11 +43,11 @@ export default function Header({
     e.preventDefault();
     if (!oldPass || !newPass || !confirmNewPass) return;
     if (newPass.length < 6) {
-      alert('Mật khẩu mới phải từ 6 ký tự trở lên!');
+      toast('Mật khẩu mới phải từ 6 ký tự trở lên!', 'warning');
       return;
     }
     if (newPass !== confirmNewPass) {
-      alert('Xác nhận mật khẩu mới không khớp!');
+      toast('Xác nhận mật khẩu mới không khớp!', 'warning');
       return;
     }
     onChangePassword(oldPass, newPass);
@@ -76,6 +80,29 @@ export default function Header({
         >
           {theme === 'dark' ? <HiSun style={{ color: '#FFD700' }} /> : <HiMoon style={{ color: '#6C5CE7' }} />}
         </button>
+
+        {/* Shopping Cart Button */}
+        {role === 'student' && (
+          <button
+            className="header-icon-btn"
+            onClick={() => {
+              if (cartCourse) {
+                onCheckoutCourse(cartCourse);
+              } else {
+                toast('Giỏ hàng trống! Hãy chọn một khóa học để thêm vào giỏ.', 'warning');
+              }
+            }}
+            title="Giỏ hàng"
+            style={{ position: 'relative' }}
+          >
+            <HiShoppingCart />
+            {cartCourse && (
+              <span className="badge" style={{ backgroundColor: '#ef4444' }}>
+                1
+              </span>
+            )}
+          </button>
+        )}
 
         {/* Notification Bell */}
         <button
@@ -187,6 +214,17 @@ export default function Header({
               <div style={{ fontWeight: 'bold', fontSize: '13px' }}>{userProfile?.name}</div>
               <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>{userProfile?.email}</div>
             </div>
+            {onNavigateSettings && (
+              <button
+                className="dropdown-item"
+                onClick={() => {
+                  onNavigateSettings();
+                  setShowProfileMenu(false);
+                }}
+              >
+                <HiCog /> Cài đặt hồ sơ
+              </button>
+            )}
             <button
               className="dropdown-item"
               onClick={() => {

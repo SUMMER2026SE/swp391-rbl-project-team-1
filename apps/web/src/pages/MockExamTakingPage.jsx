@@ -1,22 +1,38 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { toast } from '../utils/toast';
 import ExamTimer from '../components/mock-exams/ExamTimer';
 import QuestionCard from '../components/mock-exams/QuestionCard';
 import QuestionNavigator from '../components/mock-exams/QuestionNavigator';
 import ExamSubmitModal from '../components/mock-exams/ExamSubmitModal';
+import DraggableFloatingWidget from '../components/mock-exams/DraggableFloatingWidget';
 import { mockExamService } from '../services/mockExamService';
-import { HiShieldCheck, HiOutlineExclamation, HiCalculator, HiClipboardCopy, HiPresentationChartLine, HiBookOpen, HiX } from 'react-icons/hi';
+import { 
+  HiShieldCheck, 
+  HiOutlineExclamation, 
+  HiCalculator, 
+  HiClipboardCopy, 
+  HiPresentationChartLine, 
+  HiBookOpen, 
+  HiX,
+  HiChevronLeft,
+  HiChevronRight,
+  HiOutlineShieldExclamation
+} from 'react-icons/hi';
+
+// Dangerous identifiers that must never reach new Function
+const CALC_DANGEROUS = /constructor|prototype|__proto__|fetch|XMLHttpRequest|window\b|document\b|\beval\b|Function\b|import\b|require\b|process\b|global\b|\bthis\b|alert\b|confirm\b|prompt\b/i;
 
 // Scientific Calculator Expression Evaluator
 const evaluateExpression = (expr) => {
+  if (CALC_DANGEROUS.test(expr)) return 'Lỗi';
   try {
     let cleanExpr = expr
       .replace(/×/g, '*')
       .replace(/÷/g, '/')
       .replace(/π/g, 'Math.PI')
-      .replace(/e/g, 'Math.E')
       .replace(/\^/g, '**');
 
-    // Safe replace for functions
+    // Replace math functions before replacing bare 'e' to avoid clobbering 'Math.E' in function names
     cleanExpr = cleanExpr
       .replace(/sin\(/g, 'Math.sin(')
       .replace(/cos\(/g, 'Math.cos(')
@@ -24,13 +40,16 @@ const evaluateExpression = (expr) => {
       .replace(/ln\(/g, 'Math.log(')
       .replace(/log\(/g, 'Math.log10(')
       .replace(/sqrt\(/g, 'Math.sqrt(');
-    
-    // Evaluate safely
+
+    // Replace bare 'e' (not already part of Math.*) as Euler's number
+    cleanExpr = cleanExpr.replace(/(?<![a-zA-Z])e(?![a-zA-Z])/g, 'Math.E');
+
+    // eslint-disable-next-line no-new-func
     const result = new Function(`return (${cleanExpr})`)();
-    if (typeof result === 'number' && !isNaN(result)) {
+    if (typeof result === 'number' && !isNaN(result) && isFinite(result)) {
       return Number(result.toFixed(6)).toString();
     }
-    return 'Lỗi';
+    return result === Infinity || result === -Infinity ? String(result) : 'Lỗi';
   } catch (err) {
     return 'Lỗi';
   }
@@ -57,6 +76,7 @@ export default function MockExamTakingPage({ examId, currentUser, onFinished, na
   const [violationCount, setViolationCount] = useState(0);
   const [showViolationModal, setShowViolationModal] = useState(false);
   const [violationReason, setViolationReason] = useState('');
+  const [showTimeUpModal, setShowTimeUpModal] = useState(false);
   
   // Widget states
   const [showCalculator, setShowCalculator] = useState(false);
@@ -65,50 +85,147 @@ export default function MockExamTakingPage({ examId, currentUser, onFinished, na
   const [calcInput, setCalcInput] = useState('');
   const [calcOutput, setCalcOutput] = useState('');
 
+  // Per-type violation counters (for display + thresholds)
+  const [tabViolations, setTabViolations] = useState(0);
+  const [copyPasteViolations, setCopyPasteViolations] = useState(0);
+  const [fullscreenViolations, setFullscreenViolations] = useState(0);
+  const [estimatedTrustScore, setEstimatedTrustScore] = useState(100);
+
   // Refs for tracking
   const blurHandlerRegistered = useRef(false);
+
+  // Refs to provide fresh values to stale-closure callbacks (violation/timer auto-submit)
+  const answersRef = useRef(answers);
+  const secondsRemainingRef = useRef(secondsRemaining);
+  const showViolationModalRef = useRef(showViolationModal);
+  const tabViolRef = useRef(0);
+  const copyPasteViolRef = useRef(0);
+  const fullscreenViolRef = useRef(0);
+
+  useEffect(() => { answersRef.current = answers; }, [answers]);
+  useEffect(() => { secondsRemainingRef.current = secondsRemaining; }, [secondsRemaining]);
+  useEffect(() => { showViolationModalRef.current = showViolationModal; }, [showViolationModal]);
 
   // Initialize and load questions
   const loadExamWorkspace = async () => {
     setLoading(true);
     try {
-      const examData = await mockExamService.getMockExamById(examId);
-      setExam(examData);
+      const historyState = window.history.state;
+      const retakeData = historyState?.retakeData;
+      const retakeMode = historyState?.retakeMode;
 
-      const qs = await mockExamService.getExamQuestions(examId);
-      const questionsWithOptions = await Promise.all(
-        qs.map(async (q) => {
-          const opts = await mockExamService.getExamOptions(q.id);
-          return { ...q, options: opts };
-        })
-      );
-      setQuestions(questionsWithOptions);
+      if (retakeData && retakeData.questions && retakeData.exam) {
+        const examData = {
+          id: String(retakeData.exam.id),
+          title: retakeData.exam.title,
+          duration_minutes: retakeData.exam.duration,
+          total_questions: retakeData.exam.totalQuestions,
+          description: `Phiên ôn luyện thông minh: ${retakeData.exam.title}`,
+          status: 'published',
+          exam_subjects: {
+            name: retakeData.exam.subject
+          },
+          retakeMode: retakeData.exam.retakeMode,
+          sourceExamId: retakeData.exam.sourceExamId,
+          sourceAttemptId: retakeData.exam.sourceAttemptId
+        };
+        setExam(examData);
 
-      // Restore states from localStorage
-      const savedAnswers = localStorage.getItem(`exam_taking_answers_${examId}`);
-      if (savedAnswers) setAnswers(JSON.parse(savedAnswers));
+        const mappedQuestions = retakeData.questions.map((q, idx) => {
+          const options = typeof q.options === 'string' ? JSON.parse(q.options) : q.options;
+          const mappedOptions = (options || []).map((opt) => ({
+            id: `opt-${q.id}-${opt.label}`,
+            question_id: String(q.id),
+            option_label: opt.label,
+            option_text: opt.text,
+            is_correct: opt.label === q.correctAnswer
+          }));
 
-      const savedBookmarks = localStorage.getItem(`exam_taking_bookmarks_${examId}`);
-      if (savedBookmarks) setBookmarks(JSON.parse(savedBookmarks));
+          let diffLabel = 'Trung bình';
+          if (q.difficulty === 'EASY') diffLabel = 'Dễ';
+          else if (q.difficulty === 'HARD') diffLabel = 'Khó';
 
-      const savedAttemptId = localStorage.getItem(`exam_taking_attempt_id_${examId}`);
-      if (savedAttemptId) {
-        setAttemptId(savedAttemptId);
-      } else if (currentUser) {
-        const att = await mockExamService.startMockExam(currentUser.id, examId);
-        setAttemptId(att.id);
-        localStorage.setItem(`exam_taking_attempt_id_${examId}`, att.id);
+          return {
+            id: String(q.id),
+            exam_id: String(examData.id),
+            question_number: idx + 1,
+            question_text: q.content,
+            question_image_url: q.imageUrl || null,
+            question_type: 'multiple_choice_single',
+            difficulty: diffLabel,
+            explanation: q.explanation || '',
+            topic: q.topic || 'Kiến thức cốt lõi',
+            options: mappedOptions
+          };
+        });
+        setQuestions(mappedQuestions);
+
+        const savedAnswers = localStorage.getItem(`exam_taking_answers_${examId}`);
+        if (savedAnswers) setAnswers(JSON.parse(savedAnswers));
+
+        const savedBookmarks = localStorage.getItem(`exam_taking_bookmarks_${examId}`);
+        if (savedBookmarks) setBookmarks(JSON.parse(savedBookmarks));
+
+        const savedAttemptId = localStorage.getItem(`exam_taking_attempt_id_${examId}`);
+        if (savedAttemptId) {
+          setAttemptId(savedAttemptId);
+        } else if (currentUser) {
+          const qIds = mappedQuestions.map(mq => Number(mq.id));
+          const att = await mockExamService.startMockExam(currentUser.id, examId, retakeMode || retakeData.exam.retakeMode, qIds);
+          setAttemptId(att.id);
+          localStorage.setItem(`exam_taking_attempt_id_${examId}`, att.id);
+        } else {
+          const guestAttId = `guest-attempt-${Date.now()}`;
+          setAttemptId(guestAttId);
+          localStorage.setItem(`exam_taking_attempt_id_${examId}`, guestAttId);
+        }
+
+        const savedSeconds = localStorage.getItem(`exam_taking_seconds_${examId}`);
+        if (savedSeconds) {
+          setSecondsRemaining(parseInt(savedSeconds, 10));
+        } else {
+          setSecondsRemaining(examData.duration_minutes * 60);
+        }
       } else {
-        const guestAttId = `guest-attempt-${Date.now()}`;
-        setAttemptId(guestAttId);
-        localStorage.setItem(`exam_taking_attempt_id_${examId}`, guestAttId);
-      }
+        const savedAttemptId = localStorage.getItem(`exam_taking_attempt_id_${examId}`);
+        
+        let attPromise = Promise.resolve(null);
+        if (!savedAttemptId && currentUser) {
+          attPromise = mockExamService.startMockExam(currentUser.id, examId);
+        }
 
-      const savedSeconds = localStorage.getItem(`exam_taking_seconds_${examId}`);
-      if (savedSeconds) {
-        setSecondsRemaining(parseInt(savedSeconds, 10));
-      } else {
-        setSecondsRemaining((examData.duration_minutes || 90) * 60);
+        const [examData, qs, att] = await Promise.all([
+          mockExamService.getMockExamById(examId),
+          mockExamService.getExamQuestions(examId),
+          attPromise
+        ]);
+
+        setExam(examData);
+        setQuestions(qs);
+
+        const savedAnswers = localStorage.getItem(`exam_taking_answers_${examId}`);
+        if (savedAnswers) setAnswers(JSON.parse(savedAnswers));
+
+        const savedBookmarks = localStorage.getItem(`exam_taking_bookmarks_${examId}`);
+        if (savedBookmarks) setBookmarks(JSON.parse(savedBookmarks));
+
+        if (savedAttemptId) {
+          setAttemptId(savedAttemptId);
+        } else if (att) {
+          setAttemptId(att.id);
+          localStorage.setItem(`exam_taking_attempt_id_${examId}`, att.id);
+        } else {
+          const guestAttId = `guest-attempt-${Date.now()}`;
+          setAttemptId(guestAttId);
+          localStorage.setItem(`exam_taking_attempt_id_${examId}`, guestAttId);
+        }
+
+        const savedSeconds = localStorage.getItem(`exam_taking_seconds_${examId}`);
+        if (savedSeconds) {
+          setSecondsRemaining(parseInt(savedSeconds, 10));
+        } else {
+          setSecondsRemaining(((examData && examData.duration_minutes) || 90) * 60);
+        }
       }
     } catch (err) {
       console.error('Lỗi khởi tạo phòng thi:', err);
@@ -123,15 +240,28 @@ export default function MockExamTakingPage({ examId, currentUser, onFinished, na
 
   // Sync answers & scratchpad
   const handleSelectOption = (questionId, optionLabel) => {
+    const isChange = !!answers[questionId];
     const nextAnswers = { ...answers, [questionId]: optionLabel };
     setAnswers(nextAnswers);
     localStorage.setItem(`exam_taking_answers_${examId}`, JSON.stringify(nextAnswers));
+    if (attemptId && !attemptId.toString().startsWith('guest')) {
+      mockExamService.saveAttemptAnswer(attemptId, questionId, optionLabel);
+      mockExamService.recordExamEvent(
+        attemptId,
+        isChange ? 'CHANGE_ANSWER' : 'SELECT_ANSWER',
+        questionId,
+        { answer: optionLabel }
+      );
+    }
   };
 
   const handleChangeEssay = (questionId, text) => {
     const nextAnswers = { ...answers, [questionId]: text };
     setAnswers(nextAnswers);
     localStorage.setItem(`exam_taking_answers_${examId}`, JSON.stringify(nextAnswers));
+    if (attemptId && !attemptId.toString().startsWith('guest')) {
+      mockExamService.saveAttemptAnswer(attemptId, questionId, text);
+    }
   };
 
   const handleScratchpadChange = (text) => {
@@ -151,6 +281,9 @@ export default function MockExamTakingPage({ examId, currentUser, onFinished, na
     if (currentUser) {
       await mockExamService.bookmarkQuestion(currentUser.id, questionId, note);
     }
+    if (attemptId && !attemptId.toString().startsWith('guest')) {
+      mockExamService.recordExamEvent(attemptId, 'BOOKMARK', questionId, { action: note === null ? 'remove' : 'add' });
+    }
   };
 
   const handleSecondsChange = (secondsLeft) => {
@@ -164,36 +297,73 @@ export default function MockExamTakingPage({ examId, currentUser, onFinished, na
       document.documentElement.requestFullscreen().catch(() => {});
       setIsFullscreen(true);
     } else {
-      document.exitFullscreen();
+      document.exitFullscreen().catch(() => {});
       setIsFullscreen(false);
     }
   };
 
-  // Visibility & Tab-blur violation triggers
-  const triggerViolation = (reason) => {
-    setViolationCount(prev => {
-      const nextVal = prev + 1;
-      if (nextVal >= 3) {
-        // Clear hooks immediately to prevent repeating alerts
-        window.removeEventListener('blur', handleWindowBlur);
-        document.removeEventListener('visibilitychange', handleVisibilityChange);
-        alert(`🚨 BẠN ĐÃ VI PHẠM NỘI QUY CHỐNG GIAN LẬN QUÁ 3 LẦN! Hệ thống tự động khóa và nộp bài thi của bạn.`);
-        handleFinalSubmit(true);
-      } else {
-        setViolationReason(reason);
-        setShowViolationModal(true);
-      }
-      return nextVal;
-    });
+  // Compute estimated trust score from local counters
+  const recalcTrustScore = (tabs, copies, fullscreen) => {
+    return Math.max(0, 100 - tabs * 15 - copies * 10 - fullscreen * 8);
+  };
+
+  // Visibility & Tab-blur violation triggers (enhanced with per-type tracking)
+  const triggerViolation = (violationType, reason) => {
+    if (showViolationModalRef.current) return;
+
+    // Update per-type counter refs (sync for immediate threshold check)
+    let newTabs = tabViolRef.current;
+    let newCopies = copyPasteViolRef.current;
+    let newFullscreen = fullscreenViolRef.current;
+
+    if (violationType === 'TAB_SWITCH') {
+      tabViolRef.current += 1;
+      newTabs = tabViolRef.current;
+      setTabViolations(newTabs);
+    } else if (violationType === 'COPY_PASTE') {
+      copyPasteViolRef.current += 1;
+      newCopies = copyPasteViolRef.current;
+      setCopyPasteViolations(newCopies);
+    } else if (violationType === 'FULLSCREEN_EXIT') {
+      fullscreenViolRef.current += 1;
+      newFullscreen = fullscreenViolRef.current;
+      setFullscreenViolations(newFullscreen);
+    }
+
+    const newTrust = recalcTrustScore(newTabs, newCopies, newFullscreen);
+    setEstimatedTrustScore(newTrust);
+
+    // Report to backend (non-blocking)
+    if (attemptId && !attemptId.toString().startsWith('guest')) {
+      mockExamService.recordViolationDetail(attemptId, violationType).then(res => {
+        if (res?.examTrustScore != null) setEstimatedTrustScore(res.examTrustScore);
+      });
+    }
+
+    // Auto-submit thresholds
+    const autoSubmit = newTabs >= 3 || newCopies >= 5 || newFullscreen >= 3;
+    setViolationCount(prev => prev + 1);
+
+    if (autoSubmit) {
+      window.removeEventListener('blur', handleWindowBlur);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      const label = violationType === 'COPY_PASTE' ? 'copy/paste' : violationType === 'FULLSCREEN_EXIT' ? 'thoát toàn màn hình' : 'rời tab';
+      toast(`Vi phạm ${label} quá giới hạn! Hệ thống tự động nộp bài.`, 'error');
+      handleFinalSubmit(true);
+    } else if (violationType !== 'COPY_PASTE') {
+      // Show modal only for tab switch and fullscreen exit (not copy/paste)
+      setViolationReason(reason);
+      setShowViolationModal(true);
+    }
   };
 
   const handleWindowBlur = () => {
-    triggerViolation("Rời khỏi tab thi (chuyển đổi ứng dụng hoặc mở cửa sổ mới)");
+    triggerViolation('TAB_SWITCH', 'Rời khỏi tab thi (chuyển đổi ứng dụng hoặc mở cửa sổ mới)');
   };
 
   const handleVisibilityChange = () => {
     if (document.hidden) {
-      triggerViolation("Rời khỏi màn hình thi (chuyển đổi tab trình duyệt)");
+      triggerViolation('TAB_SWITCH', 'Rời khỏi màn hình thi (chuyển đổi tab trình duyệt)');
     }
   };
 
@@ -217,24 +387,79 @@ export default function MockExamTakingPage({ examId, currentUser, onFinished, na
       const isFull = !!document.fullscreenElement;
       setIsFullscreen(isFull);
       if (!isFull && !isPreExam) {
-        triggerViolation("Thoát chế độ toàn màn hình khi đang thi");
+        triggerViolation('FULLSCREEN_EXIT', 'Thoát chế độ toàn màn hình khi đang thi');
       }
     };
     document.addEventListener('fullscreenchange', onFsChange);
     return () => document.removeEventListener('fullscreenchange', onFsChange);
   }, [isPreExam]);
 
+  // Copy/paste detection
+  useEffect(() => {
+    if (isPreExam) return;
+    const handleCopyPaste = (e) => {
+      e.preventDefault();
+      triggerViolation('COPY_PASTE', 'Sao chép hoặc dán nội dung trong phòng thi');
+    };
+    document.addEventListener('copy', handleCopyPaste);
+    document.addEventListener('paste', handleCopyPaste);
+    document.addEventListener('cut', handleCopyPaste);
+    return () => {
+      document.removeEventListener('copy', handleCopyPaste);
+      document.removeEventListener('paste', handleCopyPaste);
+      document.removeEventListener('cut', handleCopyPaste);
+    };
+  }, [isPreExam, attemptId]);
+
+  // Track question view events for replay
+  useEffect(() => {
+    if (isPreExam || questions.length === 0 || !attemptId) return;
+    const currentQ = questions[currentIdx];
+    if (currentQ) {
+      mockExamService.recordExamEvent(attemptId, 'VIEW_QUESTION', currentQ.id, { questionNumber: currentIdx + 1 });
+    }
+  }, [currentIdx, isPreExam]);
+
+  // Keyboard shortcuts: A/B/C/D to select options, Left/Right to navigate questions
+  useEffect(() => {
+    if (isPreExam || questions.length === 0) return;
+    const handleKeyDown = (e) => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+      const key = e.key;
+      if (key === 'ArrowLeft' || key === 'ArrowUp') {
+        e.preventDefault();
+        setCurrentIdx(prev => Math.max(0, prev - 1));
+      } else if (key === 'ArrowRight' || key === 'ArrowDown') {
+        e.preventDefault();
+        setCurrentIdx(prev => Math.min(questions.length - 1, prev + 1));
+      } else if (['a', 'b', 'c', 'd', 'A', 'B', 'C', 'D'].includes(key)) {
+        const currentQuestion = questions[currentIdx];
+        if (currentQuestion) handleSelectOption(currentQuestion.id, key.toUpperCase());
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isPreExam, questions, currentIdx]);
+
   // Final submit flow
   const handleFinalSubmit = async (forceSubmit = false) => {
     setIsSubmitModalOpen(false);
     setShowViolationModal(false);
+
+    // Record submit event (fire-and-forget)
+    if (attemptId && !attemptId.toString().startsWith('guest')) {
+      mockExamService.recordExamEvent(attemptId, 'SUBMIT', null, {
+        answeredCount: Object.keys(answersRef.current).filter(k => answersRef.current[k]).length,
+        forced: forceSubmit
+      });
+    }
 
     // Stop events
     window.removeEventListener('blur', handleWindowBlur);
     document.removeEventListener('visibilitychange', handleVisibilityChange);
 
     if (!currentUser && !forceSubmit) {
-      alert('🔒 Bạn chưa đăng nhập. Vui lòng đăng nhập để nộp bài thi thử và nhận phân tích chi tiết từ AI!');
+      toast('Bạn chưa đăng nhập. Vui lòng đăng nhập để nộp bài và nhận phân tích từ AI!', 'warning');
       localStorage.setItem('redirect_post_auth', window.location.pathname);
       window.history.pushState({}, '', '/');
       window.dispatchEvent(new PopStateEvent('popstate'));
@@ -242,13 +467,18 @@ export default function MockExamTakingPage({ examId, currentUser, onFinished, na
     }
 
     try {
-      const durationSeconds = (exam.duration_minutes * 60) - secondsRemaining;
+      const durationSeconds = (exam.duration_minutes * 60) - secondsRemainingRef.current;
+      const historyState = window.history.state;
+      const activeRetakeMode = exam?.retakeMode || historyState?.retakeMode || null;
+      const qIds = activeRetakeMode ? questions.map(q => Number(q.id)) : [];
       const { score, attemptId: submittedId } = await mockExamService.submitMockExam(
         currentUser?.id || 101,
         examId,
         attemptId,
-        answers,
-        durationSeconds
+        answersRef.current,
+        durationSeconds,
+        activeRetakeMode,
+        qIds
       );
 
       // Clean local storage states
@@ -265,13 +495,12 @@ export default function MockExamTakingPage({ examId, currentUser, onFinished, na
       onFinished(examId, submittedId);
     } catch (err) {
       console.error('Lỗi nộp bài thi:', err);
-      alert('Không thể nộp bài thi thử. Vui lòng kiểm tra lại kết nối mạng!');
+      toast('Không thể nộp bài thi thử. Vui lòng kiểm tra lại kết nối mạng!', 'error');
     }
   };
 
   const handleTimeUp = () => {
-    alert('⏱️ Hết giờ làm bài! Hệ thống tự động nộp bài thi của bạn.');
-    handleFinalSubmit(true);
+    setShowTimeUpModal(true);
   };
 
   // Calculator button click handler
@@ -400,39 +629,72 @@ export default function MockExamTakingPage({ examId, currentUser, onFinished, na
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', padding: '0 16px', maxWidth: '1300px', margin: '0 auto', position: 'relative' }} className="animate-in">
       
       {/* ── TOP HEADER TOOLBAR ── */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '14px', flexWrap: 'wrap', gap: '12px' }}>
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span className="source-badge official">Bộ GD&ĐT</span>
-            <h2 style={{ fontSize: '17px', fontWeight: '950', color: 'var(--text-primary)', margin: 0 }}>
-              {exam?.title}
-            </h2>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', borderBottom: '1px solid var(--border)', paddingBottom: '14px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span className="source-badge official">Bộ GD&ĐT</span>
+              <h2 style={{ fontSize: '17px', fontWeight: '950', color: 'var(--text-primary)', margin: 0 }}>
+                {exam?.title}
+              </h2>
+            </div>
+            <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Môn thi: {exam?.exam_subjects?.name} • Mã đề: {exam?.exam_code} • Khóa thi: {exam?.year}</span>
           </div>
-          <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Môn thi: {exam?.exam_subjects?.name} • Mã đề: {exam?.exam_code} • Khóa thi: {exam?.year}</span>
+
+          {/* Real-time Status and Violation indicators */}
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+            {/* Trust score badge */}
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: '5px',
+              background: estimatedTrustScore >= 90 ? 'rgba(0,184,148,0.1)' : estimatedTrustScore >= 70 ? 'rgba(243,156,18,0.1)' : 'rgba(214,48,49,0.1)',
+              color: estimatedTrustScore >= 90 ? '#00b894' : estimatedTrustScore >= 70 ? '#f39c12' : '#d63031',
+              padding: '5px 10px', borderRadius: '8px',
+              border: `1px solid ${estimatedTrustScore >= 90 ? 'rgba(0,184,148,0.25)' : estimatedTrustScore >= 70 ? 'rgba(243,156,18,0.25)' : 'rgba(214,48,49,0.25)'}`,
+              fontSize: '11px', fontWeight: 'bold'
+            }}>
+              🛡️ Tin cậy: {Math.round(estimatedTrustScore)}%
+            </div>
+
+            {/* Per-type violation indicators */}
+            <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', background: tabViolRef.current > 0 ? 'rgba(231,76,60,0.08)' : 'var(--bg-main)', color: tabViolRef.current > 0 ? 'var(--accent-red)' : 'var(--text-muted)', padding: '4px 8px', borderRadius: '6px', border: '1px solid var(--border)', fontSize: '11px', fontWeight: 'bold' }}>
+                ↔️ {tabViolRef.current}/3
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', background: copyPasteViolRef.current > 0 ? 'rgba(231,76,60,0.08)' : 'var(--bg-main)', color: copyPasteViolRef.current > 0 ? 'var(--accent-red)' : 'var(--text-muted)', padding: '4px 8px', borderRadius: '6px', border: '1px solid var(--border)', fontSize: '11px', fontWeight: 'bold' }}>
+                📋 {copyPasteViolRef.current}/5
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', background: fullscreenViolRef.current > 0 ? 'rgba(231,76,60,0.08)' : 'var(--bg-main)', color: fullscreenViolRef.current > 0 ? 'var(--accent-red)' : 'var(--text-muted)', padding: '4px 8px', borderRadius: '6px', border: '1px solid var(--border)', fontSize: '11px', fontWeight: 'bold' }}>
+                🖥️ {fullscreenViolRef.current}/3
+              </div>
+            </div>
+
+            <button 
+              onClick={toggleFullscreen} 
+              className="btn-outline"
+              style={{ padding: '6px 12px', fontSize: '12px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}
+            >
+              🖥️ {isFullscreen ? 'Thu nhỏ' : 'Toàn màn hình'}
+            </button>
+
+            {secondsRemaining > 0 && (
+              <ExamTimer
+                durationMinutes={exam.duration_minutes}
+                initialSeconds={secondsRemaining}
+                onTimeUp={handleTimeUp}
+                onSecondsChange={handleSecondsChange}
+              />
+            )}
+          </div>
         </div>
 
-        {/* Real-time Status and Violation indicators */}
-        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(231, 76, 60, 0.08)', color: 'var(--accent-red)', padding: '6px 12px', borderRadius: '8px', border: '1px solid rgba(231,76,60,0.15)', fontSize: '11.5px', fontWeight: 'bold' }}>
-            <span>⚠️ Cảnh báo:</span>
-            <span>{violationCount}/3 lần</span>
+        {/* Progress bar container */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '4px' }}>
+          <span style={{ fontSize: '11.5px', fontWeight: 'bold', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
+            Tiến độ: {answeredCount}/{questions.length} câu ({Math.round(answeredCount / questions.length * 100 || 0)}%)
+          </span>
+          <div className="taking-progress-container" style={{ flex: 1, margin: 0 }}>
+            <div className="taking-progress-bar" style={{ width: `${(answeredCount / questions.length) * 100}%` }}></div>
           </div>
-
-          <button 
-            onClick={toggleFullscreen} 
-            className="btn-outline"
-            style={{ padding: '6px 12px', fontSize: '12px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}
-          >
-            {isFullscreen ? '🖥️ Thu nhỏ' : '🖥️ Toàn màn hình'}
-          </button>
-
-          {secondsRemaining > 0 && (
-            <ExamTimer 
-              durationMinutes={exam.duration_minutes} 
-              onTimeUp={handleTimeUp}
-              onSecondsChange={handleSecondsChange}
-            />
-          )}
         </div>
       </div>
 
@@ -462,66 +724,124 @@ export default function MockExamTakingPage({ examId, currentUser, onFinished, na
             </button>
           </div>
 
-          {/* Draggable/Toggled Scientific Calculator Panel */}
+          {/* Draggable Scientific Calculator Panel */}
           {showCalculator && (
-            <div className="card casio-calculator-panel animate-in" style={{ padding: '16px', border: '2.5px solid #000', borderRadius: '16px', maxWidth: '320px', background: '#2D3436', color: '#fff', boxShadow: '6px 6px 0px #000' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', borderBottom: '1px solid #4a4a4a', paddingBottom: '6px' }}>
-                <span style={{ fontSize: '12px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}><HiCalculator /> CASIO fx-580VN X</span>
-                <button onClick={() => setShowCalculator(false)} style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', fontSize: '16px' }}><HiX /></button>
-              </div>
+            <DraggableFloatingWidget
+              title="CASIO fx-580VN X"
+              icon={HiCalculator}
+              onClose={() => setShowCalculator(false)}
+              defaultPosition={{ x: window.innerWidth - 360, y: 150 }}
+            >
+              <div className="casio-calculator-body">
+                <div className="casio-screen">
+                  <div className="casio-screen-input">{calcInput || '0'}</div>
+                  <div className="casio-screen-output">{calcOutput}</div>
+                </div>
 
-              {/* Calculator Screen */}
-              <div style={{ background: '#DFE4EA', color: '#2F3542', padding: '10px 14px', borderRadius: '8px', minHeight: '56px', textAlign: 'right', marginBottom: '12px', fontFamily: 'monospace', position: 'relative' }}>
-                <div style={{ fontSize: '13px', overflowX: 'auto', whiteSpace: 'nowrap' }}>{calcInput || '0'}</div>
-                <div style={{ fontSize: '18px', fontWeight: 'bold', marginTop: '4px' }}>{calcOutput}</div>
+                <div className="casio-grid">
+                  {/* Row 1: Sci functions */}
+                  {['sin(', 'cos(', 'tan(', '(', ')'].map(btn => (
+                    <button 
+                      type="button"
+                      key={btn} 
+                      onClick={() => handleCalcClick(btn)} 
+                      className="casio-btn casio-btn-sci"
+                    >
+                      {btn.replace('(', '')}
+                    </button>
+                  ))}
+                  {/* Row 2: Sci functions */}
+                  {['sqrt(', '^', 'ln(', 'log(', 'π'].map(btn => (
+                    <button 
+                      type="button"
+                      key={btn} 
+                      onClick={() => handleCalcClick(btn)} 
+                      className="casio-btn casio-btn-sci"
+                    >
+                      {btn === 'sqrt(' ? '√' : (btn === '^' ? 'xʸ' : btn.replace('(', ''))}
+                    </button>
+                  ))}
+                  {/* Row 3: Numbers + controls */}
+                  {['7', '8', '9', '⌫', 'C'].map(btn => {
+                    let btnClass = 'casio-btn casio-btn-num';
+                    if (btn === 'C' || btn === '⌫') btnClass = 'casio-btn casio-btn-clear';
+                    return (
+                      <button 
+                        type="button"
+                        key={btn} 
+                        onClick={() => handleCalcClick(btn)} 
+                        className={btnClass}
+                      >
+                        {btn}
+                      </button>
+                    );
+                  })}
+                  {/* Row 4 */}
+                  {['4', '5', '6', '×', '÷'].map(btn => {
+                    const isOp = isNaN(btn);
+                    return (
+                      <button 
+                        type="button"
+                        key={btn} 
+                        onClick={() => handleCalcClick(btn)} 
+                        className={`casio-btn ${isOp ? 'casio-btn-op' : 'casio-btn-num'}`}
+                      >
+                        {btn}
+                      </button>
+                    );
+                  })}
+                  {/* Row 5 */}
+                  {['1', '2', '3', '+', '-'].map(btn => {
+                    const isOp = isNaN(btn);
+                    return (
+                      <button 
+                        type="button"
+                        key={btn} 
+                        onClick={() => handleCalcClick(btn)} 
+                        className={`casio-btn ${isOp ? 'casio-btn-op' : 'casio-btn-num'}`}
+                      >
+                        {btn}
+                      </button>
+                    );
+                  })}
+                  {/* Row 6 */}
+                  {['0', '.', 'e', ')', '='].map(btn => {
+                    let btnClass = 'casio-btn casio-btn-num';
+                    if (btn === '=') btnClass = 'casio-btn casio-btn-equal';
+                    else if (btn === ')' || btn === 'e') btnClass = 'casio-btn casio-btn-sci';
+                    return (
+                      <button 
+                        type="button"
+                        key={btn} 
+                        onClick={() => handleCalcClick(btn)} 
+                        className={btnClass}
+                      >
+                        {btn}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-
-              {/* Calculator Grid */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '6px' }}>
-                {/* Advanced Row 1 */}
-                {['sin(', 'cos(', 'tan(', '(', ')'].map(btn => (
-                  <button key={btn} onClick={() => handleCalcClick(btn)} style={{ background: '#4b5563', color: '#fff', border: 'none', padding: '8px 4px', fontSize: '11px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>{btn.replace('(', '')}</button>
-                ))}
-                {/* Advanced Row 2 */}
-                {['sqrt(', '^', 'ln(', 'log(', 'π'].map(btn => (
-                  <button key={btn} onClick={() => handleCalcClick(btn)} style={{ background: '#4b5563', color: '#fff', border: 'none', padding: '8px 4px', fontSize: '11px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>{btn === 'sqrt(' ? '√' : (btn === '^' ? 'xʸ' : btn.replace('(', ''))}</button>
-                ))}
-                {/* Normal calculator row 1 */}
-                {['7', '8', '9', '⌫', 'C'].map(btn => (
-                  <button key={btn} onClick={() => handleCalcClick(btn)} style={{ background: btn === 'C' ? '#d63031' : (btn === '⌫' ? '#e17055' : '#7f8c8d'), color: '#fff', border: 'none', padding: '10px 4px', fontSize: '13px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>{btn}</button>
-                ))}
-                {/* Row 2 */}
-                {['4', '5', '6', '×', '÷'].map(btn => (
-                  <button key={btn} onClick={() => handleCalcClick(btn)} style={{ background: isNaN(btn) ? '#57606f' : '#7f8c8d', color: '#fff', border: 'none', padding: '10px 4px', fontSize: '13px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>{btn}</button>
-                ))}
-                {/* Row 3 */}
-                {['1', '2', '3', '+', '-'].map(btn => (
-                  <button key={btn} onClick={() => handleCalcClick(btn)} style={{ background: isNaN(btn) ? '#57606f' : '#7f8c8d', color: '#fff', border: 'none', padding: '10px 4px', fontSize: '13px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>{btn}</button>
-                ))}
-                {/* Row 4 */}
-                {['0', '.', 'e', '(', '='].map(btn => (
-                  <button key={btn} onClick={() => handleCalcClick(btn)} style={{ gridColumn: btn === '=' ? 'span 2' : 'span 1', background: btn === '=' ? '#00b894' : '#7f8c8d', color: '#fff', border: 'none', padding: '10px 4px', fontSize: '13px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>{btn}</button>
-                ))}
-              </div>
-            </div>
+            </DraggableFloatingWidget>
           )}
 
-          {/* Toggleable Scratchpad Text Area */}
+          {/* Draggable Electronic Scratchpad */}
           {showScratchpad && (
-            <div className="card scratchpad-panel animate-in" style={{ padding: '16px', border: '1.5px dashed var(--accent-green)', borderRadius: '16px', background: 'var(--bg-main)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                <span style={{ fontSize: '12.5px', fontWeight: 'bold', color: 'var(--accent-green)', display: 'flex', alignItems: 'center', gap: '4px' }}><HiClipboardCopy /> GIẤY NHÁP ĐIỆN TỬ (Tự động lưu trữ)</span>
-                <button onClick={() => setShowScratchpad(false)} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '16px' }}><HiX /></button>
-              </div>
+            <DraggableFloatingWidget
+              title="GIẤY NHÁP ĐIỆN TỬ"
+              icon={HiClipboardCopy}
+              onClose={() => setShowScratchpad(false)}
+              defaultPosition={{ x: window.innerWidth - 380, y: 480 }}
+              width="360px"
+            >
               <textarea
-                className="form-control"
-                rows="4"
-                placeholder="Nháp nhanh các dữ kiện hoặc lời giải tại đây... (Ví dụ: x = 2, y = 5 => sin(x) = 0.9)"
+                className="scratchpad-widget-textarea"
+                rows="5"
+                placeholder="Nháp nhanh các dữ kiện hoặc lời giải tại đây... (Tự động lưu trữ)"
                 value={scratchpadText}
                 onChange={(e) => handleScratchpadChange(e.target.value)}
-                style={{ width: '100%', padding: '10px', fontSize: '13px', borderRadius: '8px', border: '1.5px solid var(--border)', background: 'var(--bg-card)', color: 'var(--text-primary)', outline: 'none' }}
               />
-            </div>
+            </DraggableFloatingWidget>
           )}
 
           {/* Question Card Display */}
@@ -542,9 +862,9 @@ export default function MockExamTakingPage({ examId, currentUser, onFinished, na
               className="btn-outline"
               disabled={currentIdx === 0}
               onClick={() => setCurrentIdx(prev => prev - 1)}
-              style={{ padding: '10px 20px', cursor: currentIdx === 0 ? 'not-allowed' : 'pointer' }}
+              style={{ padding: '10px 20px', cursor: currentIdx === 0 ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
             >
-              ◀ Câu trước
+              <HiChevronLeft /> Câu trước
             </button>
 
             <span style={{ fontSize: '13px', fontWeight: 'bold', display: 'flex', alignItems: 'center', color: 'var(--text-secondary)' }}>
@@ -555,9 +875,9 @@ export default function MockExamTakingPage({ examId, currentUser, onFinished, na
               <button 
                 className="btn-outline"
                 onClick={() => setCurrentIdx(prev => prev + 1)}
-                style={{ padding: '10px 20px', cursor: 'pointer' }}
+                style={{ padding: '10px 20px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
               >
-                Câu tiếp theo ▶
+                Câu tiếp theo <HiChevronRight />
               </button>
             ) : (
               <button 
@@ -582,20 +902,57 @@ export default function MockExamTakingPage({ examId, currentUser, onFinished, na
         />
       </div>
 
+      {/* ── TIME UP MODAL ── */}
+      {showTimeUpModal && (
+        <div className="checkout-overlay" style={{ zIndex: 12000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="checkout-modal animate-in" style={{ maxWidth: '420px', border: '3px solid var(--exams-orange)', boxShadow: '0 10px 40px rgba(243, 156, 18, 0.25)' }}>
+            <div style={{ textAlign: 'center', padding: '12px 0' }}>
+              <div style={{ fontSize: '52px' }}>⏱️</div>
+              <h3 style={{ fontSize: '18px', fontWeight: '950', color: 'var(--text-primary)', marginTop: '14px', letterSpacing: '-0.5px' }}>
+                HẾT THỜI GIAN LÀM BÀI
+              </h3>
+              <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: '12px 0 24px 0', lineHeight: 1.5 }}>
+                Thời gian thi đã kết thúc. Bài làm của bạn sẽ được nộp ngay để chấm điểm và phân tích kết quả từ AI.
+              </p>
+              <button
+                className="btn-primary"
+                onClick={() => { setShowTimeUpModal(false); handleFinalSubmit(true); }}
+                style={{ width: '100%', padding: '13px', background: 'var(--exams-orange)', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '14px' }}
+              >
+                Nộp bài & Xem kết quả ⚡
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── SECURITY VIOLATION ALERT MODAL ── */}
       {showViolationModal && (
         <div className="checkout-overlay" style={{ zIndex: 11000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div className="checkout-modal animate-in" style={{ maxWidth: '460px', border: '3px solid var(--exams-red)', boxShadow: '0 10px 40px rgba(214, 48, 49, 0.2)' }}>
             <div style={{ textAlign: 'center', padding: '10px 0' }}>
-              <div style={{ fontSize: '48px', color: 'var(--exams-red)', animation: 'pulse 0.5s infinite alternate' }}>🚨</div>
+              <div style={{ fontSize: '48px', color: 'var(--exams-red)', animation: 'pulse 0.5s infinite alternate' }}><HiOutlineShieldExclamation style={{ display: 'block', margin: '0 auto' }} /></div>
               <h3 style={{ fontSize: '17px', fontWeight: '950', color: 'var(--exams-red)', marginTop: '16px', letterSpacing: '-0.5px' }}>
                 CẢNH BÁO VI PHẠM NỘI QUY THI
               </h3>
               
               <div style={{ background: 'var(--bg-main)', padding: '16px', borderRadius: '10px', border: '1px solid var(--border)', margin: '18px 0', fontSize: '13px', color: 'var(--text-primary)', textAlign: 'left', lineHeight: 1.5 }}>
                 <p>🔴 <strong>Lý do vi phạm:</strong> {violationReason}</p>
-                <p style={{ marginTop: '8px' }}>⚠️ <strong>Số lần vi phạm hiện tại:</strong> <strong style={{ color: 'var(--exams-red)', fontSize: '14.5px' }}>{violationCount}/3 lần</strong></p>
-                <p style={{ marginTop: '8px', fontSize: '11.5px', color: 'var(--text-secondary)' }}><em>Lưu ý:</em> Nếu bạn vi phạm quá **3 lần**, hệ thống sẽ lập tức dừng bài thi, khóa bài làm và tự động gửi kết quả về chấm điểm.</p>
+                <div style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
+                    <span>↔️ Rời tab / cửa sổ</span>
+                    <strong style={{ color: tabViolRef.current >= 2 ? 'var(--exams-red)' : 'var(--text-primary)' }}>{tabViolRef.current}/3 lần</strong>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
+                    <span>🖥️ Thoát toàn màn hình</span>
+                    <strong style={{ color: fullscreenViolRef.current >= 2 ? 'var(--exams-red)' : 'var(--text-primary)' }}>{fullscreenViolRef.current}/3 lần</strong>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
+                    <span>📋 Copy/Paste</span>
+                    <strong style={{ color: copyPasteViolRef.current >= 4 ? 'var(--exams-red)' : 'var(--text-primary)' }}>{copyPasteViolRef.current}/5 lần</strong>
+                  </div>
+                </div>
+                <p style={{ marginTop: '10px', fontSize: '11.5px', color: 'var(--text-secondary)' }}>Điểm tin cậy hiện tại: <strong style={{ color: estimatedTrustScore < 70 ? 'var(--exams-red)' : '#00b894' }}>{Math.round(estimatedTrustScore)}/100</strong>. Vượt giới hạn sẽ tự động nộp bài.</p>
               </div>
 
               <button

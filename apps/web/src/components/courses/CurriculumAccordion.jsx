@@ -1,5 +1,9 @@
 import { useState } from 'react';
+<<<<<<< HEAD
 import { HiLockClosed, HiPlay, HiCheckCircle, HiVideoCamera, HiChevronDown, HiDocumentText, HiAcademicCap } from 'react-icons/hi';
+=======
+import { HiLockClosed, HiPlay, HiCheckCircle, HiVideoCamera, HiChevronDown, HiDocumentText, HiAcademicCap, HiFolderOpen } from 'react-icons/hi';
+>>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
 
 export default function CurriculumAccordion({ curriculum = [], isOwned, onSelectLesson, completedLessons = [] }) {
   const [openChapters, setOpenChapters] = useState({ 0: true }); // Chapter index 0 is open by default
@@ -33,9 +37,18 @@ export default function CurriculumAccordion({ curriculum = [], isOwned, onSelect
       {curriculum.map((chapter, chapIdx) => {
         const isOpen = !!openChapters[chapIdx];
         return (
+<<<<<<< HEAD
           <div key={chapIdx} className={`curric-chapter ${isOpen ? 'curric-chapter--open' : ''}`}>
             <div className="curric-chapter__header" onClick={() => toggleChapter(chapIdx)}>
               <span>📂 {chapter.title}</span>
+=======
+          <div key={chapIdx} className={`curric-chapter ${isOpen ? 'curric-chapter--open' : ''}`} style={{ marginBottom: '12px' }}>
+            <div className="curric-chapter__header" onClick={() => toggleChapter(chapIdx)}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <HiFolderOpen style={{ color: 'var(--emerald-primary)', fontSize: '18px' }} />
+                <strong>{chapter.title}</strong>
+              </span>
+>>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
               <span className="curric-chapter__toggle-icon">
                 <HiChevronDown />
               </span>

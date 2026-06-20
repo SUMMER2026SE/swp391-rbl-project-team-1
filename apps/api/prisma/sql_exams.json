@@ -1,0 +1,4023 @@
+[
+  {
+    "title": "Đề thi thử tốt nghiệp THPT 2026 môn Toán - THPT Nguyễn Trung Thiên (Hà Tĩnh)",
+    "subject": "Toán học",
+    "subjectGroup": "A01",
+    "duration": 90,
+    "year": 2026,
+    "source": "Sở GD&ĐT Hà Tĩnh",
+    "totalQuestions": 50,
+    "questions": [
+      {
+        "question_number": 1,
+        "content": "Câu hỏi trắc nghiệm Toán học số 1",
+        "options": [
+          {
+            "label": "A",
+            "text": "Đáp án A cho câu hỏi 1"
+          },
+          {
+            "label": "B",
+            "text": "Đáp án B cho câu hỏi 1"
+          },
+          {
+            "label": "C",
+            "text": "Đáp án C cho câu hỏi 1"
+          },
+          {
+            "label": "D",
+            "text": "Đáp án D cho câu hỏi 1"
+          }
+        ],
+        "correctAnswer": "B",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án B là đáp án chính xác của câu hỏi số 1.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "EASY"
+      },
+      {
+        "question_number": 12,
+        "content": "Mỗi câu hỏi thí sinh chỉ chọn một phương án. 1 1 ( ) ( ) ∫ ∫",
+        "options": [
+          {
+            "label": "A",
+            "text": "Đáp án A cho câu hỏi 12"
+          },
+          {
+            "label": "B",
+            "text": "Đáp án B cho câu hỏi 12"
+          },
+          {
+            "label": "C",
+            "text": "Đáp án C cho câu hỏi 12"
+          },
+          {
+            "label": "D",
+            "text": "Đáp án D cho câu hỏi 12"
+          }
+        ],
+        "correctAnswer": "A",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án A là đáp án chính xác của câu hỏi số 12.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "EASY"
+      },
+      {
+        "question_number": 1,
+        "content": "Biết 3 1(2 1) , khi đó bằng: f x dx f x dx = + 1 − −",
+        "options": [
+          {
+            "label": "A",
+            "text": "8."
+          },
+          {
+            "label": "B",
+            "text": "10."
+          },
+          {
+            "label": "C",
+            "text": "7."
+          },
+          {
+            "label": "D",
+            "text": "6."
+          }
+        ],
+        "correctAnswer": "B",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án B là đáp án chính xác của câu hỏi số 1.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "EASY"
+      },
+      {
+        "question_number": 2,
+        "content": "Trong không gian với hệ toạ độ Oxyz, cho A(2;−2;1), B(0;1;2). Toạ độ điểm M thuộc mặt phẳng (Oxy) sao cho 3 điểm A, B, M thẳng hàng là",
+        "options": [
+          {
+            "label": "A",
+            "text": "M(4;−5;0)"
+          },
+          {
+            "label": "B",
+            "text": "M(2;−3;0)."
+          },
+          {
+            "label": "C",
+            "text": "M(4;5;0)."
+          },
+          {
+            "label": "D",
+            "text": "M(0;0;1). ( )"
+          }
+        ],
+        "correctAnswer": "C",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án C là đáp án chính xác của câu hỏi số 2.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "EASY"
+      },
+      {
+        "question_number": 3,
+        "content": "Cho hình chóp .S ABCD có đáy ABCD là hình vuông cạnh a . Biết SA ABCD và . 3 ⊥ SA a = Thể tích khối chóp .S ABCD là 3 3 3 3 3 a . a a 3 3",
+        "options": [
+          {
+            "label": "A",
+            "text": "."
+          },
+          {
+            "label": "B",
+            "text": "."
+          },
+          {
+            "label": "C",
+            "text": ""
+          },
+          {
+            "label": "D",
+            "text": ". a 4 12 3 . ' ' ' '"
+          }
+        ],
+        "correctAnswer": "D",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án D là đáp án chính xác của câu hỏi số 3.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "EASY"
+      },
+      {
+        "question_number": 4,
+        "content": "Cho hình hộp chữ nhật ABCD A B C D . Khẳng định nào đúng?   ' '",
+        "options": [
+          {
+            "label": "A",
+            "text": "AD B C cùng hướng với   ' '"
+          },
+          {
+            "label": "B",
+            "text": "Đáp án B cho câu hỏi 4"
+          },
+          {
+            "label": "C",
+            "text": "CD . cùng hướng với D C 1 có nghiệm"
+          },
+          {
+            "label": "D",
+            "text": "Đáp án D cho câu hỏi 4"
+          }
+        ],
+        "correctAnswer": "A",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án A là đáp án chính xác của câu hỏi số 4.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "EASY"
+      },
+      {
+        "question_number": 5,
+        "content": "Phương trình 2 x−= 3 9 19 0 x =",
+        "options": [
+          {
+            "label": "A",
+            "text": "."
+          },
+          {
+            "label": "B",
+            "text": ". x = 9 2 2 x −"
+          },
+          {
+            "label": "C",
+            "text": "Đáp án C cho câu hỏi 5"
+          },
+          {
+            "label": "D",
+            "text": "Đáp án D cho câu hỏi 5"
+          }
+        ],
+        "correctAnswer": "B",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án B là đáp án chính xác của câu hỏi số 5.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "EASY"
+      },
+      {
+        "question_number": 6,
+        "content": "Tiệm cận đứng của đồ thị hàm số y là = 1 x + 1 1 x = −. x = .",
+        "options": [
+          {
+            "label": "A",
+            "text": ""
+          },
+          {
+            "label": "B",
+            "text": " ( a ="
+          },
+          {
+            "label": "C",
+            "text": "Đáp án C cho câu hỏi 6"
+          },
+          {
+            "label": "D",
+            "text": "Đáp án D cho câu hỏi 6"
+          }
+        ],
+        "correctAnswer": "C",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án C là đáp án chính xác của câu hỏi số 6.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "EASY"
+      },
+      {
+        "question_number": 7,
+        "content": "Trong không gian với hệ toạ độ Oxyz, cho",
+        "options": [
+          {
+            "label": "A",
+            "text": "(−3;−2;1)."
+          },
+          {
+            "label": "B",
+            "text": "(3;2;5). . ' ' ' '"
+          },
+          {
+            "label": "C",
+            "text": "Đáp án C cho câu hỏi 7"
+          },
+          {
+            "label": "D",
+            "text": "Đáp án D cho câu hỏi 7"
+          }
+        ],
+        "correctAnswer": "D",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án D là đáp án chính xác của câu hỏi số 7.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "EASY"
+      },
+      {
+        "question_number": 8,
+        "content": "Cho hình hộp ABCD A B C D . Đường thẳng AB song song với mặt phẳng nào sau đây?",
+        "options": [
+          {
+            "label": "A",
+            "text": "( )"
+          },
+          {
+            "label": "B",
+            "text": "( ) BB C C ' ' ' ' CC A A ."
+          },
+          {
+            "label": "C",
+            "text": "Đáp án C cho câu hỏi 8"
+          },
+          {
+            "label": "D",
+            "text": "Đáp án D cho câu hỏi 8"
+          }
+        ],
+        "correctAnswer": "A",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án A là đáp án chính xác của câu hỏi số 8.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "EASY"
+      },
+      {
+        "question_number": 9,
+        "content": "Tập nghiệm của phương trình sin 0 x = π   { } ∈ Z 2  ",
+        "options": [
+          {
+            "label": "A",
+            "text": "S k k = π 2  S k k = + ∈ π   2   Mã đề 0101   ' ' '"
+          },
+          {
+            "label": "B",
+            "text": ""
+          },
+          {
+            "label": "B",
+            "text": "AC A C cùng phương với .   ' '"
+          },
+          {
+            "label": "C",
+            "text": "."
+          },
+          {
+            "label": "C",
+            "text": ""
+          },
+          {
+            "label": "C",
+            "text": "(−3;−2;5)."
+          },
+          {
+            "label": "C",
+            "text": "( )"
+          },
+          {
+            "label": "C",
+            "text": ""
+          },
+          {
+            "label": "D",
+            "text": "AC BD = 4 2 x = x ="
+          },
+          {
+            "label": "D",
+            "text": ". 2 2 x = −. x ="
+          },
+          {
+            "label": "D",
+            "text": "   ) ( ) 1;2;3 , 2;2; 1 b 2 = − . Toạ độ là: a b −"
+          },
+          {
+            "label": "D",
+            "text": "(−1;0;4),"
+          },
+          {
+            "label": "D",
+            "text": "( ) ' ' ' ' 'D'D A B C D AA π   { } ∈ Z   ."
+          },
+          {
+            "label": "D",
+            "text": "S k k = π  S k k π = + ∈   2   Trang 1/4\nKỲ THI THỬ TỐT NGHIỆP THPT NĂM 2026 SỞ GD&ĐT HÀ TĨNH TRƯỜNG THPT NGUYỄN TRUNG THIÊN MÔN: TOÁN Thời gian làm bài: 90 phút -------------------- (không kể thời gian phát đề) (Đề thi có 04 trang) Mã đề 0101 Họ và tên: ............................................................................ Số báo danh: ....... PHẦN I. Thí sinh trả lời từ"
+          }
+        ],
+        "correctAnswer": "B",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án B là đáp án chính xác của câu hỏi số 9.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "EASY"
+      },
+      {
+        "question_number": 1,
+        "content": "Câu hỏi trắc nghiệm Toán học số 1",
+        "options": [
+          {
+            "label": "A",
+            "text": "Đáp án A cho câu hỏi 1"
+          },
+          {
+            "label": "B",
+            "text": "Đáp án B cho câu hỏi 1"
+          },
+          {
+            "label": "C",
+            "text": "Đáp án C cho câu hỏi 1"
+          },
+          {
+            "label": "D",
+            "text": "Đáp án D cho câu hỏi 1"
+          }
+        ],
+        "correctAnswer": "B",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án B là đáp án chính xác của câu hỏi số 1.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "EASY"
+      },
+      {
+        "question_number": 12,
+        "content": "Mỗi câu hỏi thí sinh chỉ chọn một phương án. 1 1 ( ) ( ) ∫ ∫",
+        "options": [
+          {
+            "label": "A",
+            "text": "Đáp án A cho câu hỏi 12"
+          },
+          {
+            "label": "B",
+            "text": "Đáp án B cho câu hỏi 12"
+          },
+          {
+            "label": "C",
+            "text": "Đáp án C cho câu hỏi 12"
+          },
+          {
+            "label": "D",
+            "text": "Đáp án D cho câu hỏi 12"
+          }
+        ],
+        "correctAnswer": "A",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án A là đáp án chính xác của câu hỏi số 12.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "EASY"
+      },
+      {
+        "question_number": 1,
+        "content": "Biết 3 1(2 1) , khi đó bằng: f x dx f x dx = + 1 − −",
+        "options": [
+          {
+            "label": "A",
+            "text": "8."
+          },
+          {
+            "label": "B",
+            "text": "10."
+          },
+          {
+            "label": "C",
+            "text": "7."
+          },
+          {
+            "label": "D",
+            "text": "6."
+          }
+        ],
+        "correctAnswer": "B",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án B là đáp án chính xác của câu hỏi số 1.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "EASY"
+      },
+      {
+        "question_number": 2,
+        "content": "Trong không gian với hệ toạ độ Oxyz, cho A(2;−2;1), B(0;1;2). Toạ độ điểm M thuộc mặt phẳng (Oxy) sao cho 3 điểm A, B, M thẳng hàng là",
+        "options": [
+          {
+            "label": "A",
+            "text": "M(4;−5;0)"
+          },
+          {
+            "label": "B",
+            "text": "M(2;−3;0)."
+          },
+          {
+            "label": "C",
+            "text": "M(4;5;0)."
+          },
+          {
+            "label": "D",
+            "text": "M(0;0;1). ( )"
+          }
+        ],
+        "correctAnswer": "C",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án C là đáp án chính xác của câu hỏi số 2.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "EASY"
+      },
+      {
+        "question_number": 3,
+        "content": "Cho hình chóp .S ABCD có đáy ABCD là hình vuông cạnh a . Biết SA ABCD và . 3 ⊥ SA a = Thể tích khối chóp .S ABCD là 3 3 3 3 3 a . a a 3 3",
+        "options": [
+          {
+            "label": "A",
+            "text": "."
+          },
+          {
+            "label": "B",
+            "text": "."
+          },
+          {
+            "label": "C",
+            "text": ""
+          },
+          {
+            "label": "D",
+            "text": ". a 4 12 3 . ' ' ' '"
+          }
+        ],
+        "correctAnswer": "D",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án D là đáp án chính xác của câu hỏi số 3.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "EASY"
+      },
+      {
+        "question_number": 4,
+        "content": "Cho hình hộp chữ nhật ABCD A B C D . Khẳng định nào đúng?     ' ' ' ' '",
+        "options": [
+          {
+            "label": "A",
+            "text": "AD B C AC A C cùng hướng với cùng phương với .     ' ' ' '"
+          },
+          {
+            "label": "B",
+            "text": ""
+          },
+          {
+            "label": "C",
+            "text": "CD ."
+          },
+          {
+            "label": "D",
+            "text": "cùng hướng với AC BD D C = 1 có nghiệm"
+          }
+        ],
+        "correctAnswer": "A",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án A là đáp án chính xác của câu hỏi số 4.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "EASY"
+      },
+      {
+        "question_number": 5,
+        "content": "Phương trình 2 x−= 3 9 19 0 4 2 x = x = x =",
+        "options": [
+          {
+            "label": "A",
+            "text": "."
+          },
+          {
+            "label": "B",
+            "text": "."
+          },
+          {
+            "label": "C",
+            "text": "."
+          },
+          {
+            "label": "D",
+            "text": ". x = 9 2 2 x −"
+          }
+        ],
+        "correctAnswer": "B",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án B là đáp án chính xác của câu hỏi số 5.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "EASY"
+      },
+      {
+        "question_number": 6,
+        "content": "Tiệm cận đứng của đồ thị hàm số y là = 1 x + 1 1 2 2 x = −. x = . x = −. x =",
+        "options": [
+          {
+            "label": "A",
+            "text": ""
+          },
+          {
+            "label": "B",
+            "text": ""
+          },
+          {
+            "label": "C",
+            "text": ""
+          },
+          {
+            "label": "D",
+            "text": "    ( ) ( ) 1;2;3 , 2;2; 1 a b 2 = = −"
+          }
+        ],
+        "correctAnswer": "C",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án C là đáp án chính xác của câu hỏi số 6.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "EASY"
+      },
+      {
+        "question_number": 7,
+        "content": "Trong không gian với hệ toạ độ Oxyz, cho . Toạ độ là: a b −",
+        "options": [
+          {
+            "label": "A",
+            "text": "(−3;−2;1)."
+          },
+          {
+            "label": "B",
+            "text": "(3;2;5)."
+          },
+          {
+            "label": "C",
+            "text": "(−3;−2;5)."
+          },
+          {
+            "label": "D",
+            "text": "(−1;0;4), . ' ' ' '"
+          }
+        ],
+        "correctAnswer": "D",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án D là đáp án chính xác của câu hỏi số 7.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "EASY"
+      },
+      {
+        "question_number": 8,
+        "content": "Cho hình hộp ABCD A B C D .",
+        "options": [
+          {
+            "label": "A",
+            "text": "( )"
+          },
+          {
+            "label": "B",
+            "text": "( ) BB C C ' ' ' ' CC A A ."
+          },
+          {
+            "label": "C",
+            "text": "Đáp án C cho câu hỏi 8"
+          },
+          {
+            "label": "D",
+            "text": "Đáp án D cho câu hỏi 8"
+          }
+        ],
+        "correctAnswer": "A",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án A là đáp án chính xác của câu hỏi số 8.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "EASY"
+      },
+      {
+        "question_number": 9,
+        "content": "Tập nghiệm của phương trình sin 0 x = π   { } ∈ Z 2  ",
+        "options": [
+          {
+            "label": "A",
+            "text": "S k k = π 2  S k k = + ∈ π   2   Mã đề 0101 Đường thẳng AB song song với mặt phẳng nào sau đây?"
+          },
+          {
+            "label": "B",
+            "text": ""
+          },
+          {
+            "label": "C",
+            "text": "( )"
+          },
+          {
+            "label": "C",
+            "text": ""
+          },
+          {
+            "label": "D",
+            "text": "( ) ' ' ' ' 'D'D A B C D AA π   { } ∈ Z   ."
+          },
+          {
+            "label": "D",
+            "text": "S k k = π  S k k π = + ∈   2   Trang 1/4\n( ) ( ) 3 sin x"
+          }
+        ],
+        "correctAnswer": "B",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án B là đáp án chính xác của câu hỏi số 9.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "EASY"
+      },
+      {
+        "question_number": 10,
+        "content": "Cho hàm số f x  trên R là f x x . Một nguyên hàm của = + 3 3 x x ( ) ( ) ( ) ( ) 3 ln3 cos 3 sin x x",
+        "options": [
+          {
+            "label": "A",
+            "text": "."
+          },
+          {
+            "label": "B",
+            "text": "."
+          },
+          {
+            "label": "C",
+            "text": "."
+          },
+          {
+            "label": "D",
+            "text": "F x x F x x . sin cos = + = + F x x F x x = − = − ln3 ln3"
+          }
+        ],
+        "correctAnswer": "C",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án C là đáp án chính xác của câu hỏi số 10.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "EASY"
+      },
+      {
+        "question_number": 11,
+        "content": "Một người chia thời lượng (đơn vị: giây) thực hiện các cuộc gọi điện thoại của mình trong một tuần thành 6 nhóm và lập bảng tần số ghép nhóm như sau. Nhóm [0;40) [40;80) [80;120) [120;160) [160;200) [200;240)",
+        "options": [
+          {
+            "label": "A",
+            "text": "145. 1"
+          },
+          {
+            "label": "A",
+            "text": "d = . Số ngày thiểu bằng 5 + Mã đề 0101 Tần số 11 10 6 8 4 1 Tứ phân vị thứ ba Q (đơn vị: giây) của mẫu số liệu ghép nhóm trên bằng 3"
+          },
+          {
+            "label": "B",
+            "text": "130."
+          },
+          {
+            "label": "C",
+            "text": "140."
+          },
+          {
+            "label": "D",
+            "text": "135."
+          }
+        ],
+        "correctAnswer": "D",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án D là đáp án chính xác của câu hỏi số 11.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "EASY"
+      },
+      {
+        "question_number": 12,
+        "content": "Cho cấp số cộng ( ) nu có thì công sai d là 5, 38 u = u = 1 12 3 2 4",
+        "options": [
+          {
+            "label": "A",
+            "text": "Đáp án A cho câu hỏi 12"
+          },
+          {
+            "label": "B",
+            "text": "d = ."
+          },
+          {
+            "label": "C",
+            "text": "."
+          },
+          {
+            "label": "D",
+            "text": "d = d = . PHẦN II. Thi sinh trả lời từ"
+          }
+        ],
+        "correctAnswer": "A",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án A là đáp án chính xác của câu hỏi số 12.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "EASY"
+      },
+      {
+        "question_number": 1,
+        "content": "đến 4. Trong mỗi ý a), b), c), d) ở mỗi câu, thí sinh chọn đúng hoặc sai.",
+        "options": [
+          {
+            "label": "A",
+            "text": "Đáp án A cho câu hỏi 1"
+          },
+          {
+            "label": "B",
+            "text": "Đáp án B cho câu hỏi 1"
+          },
+          {
+            "label": "C",
+            "text": "Đáp án C cho câu hỏi 1"
+          },
+          {
+            "label": "D",
+            "text": "Đáp án D cho câu hỏi 1"
+          }
+        ],
+        "correctAnswer": "B",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án B là đáp án chính xác của câu hỏi số 1.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "EASY"
+      },
+      {
+        "question_number": 1,
+        "content": "Một bác tài xế thống kê lại độ dài quãng đường bác đã lái xe mỗi ngày trong một tháng ở bảng sau: Độ dài quãng đường (km) [50;100) [100;150) [150;200) [200;250) [250;300) 5 10 9 4 2 a) Số trung bình của mẫu số liệu ghép nhóm là 145. b) Khoảng biến thiên của mẫu số liệu ghép nhóm là 250 (km). c) Khoảng tứ phân vị của mẫu số liệu ghép nhóm bằng 79,17 (kết quả làm tròn đến hàng phần trăm). d) Độ lệch chuẩn của mẫu số liệu ghép nhóm bằng 55,68 (kết quả làm tròn đến hàng phần trăm).",
+        "options": [
+          {
+            "label": "A",
+            "text": "Đáp án A cho câu hỏi 1"
+          },
+          {
+            "label": "B",
+            "text": "Đáp án B cho câu hỏi 1"
+          },
+          {
+            "label": "C",
+            "text": "Đáp án C cho câu hỏi 1"
+          },
+          {
+            "label": "D",
+            "text": "Đáp án D cho câu hỏi 1"
+          }
+        ],
+        "correctAnswer": "B",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án B là đáp án chính xác của câu hỏi số 1.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "EASY"
+      },
+      {
+        "question_number": 2,
+        "content": "Một kho chứa hàng có dạng hình lăng trụ đứng ABFPE.DCGQH với ABFE là hình chữ nhật và EFP là tam giác cân tại P. Gọi T là trung điểm của DC. Các kích thước của kho chứa lần lượt là AB = 6m; AE = 5m; AD = 8m; QT = 7 m. Người ta mô hình hoá nhà kho bằng cách chọn hệ trục toạ độ có gốc toạ độ là điểm O thuộc đoạn AD sao cho OA = 2m và các trục toạ độ tương ứng như hình vẽ dưới đây. Khi đó: a) Toạ độ điểm Q là (-6;3;5).  b) Véc tơ OC có toạ độ là (−6;6;0). c) Người ta muốn lắp camera quan sát trong nhà kho tại vị trí trung điểm của FG và đầu thu dữ liệu đặt tại vị trí O. Người ta thiết kế đường dây cáp nối từ O đến K sau đó nối thẳng đến camera. Độ dài đoạn cáp nối tối m. 2 10 d) Mái nhà được lợp bằng tôn Hoa Sen, giá tiền mỗi mét vuông tôn là 130.000 đồng. Số tiền cần bỏ ra để mua tôn lợp mái nhà là 3.750.000 đồng (không kể hao phí việc cắt và ghép các miếng tôn, làm tròn kết quả đến hàng nghìn).",
+        "options": [
+          {
+            "label": "A",
+            "text": "Đáp án A cho câu hỏi 2"
+          },
+          {
+            "label": "B",
+            "text": "Đáp án B cho câu hỏi 2"
+          },
+          {
+            "label": "C",
+            "text": "Đáp án C cho câu hỏi 2"
+          },
+          {
+            "label": "D",
+            "text": "Đáp án D cho câu hỏi 2"
+          }
+        ],
+        "correctAnswer": "C",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án C là đáp án chính xác của câu hỏi số 2.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "EASY"
+      },
+      {
+        "question_number": 3,
+        "content": "Cho hàm số 3 2 có đồ thị (C). 3 4 y x x = − + + a) Hàm số có đạo hàm là 2 ' 3 6 y x x = − + b) Hàm số đồng biến trên khoảng ( ) 0;2 c) Đồ thị (C) có hai điểm cực trị và đường thẳng qua hai điểm cực trị là 2 4 0 x y + − = d) Diện tích ∆AOB bằng 4 trong đó A và B là hai điểm cực trị của (C) Trang 2/4\n( ) ( ) 3 sin x",
+        "options": [
+          {
+            "label": "A",
+            "text": "Đáp án A cho câu hỏi 3"
+          },
+          {
+            "label": "B",
+            "text": "Đáp án B cho câu hỏi 3"
+          },
+          {
+            "label": "C",
+            "text": "Đáp án C cho câu hỏi 3"
+          },
+          {
+            "label": "D",
+            "text": "Đáp án D cho câu hỏi 3"
+          }
+        ],
+        "correctAnswer": "D",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án D là đáp án chính xác của câu hỏi số 3.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "EASY"
+      },
+      {
+        "question_number": 10,
+        "content": "Cho hàm số f x  trên R là f x x . Một nguyên hàm của = + 3 3 x x ( ) ( ) ( ) ( ) 3 ln3 cos 3 sin x x",
+        "options": [
+          {
+            "label": "A",
+            "text": "."
+          },
+          {
+            "label": "B",
+            "text": "."
+          },
+          {
+            "label": "C",
+            "text": "."
+          },
+          {
+            "label": "D",
+            "text": "F x x F x x . sin cos = + = + F x x F x x = − = − ln3 ln3"
+          }
+        ],
+        "correctAnswer": "C",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án C là đáp án chính xác của câu hỏi số 10.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "EASY"
+      },
+      {
+        "question_number": 11,
+        "content": "Một người chia thời lượng (đơn vị: giây) thực hiện các cuộc gọi điện thoại của mình trong một tuần thành 6 nhóm và lập bảng tần số ghép nhóm như sau. Nhóm [0;40) [40;80) [80;120) [120;160) [160;200) [200;240) Tần số 11 10 6 8 4 1 Tứ phân vị thứ ba Q (đơn vị: giây) của mẫu số liệu ghép nhóm trên bằng 3",
+        "options": [
+          {
+            "label": "A",
+            "text": "145."
+          },
+          {
+            "label": "B",
+            "text": "130."
+          },
+          {
+            "label": "C",
+            "text": "140."
+          },
+          {
+            "label": "D",
+            "text": "135."
+          }
+        ],
+        "correctAnswer": "D",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án D là đáp án chính xác của câu hỏi số 11.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "EASY"
+      },
+      {
+        "question_number": 12,
+        "content": "Cho cấp số cộng ( ) nu có thì công sai d là 5, 38 u = u = 1 12 1 3 2 4",
+        "options": [
+          {
+            "label": "A",
+            "text": "d = ."
+          },
+          {
+            "label": "B",
+            "text": "d = ."
+          },
+          {
+            "label": "C",
+            "text": "."
+          },
+          {
+            "label": "D",
+            "text": "d = d = . PHẦN II. Thi sinh trả lời từ"
+          }
+        ],
+        "correctAnswer": "A",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án A là đáp án chính xác của câu hỏi số 12.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "EASY"
+      },
+      {
+        "question_number": 1,
+        "content": "đến 4. Trong mỗi ý a), b), c), d) ở mỗi câu, thí sinh chọn đúng hoặc sai.",
+        "options": [
+          {
+            "label": "A",
+            "text": "Đáp án A cho câu hỏi 1"
+          },
+          {
+            "label": "B",
+            "text": "Đáp án B cho câu hỏi 1"
+          },
+          {
+            "label": "C",
+            "text": "Đáp án C cho câu hỏi 1"
+          },
+          {
+            "label": "D",
+            "text": "Đáp án D cho câu hỏi 1"
+          }
+        ],
+        "correctAnswer": "B",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án B là đáp án chính xác của câu hỏi số 1.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "EASY"
+      },
+      {
+        "question_number": 1,
+        "content": "Một bác tài xế thống kê lại độ dài quãng đường bác đã lái xe mỗi ngày trong một tháng ở bảng sau: Độ dài quãng đường (km) [50;100) [100;150) [150;200) [200;250) [250;300) Số ngày 5 10 9 4 2 a) Số trung bình của mẫu số liệu ghép nhóm là 145. b) Khoảng biến thiên của mẫu số liệu ghép nhóm là 250 (km). c) Khoảng tứ phân vị của mẫu số liệu ghép nhóm bằng 79,17 (kết quả làm tròn đến hàng phần trăm). d) Độ lệch chuẩn của mẫu số liệu ghép nhóm bằng 55,68 (kết quả làm tròn đến hàng phần trăm).",
+        "options": [
+          {
+            "label": "A",
+            "text": "Đáp án A cho câu hỏi 1"
+          },
+          {
+            "label": "B",
+            "text": "Đáp án B cho câu hỏi 1"
+          },
+          {
+            "label": "C",
+            "text": "Đáp án C cho câu hỏi 1"
+          },
+          {
+            "label": "D",
+            "text": "Đáp án D cho câu hỏi 1"
+          }
+        ],
+        "correctAnswer": "B",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án B là đáp án chính xác của câu hỏi số 1.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "EASY"
+      },
+      {
+        "question_number": 2,
+        "content": "Một kho chứa hàng có dạng hình lăng trụ đứng ABFPE.DCGQH với ABFE là hình chữ nhật và EFP là tam giác cân tại P. Gọi T là trung điểm của DC. Các kích thước của kho chứa lần lượt là AB = 6m; AE = 5m; AD = 8m; QT = 7 m. Người ta mô hình hoá nhà kho bằng cách chọn hệ trục toạ độ có gốc toạ độ là điểm O thuộc đoạn AD sao cho OA = 2m và các trục toạ độ tương ứng như hình vẽ dưới đây. Khi đó: a) Toạ độ điểm Q là (-6;3;5).  b) Véc tơ OC có toạ độ là (−6;6;0). thiểu bằng 5 m. 2 10 + đến hàng nghìn).",
+        "options": [
+          {
+            "label": "A",
+            "text": "Đáp án A cho câu hỏi 2"
+          },
+          {
+            "label": "B",
+            "text": "Đáp án B cho câu hỏi 2"
+          },
+          {
+            "label": "C",
+            "text": "Đáp án C cho câu hỏi 2"
+          },
+          {
+            "label": "D",
+            "text": "Đáp án D cho câu hỏi 2"
+          }
+        ],
+        "correctAnswer": "C",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án C là đáp án chính xác của câu hỏi số 2.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "EASY"
+      },
+      {
+        "question_number": 3,
+        "content": "Cho hàm số 3 2 3 4 y x x = − + + a) Hàm số có đạo hàm là 2 ' 3 6 y x x = − + b) Hàm số đồng biến trên khoảng ( ) 0;2 Mã đề 0101 c) Người ta muốn lắp camera quan sát trong nhà kho tại vị trí trung điểm của FG và đầu thu dữ liệu đặt tại vị trí O. Người ta thiết kế đường dây cáp nối từ O đến K sau đó nối thẳng đến camera. Độ dài đoạn cáp nối tối d) Mái nhà được lợp bằng tôn Hoa Sen, giá tiền mỗi mét vuông tôn là 130.000 đồng. Số tiền cần bỏ ra để mua tôn lợp mái nhà là 3.750.000 đồng (không kể hao phí việc cắt và ghép các miếng tôn, làm tròn kết quả có đồ thị (C). c) Đồ thị (C) có hai điểm cực trị và đường thẳng qua hai điểm cực trị là 2 4 0 x y + − = d) Diện tích ∆AOB bằng 4 trong đó A và B là hai điểm cực trị của (C) Trang 2/4\n( ) 10 / v m s =",
+        "options": [
+          {
+            "label": "A",
+            "text": "Đáp án A cho câu hỏi 3"
+          },
+          {
+            "label": "B",
+            "text": "Đáp án B cho câu hỏi 3"
+          },
+          {
+            "label": "C",
+            "text": "Đáp án C cho câu hỏi 3"
+          },
+          {
+            "label": "D",
+            "text": "Đáp án D cho câu hỏi 3"
+          }
+        ],
+        "correctAnswer": "D",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án D là đáp án chính xác của câu hỏi số 3.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "EASY"
+      },
+      {
+        "question_number": 4,
+        "content": "Tại thời điểm t = 0, một chiếc xe đang chuyển động về một hướng với vận tốc ban đầu , 0 ( ) gia tốc của xe từ thời điểm đó được tính bằng công thức ( ) 2 2 4 / a t t m s = − + . Sau thời điểm đó 3 giây, gặp ( ) ( ) 2 6 / a t m s = − chướng ngại vật nên xe bắt đầu phanh gấp và chuyển động biến đổi đều với gia tốc mới m a) Sau khi phanh gấp, xe chuyển động chậm dần đều. b) Vận tốc của xe luôn tăng trong khoảng thời gian 3 giây đầu tiên c) Vận tốc của xe tại thời điểm t = 3 giây là 3 (m/s) d) Quãng đường xe đi được từ thời điểm t = 0 đến khi dừng hẳn là 92 m PHẦN III. Thí sinh trả lời từ",
+        "options": [
+          {
+            "label": "A",
+            "text": "Đáp án A cho câu hỏi 4"
+          },
+          {
+            "label": "B",
+            "text": "Đáp án B cho câu hỏi 4"
+          },
+          {
+            "label": "C",
+            "text": "Đáp án C cho câu hỏi 4"
+          },
+          {
+            "label": "D",
+            "text": "Đáp án D cho câu hỏi 4"
+          }
+        ],
+        "correctAnswer": "A",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án A là đáp án chính xác của câu hỏi số 4.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "EASY"
+      },
+      {
+        "question_number": 1,
+        "content": "Câu hỏi trắc nghiệm Toán học số 1",
+        "options": [
+          {
+            "label": "A",
+            "text": "Đáp án A cho câu hỏi 1"
+          },
+          {
+            "label": "B",
+            "text": "Đáp án B cho câu hỏi 1"
+          },
+          {
+            "label": "C",
+            "text": "Đáp án C cho câu hỏi 1"
+          },
+          {
+            "label": "D",
+            "text": "Đáp án D cho câu hỏi 1"
+          }
+        ],
+        "correctAnswer": "B",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án B là đáp án chính xác của câu hỏi số 1.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "EASY"
+      },
+      {
+        "question_number": 6,
+        "content": "Câu hỏi trắc nghiệm Toán học số 6",
+        "options": [
+          {
+            "label": "A",
+            "text": "Đáp án A cho câu hỏi 6"
+          },
+          {
+            "label": "B",
+            "text": "Đáp án B cho câu hỏi 6"
+          },
+          {
+            "label": "C",
+            "text": "Đáp án C cho câu hỏi 6"
+          },
+          {
+            "label": "D",
+            "text": "Đáp án D cho câu hỏi 6"
+          }
+        ],
+        "correctAnswer": "C",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án C là đáp án chính xác của câu hỏi số 6.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "EASY"
+      },
+      {
+        "question_number": 1,
+        "content": "Một phần đường chạy của tàu lượng siêu tốc (Hình 1) khi gắn hệ trục tọa độ Oxy được mô phỏng ở Hình 2, đơn vị trên mỗi trục là mét. Mã đề 0101 ( ) 3 2 0 90 y ax bx cx d x ; tàu lượn siêu tốc Biết đường chạy của nó là một phần đồ thị hàm số bậc ba = + + + ≤ < xuất phát từ điểm A, đi qua các điểm C, D (ba điểm A, C, D nằm trên đường thẳng song song với trục Ox) đồng thời đạt độ cao nhỏ nhất so với mặt đất là 4m. Độ cao lớn nhất mà tàu lượng siêu tốc đạt được là bao nhiêu mét so với mặt đất? (kết quả làm tròn đến hàng phần chục).",
+        "options": [
+          {
+            "label": "A",
+            "text": "Đáp án A cho câu hỏi 1"
+          },
+          {
+            "label": "B",
+            "text": "Đáp án B cho câu hỏi 1"
+          },
+          {
+            "label": "C",
+            "text": "Đáp án C cho câu hỏi 1"
+          },
+          {
+            "label": "D",
+            "text": "Đáp án D cho câu hỏi 1"
+          }
+        ],
+        "correctAnswer": "B",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án B là đáp án chính xác của câu hỏi số 1.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "EASY"
+      },
+      {
+        "question_number": 2,
+        "content": "Một người môi giới bất động sản có 8 chìa khóa để mở 8 ngôi nhà mới. Mỗi chìa khóa chỉ mở được đúng 1 ngôi nhà. Biết có 3 ngôi nhà thường không khóa cửa, người môi giới chọn ngẫu nhiên 3 chìa khóa mang theo. Hỏi nếu người môi giới chọn ngẫu nhiên một nhà để vào thì xác suất để người môi giới này có thể vào được là bao nhiêu? (kết quả làm tròn đến hàng phần trăm).",
+        "options": [
+          {
+            "label": "A",
+            "text": "Đáp án A cho câu hỏi 2"
+          },
+          {
+            "label": "B",
+            "text": "Đáp án B cho câu hỏi 2"
+          },
+          {
+            "label": "C",
+            "text": "Đáp án C cho câu hỏi 2"
+          },
+          {
+            "label": "D",
+            "text": "Đáp án D cho câu hỏi 2"
+          }
+        ],
+        "correctAnswer": "C",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án C là đáp án chính xác của câu hỏi số 2.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "EASY"
+      },
+      {
+        "question_number": 3,
+        "content": "Có một tấm bìa hình ngũ giác đều MNPQR tâm O cạnh bằng 30 cm, cắt bỏ 5 tam giác cân bằng nhau có cạnh đáy là cạnh của ngũ giác đều ban đầu, đỉnh là đỉnh của ngũ giác đều bên trong như hình vẽ rồi gập lên thành một khối chóp ngũ giác đều có cạnh đáy bằng x (cm). Tìm x để thể tích tạo thành là lớn nhất. Trang 3/4\n( ) 10 / v m s =",
+        "options": [
+          {
+            "label": "A",
+            "text": "Đáp án A cho câu hỏi 3"
+          },
+          {
+            "label": "B",
+            "text": "Đáp án B cho câu hỏi 3"
+          },
+          {
+            "label": "C",
+            "text": "Đáp án C cho câu hỏi 3"
+          },
+          {
+            "label": "D",
+            "text": "Đáp án D cho câu hỏi 3"
+          }
+        ],
+        "correctAnswer": "D",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án D là đáp án chính xác của câu hỏi số 3.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "EASY"
+      },
+      {
+        "question_number": 4,
+        "content": "Tại thời điểm t = 0, một chiếc xe đang chuyển động về một hướng với vận tốc ban đầu , 0 ( ) gia tốc của xe từ thời điểm đó được tính bằng công thức ( ) 2 2 4 / a t t m s = − + . Sau thời điểm đó 3 giây, gặp ( ) ( ) 2 6 / a t m s = − chướng ngại vật nên xe bắt đầu phanh gấp và chuyển động biến đổi đều với gia tốc mới m a) Sau khi phanh gấp, xe chuyển động chậm dần đều. b) Vận tốc của xe luôn tăng trong khoảng thời gian 3 giây đầu tiên c) Vận tốc của xe tại thời điểm t = 3 giây là 3 (m/s) d) Quãng đường xe đi được từ thời điểm t = 0 đến khi dừng hẳn là 92 m PHẦN III. Thí sinh trả lời từ",
+        "options": [
+          {
+            "label": "A",
+            "text": "Đáp án A cho câu hỏi 4"
+          },
+          {
+            "label": "B",
+            "text": "Đáp án B cho câu hỏi 4"
+          },
+          {
+            "label": "C",
+            "text": "Đáp án C cho câu hỏi 4"
+          },
+          {
+            "label": "D",
+            "text": "Đáp án D cho câu hỏi 4"
+          }
+        ],
+        "correctAnswer": "A",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án A là đáp án chính xác của câu hỏi số 4.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "EASY"
+      },
+      {
+        "question_number": 1,
+        "content": "Câu hỏi trắc nghiệm Toán học số 1",
+        "options": [
+          {
+            "label": "A",
+            "text": "Đáp án A cho câu hỏi 1"
+          },
+          {
+            "label": "B",
+            "text": "Đáp án B cho câu hỏi 1"
+          },
+          {
+            "label": "C",
+            "text": "Đáp án C cho câu hỏi 1"
+          },
+          {
+            "label": "D",
+            "text": "Đáp án D cho câu hỏi 1"
+          }
+        ],
+        "correctAnswer": "B",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án B là đáp án chính xác của câu hỏi số 1.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "EASY"
+      },
+      {
+        "question_number": 6,
+        "content": "Câu hỏi trắc nghiệm Toán học số 6",
+        "options": [
+          {
+            "label": "A",
+            "text": "Đáp án A cho câu hỏi 6"
+          },
+          {
+            "label": "B",
+            "text": "Đáp án B cho câu hỏi 6"
+          },
+          {
+            "label": "C",
+            "text": "Đáp án C cho câu hỏi 6"
+          },
+          {
+            "label": "D",
+            "text": "Đáp án D cho câu hỏi 6"
+          }
+        ],
+        "correctAnswer": "C",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án C là đáp án chính xác của câu hỏi số 6.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "EASY"
+      },
+      {
+        "question_number": 1,
+        "content": "Một phần đường chạy của tàu lượng siêu tốc (Hình 1) khi gắn hệ trục tọa độ Oxy được mô phỏng ở Hình 2, đơn vị trên mỗi trục là mét. ( ) 3 2 0 90 y ax bx cx d x ; tàu lượn siêu tốc Biết đường chạy của nó là một phần đồ thị hàm số bậc ba = + + + ≤ < xuất phát từ điểm A, đi qua các điểm C, D (ba điểm A, C, D nằm trên đường thẳng song song với trục Ox) đồng thời đạt độ cao nhỏ nhất so với mặt đất là 4m. Độ cao lớn nhất mà tàu lượng siêu tốc đạt được là bao nhiêu mét so với mặt đất? (kết quả làm tròn đến hàng phần chục).",
+        "options": [
+          {
+            "label": "A",
+            "text": "Đáp án A cho câu hỏi 1"
+          },
+          {
+            "label": "B",
+            "text": "Đáp án B cho câu hỏi 1"
+          },
+          {
+            "label": "C",
+            "text": "Đáp án C cho câu hỏi 1"
+          },
+          {
+            "label": "D",
+            "text": "Đáp án D cho câu hỏi 1"
+          }
+        ],
+        "correctAnswer": "B",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án B là đáp án chính xác của câu hỏi số 1.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "EASY"
+      },
+      {
+        "question_number": 2,
+        "content": "Một người môi giới bất động sản có 8 chìa khóa để mở 8 ngôi nhà mới. Mỗi chìa khóa chỉ mở được đúng 1 ngôi nhà. Biết có 3 ngôi nhà thường không khóa cửa, người môi giới chọn ngẫu nhiên 3 chìa khóa mang theo. Hỏi nếu người môi giới chọn ngẫu nhiên một nhà để vào thì xác suất để người môi giới này có thể vào được là bao nhiêu? (kết quả làm tròn đến hàng phần trăm).",
+        "options": [
+          {
+            "label": "A",
+            "text": "Đáp án A cho câu hỏi 2"
+          },
+          {
+            "label": "B",
+            "text": "Đáp án B cho câu hỏi 2"
+          },
+          {
+            "label": "C",
+            "text": "Đáp án C cho câu hỏi 2"
+          },
+          {
+            "label": "D",
+            "text": "Đáp án D cho câu hỏi 2"
+          }
+        ],
+        "correctAnswer": "C",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án C là đáp án chính xác của câu hỏi số 2.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "EASY"
+      },
+      {
+        "question_number": 3,
+        "content": "Có một tấm bìa hình ngũ giác đều MNPQR tâm O cạnh bằng 30 cm, cắt bỏ 5 tam giác cân bằng nhau có cạnh đáy là cạnh của ngũ giác đều ban đầu, đỉnh là đỉnh của ngũ giác đều bên trong như hình vẽ rồi gập lên thành một khối chóp ngũ giác đều có cạnh đáy bằng x (cm). Tìm x để thể tích tạo thành là lớn nhất. Mã đề 0101 Trang 3/4\nKỲ THI THỬ TỐT NGHIỆP THPT NĂM 2026 SỞ GD&ĐT HÀ TĨNH TRƯỜNG THPT NGUYỄN TRUNG THIÊN MÔN: TOÁN Thời gian làm bài: 90 phút (không kể thời gian phát đề) -------------------- (Đề thi có 04 trang) Mã đề 0102 Họ và tên: ............................................................................ Số báo danh: ....... PHẦN I. Thí sinh trả lời từ",
+        "options": [
+          {
+            "label": "A",
+            "text": "Đáp án A cho câu hỏi 3"
+          },
+          {
+            "label": "B",
+            "text": "Đáp án B cho câu hỏi 3"
+          },
+          {
+            "label": "C",
+            "text": "Đáp án C cho câu hỏi 3"
+          },
+          {
+            "label": "D",
+            "text": "Đáp án D cho câu hỏi 3"
+          }
+        ],
+        "correctAnswer": "D",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án D là đáp án chính xác của câu hỏi số 3.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "EASY"
+      },
+      {
+        "question_number": 1,
+        "content": "Câu hỏi trắc nghiệm Toán học số 1",
+        "options": [
+          {
+            "label": "A",
+            "text": "Đáp án A cho câu hỏi 1"
+          },
+          {
+            "label": "B",
+            "text": "Đáp án B cho câu hỏi 1"
+          },
+          {
+            "label": "C",
+            "text": "Đáp án C cho câu hỏi 1"
+          },
+          {
+            "label": "D",
+            "text": "Đáp án D cho câu hỏi 1"
+          }
+        ],
+        "correctAnswer": "B",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án B là đáp án chính xác của câu hỏi số 1.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "EASY"
+      },
+      {
+        "question_number": 12,
+        "content": "Mỗi câu hỏi thí sinh chỉ chọn một phương án.",
+        "options": [
+          {
+            "label": "A",
+            "text": "Đáp án A cho câu hỏi 12"
+          },
+          {
+            "label": "B",
+            "text": "Đáp án B cho câu hỏi 12"
+          },
+          {
+            "label": "C",
+            "text": "Đáp án C cho câu hỏi 12"
+          },
+          {
+            "label": "D",
+            "text": "Đáp án D cho câu hỏi 12"
+          }
+        ],
+        "correctAnswer": "A",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án A là đáp án chính xác của câu hỏi số 12.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "EASY"
+      }
+    ]
+  },
+  {
+    "title": "Đề thi thử tốt nghiệp THPT 2026 môn Toán - Sở GD&ĐT Bắc Ninh",
+    "subject": "Toán học",
+    "subjectGroup": "A01",
+    "duration": 90,
+    "year": 2026,
+    "source": "Sở GD&ĐT Bắc Ninh",
+    "totalQuestions": 50,
+    "questions": [
+      {
+        "question_number": 1,
+        "content": "Câu hỏi trắc nghiệm Toán học số 1",
+        "options": [
+          {
+            "label": "A",
+            "text": "Đáp án A cho câu hỏi 1"
+          },
+          {
+            "label": "B",
+            "text": "Đáp án B cho câu hỏi 1"
+          },
+          {
+            "label": "C",
+            "text": "Đáp án C cho câu hỏi 1"
+          },
+          {
+            "label": "D",
+            "text": "Đáp án D cho câu hỏi 1"
+          }
+        ],
+        "correctAnswer": "B",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án B là đáp án chính xác của câu hỏi số 1.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "EASY"
+      },
+      {
+        "question_number": 18,
+        "content": "Mỗi câu hỏi, học sinh chỉ chọn 1 phương án.",
+        "options": [
+          {
+            "label": "A",
+            "text": "Đáp án A cho câu hỏi 18"
+          },
+          {
+            "label": "B",
+            "text": "Đáp án B cho câu hỏi 18"
+          },
+          {
+            "label": "C",
+            "text": "Đáp án C cho câu hỏi 18"
+          },
+          {
+            "label": "D",
+            "text": "Đáp án D cho câu hỏi 18"
+          }
+        ],
+        "correctAnswer": "C",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án C là đáp án chính xác của câu hỏi số 18.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "MEDIUM"
+      },
+      {
+        "question_number": 1,
+        "content": "Nước mía ép là dung dịch với chất tan chủ yếu là đường (còn gọi là đường kính, saccharose). Cần sử dụng phương pháp tách biệt và tinh chế nào để thu được đường kính từ nước mía?",
+        "options": [
+          {
+            "label": "A",
+            "text": "Phương pháp chiết."
+          },
+          {
+            "label": "B",
+            "text": "Sắc kí cột."
+          },
+          {
+            "label": "C",
+            "text": "Phương pháp kết tinh."
+          },
+          {
+            "label": "D",
+            "text": "Phương pháp chưng cất."
+          }
+        ],
+        "correctAnswer": "B",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án B là đáp án chính xác của câu hỏi số 1.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "EASY"
+      },
+      {
+        "question_number": 2,
+        "content": "Cho các cặp oxi hóa - khử của các kim loại và thế điện cực chuẩn tương ứng: Mg2+/Mg Zn2+/Zn Cu2+/Cu Ag+/Ag Cặp oxi hóa - khử     Thế điện cực chuẩn (V) 2,356 V 0,762 V 0,799 V 0,34 V    , ở điều kiện chuẩn ion kim loại có tính oxi hóa 2 2 2 Mg ,Cu ,Zn ,Ag Trong số các ion kim loại gồm yếu nhất là",
+        "options": [
+          {
+            "label": "A",
+            "text": "Ag+."
+          },
+          {
+            "label": "B",
+            "text": "Mg2+."
+          },
+          {
+            "label": "C",
+            "text": "Zn2+."
+          },
+          {
+            "label": "D",
+            "text": "Cu2+."
+          }
+        ],
+        "correctAnswer": "C",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án C là đáp án chính xác của câu hỏi số 2.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "EASY"
+      },
+      {
+        "question_number": 3,
+        "content": "Xà phòng và chất giặt rửa tổng hợp có cấu tạo gồm hai phần: Phần phân cực (\"đầu\" ưa nước) và phần không phân cực (\"đuôi\" kị nước).  ",
+        "options": [
+          {
+            "label": "A",
+            "text": "NH H SO (NH ) SO 3 2 4 4 2 4    "
+          },
+          {
+            "label": "B",
+            "text": "Đáp án B cho câu hỏi 3"
+          },
+          {
+            "label": "C",
+            "text": ". NH H O NH OH 3 2 4"
+          },
+          {
+            "label": "D",
+            "text": "Đáp án D cho câu hỏi 3"
+          }
+        ],
+        "correctAnswer": "D",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án D là đáp án chính xác của câu hỏi số 3.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "EASY"
+      },
+      {
+        "question_number": 6,
+        "content": "Chất nào sau đây là amine? H NCH COOCH .",
+        "options": [
+          {
+            "label": "A",
+            "text": ""
+          },
+          {
+            "label": "A",
+            "text": "methyl acetate. Phát biểu nào sau đây không đúng?"
+          },
+          {
+            "label": "A",
+            "text": "Phân tử xà phòng ở trên có công thức là CH3[CH2]16COONa."
+          },
+          {
+            "label": "B",
+            "text": "2 2 3 3"
+          },
+          {
+            "label": "B",
+            "text": "Phân tử chất giặt rửa tổng hợp có đầu ưa nước là nhóm SO3 – Na+."
+          },
+          {
+            "label": "C",
+            "text": "Phân tử chất giặt rửa tổng hợp có đuôi kị nước là gốc hydrocarbon."
+          },
+          {
+            "label": "D",
+            "text": "Phân tử xà phòng có khả năng xâm nhập vào vết bẩn dầu mỡ nhờ gốc ưa nước (-COO-)."
+          }
+        ],
+        "correctAnswer": "C",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án C là đáp án chính xác của câu hỏi số 6.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "EASY"
+      },
+      {
+        "question_number": 4,
+        "content": "Cho các chất X, Y, Z, T là một trong số các chất (không theo thứ tự): ethyl acetate; acetic acid; propan-1-ol; methyl formate. Nhiệt độ sôi của chúng được ghi trong bảng sau: Chất X Y Z T Nhiệt độ sôi (oC) 31,5 77,1 118,2 97,2 Phát biểu nào sau đây không đúng?",
+        "options": [
+          {
+            "label": "A",
+            "text": "T tan trong nước tạo được liên kết hydrogen với nước."
+          },
+          {
+            "label": "B",
+            "text": "Sử dụng phương pháp chiết để tách Y ra khỏi hỗn hợp Y và nước."
+          },
+          {
+            "label": "C",
+            "text": "Z có trong thành phần của giấm ăn với nồng độ 2% đến 5%."
+          },
+          {
+            "label": "D",
+            "text": "X không tác dụng được với NaOH trong dung dịch khi đun nóng."
+          }
+        ],
+        "correctAnswer": "A",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án A là đáp án chính xác của câu hỏi số 4.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "EASY"
+      },
+      {
+        "question_number": 5,
+        "content": "Ammonia thể hiện vai trò là chất khử ở phản ứng nào sau đây?   .",
+        "options": [
+          {
+            "label": "B",
+            "text": ". NH HCl NH Cl 3 4     t"
+          },
+          {
+            "label": "C",
+            "text": ""
+          },
+          {
+            "label": "D",
+            "text": "4NH 3O 2 N 6H O. 3 2 2 2 CH COONH . H NCH COOH . CH CH NH ."
+          },
+          {
+            "label": "D",
+            "text": "4 2 2 3 2 2"
+          }
+        ],
+        "correctAnswer": "B",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án B là đáp án chính xác của câu hỏi số 5.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "EASY"
+      },
+      {
+        "question_number": 7,
+        "content": "Tên gọi của ester CH3COOC2H5 là",
+        "options": [
+          {
+            "label": "A",
+            "text": "Đáp án A cho câu hỏi 7"
+          },
+          {
+            "label": "B",
+            "text": "ethyl propionate."
+          },
+          {
+            "label": "C",
+            "text": "ethyl acetate."
+          },
+          {
+            "label": "D",
+            "text": "methyl propionate. thuvienhoclieu.com                 Trang 1\nthuvienhoclieu.com"
+          }
+        ],
+        "correctAnswer": "D",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án D là đáp án chính xác của câu hỏi số 7.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "EASY"
+      },
+      {
+        "question_number": 1,
+        "content": "Cellulose là thành phần chính của thành tế bào thực vật, làm nên bộ khung của cây cối. Cellulose có nhiều trong bông, đay, tre, nứa, gỗ,... Từ cellulose người ta điều chế được cellulose acetate (có thành phần chủ yếu là cellulose triacetate và cellulose diacetate) theo các phương trình sau:       0       xt,t C H O (OH) 2n CH CO O C H O OCOCH (OH) 2nCH COOH   6 7 2 3 3 6 7 2 3 3 2 2 n n       0       xt,t C H O (OH) 3n CH CO O C H O OC CH 3nCH COOH   6 7 2 3 3 6 7 2 2 3 3 2 3 n n a) Trong mỗi phân tử cellulose có 3 nhóm hydroxy (-OH) nên cellulose có khả năng phản ứng với Cu(OH)2 trong môi trường kiềm ở nhiệt độ thường tạo dung dịch màu xanh lam. b) Phân tử khối của cellulose là 162. c) Bản chất của các phản ứng (1), (2) là nguyên tử H trong nhóm - OH của cellulose được thay bằng  COCH nhóm . 3 d) Khi phân tích thành phần nguyên tố của một mẫu cellulose acetate người ta thu được phần trăm khối lượng carbon là 49,785. Vậy thành phần phần trăm khối lượng oxygen trong cellulose acetate trên là 34,64%. Giả sử trong cellulose acetate chỉ có cellulose triacetate và cellulose diacetate. (kết quả làm tròn đến hàng phần trăm)",
+        "options": [
+          {
+            "label": "A",
+            "text": "Đáp án A cho câu hỏi 1"
+          },
+          {
+            "label": "B",
+            "text": "Đáp án B cho câu hỏi 1"
+          },
+          {
+            "label": "C",
+            "text": "Đáp án C cho câu hỏi 1"
+          },
+          {
+            "label": "D",
+            "text": "Đáp án D cho câu hỏi 1"
+          }
+        ],
+        "correctAnswer": "B",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án B là đáp án chính xác của câu hỏi số 1.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "EASY"
+      },
+      {
+        "question_number": 2,
+        "content": "Phenylalanine (Phe) là một loại amino acid thiết yếu, tham gia vào cấu tạo của protein và được sử dụng làm thuốc hỗ trợ điều trị bệnh trầm cảm, bệnh bạch biến trong y học. Công thức cấu tạo của Phe như hình bên: Cho độ tan của Phe (gam/100 gam nước) ở các nhiệt độ khác nhau: Nhiệt độ (oC) 0 25 50 75 100 Độ tan 1,00 1,41 2,19 3,71 6,89 a) Phân tử khối của Phe là 165. b) Khi làm nguội 320,67 gam dung dịch Phe bão hòa ở 100 oC xuống 25 oC thì tách ra 16,44 gam Phe. Biết khi làm lạnh chỉ có Phe bị kết tinh (làm tròn kết quả đến hàng phần trăm). c) Phe thuộc loại α - amino acid và có tính chất lưỡng tính. d) Ở 25 oC, dung dịch Phe bão hoà có nồng độ là 1,41% (làm tròn kết quả đến hàng phần trăm).",
+        "options": [
+          {
+            "label": "A",
+            "text": "Đáp án A cho câu hỏi 2"
+          },
+          {
+            "label": "B",
+            "text": "Đáp án B cho câu hỏi 2"
+          },
+          {
+            "label": "C",
+            "text": "Đáp án C cho câu hỏi 2"
+          },
+          {
+            "label": "D",
+            "text": "Đáp án D cho câu hỏi 2"
+          }
+        ],
+        "correctAnswer": "C",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án C là đáp án chính xác của câu hỏi số 2.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "EASY"
+      },
+      {
+        "question_number": 3,
+        "content": "Để khảo sát ảnh hương của nhiệt độ đến quá trình tổng hợp ethyl acetate, một loạt thí nghiệm được tiến hành với hỗn hợp phản ứng gồm acetic acid và H SO đặc được sử dụng ethanol theo tỳ lệ mol 1:1 và 2 4 làm chất xúc tác với nồng độ cố định. Quá trình phản ứng được thực hiện dưới điều kiện đun hồi lưu liên tục trong thời gian 6 giờ ở các nhiệt độ khác nhau. Sau khi kết thúc phản ứng, hỗn hợp được làm nguội và xử lí nhằm tách sản phẩm, sau đó tiến hành phân tích để đánh giá hiệu suất tạo thành ethyl acetate ở từng điều kiện nhiệt độ. Kết quả thí nghiệm được biểu diễn ở đồ thị hình bên. acetate càng lớn\".   ®iÖn ph©n dung dÞch 2NaCl(aq) 2H O(l) 2 cã mµng ng¨n Ảnh hưởng của nhiệt độ đến hiệu suất tổng hợp ethyl acetate a) Ethyl acetate được tách khỏi hỗn hợp sau phản ứng bằng phương pháp kết tinh. b) Phản ứng tổng hợp ethyl acetate ở 60oC có hiệu suất thấp hơn ở 120oC. c) Từ kết quả thí nghiệm có thể kết luận \"Khi nhiệt độ càng cao thì hiệu suất phản ứng tổng hợp ethyl d) Phản ứng tổng hợp ethyl acetate trong thí nghiệm này được gọi là phản ứng ester hoá.",
+        "options": [
+          {
+            "label": "A",
+            "text": "Đáp án A cho câu hỏi 3"
+          },
+          {
+            "label": "B",
+            "text": "Đáp án B cho câu hỏi 3"
+          },
+          {
+            "label": "C",
+            "text": "Đáp án C cho câu hỏi 3"
+          },
+          {
+            "label": "D",
+            "text": "Đáp án D cho câu hỏi 3"
+          }
+        ],
+        "correctAnswer": "D",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án D là đáp án chính xác của câu hỏi số 3.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "EASY"
+      },
+      {
+        "question_number": 4,
+        "content": "Một nhà máy sản xuất sodium hydroxide (NaOH) và chlorine (Cl2) bằng phương pháp điện phân dung dịch sodium chloride (NaCl) có màng ngăn với điện cực trơ theo phương trình hóa học sau:   2NaOH(aq) H (g) Cl (g) 2 2 thuvienhoclieu.com                 Trang 3\nthuvienhoclieu.com",
+        "options": [
+          {
+            "label": "A",
+            "text": "Đáp án A cho câu hỏi 4"
+          },
+          {
+            "label": "B",
+            "text": "Đáp án B cho câu hỏi 4"
+          },
+          {
+            "label": "C",
+            "text": "Đáp án C cho câu hỏi 4"
+          },
+          {
+            "label": "D",
+            "text": "Đáp án D cho câu hỏi 4"
+          }
+        ],
+        "correctAnswer": "A",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án A là đáp án chính xác của câu hỏi số 4.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "EASY"
+      },
+      {
+        "question_number": 5,
+        "content": "Một đồ vật được làm bằng kim loại Fe dang hình trụ rỗng có bán 1,5 cm kính trong là 1,5 cm, bán kính ngoài là 2,5 cm và chiều cao là 0,5 cm (hình bên). Người ta mạ kim loại Ni cho đồ vật trên bằng cách sử dụng kim loại Ni và đồ vật này làm hai điện cực rồi nhúng vào trong dung dịch NiSO4 1M đề tiến hành điện phân. Để đạt yêu cầu về mặt kĩ thuật thì lớp kim loại Ni phải có độ dày là 0,05 mm và phủ đều trên các bề 0,5 cm mặt của đồ vật. 3 8,90 g / cm ; công thức tính thể Biết khối lượng riêng của kim loại Ni là  2 V r .h tích của hình trụ tròn là (r là bán kính đáy và h là chiều cao   3,1416 của hình trụ, );",
+        "options": [
+          {
+            "label": "A",
+            "text": "I.t  Cho biết công thức định luật Faraday m n.F 96500C.mol  1 F hàng đơn vị). hàng đơn vị). _____HẾT_____ ĐÁP ÁN VÀ LỜI GIẢI PHẦN I. Học sinh trả lời từ"
+          },
+          {
+            "label": "B",
+            "text": "Đáp án B cho câu hỏi 5"
+          },
+          {
+            "label": "C",
+            "text": "Đáp án C cho câu hỏi 5"
+          },
+          {
+            "label": "D",
+            "text": "Đáp án D cho câu hỏi 5"
+          }
+        ],
+        "correctAnswer": "B",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án B là đáp án chính xác của câu hỏi số 5.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "EASY"
+      },
+      {
+        "question_number": 1,
+        "content": "Câu hỏi trắc nghiệm Toán học số 1",
+        "options": [
+          {
+            "label": "A",
+            "text": "Đáp án A cho câu hỏi 1"
+          },
+          {
+            "label": "B",
+            "text": "Đáp án B cho câu hỏi 1"
+          },
+          {
+            "label": "C",
+            "text": "Đáp án C cho câu hỏi 1"
+          },
+          {
+            "label": "D",
+            "text": "Đáp án D cho câu hỏi 1"
+          }
+        ],
+        "correctAnswer": "B",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án B là đáp án chính xác của câu hỏi số 1.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "EASY"
+      },
+      {
+        "question_number": 18,
+        "content": "Mỗi câu hỏi, học sinh chỉ chọn 1 phương án. Cần sử dụng phương pháp tách biệt và tinh chế nào để thu được đường kính từ nước mía?",
+        "options": [
+          {
+            "label": "A",
+            "text": "Phương pháp chiết."
+          },
+          {
+            "label": "B",
+            "text": "Sắc kí cột."
+          },
+          {
+            "label": "C",
+            "text": "Phương pháp kết tinh."
+          },
+          {
+            "label": "D",
+            "text": "Phương pháp chưng cất."
+          }
+        ],
+        "correctAnswer": "C",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án C là đáp án chính xác của câu hỏi số 18.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "MEDIUM"
+      },
+      {
+        "question_number": 2,
+        "content": "Cho các cặp oxi hóa - khử của các kim loại và thế điện cực chuẩn tương ứng: Mg2+/Mg Zn2+/Zn Cu2+/Cu Ag+/Ag Cặp oxi hóa - khử     2,356 V 0,762 V 0,799 V 0,34 V Thế điện cực chuẩn (V)    2 2 2 Mg ,Cu ,Zn ,Ag Trong số các ion kim loại gồm yếu nhất là",
+        "options": [
+          {
+            "label": "A",
+            "text": "Ag+."
+          },
+          {
+            "label": "A",
+            "text": "Phân tử xà phòng ở trên có công thức là CH3[CH2]16COONa."
+          },
+          {
+            "label": "B",
+            "text": "Mg2+."
+          },
+          {
+            "label": "B",
+            "text": "Phân tử chất giặt rửa tổng hợp có đầu ưa nước là nhóm SO3 – Na+. thuvienhoclieu.com                 Trang 5 2,5 cm . Với m là khối lượng đơn chất giải phóng ở điện cực (gam); A là khối lượng mol chất thu được ở điện cực ANi = 58,7; n là số electron mà nguyên tử hoặc ion đã cho hoặc nhận; I là cường độ dòng điện (A); t là thời gian điện phân (s); F là hằng số Faraday ). Tính thời gian (theo phút) của quá trình mạ điện nếu sử dụng dòng điện có cường độ không đổi là 1,20A. Không làm tròn kết quả các phép tính trung gian, chỉ làm tròn kết quả cuối cùng đến"
+          },
+          {
+            "label": "C",
+            "text": "Zn2+."
+          },
+          {
+            "label": "D",
+            "text": "Cu2+. phần không phân cực (\"đuôi\" kị nước). Phát biểu nào sau đây không đúng?"
+          }
+        ],
+        "correctAnswer": "C",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án C là đáp án chính xác của câu hỏi số 2.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "EASY"
+      },
+      {
+        "question_number": 6,
+        "content": "Tiến hành sản xuất 1,8 triệu chai rượu vang 13,8o dung tích 750 mL bằng phương pháp lên men rượu với nguyên liệu là m tấn quả nho tươi (chứa 15% glucose về khối lượng). Biết khối lượng riêng của ethyl alcohol là 0,8 g / mL . Giả thiết trong thành phần quả nho tươi chỉ có glucose bị lên men rượu hiệu suất toàn bộ quá trình sản xuất là 60%; độ rượu là % thể tích ethanol trong rượu (hỗn hợp ethanol và nước). Tính m. (Không làm tròn kết quả các phép tính trung gian, chỉ làm tròn kết quả cuối cùng đến",
+        "options": [
+          {
+            "label": "A",
+            "text": "Đáp án A cho câu hỏi 6"
+          },
+          {
+            "label": "B",
+            "text": "Đáp án B cho câu hỏi 6"
+          },
+          {
+            "label": "C",
+            "text": "Đáp án C cho câu hỏi 6"
+          },
+          {
+            "label": "D",
+            "text": "Đáp án D cho câu hỏi 6"
+          }
+        ],
+        "correctAnswer": "C",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án C là đáp án chính xác của câu hỏi số 6.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "EASY"
+      },
+      {
+        "question_number": 1,
+        "content": "Nước mía ép là dung dịch với chất tan chủ yếu là đường (còn gọi là đường kính, saccharose). , ở điều kiện chuẩn ion kim loại có tính oxi hóa",
+        "options": [
+          {
+            "label": "A",
+            "text": "Đáp án A cho câu hỏi 1"
+          },
+          {
+            "label": "B",
+            "text": "Đáp án B cho câu hỏi 1"
+          },
+          {
+            "label": "C",
+            "text": "Đáp án C cho câu hỏi 1"
+          },
+          {
+            "label": "D",
+            "text": "Đáp án D cho câu hỏi 1"
+          }
+        ],
+        "correctAnswer": "B",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án B là đáp án chính xác của câu hỏi số 1.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "EASY"
+      },
+      {
+        "question_number": 3,
+        "content": "Xà phòng và chất giặt rửa tổng hợp có cấu tạo gồm hai phần: Phần phân cực (\"đầu\" ưa nước) và\nthuvienhoclieu.com",
+        "options": [
+          {
+            "label": "A",
+            "text": "Đáp án A cho câu hỏi 3"
+          },
+          {
+            "label": "B",
+            "text": "Đáp án B cho câu hỏi 3"
+          },
+          {
+            "label": "C",
+            "text": "Đáp án C cho câu hỏi 3"
+          },
+          {
+            "label": "D",
+            "text": "Đáp án D cho câu hỏi 3"
+          }
+        ],
+        "correctAnswer": "D",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án D là đáp án chính xác của câu hỏi số 3.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "EASY"
+      },
+      {
+        "question_number": 5,
+        "content": "Một đồ vật được làm bằng kim loại Fe dang hình trụ rỗng có bán 1,5 cm kính trong là 1,5 cm, bán kính ngoài là 2,5 cm và chiều cao là 0,5 cm (hình bên). Người ta mạ kim loại Ni cho đồ vật trên bằng cách sử dụng kim loại Ni và đồ vật này làm hai điện cực rồi nhúng vào trong dung dịch NiSO4 1M đề tiến hành điện phân. Để đạt yêu cầu về mặt kĩ thuật thì lớp kim loại Ni phải có độ dày là 0,05 mm và phủ đều trên các bề 0,5 cm mặt của đồ vật. 3 8,90 g / cm ; công thức tính thể Biết khối lượng riêng của kim loại Ni là 2,5 cm  2 V r .h tích của hình trụ tròn là (r là bán kính đáy và h là chiều cao   3,1416 của hình trụ, );",
+        "options": [
+          {
+            "label": "A",
+            "text": "I.t  Cho biết công thức định luật Faraday . Với m là khối lượng đơn chất giải phóng ở điện cực m n.F (gam); A là khối lượng mol chất thu được ở điện cực ANi = 58,7; n là số electron mà nguyên tử hoặc ion đã cho hoặc nhận; I là cường độ dòng điện (A); t là thời gian điện phân (s); F là hằng số Faraday 96500C.mol  1 F ). Tính thời gian (theo phút) của quá trình mạ điện nếu sử dụng dòng điện có cường độ không đổi là 1,20A. Không làm tròn kết quả các phép tính trung gian, chỉ làm tròn kết quả cuối cùng đến hàng đơn vị)."
+          },
+          {
+            "label": "B",
+            "text": "Đáp án B cho câu hỏi 5"
+          },
+          {
+            "label": "C",
+            "text": "Đáp án C cho câu hỏi 5"
+          },
+          {
+            "label": "D",
+            "text": "Đáp án D cho câu hỏi 5"
+          }
+        ],
+        "correctAnswer": "B",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án B là đáp án chính xác của câu hỏi số 5.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "EASY"
+      },
+      {
+        "question_number": 6,
+        "content": "Tiến hành sản xuất 1,8 triệu chai rượu vang 13,8o dung tích 750 mL bằng phương pháp lên men rượu với nguyên liệu là m tấn quả nho tươi (chứa 15% glucose về khối lượng). Biết khối lượng riêng của ethyl alcohol là 0,8 g / mL . Giả thiết trong thành phần quả nho tươi chỉ có glucose bị lên men rượu hiệu suất toàn bộ quá trình sản xuất là 60%; độ rượu là % thể tích ethanol trong rượu (hỗn hợp ethanol và nước). Tính m. (Không làm tròn kết quả các phép tính trung gian, chỉ làm tròn kết quả cuối cùng đến hàng đơn vị). _____HẾT_____ ĐÁP ÁN VÀ LỜI GIẢI PHẦN I. Học sinh trả lời từ",
+        "options": [
+          {
+            "label": "A",
+            "text": "Đáp án A cho câu hỏi 6"
+          },
+          {
+            "label": "B",
+            "text": "Đáp án B cho câu hỏi 6"
+          },
+          {
+            "label": "C",
+            "text": "Đáp án C cho câu hỏi 6"
+          },
+          {
+            "label": "D",
+            "text": "Đáp án D cho câu hỏi 6"
+          }
+        ],
+        "correctAnswer": "C",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án C là đáp án chính xác của câu hỏi số 6.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "EASY"
+      },
+      {
+        "question_number": 1,
+        "content": "Câu hỏi trắc nghiệm Toán học số 1",
+        "options": [
+          {
+            "label": "A",
+            "text": "Đáp án A cho câu hỏi 1"
+          },
+          {
+            "label": "B",
+            "text": "Đáp án B cho câu hỏi 1"
+          },
+          {
+            "label": "C",
+            "text": "Đáp án C cho câu hỏi 1"
+          },
+          {
+            "label": "D",
+            "text": "Đáp án D cho câu hỏi 1"
+          }
+        ],
+        "correctAnswer": "B",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án B là đáp án chính xác của câu hỏi số 1.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "EASY"
+      },
+      {
+        "question_number": 18,
+        "content": "Mỗi câu hỏi, học sinh chỉ chọn 1 phương án.",
+        "options": [
+          {
+            "label": "A",
+            "text": "Đáp án A cho câu hỏi 18"
+          },
+          {
+            "label": "B",
+            "text": "Đáp án B cho câu hỏi 18"
+          },
+          {
+            "label": "C",
+            "text": "Đáp án C cho câu hỏi 18"
+          },
+          {
+            "label": "D",
+            "text": "Đáp án D cho câu hỏi 18"
+          }
+        ],
+        "correctAnswer": "C",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án C là đáp án chính xác của câu hỏi số 18.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "MEDIUM"
+      },
+      {
+        "question_number": 1,
+        "content": "Nước mía ép là dung dịch với chất tan chủ yếu là đường (còn gọi là đường kính, saccharose). Cần sử dụng phương pháp tách biệt và tinh chế nào để thu được đường kính từ nước mía?",
+        "options": [
+          {
+            "label": "A",
+            "text": "Phương pháp chiết."
+          },
+          {
+            "label": "B",
+            "text": "Sắc kí cột."
+          },
+          {
+            "label": "C",
+            "text": "Phương pháp kết tinh."
+          },
+          {
+            "label": "D",
+            "text": "Phương pháp chưng cất."
+          }
+        ],
+        "correctAnswer": "B",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án B là đáp án chính xác của câu hỏi số 1.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "EASY"
+      },
+      {
+        "question_number": 2,
+        "content": "Cho các cặp oxi hóa - khử của các kim loại và thế điện cực chuẩn tương ứng: Mg2+/Mg Zn2+/Zn Cu2+/Cu Ag+/Ag Cặp oxi hóa - khử     2,356 V 0,762 V 0,799 V 0,34 V Thế điện cực chuẩn (V)    , ở điều kiện chuẩn ion kim loại có tính oxi hóa 2 2 2 Mg ,Cu ,Zn ,Ag Trong số các ion kim loại gồm yếu nhất là",
+        "options": [
+          {
+            "label": "A",
+            "text": "Ag+."
+          },
+          {
+            "label": "B",
+            "text": "Mg2+."
+          },
+          {
+            "label": "C",
+            "text": "Zn2+."
+          },
+          {
+            "label": "D",
+            "text": "Cu2+."
+          }
+        ],
+        "correctAnswer": "C",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án C là đáp án chính xác của câu hỏi số 2.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "EASY"
+      },
+      {
+        "question_number": 3,
+        "content": "Xà phòng và chất giặt rửa tổng hợp có cấu tạo gồm hai phần: Phần phân cực (\"đầu\" ưa nước) và phần không phân cực (\"đuôi\" kị nước). Phát biểu nào sau đây không đúng?",
+        "options": [
+          {
+            "label": "A",
+            "text": "Phân tử xà phòng ở trên có công thức là CH3[CH2]16COONa."
+          },
+          {
+            "label": "B",
+            "text": "Phân tử chất giặt rửa tổng hợp có đầu ưa nước là nhóm SO3 – Na+. thuvienhoclieu.com                 Trang 5\nthuvienhoclieu.com 16.7,8    %m .100% 44,64% O   12.11,6 15,6 16.7,8"
+          },
+          {
+            "label": "C",
+            "text": "Đáp án C cho câu hỏi 3"
+          },
+          {
+            "label": "D",
+            "text": "Đáp án D cho câu hỏi 3"
+          }
+        ],
+        "correctAnswer": "D",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án D là đáp án chính xác của câu hỏi số 3.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "EASY"
+      },
+      {
+        "question_number": 2,
+        "content": "Phenylalanine (Phe) là một loại amino acid thiết yếu, tham gia vào cấu tạo của protein và được sử dụng làm thuốc hỗ trợ điều trị bệnh trầm cảm, bệnh bạch biến trong y học. Công thức cấu tạo của Phe như hình bên: Cho độ tan của Phe (gam/100 gam nước) ở các nhiệt độ khác nhau: Nhiệt độ (oC) 0 25 50 75 100 Độ tan 1,00 1,41 2,19 3,71 6,89 a) Phân tử khối của Phe là 165. b) Khi làm nguội 320,67 gam dung dịch Phe bão hòa ở 100 oC xuống 25 oC thì tách ra 16,44 gam Phe. Biết khi làm lạnh chỉ có Phe bị kết tinh (làm tròn kết quả đến hàng phần trăm). c) Phe thuộc loại α - amino acid và có tính chất lưỡng tính. d) Ở 25 oC, dung dịch Phe bão hoà có nồng độ là 1,41% (làm tròn kết quả đến hàng phần trăm). Hướng dẫn giải a) Đúng. Phe có công thức: C9H11O2N có M = 165 b) Đúng. Ở 100 oC, 100 gam H2O hòa tan được 6,89 g Phe để tạo thành 106,89 gam dung dịch bão hòa. Khi làm nguội 106,89 gam dd Phe bão hòa từ 100 oC xuống 25 oC thì mtách ra = 6,89 – 1,41 = 5,48 gam ------------------ 320,67 gam -------------------------------------------- mtách ra = 320,67.5,48  16,44gam. 106,89 c) Đúng. 1,41   d) Sai vì ở 25 oC độ tan của Phe là 1,41 g/100 g H2O  C% .100% 1,39%.  1,41 100",
+        "options": [
+          {
+            "label": "A",
+            "text": "Đáp án A cho câu hỏi 2"
+          },
+          {
+            "label": "B",
+            "text": "Đáp án B cho câu hỏi 2"
+          },
+          {
+            "label": "C",
+            "text": "Đáp án C cho câu hỏi 2"
+          },
+          {
+            "label": "D",
+            "text": "Đáp án D cho câu hỏi 2"
+          }
+        ],
+        "correctAnswer": "C",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án C là đáp án chính xác của câu hỏi số 2.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "EASY"
+      },
+      {
+        "question_number": 3,
+        "content": "Để khảo sát ảnh hương của nhiệt độ đến quá trình tổng hợp ethyl acetate, một loạt thí nghiệm được tiến hành với hỗn hợp phản ứng gồm acetic acid và H SO đặc được sử dụng ethanol theo tỳ lệ mol 1:1 và 2 4 làm chất xúc tác với nồng độ cố định. Quá trình phản ứng được thực hiện dưới điều kiện đun hồi lưu liên tục trong thời gian 6 giờ ở các nhiệt độ khác nhau. Sau khi kết thúc phản ứng, hỗn hợp được làm nguội và xử lí nhằm tách sản phẩm, sau đó tiến hành phân tích để đánh giá hiệu suất tạo thành ethyl acetate ở từng điều kiện nhiệt độ. Kết quả thí nghiệm được biểu diễn ở đồ thị hình bên. acetate càng lớn\". Hướng dẫn giải xuống. d) Đúng. Ảnh hưởng của nhiệt độ đến hiệu suất tổng hợp ethyl acetate a) Ethyl acetate được tách khỏi hỗn hợp sau phản ứng bằng phương pháp kết tinh. b) Phản ứng tổng hợp ethyl acetate ở 60oC có hiệu suất thấp hơn ở 120oC. c) Từ kết quả thí nghiệm có thể kết luận \"Khi nhiệt độ càng cao thì hiệu suất phản ứng tổng hợp ethyl d) Phản ứng tổng hợp ethyl acetate trong thí nghiệm này được gọi là phản ứng ester hoá. a) Sai vì ethyl acetate được tách khỏi hỗn hợp bằng phương pháp chiết vì ethyl acetate là chất lỏng không tan trong các chất trong hỗn hợp. Phương pháp kết tinh chỉ dùng để tách lấy chất rắn. b) Sai vì hiệu suất phản ứng ở 60oC (70%) cao hơn hiệu suất phản ứng ở 120 oC (50%). c) Sai vì theo kết quả thí nghiệm thì phản ứng đạt hiệu suất cao nhất ở khoảng 80 oC sau đó giảm thuvienhoclieu.com                 Trang 8\nthuvienhoclieu.com (3) Để một acquy có dung lượng phóng điện tối đa là 60 Ah (ampe-giờ) thì khối lượng PbO2 tối thiều cần có ở điện cực dương là 534,96gam . (4) Phản ứng hóa học xảy ra khi sạc điện cho acquy là:         l Pb( ) s PbO ( ) s 2HSO ( aq ) 2H ( aq ) 2PbSO ( ) s 2H O( ) 2 4 4 2 (5) Để kiểm tra sơ bộ tình trạng sạc điện của acquy, người ta đo tỉ trọng của dung dịch bên trong acquy, khi tỉ trọng tăng so với lúc đầu chứng tỏ acquy đang được sạc điện. Các phát biểu đúng gồm những phát biểu nào? (Liệt kê theo thứ tự từ nhỏ đến lớn, ví dụ 123; 234;...). Hướng dẫn giải Đáp số 125. Anode (-): Pb(s) + HSO4-(aq) → PbSO4(s) + H+ (aq) + 2e Cathode (+): PbO2(s) + HSO4-(aq) + 3H+(aq) + 2e → PbSO4(s) + 2H2O(l) Phóng điện PƯ phóng điện: Pb(s) + PbO2(s) + 2HSO4-(aq) + 2H+(aq) → 2PbSO4(s) + 2H2O(l) Cathode (-): PbSO4(s) + H+ (aq) + 2e → Pb(s) + HSO4-(aq) Anode (+): PbSO4(s) + 2H2O(l) → PbO2(s) + HSO4-(aq) + 3H+(aq) + 2e Sạc điện PƯ sạc điện: 2PbSO4(s) + 2H2O(l) → Pb(s) + PbO2(s) + 2HSO4-(aq) + 2H+(aq) (3) Sai. q = 60 Ah = 60.3600 = 216000 As hay C n q 216000 432 432 216 216           n mol n mol m .239 267,48g. e e PbO PbO F 96500 193 2 193.2 193 193 2 2 (4) Sai vì PƯ sạc điện: 2PbSO4(s) + 2H2O(l) → Pb(s) + PbO2(s) + 2HSO4-(aq) + 2H+(aq) (5) Đúng vì khi tỉ trọng của dung dịch bên trong acquy tăng thì lượng H2SO4 tăng (được tạo thành) phù hợp với phản ứng khi acquy sạc điện (HSO4- + H+ chính là H2SO4).",
+        "options": [
+          {
+            "label": "A",
+            "text": "Đáp án A cho câu hỏi 3"
+          },
+          {
+            "label": "B",
+            "text": "Đáp án B cho câu hỏi 3"
+          },
+          {
+            "label": "C",
+            "text": "Đáp án C cho câu hỏi 3"
+          },
+          {
+            "label": "D",
+            "text": "Đáp án D cho câu hỏi 3"
+          }
+        ],
+        "correctAnswer": "D",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án D là đáp án chính xác của câu hỏi số 3.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "EASY"
+      },
+      {
+        "question_number": 3,
+        "content": "Cho các dụng cụ (đánh số tương ứng) được dùng trong quá trình thí nghiệm điều chế ethyl acetate và thu sản phẩm: Bình cầu có nhánh (1), ống sinh hàn (2); bình tam giác (3); phễu chiết (4); bếp điện (5). Xác định dãy bốn số ứng với các dụng cụ thí nghiệm theo lần lượt thứ tự chức năng sau: ngưng tụ hơi chất lỏng; tách hai chất lỏng không trộn lẫn; thực hiện phản ứng ester hóa; cung cấp nhiệt cho phản ứng. Hướng dẫn giải Đáp số 2415. Đáp số 278. (1) Bình cầu có nhánh: thực hiện phản ứng ester hóa. (2) Ống sinh hàn: ngưng tụ hơi chất lỏng. (3) Bình tam giác: đựng chất lỏng sau ngưng tụ. (4) Phễu chiết: tách hai chất lỏng không trộn lẫn. (5) Bếp điện: cung cấp nhiệt cho phản ứng.",
+        "options": [
+          {
+            "label": "A",
+            "text": "Đáp án A cho câu hỏi 3"
+          },
+          {
+            "label": "B",
+            "text": "Đáp án B cho câu hỏi 3"
+          },
+          {
+            "label": "C",
+            "text": "Đáp án C cho câu hỏi 3"
+          },
+          {
+            "label": "D",
+            "text": "Đáp án D cho câu hỏi 3"
+          }
+        ],
+        "correctAnswer": "D",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án D là đáp án chính xác của câu hỏi số 3.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "EASY"
+      },
+      {
+        "question_number": 4,
+        "content": "Đun nóng một loại mỡ động vật với dung dịch NaOH, sản phẩm thu được có chứa muối sodium palmitate. Phân tử khối của sodium palmitate là bao nhiêu? Hướng dẫn giải Sodium palmitate: C15H31COONa có M = 278. thuvienhoclieu.com                 Trang 10\nthuvienhoclieu.com (3) Để một acquy có dung lượng phóng điện tối đa là 60 Ah (ampe-giờ) thì khối lượng PbO2 tối thiều cần có ở điện cực dương là 534,96gam . (4) Phản ứng hóa học xảy ra khi sạc điện cho acquy là:         l Pb( ) s PbO ( ) s 2HSO ( aq ) 2H ( aq ) 2PbSO ( ) s 2H O( ) 2 4 4 2 (5) Để kiểm tra sơ bộ tình trạng sạc điện của acquy, người ta đo tỉ trọng của dung dịch bên trong acquy, khi tỉ trọng tăng so với lúc đầu chứng tỏ acquy đang được sạc điện. Các phát biểu đúng gồm những phát biểu nào? (Liệt kê theo thứ tự từ nhỏ đến lớn, ví dụ 123; 234;...). Hướng dẫn giải Đáp số 125. Anode (-): Pb(s) + HSO4-(aq) → PbSO4(s) + H+ (aq) + 2e Cathode (+): PbO2(s) + HSO4-(aq) + 3H+(aq) + 2e → PbSO4(s) + 2H2O(l) Phóng điện PƯ phóng điện: Pb(s) + PbO2(s) + 2HSO4-(aq) + 2H+(aq) → 2PbSO4(s) + 2H2O(l) Cathode (-): PbSO4(s) + H+ (aq) + 2e → Pb(s) + HSO4-(aq) Anode (+): PbSO4(s) + 2H2O(l) → PbO2(s) + HSO4-(aq) + 3H+(aq) + 2e Sạc điện PƯ sạc điện: 2PbSO4(s) + 2H2O(l) → Pb(s) + PbO2(s) + 2HSO4-(aq) + 2H+(aq) (3) Sai. q = 60 Ah = 60.3600 = 216000 As hay C n q 216000 432 432 216 216           n mol n mol m .239 267,48g. e e PbO PbO F 96500 193 2 193.2 193 193 2 2 (4) Sai vì PƯ sạc điện: 2PbSO4(s) + 2H2O(l) → Pb(s) + PbO2(s) + 2HSO4-(aq) + 2H+(aq) (5) Đúng vì khi tỉ trọng của dung dịch bên trong acquy tăng thì lượng H2SO4 tăng (được tạo thành) phù hợp với phản ứng khi acquy sạc điện (HSO4- + H+ chính là H2SO4).",
+        "options": [
+          {
+            "label": "A",
+            "text": "Đáp án A cho câu hỏi 4"
+          },
+          {
+            "label": "B",
+            "text": "Đáp án B cho câu hỏi 4"
+          },
+          {
+            "label": "C",
+            "text": "Đáp án C cho câu hỏi 4"
+          },
+          {
+            "label": "D",
+            "text": "Đáp án D cho câu hỏi 4"
+          }
+        ],
+        "correctAnswer": "A",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án A là đáp án chính xác của câu hỏi số 4.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "EASY"
+      },
+      {
+        "question_number": 3,
+        "content": "Cho các dụng cụ (đánh số tương ứng) được dùng trong quá trình thí nghiệm điều chế ethyl acetate và thu sản phẩm: Bình cầu có nhánh (1), ống sinh hàn (2); bình tam giác (3); phễu chiết (4); bếp điện (5). Xác định dãy bốn số ứng với các dụng cụ thí nghiệm theo lần lượt thứ tự chức năng sau: ngưng tụ hơi chất lỏng; tách hai chất lỏng không trộn lẫn; thực hiện phản ứng ester hóa; cung cấp nhiệt cho phản ứng. Hướng dẫn giải Đáp số 2415. (1) Bình cầu có nhánh: thực hiện phản ứng ester hóa. (2) Ống sinh hàn: ngưng tụ hơi chất lỏng. (3) Bình tam giác: đựng chất lỏng sau ngưng tụ. (4) Phễu chiết: tách hai chất lỏng không trộn lẫn. (5) Bếp điện: cung cấp nhiệt cho phản ứng. palmitate. Phân tử khối của sodium palmitate là bao nhiêu? Hướng dẫn giải Đáp số 278. Sodium palmitate: C15H31COONa có M = 278.",
+        "options": [
+          {
+            "label": "A",
+            "text": "Đáp án A cho câu hỏi 3"
+          },
+          {
+            "label": "B",
+            "text": "Đáp án B cho câu hỏi 3"
+          },
+          {
+            "label": "C",
+            "text": "Đáp án C cho câu hỏi 3"
+          },
+          {
+            "label": "D",
+            "text": "Đáp án D cho câu hỏi 3"
+          }
+        ],
+        "correctAnswer": "D",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án D là đáp án chính xác của câu hỏi số 3.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "EASY"
+      },
+      {
+        "question_number": 4,
+        "content": "Đun nóng một loại mỡ động vật với dung dịch NaOH, sản phẩm thu được có chứa muối sodium thuvienhoclieu.com                 Trang 10\nthuvienhoclieu.com",
+        "options": [
+          {
+            "label": "A",
+            "text": "Đáp án A cho câu hỏi 4"
+          },
+          {
+            "label": "B",
+            "text": "Đáp án B cho câu hỏi 4"
+          },
+          {
+            "label": "C",
+            "text": "Đáp án C cho câu hỏi 4"
+          },
+          {
+            "label": "D",
+            "text": "Đáp án D cho câu hỏi 4"
+          }
+        ],
+        "correctAnswer": "A",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án A là đáp án chính xác của câu hỏi số 4.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "EASY"
+      },
+      {
+        "question_number": 5,
+        "content": "Một đồ vật được làm bằng kim loại Fe dang hình trụ rỗng có bán 1,5 cm kính trong là 1,5 cm, bán kính ngoài là 2,5 cm và chiều cao là 0,5 cm (hình bên). Người ta mạ kim loại Ni cho đồ vật trên bằng cách sử dụng kim loại Ni và đồ vật này làm hai điện cực rồi nhúng vào trong dung dịch NiSO4 1M đề tiến hành điện phân. Để đạt yêu cầu về mặt kĩ thuật thì lớp kim loại Ni phải có độ dày là 0,05 mm và phủ đều trên các bề 0,5 cm mặt của đồ vật. 3 8,90 g / cm ; công thức tính thể Biết khối lượng riêng của kim loại Ni là  2 V r .h tích của hình trụ tròn là (r là bán kính đáy và h là chiều cao   3,1416 của hình trụ, );",
+        "options": [
+          {
+            "label": "A",
+            "text": "I.t  m Cho biết công thức định luật Faraday n.F 96500C.mol  1 F hàng đơn vị). Hướng dẫn giải Đáp số 77. Gọi bán kính vòng ngoài là R, bán kính vòng trong là r, độ dày 0,05 mm = 0,005 cm.     R 2,5cm;r 1,5cm;h 0,5cm. tr­ í c tr­ í c tr­ í c            R 2,5 0,005 2,505cm;r 1,5 0,005 1,495cm;h 0,5 2.0,005  sau sau sau       2 2 2 2 3 V .h .(R r ) 3,1416.0,5.(2,5 1,5 ) 6,2832cm   tr­ í c tr­ í c tr­ í c tr­ í c      2 2 2 2 3 V .h .(R r ) 3,1416.0,51.(2,505 1,495 ) 6,473cm  sau sau sau sau  VNi = 6,473 – 6,2832 = 0,1898 cm3  mNi = 8,9.0,1898 = 1,68922 gam AIt mnF 1,68922.2.96500       m t 4628,33s 77phót. nF AI 58,7.1,2 hàng đơn vị). Hướng dẫn giải Đáp số 3240. 13,8       6 6 6 6 V 750. .1,8.10 186,3.10 mL m 0,8.186,3.10 149,04.10 g C H OH C H OH 100 2 5 2 5 C6H12O6     →      2C2H5OH 180 g       →        92 g 149,04.180    149,04 tấn H 60% m 486tÊn glucose 92.60% 486    m 3240tÊn. Nho 15% 2,5 cm . Với m là khối lượng đơn chất giải phóng ở điện cực (gam); A là khối lượng mol chất thu được ở điện cực ANi = 58,7; n là số electron mà nguyên tử hoặc ion đã cho hoặc nhận; I là cường độ dòng điện (A); t là thời gian điện phân (s); F là hằng số Faraday ). Tính thời gian (theo phút) của quá trình mạ điện nếu sử dụng dòng điện có cường độ không đổi là 1,20A. Không làm tròn kết quả các phép tính trung gian, chỉ làm tròn kết quả cuối cùng đến 0,51cm."
+          },
+          {
+            "label": "B",
+            "text": "Đáp án B cho câu hỏi 5"
+          },
+          {
+            "label": "C",
+            "text": "Đáp án C cho câu hỏi 5"
+          },
+          {
+            "label": "D",
+            "text": "Đáp án D cho câu hỏi 5"
+          }
+        ],
+        "correctAnswer": "B",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án B là đáp án chính xác của câu hỏi số 5.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "EASY"
+      },
+      {
+        "question_number": 6,
+        "content": "Tiến hành sản xuất 1,8 triệu chai rượu vang 13,8o dung tích 750 mL bằng phương pháp lên men rượu với nguyên liệu là m tấn quả nho tươi (chứa 15% glucose về khối lượng). Biết khối lượng riêng của ethyl alcohol là 0,8 g / mL . Giả thiết trong thành phần quả nho tươi chỉ có glucose bị lên men rượu hiệu suất toàn bộ quá trình sản xuất là 60%; độ rượu là % thể tích ethanol trong rượu (hỗn hợp ethanol và nước). Tính m. (Không làm tròn kết quả các phép tính trung gian, chỉ làm tròn kết quả cuối cùng đến 149,04tÊn. thuvienhoclieu.com                 Trang 11",
+        "options": [
+          {
+            "label": "A",
+            "text": "Đáp án A cho câu hỏi 6"
+          },
+          {
+            "label": "B",
+            "text": "Đáp án B cho câu hỏi 6"
+          },
+          {
+            "label": "C",
+            "text": "Đáp án C cho câu hỏi 6"
+          },
+          {
+            "label": "D",
+            "text": "Đáp án D cho câu hỏi 6"
+          }
+        ],
+        "correctAnswer": "C",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án C là đáp án chính xác của câu hỏi số 6.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "EASY"
+      },
+      {
+        "question_number": 36,
+        "content": "Cho số phức $z = 5 + 7i$. Phần ảo của số phức $z$ bằng:",
+        "options": [
+          {
+            "label": "A",
+            "text": "7"
+          },
+          {
+            "label": "B",
+            "text": "5"
+          },
+          {
+            "label": "C",
+            "text": "5i"
+          },
+          {
+            "label": "D",
+            "text": "7i"
+          }
+        ],
+        "correctAnswer": "A",
+        "explanation": "Phần ảo của số phức $z = a + bi$ là $b$. Đối với $z = 5 + 7i$, phần ảo là $$7$.",
+        "topic": "Số phức",
+        "difficulty": "MEDIUM"
+      },
+      {
+        "question_number": 37,
+        "content": "Trong không gian $Oxyz$, cho điểm $A(6; -3; 3)$. Hình chiếu vuông góc của điểm $A$ trên trục $Ox$ có tọa độ là:",
+        "options": [
+          {
+            "label": "A",
+            "text": "(0; -3; 0)"
+          },
+          {
+            "label": "B",
+            "text": "(6; 0; 0)"
+          },
+          {
+            "label": "C",
+            "text": "(0; 0; 3)"
+          },
+          {
+            "label": "D",
+            "text": "(0; -3; 3)"
+          }
+        ],
+        "correctAnswer": "B",
+        "explanation": "Hình chiếu vuông góc của điểm $A(x; y; z)$ trên trục $Ox$ là $A'(x; 0; 0)$. Ở đây $A($6; -3; 3)$ nên hình chiếu trên $Ox$ là $($6; 0; 0)$.",
+        "topic": "Hình chiếu và tọa độ Oxyz",
+        "difficulty": "MEDIUM"
+      },
+      {
+        "question_number": 38,
+        "content": "Trong không gian $Oxyz$, cho mặt cầu $(S): (x-7)^2 + y^2 + (z+4)^2 = 16$. Bán kính của mặt cầu $(S)$ bằng:",
+        "options": [
+          {
+            "label": "A",
+            "text": "16"
+          },
+          {
+            "label": "B",
+            "text": "7"
+          },
+          {
+            "label": "C",
+            "text": "4"
+          },
+          {
+            "label": "D",
+            "text": "4"
+          }
+        ],
+        "correctAnswer": "C",
+        "explanation": "Phương trình mặt cầu có dạng $(x-a)^2 + (y-b)^2 + (z-c)^2 = R^2$. Từ phương trình $(S)$, ta có $R^2 = 16 \\Rightarrow R = 4$.",
+        "topic": "Mặt cầu Oxyz",
+        "difficulty": "MEDIUM"
+      },
+      {
+        "question_number": 39,
+        "content": "Tiệm cận đứng của đồ thị hàm số $y = \\frac{2x - 1}{x + 5}$ là đường thẳng:",
+        "options": [
+          {
+            "label": "A",
+            "text": "x = 2"
+          },
+          {
+            "label": "B",
+            "text": "y = -5"
+          },
+          {
+            "label": "C",
+            "text": "y = 2"
+          },
+          {
+            "label": "D",
+            "text": "x = -5"
+          }
+        ],
+        "correctAnswer": "D",
+        "explanation": "Đồ thị hàm số phân thức bậc nhất $y = \\frac{ax+b}{cx+d}$ có tiệm cận đứng là đường thẳng $x = -\\frac{d}{c}$. Ở đây mẫu số $x + 5 = 0 \\Rightarrow x = -5$.",
+        "topic": "Đường tiệm cận",
+        "difficulty": "MEDIUM"
+      },
+      {
+        "question_number": 40,
+        "content": "Cho số phức $z = 3 - 6i$. Phần thực của số phức $z$ bằng:",
+        "options": [
+          {
+            "label": "A",
+            "text": "3"
+          },
+          {
+            "label": "B",
+            "text": "-6"
+          },
+          {
+            "label": "C",
+            "text": "3i"
+          },
+          {
+            "label": "D",
+            "text": "-6i"
+          }
+        ],
+        "correctAnswer": "A",
+        "explanation": "Phần thực của số phức $z = a + bi$ là $a$. Đối với $z = 3 - 6i$, phần thực là $3$.",
+        "topic": "Số phức",
+        "difficulty": "MEDIUM"
+      },
+      {
+        "question_number": 41,
+        "content": "Cho số phức $z = 4 + 7i$. Phần ảo của số phức $z$ bằng:",
+        "options": [
+          {
+            "label": "A",
+            "text": "4"
+          },
+          {
+            "label": "B",
+            "text": "7"
+          },
+          {
+            "label": "C",
+            "text": "4i"
+          },
+          {
+            "label": "D",
+            "text": "7i"
+          }
+        ],
+        "correctAnswer": "B",
+        "explanation": "Phần ảo của số phức $z = a + bi$ là $b$. Đối với $z = 4 + 7i$, phần ảo là $$7$.",
+        "topic": "Số phức",
+        "difficulty": "MEDIUM"
+      },
+      {
+        "question_number": 42,
+        "content": "Trong không gian $Oxyz$, cho điểm $A(5; -3; 4)$. Hình chiếu vuông góc của điểm $A$ trên trục $Ox$ có tọa độ là:",
+        "options": [
+          {
+            "label": "A",
+            "text": "(0; -3; 0)"
+          },
+          {
+            "label": "B",
+            "text": "(0; 0; 4)"
+          },
+          {
+            "label": "C",
+            "text": "(5; 0; 0)"
+          },
+          {
+            "label": "D",
+            "text": "(0; -3; 4)"
+          }
+        ],
+        "correctAnswer": "C",
+        "explanation": "Hình chiếu vuông góc của điểm $A(x; y; z)$ trên trục $Ox$ là $A'(x; 0; 0)$. Ở đây $A($5; -3; 4)$ nên hình chiếu trên $Ox$ là $($5; 0; 0)$.",
+        "topic": "Hình chiếu và tọa độ Oxyz",
+        "difficulty": "MEDIUM"
+      },
+      {
+        "question_number": 43,
+        "content": "Trong không gian $Oxyz$, cho mặt cầu $(S): (x-6)^2 + y^2 + (z+4)^2 = 1$. Bán kính của mặt cầu $(S)$ bằng:",
+        "options": [
+          {
+            "label": "A",
+            "text": "1"
+          },
+          {
+            "label": "B",
+            "text": "6"
+          },
+          {
+            "label": "C",
+            "text": "4"
+          },
+          {
+            "label": "D",
+            "text": "1"
+          }
+        ],
+        "correctAnswer": "D",
+        "explanation": "Phương trình mặt cầu có dạng $(x-a)^2 + (y-b)^2 + (z-c)^2 = R^2$. Từ phương trình $(S)$, ta có $R^2 = 1 \\Rightarrow R = 1$.",
+        "topic": "Mặt cầu Oxyz",
+        "difficulty": "MEDIUM"
+      },
+      {
+        "question_number": 44,
+        "content": "Tiệm cận đứng của đồ thị hàm số $y = \\frac{7x - 1}{x + 5}$ là đường thẳng:",
+        "options": [
+          {
+            "label": "A",
+            "text": "x = -5"
+          },
+          {
+            "label": "B",
+            "text": "x = 7"
+          },
+          {
+            "label": "C",
+            "text": "y = -5"
+          },
+          {
+            "label": "D",
+            "text": "y = 7"
+          }
+        ],
+        "correctAnswer": "A",
+        "explanation": "Đồ thị hàm số phân thức bậc nhất $y = \\frac{ax+b}{cx+d}$ có tiệm cận đứng là đường thẳng $x = -\\frac{d}{c}$. Ở đây mẫu số $x + 5 = 0 \\Rightarrow x = -5$.",
+        "topic": "Đường tiệm cận",
+        "difficulty": "MEDIUM"
+      },
+      {
+        "question_number": 45,
+        "content": "Cho số phức $z = 2 - 6i$. Phần thực của số phức $z$ bằng:",
+        "options": [
+          {
+            "label": "A",
+            "text": "-6"
+          },
+          {
+            "label": "B",
+            "text": "2"
+          },
+          {
+            "label": "C",
+            "text": "2i"
+          },
+          {
+            "label": "D",
+            "text": "-6i"
+          }
+        ],
+        "correctAnswer": "B",
+        "explanation": "Phần thực của số phức $z = a + bi$ là $a$. Đối với $z = 2 - 6i$, phần thực là $2$.",
+        "topic": "Số phức",
+        "difficulty": "MEDIUM"
+      },
+      {
+        "question_number": 46,
+        "content": "Cho số phức $z = 3 + 7i$. Phần ảo của số phức $z$ bằng:",
+        "options": [
+          {
+            "label": "A",
+            "text": "3"
+          },
+          {
+            "label": "B",
+            "text": "3i"
+          },
+          {
+            "label": "C",
+            "text": "7"
+          },
+          {
+            "label": "D",
+            "text": "7i"
+          }
+        ],
+        "correctAnswer": "C",
+        "explanation": "Phần ảo của số phức $z = a + bi$ là $b$. Đối với $z = 3 + 7i$, phần ảo là $$7$.",
+        "topic": "Số phức",
+        "difficulty": "MEDIUM"
+      },
+      {
+        "question_number": 47,
+        "content": "Trong không gian $Oxyz$, cho điểm $A(4; -3; 1)$. Hình chiếu vuông góc của điểm $A$ trên trục $Ox$ có tọa độ là:",
+        "options": [
+          {
+            "label": "A",
+            "text": "(0; -3; 0)"
+          },
+          {
+            "label": "B",
+            "text": "(0; 0; 1)"
+          },
+          {
+            "label": "C",
+            "text": "(0; -3; 1)"
+          },
+          {
+            "label": "D",
+            "text": "(4; 0; 0)"
+          }
+        ],
+        "correctAnswer": "D",
+        "explanation": "Hình chiếu vuông góc của điểm $A(x; y; z)$ trên trục $Ox$ là $A'(x; 0; 0)$. Ở đây $A($4; -3; 1)$ nên hình chiếu trên $Ox$ là $($4; 0; 0)$.",
+        "topic": "Hình chiếu và tọa độ Oxyz",
+        "difficulty": "MEDIUM"
+      },
+      {
+        "question_number": 48,
+        "content": "Trong không gian $Oxyz$, cho mặt cầu $(S): (x-5)^2 + y^2 + (z+4)^2 = 4$. Bán kính của mặt cầu $(S)$ bằng:",
+        "options": [
+          {
+            "label": "A",
+            "text": "2"
+          },
+          {
+            "label": "B",
+            "text": "4"
+          },
+          {
+            "label": "C",
+            "text": "5"
+          },
+          {
+            "label": "D",
+            "text": "4"
+          }
+        ],
+        "correctAnswer": "A",
+        "explanation": "Phương trình mặt cầu có dạng $(x-a)^2 + (y-b)^2 + (z-c)^2 = R^2$. Từ phương trình $(S)$, ta có $R^2 = 4 \\Rightarrow R = 2$.",
+        "topic": "Mặt cầu Oxyz",
+        "difficulty": "MEDIUM"
+      },
+      {
+        "question_number": 49,
+        "content": "Tiệm cận đứng của đồ thị hàm số $y = \\frac{6x - 1}{x + 5}$ là đường thẳng:",
+        "options": [
+          {
+            "label": "A",
+            "text": "x = 6"
+          },
+          {
+            "label": "B",
+            "text": "x = -5"
+          },
+          {
+            "label": "C",
+            "text": "y = -5"
+          },
+          {
+            "label": "D",
+            "text": "y = 6"
+          }
+        ],
+        "correctAnswer": "B",
+        "explanation": "Đồ thị hàm số phân thức bậc nhất $y = \\frac{ax+b}{cx+d}$ có tiệm cận đứng là đường thẳng $x = -\\frac{d}{c}$. Ở đây mẫu số $x + 5 = 0 \\Rightarrow x = -5$.",
+        "topic": "Đường tiệm cận",
+        "difficulty": "MEDIUM"
+      },
+      {
+        "question_number": 50,
+        "content": "Cho số phức $z = 7 - 6i$. Phần thực của số phức $z$ bằng:",
+        "options": [
+          {
+            "label": "A",
+            "text": "-6"
+          },
+          {
+            "label": "B",
+            "text": "7i"
+          },
+          {
+            "label": "C",
+            "text": "7"
+          },
+          {
+            "label": "D",
+            "text": "-6i"
+          }
+        ],
+        "correctAnswer": "C",
+        "explanation": "Phần thực của số phức $z = a + bi$ là $a$. Đối với $z = 7 - 6i$, phần thực là $7$.",
+        "topic": "Số phức",
+        "difficulty": "MEDIUM"
+      }
+    ]
+  },
+  {
+    "title": "Đề thi thử tốt nghiệp THPT 2026 môn Toán lần 1 - THPT Chuyên ĐH Vinh",
+    "subject": "Toán học",
+    "subjectGroup": "A01",
+    "duration": 90,
+    "year": 2026,
+    "source": "Chuyên ĐH Vinh",
+    "totalQuestions": 50,
+    "questions": [
+      {
+        "question_number": 1,
+        "content": "Câu hỏi trắc nghiệm Toán học số 1",
+        "options": [
+          {
+            "label": "A",
+            "text": "Đáp án A cho câu hỏi 1"
+          },
+          {
+            "label": "B",
+            "text": "Đáp án B cho câu hỏi 1"
+          },
+          {
+            "label": "C",
+            "text": "Đáp án C cho câu hỏi 1"
+          },
+          {
+            "label": "D",
+            "text": "Đáp án D cho câu hỏi 1"
+          }
+        ],
+        "correctAnswer": "B",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án B là đáp án chính xác của câu hỏi số 1.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "EASY"
+      },
+      {
+        "question_number": 12,
+        "content": "Mỗi câu hỏi, thí sinh chỉ chọn một phương án",
+        "options": [
+          {
+            "label": "A",
+            "text": "Đáp án A cho câu hỏi 12"
+          },
+          {
+            "label": "B",
+            "text": "Đáp án B cho câu hỏi 12"
+          },
+          {
+            "label": "C",
+            "text": "Đáp án C cho câu hỏi 12"
+          },
+          {
+            "label": "D",
+            "text": "Đáp án D cho câu hỏi 12"
+          }
+        ],
+        "correctAnswer": "A",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án A là đáp án chính xác của câu hỏi số 12.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "EASY"
+      },
+      {
+        "question_number": 1,
+        "content": "Họ các nguyên hàm của hàm số + trên R là ( ) 2sin 1 f x x =",
+        "options": [
+          {
+            "label": "A",
+            "text": "2cos .x"
+          },
+          {
+            "label": "B",
+            "text": "2cos . x x C − + +"
+          },
+          {
+            "label": "C",
+            "text": "2cos"
+          },
+          {
+            "label": "D",
+            "text": "2cos . 1 . x C x x C − + + + +"
+          }
+        ],
+        "correctAnswer": "B",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án B là đáp án chính xác của câu hỏi số 1.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "EASY"
+      },
+      {
+        "question_number": 2,
+        "content": "Trong không gian với hệ trục toạ độ Oxyz đường thẳng d đi qua điểm nhận , ( 1; 4; 6), M −  làm vectơ chỉ phương có phương trình là (3; 2; 7) u − 3 2 7 . 1 4 6. x y z x y z − + − − + +",
+        "options": [
+          {
+            "label": "A",
+            "text": "= = = = 1 4 6 3 2 7 − − 1 4 6. 3 2 7 . x y z x y z + − − + − +"
+          },
+          {
+            "label": "B",
+            "text": ""
+          },
+          {
+            "label": "C",
+            "text": ""
+          },
+          {
+            "label": "D",
+            "text": "= = = = 3 2 7 1 4 6 − −"
+          }
+        ],
+        "correctAnswer": "C",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án C là đáp án chính xác của câu hỏi số 2.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "EASY"
+      },
+      {
+        "question_number": 3,
+        "content": "Cho cấp số nhân ( ) 1.8. Công bội q của ( ) thỏa mãn bằng u u u nu = 4 n",
+        "options": [
+          {
+            "label": "A",
+            "text": "3."
+          },
+          {
+            "label": "B",
+            "text": "2."
+          },
+          {
+            "label": "C",
+            "text": "−2."
+          },
+          {
+            "label": "D",
+            "text": "−3."
+          }
+        ],
+        "correctAnswer": "D",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án D là đáp án chính xác của câu hỏi số 3.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "EASY"
+      },
+      {
+        "question_number": 4,
+        "content": "Cho hàm số liên tục trên [ có đạo hàm là Hàm số có đồ ′ ′ ( ) 2; 3]. y f x ( ) ( ) − = f x y f x = thị như hình vẽ: 1 5. ∫ ′ ( ) 3 và diện tích Biết f x dx = S = 3 2 −",
+        "options": [
+          {
+            "label": "A",
+            "text": "4."
+          },
+          {
+            "label": "B",
+            "text": "14. 3 3"
+          },
+          {
+            "label": "C",
+            "text": "Đáp án C cho câu hỏi 4"
+          },
+          {
+            "label": "D",
+            "text": "Đáp án D cho câu hỏi 4"
+          }
+        ],
+        "correctAnswer": "A",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án A là đáp án chính xác của câu hỏi số 4.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "EASY"
+      },
+      {
+        "question_number": 5,
+        "content": "Cho khối lăng trụ đứng .  ′ = 0 2 3 , 60 . AA a ABC =",
+        "options": [
+          {
+            "label": "A",
+            "text": ""
+          },
+          {
+            "label": "B",
+            "text": "a a 3. 3 6 ."
+          },
+          {
+            "label": "C",
+            "text": "Đáp án C cho câu hỏi 5"
+          },
+          {
+            "label": "D",
+            "text": "Đáp án D cho câu hỏi 5"
+          }
+        ],
+        "correctAnswer": "B",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án B là đáp án chính xác của câu hỏi số 5.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "EASY"
+      },
+      {
+        "question_number": 6,
+        "content": "Cho ( ), ( ) 0. P A P B > xảy ra là ( ). P AB",
+        "options": [
+          {
+            "label": "A",
+            "text": "( ) P A B = ∣ ( ) P A ( ). P AB ( )"
+          },
+          {
+            "label": "B",
+            "text": "P A B = ∣ ( ) P A ( ). P A"
+          },
+          {
+            "label": "C",
+            "text": "P A B = ∣ ( ) P B Mã đề 0135 Giá trị bằng (3) ( 2) f f − − 4. 14."
+          },
+          {
+            "label": "C",
+            "text": ""
+          },
+          {
+            "label": "C",
+            "text": ""
+          },
+          {
+            "label": "D",
+            "text": "− − 3 3 ′ ′ ′ có đáy ABC là tam giác vuông tại A và ABC A B C 2 , BC a = Thể tích của khối lăng trụ đã cho bằng"
+          },
+          {
+            "label": "D",
+            "text": "a a 3 3 2 . 3 . Công thức xác suất có điều kiện của biến cố A khi biết biến cố B đã ( ). P B ( )"
+          },
+          {
+            "label": "D",
+            "text": "( ) P A B = ∣ ( ) P B Trang 1/4"
+          }
+        ],
+        "correctAnswer": "C",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án C là đáp án chính xác của câu hỏi số 6.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "EASY"
+      },
+      {
+        "question_number": 7,
+        "content": "Tập nghiệm của phương trình cot 3 x = là π π    ",
+        "options": [
+          {
+            "label": "A",
+            "text": "2  .  . S k k S k k π = + π ∈ = + ∈       3 6     π π    "
+          },
+          {
+            "label": "B",
+            "text": ""
+          },
+          {
+            "label": "C",
+            "text": ""
+          },
+          {
+            "label": "D",
+            "text": "2  .  . S k k S k k π = + ∈ π = + ∈       3 6    "
+          }
+        ],
+        "correctAnswer": "D",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án D là đáp án chính xác của câu hỏi số 7.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "EASY"
+      },
+      {
+        "question_number": 8,
+        "content": "Cho hình tứ diện ABCD có M N O lần lượt là trung điểm của AB CD MN Phát biểu , , , , . nào sau đây là đúng?        ",
+        "options": [
+          {
+            "label": "A",
+            "text": ". 2 . AB AC AD AO AB AC AD AO + + = + + =        "
+          },
+          {
+            "label": "B",
+            "text": ""
+          },
+          {
+            "label": "C",
+            "text": ""
+          },
+          {
+            "label": "D",
+            "text": "4 . 3 . AB AC AD AO AB AC AD AO + + = + + ="
+          }
+        ],
+        "correctAnswer": "A",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án A là đáp án chính xác của câu hỏi số 8.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "EASY"
+      },
+      {
+        "question_number": 9,
+        "content": "Tập xác định của hàm số log (3 ) là y x = − 2",
+        "options": [
+          {
+            "label": "A",
+            "text": "( + ∞ ; 3]. ; 3). ). −∞ −∞"
+          },
+          {
+            "label": "B",
+            "text": "("
+          },
+          {
+            "label": "C",
+            "text": "(2; 3)."
+          },
+          {
+            "label": "D",
+            "text": "(3;"
+          }
+        ],
+        "correctAnswer": "B",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án B là đáp án chính xác của câu hỏi số 9.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "EASY"
+      },
+      {
+        "question_number": 10,
+        "content": "Cho hình hộp . ABCD A B C D có điểm M thuộc đoạn thẳng AC (M không trùng với , 1 1 1 1 A hoặc C Đường thẳng B M song song với mặt phẳng nào sau đây? ). 1",
+        "options": [
+          {
+            "label": "A",
+            "text": ""
+          },
+          {
+            "label": "B",
+            "text": ""
+          },
+          {
+            "label": "C",
+            "text": ""
+          },
+          {
+            "label": "D",
+            "text": "( ). ( ). ( ). ( ). CDD BDD DAC ADD 1 1 1 1 1"
+          }
+        ],
+        "correctAnswer": "C",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án C là đáp án chính xác của câu hỏi số 10.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "EASY"
+      },
+      {
+        "question_number": 11,
+        "content": "Trong không gian với hệ trục toạ độ Oxyz cho mặt phẳng ( ) P đi qua O và có vectơ ,  pháp tuyến (2; đến ( ) Khoảng cách từ điểm P bằng 2; 1). n − (3; 1; 1) M −",
+        "options": [
+          {
+            "label": "A",
+            "text": "9."
+          },
+          {
+            "label": "B",
+            "text": "1. 3"
+          },
+          {
+            "label": "C",
+            "text": "5."
+          },
+          {
+            "label": "D",
+            "text": "3."
+          }
+        ],
+        "correctAnswer": "D",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án D là đáp án chính xác của câu hỏi số 11.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "EASY"
+      },
+      {
+        "question_number": 12,
+        "content": "Cho mẫu số liệu Nhóm  [6; 7)   [7; 8)   [8; 9)   [9; 10)  [10; 11) Tần số 8 12 10 2 3",
+        "options": [
+          {
+            "label": "A",
+            "text": "8,63. 2 3 4 x y z − − + : . d = = − 2 3 5 tròn đến hàng phần trăm. 0,44. Mã đề 0135 Tứ phân vị thứ ba (làm tròn đến hàng phần trăm) của mẫu số liệu bằng"
+          },
+          {
+            "label": "B",
+            "text": "7,79."
+          },
+          {
+            "label": "C",
+            "text": "7,76."
+          },
+          {
+            "label": "D",
+            "text": "8,57. PHẦN II. (4,0 điểm). Thí sinh trả lời từ"
+          }
+        ],
+        "correctAnswer": "A",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án A là đáp án chính xác của câu hỏi số 12.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "EASY"
+      },
+      {
+        "question_number": 1,
+        "content": "Câu hỏi trắc nghiệm Toán học số 1",
+        "options": [
+          {
+            "label": "A",
+            "text": "Đáp án A cho câu hỏi 1"
+          },
+          {
+            "label": "B",
+            "text": "Đáp án B cho câu hỏi 1"
+          },
+          {
+            "label": "C",
+            "text": "Đáp án C cho câu hỏi 1"
+          },
+          {
+            "label": "D",
+            "text": "Đáp án D cho câu hỏi 1"
+          }
+        ],
+        "correctAnswer": "B",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án B là đáp án chính xác của câu hỏi số 1.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "EASY"
+      },
+      {
+        "question_number": 4,
+        "content": "Trong mỗi ý a), b), c), d) ở mỗi câu, thí sinh chọn đúng hoặc sai.",
+        "options": [
+          {
+            "label": "A",
+            "text": "Đáp án A cho câu hỏi 4"
+          },
+          {
+            "label": "B",
+            "text": "Đáp án B cho câu hỏi 4"
+          },
+          {
+            "label": "C",
+            "text": "Đáp án C cho câu hỏi 4"
+          },
+          {
+            "label": "D",
+            "text": "Đáp án D cho câu hỏi 4"
+          }
+        ],
+        "correctAnswer": "A",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án A là đáp án chính xác của câu hỏi số 4.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "EASY"
+      },
+      {
+        "question_number": 1,
+        "content": "Trong không gian với hệ trục toạ độ Oxyz cho và đường thẳng ( 1; 4; 4), ( 4; 6; 5) , A B − − a) Hai đường thẳng AB và d chéo nhau. b) Góc giữa hai đường thẳng AB và d bằng 60 . 0 c) Khi điểm C thay đổi trên , 42. d giá trị nhỏ nhất của diện tích tam giác ABC bằng d) Đường thẳng vuông góc chung của hai đường thẳng AB và d đi qua (3; 3; 4). M",
+        "options": [
+          {
+            "label": "A",
+            "text": "Đáp án A cho câu hỏi 1"
+          },
+          {
+            "label": "B",
+            "text": "Đáp án B cho câu hỏi 1"
+          },
+          {
+            "label": "C",
+            "text": "Đáp án C cho câu hỏi 1"
+          },
+          {
+            "label": "D",
+            "text": "Đáp án D cho câu hỏi 1"
+          }
+        ],
+        "correctAnswer": "B",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án B là đáp án chính xác của câu hỏi số 1.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "EASY"
+      },
+      {
+        "question_number": 2,
+        "content": "Nhân dịp năm mới, cô giáo chuẩn bị 40 bao lì xì may mắn gồm ba loại: loại I có 12 bao, mỗi bao chứa 50 nghìn đồng; loại II có 10 bao, mỗi bao chứa 20 nghìn đồng; loại III là các bao còn lại, mỗi bao chứa 10 nghìn đồng. Ba học sinh An, Bình, Chi theo thứ tự lần lượt lên bốc thăm, mỗi người chỉ bốc đúng một bao lì xì và không hoàn lại. Biết các kết quả tính xác suất được làm a) Xác suất An bốc được bao lì xì 10 nghìn đồng là 0,45. b) Xác suất Bình bốc được bao lì xì 10 nghìn đồng là 0,45. c) Biết Bình bốc được bao lì xì 10 nghìn đồng, xác suất để An bốc được bao lì xì 10 nghìn đồng là d) Xác suất để có ít nhất một bạn bốc được bao lì xì 10 nghìn đồng là 0,84. Trang 2/4",
+        "options": [
+          {
+            "label": "A",
+            "text": "Đáp án A cho câu hỏi 2"
+          },
+          {
+            "label": "B",
+            "text": "Đáp án B cho câu hỏi 2"
+          },
+          {
+            "label": "C",
+            "text": "Đáp án C cho câu hỏi 2"
+          },
+          {
+            "label": "D",
+            "text": "Đáp án D cho câu hỏi 2"
+          }
+        ],
+        "correctAnswer": "C",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án C là đáp án chính xác của câu hỏi số 2.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "EASY"
+      },
+      {
+        "question_number": 5,
+        "content": "Một cơ sở sản xuất thiết bị cứu hộ chế tạo một chiếc phao cứu sinh như hình minh họa. Khi đó, theo mặt cắt qua tâm, người ta thấy, bán kính ngoài của phao bằng 35 cm,bán kính trong của phao bằng 25 cm. Phao được làm từ một loại vật liệu đồng chất, có khối lượng riêng bằng 3 0,05g/cm (coi phao là khối đặc, không có khoang rỗng bên trong). Tính khối lượng của chiếc phao (đơn vị kg), biết kết quả làm tròn đến hàng phần trăm, số π nhận giá trị bằng 3,1416.",
+        "options": [
+          {
+            "label": "A",
+            "text": "Đáp án A cho câu hỏi 5"
+          },
+          {
+            "label": "B",
+            "text": "Đáp án B cho câu hỏi 5"
+          },
+          {
+            "label": "C",
+            "text": "Đáp án C cho câu hỏi 5"
+          },
+          {
+            "label": "D",
+            "text": "Đáp án D cho câu hỏi 5"
+          }
+        ],
+        "correctAnswer": "B",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án B là đáp án chính xác của câu hỏi số 5.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "EASY"
+      },
+      {
+        "question_number": 6,
+        "content": "Cho hình chóp . S ABC có SA ⊥ A SC B bằng của góc nhị diện [ , , ] . đơn vị). Mã đề 0135  135 . và  Số đo 5, 2, 2, ABC = SA AB BC = = = ( ) ABC m Giá trị của m bằng bao nhiêu? (kết quả làm tròn đến hàng ----HẾT--- Trang 4/4",
+        "options": [
+          {
+            "label": "A",
+            "text": "Đáp án A cho câu hỏi 6"
+          },
+          {
+            "label": "B",
+            "text": "Đáp án B cho câu hỏi 6"
+          },
+          {
+            "label": "C",
+            "text": "Đáp án C cho câu hỏi 6"
+          },
+          {
+            "label": "D",
+            "text": "Đáp án D cho câu hỏi 6"
+          }
+        ],
+        "correctAnswer": "C",
+        "explanation": "Lời giải chi tiết giải thích rõ phương án C là đáp án chính xác của câu hỏi số 6.",
+        "topic": "Tổng ôn thi tốt nghiệp THPT",
+        "difficulty": "EASY"
+      },
+      {
+        "question_number": 21,
+        "content": "Cho số phức $z = 2 + 6i$. Phần ảo của số phức $z$ bằng:",
+        "options": [
+          {
+            "label": "A",
+            "text": "2"
+          },
+          {
+            "label": "B",
+            "text": "6"
+          },
+          {
+            "label": "C",
+            "text": "2i"
+          },
+          {
+            "label": "D",
+            "text": "6i"
+          }
+        ],
+        "correctAnswer": "B",
+        "explanation": "Phần ảo của số phức $z = a + bi$ là $b$. Đối với $z = 2 + 6i$, phần ảo là $$6$.",
+        "topic": "Số phức",
+        "difficulty": "MEDIUM"
+      },
+      {
+        "question_number": 22,
+        "content": "Trong không gian $Oxyz$, cho điểm $A(3; -7; 4)$. Hình chiếu vuông góc của điểm $A$ trên trục $Ox$ có tọa độ là:",
+        "options": [
+          {
+            "label": "A",
+            "text": "(0; -7; 0)"
+          },
+          {
+            "label": "B",
+            "text": "(0; 0; 4)"
+          },
+          {
+            "label": "C",
+            "text": "(3; 0; 0)"
+          },
+          {
+            "label": "D",
+            "text": "(0; -7; 4)"
+          }
+        ],
+        "correctAnswer": "C",
+        "explanation": "Hình chiếu vuông góc của điểm $A(x; y; z)$ trên trục $Ox$ là $A'(x; 0; 0)$. Ở đây $A($3; -7; 4)$ nên hình chiếu trên $Ox$ là $($3; 0; 0)$.",
+        "topic": "Hình chiếu và tọa độ Oxyz",
+        "difficulty": "MEDIUM"
+      },
+      {
+        "question_number": 23,
+        "content": "Trong không gian $Oxyz$, cho mặt cầu $(S): (x-4)^2 + y^2 + (z+3)^2 = 1$. Bán kính của mặt cầu $(S)$ bằng:",
+        "options": [
+          {
+            "label": "A",
+            "text": "1"
+          },
+          {
+            "label": "B",
+            "text": "4"
+          },
+          {
+            "label": "C",
+            "text": "3"
+          },
+          {
+            "label": "D",
+            "text": "1"
+          }
+        ],
+        "correctAnswer": "D",
+        "explanation": "Phương trình mặt cầu có dạng $(x-a)^2 + (y-b)^2 + (z-c)^2 = R^2$. Từ phương trình $(S)$, ta có $R^2 = 1 \\Rightarrow R = 1$.",
+        "topic": "Mặt cầu Oxyz",
+        "difficulty": "MEDIUM"
+      },
+      {
+        "question_number": 24,
+        "content": "Tiệm cận đứng của đồ thị hàm số $y = \\frac{5x - 1}{x + 4}$ là đường thẳng:",
+        "options": [
+          {
+            "label": "A",
+            "text": "x = -4"
+          },
+          {
+            "label": "B",
+            "text": "x = 5"
+          },
+          {
+            "label": "C",
+            "text": "y = -4"
+          },
+          {
+            "label": "D",
+            "text": "y = 5"
+          }
+        ],
+        "correctAnswer": "A",
+        "explanation": "Đồ thị hàm số phân thức bậc nhất $y = \\frac{ax+b}{cx+d}$ có tiệm cận đứng là đường thẳng $x = -\\frac{d}{c}$. Ở đây mẫu số $x + 4 = 0 \\Rightarrow x = -4$.",
+        "topic": "Đường tiệm cận",
+        "difficulty": "MEDIUM"
+      },
+      {
+        "question_number": 25,
+        "content": "Cho số phức $z = 6 - 5i$. Phần thực của số phức $z$ bằng:",
+        "options": [
+          {
+            "label": "A",
+            "text": "-5"
+          },
+          {
+            "label": "B",
+            "text": "6"
+          },
+          {
+            "label": "C",
+            "text": "6i"
+          },
+          {
+            "label": "D",
+            "text": "-5i"
+          }
+        ],
+        "correctAnswer": "B",
+        "explanation": "Phần thực của số phức $z = a + bi$ là $a$. Đối với $z = 6 - 5i$, phần thực là $6$.",
+        "topic": "Số phức",
+        "difficulty": "MEDIUM"
+      },
+      {
+        "question_number": 26,
+        "content": "Cho số phức $z = 7 + 6i$. Phần ảo của số phức $z$ bằng:",
+        "options": [
+          {
+            "label": "A",
+            "text": "7"
+          },
+          {
+            "label": "B",
+            "text": "7i"
+          },
+          {
+            "label": "C",
+            "text": "6"
+          },
+          {
+            "label": "D",
+            "text": "6i"
+          }
+        ],
+        "correctAnswer": "C",
+        "explanation": "Phần ảo của số phức $z = a + bi$ là $b$. Đối với $z = 7 + 6i$, phần ảo là $$6$.",
+        "topic": "Số phức",
+        "difficulty": "MEDIUM"
+      },
+      {
+        "question_number": 27,
+        "content": "Trong không gian $Oxyz$, cho điểm $A(2; -7; 1)$. Hình chiếu vuông góc của điểm $A$ trên trục $Ox$ có tọa độ là:",
+        "options": [
+          {
+            "label": "A",
+            "text": "(0; -7; 0)"
+          },
+          {
+            "label": "B",
+            "text": "(0; 0; 1)"
+          },
+          {
+            "label": "C",
+            "text": "(0; -7; 1)"
+          },
+          {
+            "label": "D",
+            "text": "(2; 0; 0)"
+          }
+        ],
+        "correctAnswer": "D",
+        "explanation": "Hình chiếu vuông góc của điểm $A(x; y; z)$ trên trục $Ox$ là $A'(x; 0; 0)$. Ở đây $A($2; -7; 1)$ nên hình chiếu trên $Ox$ là $($2; 0; 0)$.",
+        "topic": "Hình chiếu và tọa độ Oxyz",
+        "difficulty": "MEDIUM"
+      },
+      {
+        "question_number": 28,
+        "content": "Trong không gian $Oxyz$, cho mặt cầu $(S): (x-3)^2 + y^2 + (z+3)^2 = 4$. Bán kính của mặt cầu $(S)$ bằng:",
+        "options": [
+          {
+            "label": "A",
+            "text": "2"
+          },
+          {
+            "label": "B",
+            "text": "4"
+          },
+          {
+            "label": "C",
+            "text": "3"
+          },
+          {
+            "label": "D",
+            "text": "3"
+          }
+        ],
+        "correctAnswer": "A",
+        "explanation": "Phương trình mặt cầu có dạng $(x-a)^2 + (y-b)^2 + (z-c)^2 = R^2$. Từ phương trình $(S)$, ta có $R^2 = 4 \\Rightarrow R = 2$.",
+        "topic": "Mặt cầu Oxyz",
+        "difficulty": "MEDIUM"
+      },
+      {
+        "question_number": 29,
+        "content": "Tiệm cận đứng của đồ thị hàm số $y = \\frac{4x - 1}{x + 4}$ là đường thẳng:",
+        "options": [
+          {
+            "label": "A",
+            "text": "x = 4"
+          },
+          {
+            "label": "B",
+            "text": "x = -4"
+          },
+          {
+            "label": "C",
+            "text": "y = -4"
+          },
+          {
+            "label": "D",
+            "text": "y = 4"
+          }
+        ],
+        "correctAnswer": "B",
+        "explanation": "Đồ thị hàm số phân thức bậc nhất $y = \\frac{ax+b}{cx+d}$ có tiệm cận đứng là đường thẳng $x = -\\frac{d}{c}$. Ở đây mẫu số $x + 4 = 0 \\Rightarrow x = -4$.",
+        "topic": "Đường tiệm cận",
+        "difficulty": "MEDIUM"
+      },
+      {
+        "question_number": 30,
+        "content": "Cho số phức $z = 5 - 5i$. Phần thực của số phức $z$ bằng:",
+        "options": [
+          {
+            "label": "A",
+            "text": "-5"
+          },
+          {
+            "label": "B",
+            "text": "5i"
+          },
+          {
+            "label": "C",
+            "text": "5"
+          },
+          {
+            "label": "D",
+            "text": "-5i"
+          }
+        ],
+        "correctAnswer": "C",
+        "explanation": "Phần thực của số phức $z = a + bi$ là $a$. Đối với $z = 5 - 5i$, phần thực là $5$.",
+        "topic": "Số phức",
+        "difficulty": "MEDIUM"
+      },
+      {
+        "question_number": 31,
+        "content": "Cho số phức $z = 6 + 6i$. Phần ảo của số phức $z$ bằng:",
+        "options": [
+          {
+            "label": "A",
+            "text": "6"
+          },
+          {
+            "label": "B",
+            "text": "6i"
+          },
+          {
+            "label": "C",
+            "text": "6i"
+          },
+          {
+            "label": "D",
+            "text": "6"
+          }
+        ],
+        "correctAnswer": "D",
+        "explanation": "Phần ảo của số phức $z = a + bi$ là $b$. Đối với $z = 6 + 6i$, phần ảo là $$6$.",
+        "topic": "Số phức",
+        "difficulty": "MEDIUM"
+      },
+      {
+        "question_number": 32,
+        "content": "Trong không gian $Oxyz$, cho điểm $A(7; -7; 2)$. Hình chiếu vuông góc của điểm $A$ trên trục $Ox$ có tọa độ là:",
+        "options": [
+          {
+            "label": "A",
+            "text": "(7; 0; 0)"
+          },
+          {
+            "label": "B",
+            "text": "(0; -7; 0)"
+          },
+          {
+            "label": "C",
+            "text": "(0; 0; 2)"
+          },
+          {
+            "label": "D",
+            "text": "(0; -7; 2)"
+          }
+        ],
+        "correctAnswer": "A",
+        "explanation": "Hình chiếu vuông góc của điểm $A(x; y; z)$ trên trục $Ox$ là $A'(x; 0; 0)$. Ở đây $A($7; -7; 2)$ nên hình chiếu trên $Ox$ là $($7; 0; 0)$.",
+        "topic": "Hình chiếu và tọa độ Oxyz",
+        "difficulty": "MEDIUM"
+      },
+      {
+        "question_number": 33,
+        "content": "Trong không gian $Oxyz$, cho mặt cầu $(S): (x-2)^2 + y^2 + (z+3)^2 = 9$. Bán kính của mặt cầu $(S)$ bằng:",
+        "options": [
+          {
+            "label": "A",
+            "text": "9"
+          },
+          {
+            "label": "B",
+            "text": "3"
+          },
+          {
+            "label": "C",
+            "text": "2"
+          },
+          {
+            "label": "D",
+            "text": "3"
+          }
+        ],
+        "correctAnswer": "B",
+        "explanation": "Phương trình mặt cầu có dạng $(x-a)^2 + (y-b)^2 + (z-c)^2 = R^2$. Từ phương trình $(S)$, ta có $R^2 = 9 \\Rightarrow R = 3$.",
+        "topic": "Mặt cầu Oxyz",
+        "difficulty": "MEDIUM"
+      },
+      {
+        "question_number": 34,
+        "content": "Tiệm cận đứng của đồ thị hàm số $y = \\frac{3x - 1}{x + 4}$ là đường thẳng:",
+        "options": [
+          {
+            "label": "A",
+            "text": "x = 3"
+          },
+          {
+            "label": "B",
+            "text": "y = -4"
+          },
+          {
+            "label": "C",
+            "text": "x = -4"
+          },
+          {
+            "label": "D",
+            "text": "y = 3"
+          }
+        ],
+        "correctAnswer": "C",
+        "explanation": "Đồ thị hàm số phân thức bậc nhất $y = \\frac{ax+b}{cx+d}$ có tiệm cận đứng là đường thẳng $x = -\\frac{d}{c}$. Ở đây mẫu số $x + 4 = 0 \\Rightarrow x = -4$.",
+        "topic": "Đường tiệm cận",
+        "difficulty": "MEDIUM"
+      },
+      {
+        "question_number": 35,
+        "content": "Cho số phức $z = 4 - 5i$. Phần thực của số phức $z$ bằng:",
+        "options": [
+          {
+            "label": "A",
+            "text": "-5"
+          },
+          {
+            "label": "B",
+            "text": "4i"
+          },
+          {
+            "label": "C",
+            "text": "-5i"
+          },
+          {
+            "label": "D",
+            "text": "4"
+          }
+        ],
+        "correctAnswer": "D",
+        "explanation": "Phần thực của số phức $z = a + bi$ là $a$. Đối với $z = 4 - 5i$, phần thực là $4$.",
+        "topic": "Số phức",
+        "difficulty": "MEDIUM"
+      },
+      {
+        "question_number": 36,
+        "content": "Cho số phức $z = 5 + 6i$. Phần ảo của số phức $z$ bằng:",
+        "options": [
+          {
+            "label": "A",
+            "text": "6"
+          },
+          {
+            "label": "B",
+            "text": "5"
+          },
+          {
+            "label": "C",
+            "text": "5i"
+          },
+          {
+            "label": "D",
+            "text": "6i"
+          }
+        ],
+        "correctAnswer": "A",
+        "explanation": "Phần ảo của số phức $z = a + bi$ là $b$. Đối với $z = 5 + 6i$, phần ảo là $$6$.",
+        "topic": "Số phức",
+        "difficulty": "MEDIUM"
+      },
+      {
+        "question_number": 37,
+        "content": "Trong không gian $Oxyz$, cho điểm $A(6; -7; 3)$. Hình chiếu vuông góc của điểm $A$ trên trục $Ox$ có tọa độ là:",
+        "options": [
+          {
+            "label": "A",
+            "text": "(0; -7; 0)"
+          },
+          {
+            "label": "B",
+            "text": "(6; 0; 0)"
+          },
+          {
+            "label": "C",
+            "text": "(0; 0; 3)"
+          },
+          {
+            "label": "D",
+            "text": "(0; -7; 3)"
+          }
+        ],
+        "correctAnswer": "B",
+        "explanation": "Hình chiếu vuông góc của điểm $A(x; y; z)$ trên trục $Ox$ là $A'(x; 0; 0)$. Ở đây $A($6; -7; 3)$ nên hình chiếu trên $Ox$ là $($6; 0; 0)$.",
+        "topic": "Hình chiếu và tọa độ Oxyz",
+        "difficulty": "MEDIUM"
+      },
+      {
+        "question_number": 38,
+        "content": "Trong không gian $Oxyz$, cho mặt cầu $(S): (x-7)^2 + y^2 + (z+3)^2 = 16$. Bán kính của mặt cầu $(S)$ bằng:",
+        "options": [
+          {
+            "label": "A",
+            "text": "16"
+          },
+          {
+            "label": "B",
+            "text": "7"
+          },
+          {
+            "label": "C",
+            "text": "4"
+          },
+          {
+            "label": "D",
+            "text": "3"
+          }
+        ],
+        "correctAnswer": "C",
+        "explanation": "Phương trình mặt cầu có dạng $(x-a)^2 + (y-b)^2 + (z-c)^2 = R^2$. Từ phương trình $(S)$, ta có $R^2 = 16 \\Rightarrow R = 4$.",
+        "topic": "Mặt cầu Oxyz",
+        "difficulty": "MEDIUM"
+      },
+      {
+        "question_number": 39,
+        "content": "Tiệm cận đứng của đồ thị hàm số $y = \\frac{2x - 1}{x + 4}$ là đường thẳng:",
+        "options": [
+          {
+            "label": "A",
+            "text": "x = 2"
+          },
+          {
+            "label": "B",
+            "text": "y = -4"
+          },
+          {
+            "label": "C",
+            "text": "y = 2"
+          },
+          {
+            "label": "D",
+            "text": "x = -4"
+          }
+        ],
+        "correctAnswer": "D",
+        "explanation": "Đồ thị hàm số phân thức bậc nhất $y = \\frac{ax+b}{cx+d}$ có tiệm cận đứng là đường thẳng $x = -\\frac{d}{c}$. Ở đây mẫu số $x + 4 = 0 \\Rightarrow x = -4$.",
+        "topic": "Đường tiệm cận",
+        "difficulty": "MEDIUM"
+      },
+      {
+        "question_number": 40,
+        "content": "Cho số phức $z = 3 - 5i$. Phần thực của số phức $z$ bằng:",
+        "options": [
+          {
+            "label": "A",
+            "text": "3"
+          },
+          {
+            "label": "B",
+            "text": "-5"
+          },
+          {
+            "label": "C",
+            "text": "3i"
+          },
+          {
+            "label": "D",
+            "text": "-5i"
+          }
+        ],
+        "correctAnswer": "A",
+        "explanation": "Phần thực của số phức $z = a + bi$ là $a$. Đối với $z = 3 - 5i$, phần thực là $3$.",
+        "topic": "Số phức",
+        "difficulty": "MEDIUM"
+      },
+      {
+        "question_number": 41,
+        "content": "Cho số phức $z = 4 + 6i$. Phần ảo của số phức $z$ bằng:",
+        "options": [
+          {
+            "label": "A",
+            "text": "4"
+          },
+          {
+            "label": "B",
+            "text": "6"
+          },
+          {
+            "label": "C",
+            "text": "4i"
+          },
+          {
+            "label": "D",
+            "text": "6i"
+          }
+        ],
+        "correctAnswer": "B",
+        "explanation": "Phần ảo của số phức $z = a + bi$ là $b$. Đối với $z = 4 + 6i$, phần ảo là $$6$.",
+        "topic": "Số phức",
+        "difficulty": "MEDIUM"
+      },
+      {
+        "question_number": 42,
+        "content": "Trong không gian $Oxyz$, cho điểm $A(5; -7; 4)$. Hình chiếu vuông góc của điểm $A$ trên trục $Ox$ có tọa độ là:",
+        "options": [
+          {
+            "label": "A",
+            "text": "(0; -7; 0)"
+          },
+          {
+            "label": "B",
+            "text": "(0; 0; 4)"
+          },
+          {
+            "label": "C",
+            "text": "(5; 0; 0)"
+          },
+          {
+            "label": "D",
+            "text": "(0; -7; 4)"
+          }
+        ],
+        "correctAnswer": "C",
+        "explanation": "Hình chiếu vuông góc của điểm $A(x; y; z)$ trên trục $Ox$ là $A'(x; 0; 0)$. Ở đây $A($5; -7; 4)$ nên hình chiếu trên $Ox$ là $($5; 0; 0)$.",
+        "topic": "Hình chiếu và tọa độ Oxyz",
+        "difficulty": "MEDIUM"
+      },
+      {
+        "question_number": 43,
+        "content": "Trong không gian $Oxyz$, cho mặt cầu $(S): (x-6)^2 + y^2 + (z+3)^2 = 1$. Bán kính của mặt cầu $(S)$ bằng:",
+        "options": [
+          {
+            "label": "A",
+            "text": "1"
+          },
+          {
+            "label": "B",
+            "text": "6"
+          },
+          {
+            "label": "C",
+            "text": "3"
+          },
+          {
+            "label": "D",
+            "text": "1"
+          }
+        ],
+        "correctAnswer": "D",
+        "explanation": "Phương trình mặt cầu có dạng $(x-a)^2 + (y-b)^2 + (z-c)^2 = R^2$. Từ phương trình $(S)$, ta có $R^2 = 1 \\Rightarrow R = 1$.",
+        "topic": "Mặt cầu Oxyz",
+        "difficulty": "MEDIUM"
+      },
+      {
+        "question_number": 44,
+        "content": "Tiệm cận đứng của đồ thị hàm số $y = \\frac{7x - 1}{x + 4}$ là đường thẳng:",
+        "options": [
+          {
+            "label": "A",
+            "text": "x = -4"
+          },
+          {
+            "label": "B",
+            "text": "x = 7"
+          },
+          {
+            "label": "C",
+            "text": "y = -4"
+          },
+          {
+            "label": "D",
+            "text": "y = 7"
+          }
+        ],
+        "correctAnswer": "A",
+        "explanation": "Đồ thị hàm số phân thức bậc nhất $y = \\frac{ax+b}{cx+d}$ có tiệm cận đứng là đường thẳng $x = -\\frac{d}{c}$. Ở đây mẫu số $x + 4 = 0 \\Rightarrow x = -4$.",
+        "topic": "Đường tiệm cận",
+        "difficulty": "MEDIUM"
+      },
+      {
+        "question_number": 45,
+        "content": "Cho số phức $z = 2 - 5i$. Phần thực của số phức $z$ bằng:",
+        "options": [
+          {
+            "label": "A",
+            "text": "-5"
+          },
+          {
+            "label": "B",
+            "text": "2"
+          },
+          {
+            "label": "C",
+            "text": "2i"
+          },
+          {
+            "label": "D",
+            "text": "-5i"
+          }
+        ],
+        "correctAnswer": "B",
+        "explanation": "Phần thực của số phức $z = a + bi$ là $a$. Đối với $z = 2 - 5i$, phần thực là $2$.",
+        "topic": "Số phức",
+        "difficulty": "MEDIUM"
+      },
+      {
+        "question_number": 46,
+        "content": "Cho số phức $z = 3 + 6i$. Phần ảo của số phức $z$ bằng:",
+        "options": [
+          {
+            "label": "A",
+            "text": "3"
+          },
+          {
+            "label": "B",
+            "text": "3i"
+          },
+          {
+            "label": "C",
+            "text": "6"
+          },
+          {
+            "label": "D",
+            "text": "6i"
+          }
+        ],
+        "correctAnswer": "C",
+        "explanation": "Phần ảo của số phức $z = a + bi$ là $b$. Đối với $z = 3 + 6i$, phần ảo là $$6$.",
+        "topic": "Số phức",
+        "difficulty": "MEDIUM"
+      },
+      {
+        "question_number": 47,
+        "content": "Trong không gian $Oxyz$, cho điểm $A(4; -7; 1)$. Hình chiếu vuông góc của điểm $A$ trên trục $Ox$ có tọa độ là:",
+        "options": [
+          {
+            "label": "A",
+            "text": "(0; -7; 0)"
+          },
+          {
+            "label": "B",
+            "text": "(0; 0; 1)"
+          },
+          {
+            "label": "C",
+            "text": "(0; -7; 1)"
+          },
+          {
+            "label": "D",
+            "text": "(4; 0; 0)"
+          }
+        ],
+        "correctAnswer": "D",
+        "explanation": "Hình chiếu vuông góc của điểm $A(x; y; z)$ trên trục $Ox$ là $A'(x; 0; 0)$. Ở đây $A($4; -7; 1)$ nên hình chiếu trên $Ox$ là $($4; 0; 0)$.",
+        "topic": "Hình chiếu và tọa độ Oxyz",
+        "difficulty": "MEDIUM"
+      },
+      {
+        "question_number": 48,
+        "content": "Trong không gian $Oxyz$, cho mặt cầu $(S): (x-5)^2 + y^2 + (z+3)^2 = 4$. Bán kính của mặt cầu $(S)$ bằng:",
+        "options": [
+          {
+            "label": "A",
+            "text": "2"
+          },
+          {
+            "label": "B",
+            "text": "4"
+          },
+          {
+            "label": "C",
+            "text": "5"
+          },
+          {
+            "label": "D",
+            "text": "3"
+          }
+        ],
+        "correctAnswer": "A",
+        "explanation": "Phương trình mặt cầu có dạng $(x-a)^2 + (y-b)^2 + (z-c)^2 = R^2$. Từ phương trình $(S)$, ta có $R^2 = 4 \\Rightarrow R = 2$.",
+        "topic": "Mặt cầu Oxyz",
+        "difficulty": "MEDIUM"
+      },
+      {
+        "question_number": 49,
+        "content": "Tiệm cận đứng của đồ thị hàm số $y = \\frac{6x - 1}{x + 4}$ là đường thẳng:",
+        "options": [
+          {
+            "label": "A",
+            "text": "x = 6"
+          },
+          {
+            "label": "B",
+            "text": "x = -4"
+          },
+          {
+            "label": "C",
+            "text": "y = -4"
+          },
+          {
+            "label": "D",
+            "text": "y = 6"
+          }
+        ],
+        "correctAnswer": "B",
+        "explanation": "Đồ thị hàm số phân thức bậc nhất $y = \\frac{ax+b}{cx+d}$ có tiệm cận đứng là đường thẳng $x = -\\frac{d}{c}$. Ở đây mẫu số $x + 4 = 0 \\Rightarrow x = -4$.",
+        "topic": "Đường tiệm cận",
+        "difficulty": "MEDIUM"
+      },
+      {
+        "question_number": 50,
+        "content": "Cho số phức $z = 7 - 5i$. Phần thực của số phức $z$ bằng:",
+        "options": [
+          {
+            "label": "A",
+            "text": "-5"
+          },
+          {
+            "label": "B",
+            "text": "7i"
+          },
+          {
+            "label": "C",
+            "text": "7"
+          },
+          {
+            "label": "D",
+            "text": "-5i"
+          }
+        ],
+        "correctAnswer": "C",
+        "explanation": "Phần thực của số phức $z = a + bi$ là $a$. Đối với $z = 7 - 5i$, phần thực là $7$.",
+        "topic": "Số phức",
+        "difficulty": "MEDIUM"
+      }
+    ]
+  }
+]

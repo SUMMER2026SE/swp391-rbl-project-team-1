@@ -8,7 +8,7 @@ export async function chatbotConsult(req: Request, res: Response) {
   }
 
   const apiKey = process.env.OPENROUTER_API_KEY;
-  const model = process.env.OPENROUTER_MODEL || 'google/gemini-2.5-flash';
+  const model = process.env.OPENROUTER_MODEL || 'openrouter/free';
 
   if (!apiKey) {
     console.error('[Chatbot Error] OPENROUTER_API_KEY is not configured in .env file!');
@@ -21,29 +21,26 @@ export async function chatbotConsult(req: Request, res: Response) {
   try {
     const systemPrompt = {
       role: 'system',
-      content: 'Bạn là "EduBot" - Trợ lý AI tư vấn và hướng dẫn ôn thi THPT Quốc gia thuộc hệ thống giáo dục trực tuyến EduPath AI. ' +
-        'Nhiệm vụ của bạn là tư vấn lộ trình học tập tối ưu, định hướng ôn luyện kiến thức các môn thi (Toán, Vật lý, Hóa học, Sinh học, Tiếng Anh, Ngữ văn), ' +
-        'chia sẻ mẹo và phương pháp làm bài trắc nghiệm/tự luận, đồng thời giải đáp các câu hỏi tuyển sinh đại học. ' +
-        'Hãy phản hồi bằng tiếng Việt một cách thân thiện, cởi mở, chuyên nghiệp, luôn dùng các từ truyền cảm hứng động lực học tập cho học sinh lớp 12. ' +
-        'Hãy trình bày câu trả lời rõ ràng, có phân đoạn, sử dụng các ký tự bullet point hoặc in đậm khi cần thiết để học sinh dễ đọc.'
+      content: 'Bạn là EduBot. Trả lời cực ngắn (dưới 10 từ) bằng tiếng Việt.'
     };
 
-    // Format chat history for OpenRouter
+    // Format chat history for OpenRouter (limit to last 1 message sliced)
     const formattedMessages = [systemPrompt];
 
-    if (history && Array.isArray(history)) {
-      history.forEach((msg: { sender: 'user' | 'bot'; text: string }) => {
+    if (history && Array.isArray(history) && history.length > 0) {
+      const lastMsg = history[history.length - 1];
+      if (lastMsg && lastMsg.text) {
         formattedMessages.push({
-          role: msg.sender === 'user' ? 'user' : 'assistant',
-          content: msg.text
+          role: lastMsg.sender === 'user' ? 'user' : 'assistant',
+          content: String(lastMsg.text).substring(0, 40)
         });
-      });
+      }
     }
 
     // Push the current user message
     formattedMessages.push({
       role: 'user',
-      content: message
+      content: String(message).substring(0, 50)
     });
 
     console.log(`[Chatbot] Sending request to OpenRouter with model: ${model}`);
@@ -60,7 +57,7 @@ export async function chatbotConsult(req: Request, res: Response) {
         model: model,
         messages: formattedMessages,
         temperature: 0.7,
-        max_tokens: 1500
+        max_tokens: 40
       })
     });
 

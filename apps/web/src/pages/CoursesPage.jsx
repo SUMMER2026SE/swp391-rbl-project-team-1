@@ -1,8 +1,15 @@
 import { useState, useEffect, useMemo } from 'react';
+<<<<<<< HEAD
 import CourseCard from '../components/courses/CourseCard';
 import CourseFilter from '../components/courses/CourseFilter';
 import useCourseFilters from '../hooks/useCourseFilters';
 import { MOCK_COURSES } from '../data/courses';
+=======
+import { HiStar, HiSparkles } from 'react-icons/hi';
+import CourseCard from '../components/courses/CourseCard';
+import CourseFilter from '../components/courses/CourseFilter';
+import useCourseFilters from '../hooks/useCourseFilters';
+>>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
 
 const STATS = [
   { value: '50.000+', label: 'Học viên tin tưởng', icon: '👨‍🎓' },
@@ -25,7 +32,11 @@ function SkeletonCard() {
   );
 }
 
+<<<<<<< HEAD
 export default function CoursesPage({ currentUser, onSelectCourse, onCheckoutCourse }) {
+=======
+export default function CoursesPage({ courses, currentUser, onSelectCourse, onCheckoutCourse }) {
+>>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
   const {
     search,
     setSearch,
@@ -41,6 +52,11 @@ export default function CoursesPage({ currentUser, onSelectCourse, onCheckoutCou
     clearFilters,
   } = useCourseFilters();
 
+<<<<<<< HEAD
+=======
+  const [badgeFilter, setBadgeFilter] = useState('All');
+  const coursesList = courses || [];
+>>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
   const [loading, setLoading] = useState(true);
 
   // Simulate shimmer loading on filter/page transitions
@@ -50,11 +66,19 @@ export default function CoursesPage({ currentUser, onSelectCourse, onCheckoutCou
       setLoading(false);
     }, 450);
     return () => clearTimeout(timer);
+<<<<<<< HEAD
   }, [debouncedSearch, subject, block, level, sortBy]);
 
   // Combine filters in memory from standard database courses list
   const filteredCourses = useMemo(() => {
     let result = [...MOCK_COURSES];
+=======
+  }, [debouncedSearch, subject, block, level, sortBy, badgeFilter]);
+
+  // Combine filters in memory from standard database courses list
+  const filteredCourses = useMemo(() => {
+    let result = [...coursesList];
+>>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
     const q = debouncedSearch.trim().toLowerCase();
 
     if (q) {
@@ -70,13 +94,32 @@ export default function CoursesPage({ currentUser, onSelectCourse, onCheckoutCou
     }
 
     if (block !== 'All') {
+<<<<<<< HEAD
       result = result.filter(c => c.block === block);
+=======
+      result = result.filter(c => {
+        if (!c.block) return false;
+        const blockName = block.replace("Khối ", "").trim();
+        return c.block.includes(blockName);
+      });
+>>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
     }
 
     if (level !== 'All') {
       result = result.filter(c => c.level === level);
     }
 
+<<<<<<< HEAD
+=======
+    if (badgeFilter !== 'All') {
+      if (badgeFilter === 'MIỄN PHÍ') {
+        result = result.filter(c => c.badge?.toUpperCase() === 'MIỄN PHÍ' || c.priceSale === 0 || c.priceOriginal === 0);
+      } else {
+        result = result.filter(c => c.badge?.toUpperCase() === badgeFilter.toUpperCase());
+      }
+    }
+
+>>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
     // Sort operations
     if (sortBy === 'popular') {
       result.sort((a, b) => b.studentCount - a.studentCount);
@@ -91,7 +134,16 @@ export default function CoursesPage({ currentUser, onSelectCourse, onCheckoutCou
     }
 
     return result;
+<<<<<<< HEAD
   }, [debouncedSearch, subject, block, level, sortBy]);
+=======
+  }, [coursesList, debouncedSearch, subject, block, level, sortBy, badgeFilter]);
+
+  const handleClearFilters = () => {
+    clearFilters();
+    setBadgeFilter('All');
+  };
+>>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
 
   return (
     <div className="cp-page-container">
@@ -99,7 +151,14 @@ export default function CoursesPage({ currentUser, onSelectCourse, onCheckoutCou
         {/* ── HERO BANNER ── */}
         <div className="cp-hero">
           <div className="cp-hero__left">
+<<<<<<< HEAD
             <span className="cp-hero__eyebrow">Nền tảng học trực tuyến thích ứng AI hàng đầu</span>
+=======
+            <span className="cp-hero__eyebrow">
+              <HiSparkles style={{ marginRight: '6px', verticalAlign: 'middle', color: 'var(--emerald-primary)', fontSize: '14px' }} />
+              Nền tảng học trực tuyến thích ứng AI hàng đầu
+            </span>
+>>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
             <h1 className="cp-hero__title">
               Khóa học luyện thi<br />
               <span className="cp-hero__title-accent">THPT Quốc Gia 2026</span>
@@ -132,7 +191,15 @@ export default function CoursesPage({ currentUser, onSelectCourse, onCheckoutCou
               />
               {/* Floating trust badge */}
               <div className="cp-hero__trust-badge">
+<<<<<<< HEAD
                 <span className="cp-hero__trust-stars">★★★★★</span>
+=======
+                <div style={{ display: 'flex', gap: '2px', color: '#F59E0B', marginBottom: '3px' }}>
+                  {Array.from({ length: 5 }).map((_, idx) => (
+                    <HiStar key={idx} style={{ fontSize: '15px' }} />
+                  ))}
+                </div>
+>>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
                 <div>
                   <strong>4.95/5 Điểm Đánh giá</strong>
                   <span>từ 15,200+ học viên ôn thi</span>
@@ -155,7 +222,13 @@ export default function CoursesPage({ currentUser, onSelectCourse, onCheckoutCou
             setLevel={setLevel}
             sortBy={sortBy}
             setSortBy={setSortBy}
+<<<<<<< HEAD
             clearFilters={clearFilters}
+=======
+            badgeFilter={badgeFilter}
+            setBadgeFilter={setBadgeFilter}
+            clearFilters={handleClearFilters}
+>>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
           />
         </div>
 
@@ -166,9 +239,15 @@ export default function CoursesPage({ currentUser, onSelectCourse, onCheckoutCou
             {subject !== 'All' ? ` môn ${subject}` : ''}
             {block !== 'All' ? ` · ${block}` : ''}
           </span>
+<<<<<<< HEAD
           {(search || subject !== 'All' || block !== 'All' || level !== 'All') && (
             <button
               onClick={clearFilters}
+=======
+          {(search || subject !== 'All' || block !== 'All' || level !== 'All' || badgeFilter !== 'All') && (
+            <button
+              onClick={handleClearFilters}
+>>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
               style={{
                 background: 'none',
                 border: 'none',

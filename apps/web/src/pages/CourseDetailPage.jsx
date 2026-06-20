@@ -1,12 +1,24 @@
 import { useState, useEffect } from 'react';
+<<<<<<< HEAD
+=======
+import { toast } from '../utils/toast';
+>>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
 import { HiStar, HiUserGroup, HiBookOpen, HiClock, HiCheck, HiChevronRight, HiAcademicCap } from 'react-icons/hi';
 import CurriculumAccordion from '../components/courses/CurriculumAccordion';
 import CourseReviews from '../components/courses/CourseReviews';
 import CoursePurchaseCard from '../components/courses/CoursePurchaseCard';
+<<<<<<< HEAD
 import { MOCK_COURSES } from '../data/courses';
 import { enrollmentService } from '../services/enrollmentService';
 
 export default function CourseDetailPage({ courseId, currentUser, onNavigateToLearn, onUpdateUser, navigateTo }) {
+=======
+import { mapDbCourseToMockFormat } from '../utils/courseMapper';
+import { api } from '../api';
+import { enrollmentService } from '../services/enrollmentService';
+
+export default function CourseDetailPage({ courseId, currentUser, onNavigateToLearn, onUpdateUser, navigateTo, onAddToCart, onCheckoutCourse }) {
+>>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
   const [course, setCourse] = useState(null);
   const [isOwned, setIsOwned] = useState(false);
   const [completedLessons, setCompletedLessons] = useState([]);
@@ -16,6 +28,7 @@ export default function CourseDetailPage({ courseId, currentUser, onNavigateToLe
 
   useEffect(() => {
     setLoading(true);
+<<<<<<< HEAD
     // Locate course in mock database
     const foundCourse = MOCK_COURSES.find(c => c.id.toString() === courseId?.toString());
     setCourse(foundCourse || null);
@@ -41,6 +54,52 @@ export default function CourseDetailPage({ courseId, currentUser, onNavigateToLe
       setReviews(courseReviews);
     }
     setLoading(false);
+=======
+    const fetchCourseDetail = async () => {
+      try {
+        const data = await api.getCourseById(courseId);
+        if (data) {
+          const foundCourse = mapDbCourseToMockFormat(data);
+          setCourse(foundCourse);
+
+          // Check ownership
+          const userEnrolled = currentUser?.unlockedCourses?.includes(Number(courseId)) || currentUser?.unlockedCourses?.includes(courseId?.toString());
+          setIsOwned(userEnrolled || false);
+
+          // Load progress
+          if (currentUser) {
+            enrollmentService.getEnrolledCourseProgress(currentUser.id, courseId)
+              .then(completed => setCompletedLessons(completed || []))
+              .catch(err => console.warn('Failed loading progress:', err));
+          } else {
+            const saved = localStorage.getItem(`course_${courseId}_completed_lessons`);
+            if (saved) setCompletedLessons(JSON.parse(saved));
+          }
+
+          // Load reviews
+          const courseReviews = data.reviews?.map(r => ({
+            id: r.id,
+            course_id: r.courseId,
+            student_id: r.studentId,
+            student_name: r.student?.user?.fullName || "Học sinh",
+            student_avatar: r.student?.user?.avatarUrl || "HS",
+            rating: r.rating,
+            comment: r.comment,
+            created_at: r.createdAt
+          })) || [];
+          setReviews(courseReviews);
+        } else {
+          setCourse(null);
+        }
+      } catch (err) {
+        console.error('Failed to load course details:', err);
+        setCourse(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchCourseDetail();
+>>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
   }, [courseId, currentUser]);
 
   const handleEnroll = async (action) => {
@@ -66,6 +125,7 @@ export default function CourseDetailPage({ courseId, currentUser, onNavigateToLe
     }
 
     if (action === 'cart') {
+<<<<<<< HEAD
       alert(`Đã thêm khóa học "${course.title}" vào giỏ hàng của bạn!`);
       return;
     }
@@ -94,6 +154,46 @@ export default function CourseDetailPage({ courseId, currentUser, onNavigateToLe
     } catch (err) {
       console.error(err);
       alert('Không thể đăng ký khóa học vào lúc này, vui lòng thử lại sau.');
+=======
+      if (onAddToCart) {
+        onAddToCart(course);
+      } else {
+        toast(`Đã thêm khóa học "${course.title}" vào giỏ hàng của bạn!`, 'success');
+      }
+      return;
+    }
+
+    if (!currentUser) {
+      toast('Vui lòng đăng nhập hoặc đăng ký tài khoản để bắt đầu học tập!', 'warning');
+      return;
+    }
+
+    if (action === 'buy') {
+      if (onCheckoutCourse) {
+        onCheckoutCourse(course);
+      } else {
+        // Purchase / Enroll flow
+        try {
+          if (currentUser) {
+            await enrollmentService.enrollCourse(currentUser.id, course.id, course.priceSale);
+            setIsOwned(true);
+
+            if (onUpdateUser) {
+              const activeUnlocked = currentUser.unlockedCourses || [];
+              onUpdateUser({
+                ...currentUser,
+                unlockedCourses: [...activeUnlocked, Number(course.id), course.id.toString()]
+              });
+            }
+            toast('Đăng ký khóa học thành công! Tất cả bài giảng đã được mở khóa.', 'success');
+          }
+        } catch (err) {
+          console.error(err);
+          toast('Không thể đăng ký khóa học vào lúc này, vui lòng thử lại sau.', 'error');
+        }
+      }
+      return;
+>>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
     }
   };
 
@@ -148,7 +248,12 @@ export default function CourseDetailPage({ courseId, currentUser, onNavigateToLe
         </div>
 
         {/* ── main content header ── */}
+<<<<<<< HEAD
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+=======
+        <div className="cp-detail-header">
+          <div className="cp-detail-header__accent" />
+>>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
           <div style={{ display: 'flex', gap: '8px' }}>
             <span style={{ background: 'var(--emerald-light)', color: 'var(--emerald-primary)', fontSize: '11px', fontWeight: '800', padding: '4px 12px', borderRadius: '99px', border: '1px solid rgba(5, 150, 105, 0.1)' }}>
               Luyện thi THPTQG
@@ -158,6 +263,7 @@ export default function CourseDetailPage({ courseId, currentUser, onNavigateToLe
             </span>
           </div>
 
+<<<<<<< HEAD
           <h1 style={{ fontSize: '28px', fontWeight: '900', color: 'var(--stone-text-main)', margin: 0, lineHeight: '1.3' }}>
             {course.title}
           </h1>
@@ -180,17 +286,51 @@ export default function CourseDetailPage({ courseId, currentUser, onNavigateToLe
             <span>•</span>
             <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
               <HiClock />
+=======
+          <h1 style={{ fontSize: '32px', fontWeight: '900', color: 'var(--stone-text-main)', margin: 0, lineHeight: '1.25', letterSpacing: '-0.5px' }}>
+            {course.title}
+          </h1>
+
+          <p style={{ fontSize: '15px', color: 'var(--stone-text-secondary)', margin: '4px 0 8px 0', maxWidth: '800px', lineHeight: '1.6' }}>
+            Khóa học được biên soạn chuẩn cấu trúc của Bộ Giáo dục & Đào tạo, trang bị đầy đủ lý thuyết cốt lõi, bài tập trắc nghiệm và chẩn đoán năng lực tự động bằng Adaptive AI giúp nâng cao điểm số cấp tốc.
+          </p>
+
+          <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', fontSize: '13.5px', color: 'var(--stone-text-secondary)', fontWeight: '600', borderTop: '1px solid var(--border-warm)', paddingTop: '16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <HiStar style={{ color: '#fbbf24', fontSize: '18px' }} />
+              <strong style={{ color: 'var(--stone-text-main)', fontSize: '14.5px' }}>{course.rating.toFixed(1)}</strong> 
+              <span style={{ color: 'var(--stone-text-secondary)' }}>({reviews.length} đánh giá học sinh)</span>
+            </div>
+            <span style={{ color: 'var(--border-warm)' }}>|</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <HiUserGroup style={{ fontSize: '16px', color: 'var(--stone-text-muted)' }} />
+              <strong>{course.studentCount.toLocaleString('vi-VN')}</strong> học viên đang theo học
+            </div>
+            <span style={{ color: 'var(--border-warm)' }}>|</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <HiBookOpen style={{ fontSize: '16px', color: 'var(--stone-text-muted)' }} />
+              <strong>{course.lessonCount}</strong> bài học
+            </div>
+            <span style={{ color: 'var(--border-warm)' }}>|</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <HiClock style={{ fontSize: '16px', color: 'var(--stone-text-muted)' }} />
+>>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
               <strong>{course.durationHours} giờ</strong> thời lượng
             </div>
           </div>
         </div>
 
         {/* ── Bố cục 2 cột chính ── */}
+<<<<<<< HEAD
         <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '32px', alignItems: 'start' }} className="cp-detail-grid">
+=======
+        <div className="cp-detail-grid">
+>>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
           
           {/* CỘT TRÁI (Nội dung chính & Tabs) */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
             
+<<<<<<< HEAD
             {/* Video/Ảnh preview ở đầu */}
             <div 
               style={{ 
@@ -347,6 +487,113 @@ export default function CourseDetailPage({ courseId, currentUser, onNavigateToLe
             />
           </div>
 
+=======
+            {/* Hệ thống Tabs */}
+            <div>
+              <div className="detail-tabs-header">
+                {[
+                  { id: 'overview', label: '💡 Tổng quan' },
+                  { id: 'curriculum', label: `📋 Giáo trình (${course.lessonCount})` },
+                  { id: 'instructor', label: '👨‍🏫 Giảng viên' },
+                  { id: 'reviews', label: `⭐ Đánh giá (${reviews.length})` }
+                ].map(t => (
+                  <button
+                    key={t.id}
+                    className={`detail-tab-btn ${activeTab === t.id ? 'detail-tab-btn--active' : ''}`}
+                    onClick={() => setActiveTab(t.id)}
+                  >
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Từng panel nội dung dựa trên Active Tab */}
+              <div className="cp-detail-panel">
+                {activeTab === 'overview' && (
+                  <div>
+                    <h3 style={{ fontSize: '16px', fontWeight: '800', marginBottom: '14px', color: 'var(--stone-text-main)' }}>
+                      Giới thiệu khóa học
+                    </h3>
+                    <p style={{ fontSize: '14.5px', lineHeight: '1.7', color: 'var(--stone-text-secondary)', margin: '0 0 24px 0' }}>
+                      {course.description}
+                    </p>
+
+                    <h3 style={{ fontSize: '16px', fontWeight: '800', marginBottom: '14px', color: 'var(--stone-text-main)' }}>
+                      Em sẽ học được những gì:
+                    </h3>
+                    <div className="cp-detail-checklist">
+                      <div className="cp-detail-checklist__item">
+                        <HiCheck style={{ color: 'var(--emerald-primary)', fontSize: '18px', flexShrink: 0 }} />
+                        <span>Nắm vững toàn bộ kiến thức trọng tâm bám sát cấu trúc của Bộ GD&ĐT.</span>
+                      </div>
+                      <div className="cp-detail-checklist__item">
+                        <HiCheck style={{ color: 'var(--emerald-primary)', fontSize: '18px', flexShrink: 0 }} />
+                        <span>Thành thạo phương pháp phân tích nhanh, loại trừ trắc nghiệm cực chuẩn.</span>
+                      </div>
+                      <div className="cp-detail-checklist__item">
+                        <HiCheck style={{ color: 'var(--emerald-primary)', fontSize: '18px', flexShrink: 0 }} />
+                        <span>Tránh những bẫy nhận biết và thông hiểu kinh điển hay gặp nhất.</span>
+                      </div>
+                      <div className="cp-detail-checklist__item">
+                        <HiCheck style={{ color: 'var(--emerald-primary)', fontSize: '18px', flexShrink: 0 }} />
+                        <span>Tiếp cận kho bài kiểm tra chẩn đoán năng lực bằng Adaptive AI.</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {activeTab === 'curriculum' && (
+                  <div>
+                    <CurriculumAccordion
+                      curriculum={course.curriculum}
+                      isOwned={isOwned}
+                      onSelectLesson={(lesson) => onNavigateToLearn(course.id, lesson.id)}
+                      completedLessons={completedLessons}
+                    />
+                  </div>
+                )}
+
+                {activeTab === 'instructor' && (
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '16px' }}>
+                      <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: 'var(--emerald-primary)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '20px' }}>
+                        {course.instructor.avatar || course.instructor.name.slice(0, 2).toUpperCase()}
+                      </div>
+                      <div>
+                        <h4 style={{ fontSize: '16px', fontWeight: '800', color: 'var(--stone-text-main)', margin: 0 }}>{course.instructor.name}</h4>
+                        <span style={{ fontSize: '12px', color: 'var(--stone-text-secondary)', fontWeight: '600' }}>Cố vấn học thuật EduPath AI</span>
+                      </div>
+                    </div>
+                    <p style={{ fontSize: '14.5px', color: 'var(--stone-text-secondary)', margin: 0, lineHeight: '1.6' }}>
+                      {course.instructor.title}. Thầy/Cô là chuyên gia uy tín với hàng ngàn học sinh đạt điểm giỏi trong các kỳ thi THPT Quốc Gia trước đây, có phương pháp tiếp cận trực quan, dễ hiểu giúp học sinh lấy lại căn bản và đột phá điểm số cấp tốc.
+                    </p>
+                  </div>
+                )}
+
+                {activeTab === 'reviews' && (
+                  <div>
+                    <CourseReviews
+                      reviews={reviews}
+                      currentUser={currentUser}
+                      onAddReview={handleAddReview}
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+
+          </div>
+
+          {/* CỘT PHẢI (Sticky Mua hàng) */}
+          <div className="purchase-card-sticky">
+            <CoursePurchaseCard
+              course={course}
+              isOwned={isOwned}
+              onEnroll={handleEnroll}
+            />
+          </div>
+
+>>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
         </div>
 
       </div>

@@ -2,21 +2,35 @@ import express from 'express';
 import { createServer } from 'http';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import path from 'path';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
 import { initSocket } from './lib/socket.js';
+import { prisma } from './lib/prisma.js';
+import { upload } from './lib/s3.js';
 
+<<<<<<< HEAD
 // Controller imports
 import { login, logout, sendOtp, resendOtp, verifyOtpRegister, googleAuth, googleCompleteOnboarding, changePassword, forgotPassword, resetPassword, requestRoleChange, getRoleChangeRequests, reviewRoleChange } from './controllers/auth.js';
+=======
+import { login, logout, sendOtp, resendOtp, verifyOtpRegister, googleAuth, googleCompleteOnboarding, changePassword, forgotPassword, verifyResetOtp, resetPassword, requestRoleChange, getRoleChangeRequests, reviewRoleChange, refreshToken } from './controllers/auth.js';
+>>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
 import { getCourses, getCourseById, createCourse, getCourseStats } from './controllers/course.js';
-import { getExams, startAttempt, submitAttempt, getAttempts, getExamQuestionsPublic } from './controllers/exam.js';
-import { streamAIChat, refreshRoadmap, generateAIQuestions } from './controllers/ai.js';
+import { getExams, getExamById, startAttempt, saveAnswer, submitAttempt, getAttempts, getExamQuestionsPublic, getAttemptById, getAttemptResult, getExamHistory, recordViolation, recordExamEvent, getExamEvents, recordViolationDetail, generateAiCoach, createSmartRetake, importExam, generateSimilarQuestion } from './controllers/exam.js';
+import { streamAIChat, refreshRoadmap, generateAIQuestions, generateMindmap, saveMindmap, getMindmaps, getMindmapById, deleteMindmap, generateFlashcards, getPublicMindmapById, generateNodeQuiz, submitNodeQuiz, getNodeProgress, generateWeaknessMindmap, uploadExamFile, generateExamMindmap } from './controllers/ai.js';
+
 import { chatbotConsult } from './controllers/chatbot.js';
+import { getDocumentResources, getDocumentComments, addDocumentComment } from './controllers/document.js';
 import { createVNPayPayment, vnpayWebhook, sepayWebhook, checkEnrollmentStatus, checkUserProStatus } from './controllers/payment.js';
 import { authenticateJWT, requireRole } from './middleware/auth.js';
-import { 
+import { getAdminStats, getAdminUsers, toggleUserBan, getAdminLeads, createAdminLead, updateAdminLeadStatus, getFeatureFlags, toggleFeatureFlag } from './controllers/admin.js';
+import { getLeaderboardRankings, getActivityHeatmap } from './controllers/gamification.js';
+import {
   getCategories, createCategory, deleteCategory,
   getPosts, getPostById, createPost, deletePost, togglePinPost, reactPost,
   getComments, createComment, acceptCommentSolution,
   getStudyGroups, createStudyGroup, joinStudyGroup, leaveStudyGroup,
+  getGroupAnnouncements, createGroupAnnouncement,
   getLeaderboard, getUserGamificationProfile,
   downloadResource, createReport, getReports, resolveReport,
   getGroupRequests, handleGroupRequest, promoteGroupMember,
@@ -36,6 +50,15 @@ initSocket(server);
 // Middlewares
 app.use(cors({ origin: '*' }));
 app.use(express.json());
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const resolvedUploadsDir = path.resolve(__dirname, '../uploads');
+console.log(`[API] Static uploads serving from: ${resolvedUploadsDir}`);
+if (!fs.existsSync(resolvedUploadsDir)) {
+  fs.mkdirSync(resolvedUploadsDir, { recursive: true });
+}
+app.use('/uploads', express.static(resolvedUploadsDir));
 
 // Strip /api prefix for Vercel routing
 app.use((req, res, next) => {
@@ -59,14 +82,44 @@ app.post('/auth/resend-otp', resendOtp);
 app.post('/auth/verify-otp-register', verifyOtpRegister);
 app.post('/auth/google', googleAuth);
 app.post('/auth/forgot-password', forgotPassword);
+app.post('/auth/verify-reset-otp', verifyResetOtp);
 app.post('/auth/reset-password', resetPassword);
 app.post('/auth/google/complete-onboarding', googleCompleteOnboarding);
+app.post('/auth/refresh', refreshToken);
 app.post('/auth/change-password', authenticateJWT, changePassword);
+
+// File Upload Route
+app.post('/upload', authenticateJWT, upload.single('file'), (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ success: false, error: 'Không nhận được tệp tải lên!' });
+  }
+  const fileUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
+  return res.status(200).json({
+    success: true,
+    data: {
+      url: fileUrl,
+      filename: req.file.filename,
+      size: req.file.size,
+      mimetype: req.file.mimetype
+    }
+  });
+});
 
 // Role Change Routes
 app.post('/auth/role-change-request', authenticateJWT, requestRoleChange);
 app.get('/admin/role-change-requests', authenticateJWT, requireRole(['ADMIN']), getRoleChangeRequests);
 app.post('/admin/role-change-requests/:id/review', authenticateJWT, requireRole(['ADMIN']), reviewRoleChange);
+app.post('/admin/exams/import', authenticateJWT, requireRole(['ADMIN']), importExam);
+
+// Admin Dashboard DB & Stats Routes
+app.get('/admin/stats', authenticateJWT, requireRole(['ADMIN']), getAdminStats);
+app.get('/admin/users', authenticateJWT, requireRole(['ADMIN']), getAdminUsers);
+app.post('/admin/users/:id/ban', authenticateJWT, requireRole(['ADMIN']), toggleUserBan);
+app.get('/admin/leads', authenticateJWT, requireRole(['ADMIN']), getAdminLeads);
+app.post('/admin/leads', authenticateJWT, createAdminLead);
+app.put('/admin/leads/:id/status', authenticateJWT, requireRole(['ADMIN']), updateAdminLeadStatus);
+app.get('/admin/features', getFeatureFlags);
+app.post('/admin/features/:id/toggle', authenticateJWT, requireRole(['ADMIN']), toggleFeatureFlag);
 
 // Protected Course Routes
 app.get('/courses', getCourses);
@@ -74,12 +127,36 @@ app.get('/courses/:id', getCourseById);
 app.get('/courses/:id/stats', getCourseStats);
 app.post('/courses', authenticateJWT, requireRole(['TEACHER', 'ADMIN']), createCourse);
 
+// Document Resource Routes
+app.get('/document-resources', getDocumentResources);
+app.get('/document-resources/:id/comments', getDocumentComments);
+app.post('/document-resources/:id/comments', authenticateJWT, addDocumentComment);
+
 // Protected Exam Routes
 app.get('/exams', getExams);
+app.get('/exams/:id', getExamById);
 app.get('/exams/:id/questions', getExamQuestionsPublic);
-app.get('/exams/attempts', authenticateJWT, requireRole(['STUDENT']), getAttempts);
-app.post('/exams/:id/attempts', authenticateJWT, requireRole(['STUDENT']), startAttempt);
-app.post('/exams/:id/attempts/:attemptId/submit', authenticateJWT, requireRole(['STUDENT']), submitAttempt);
+app.get('/exams/attempts', authenticateJWT, requireRole(['STUDENT', 'TEACHER', 'ADMIN']), getAttempts);
+app.get('/exams/attempts/:attemptId', authenticateJWT, requireRole(['STUDENT', 'TEACHER', 'ADMIN']), getAttemptById);
+app.post('/exams/:id/attempts', authenticateJWT, requireRole(['STUDENT', 'TEACHER', 'ADMIN']), startAttempt);
+app.post('/exams/:id/attempts/:attemptId/submit', authenticateJWT, requireRole(['STUDENT', 'TEACHER', 'ADMIN']), submitAttempt);
+
+// Upgraded Exam Simulation Endpoints
+app.post('/exam-attempts/start', authenticateJWT, requireRole(['STUDENT', 'TEACHER', 'ADMIN']), (req, res, next) => {
+  req.params.id = String(req.body.examId);
+  next();
+}, startAttempt);
+app.post('/exam-attempts/:attemptId/save-answer', authenticateJWT, requireRole(['STUDENT', 'TEACHER', 'ADMIN']), saveAnswer);
+app.post('/exam-attempts/:attemptId/submit', authenticateJWT, requireRole(['STUDENT', 'TEACHER', 'ADMIN']), submitAttempt);
+app.get('/exam-attempts/:attemptId/result', authenticateJWT, requireRole(['STUDENT', 'TEACHER', 'ADMIN']), getAttemptResult);
+app.post('/exam-attempts/:attemptId/violation', authenticateJWT, requireRole(['STUDENT', 'TEACHER', 'ADMIN']), recordViolation);
+app.post('/exam-attempts/:attemptId/violation-detail', authenticateJWT, requireRole(['STUDENT', 'TEACHER', 'ADMIN']), recordViolationDetail);
+app.post('/exam-attempts/:attemptId/events', authenticateJWT, requireRole(['STUDENT', 'TEACHER', 'ADMIN']), recordExamEvent);
+app.get('/exam-attempts/:attemptId/events', authenticateJWT, requireRole(['STUDENT', 'TEACHER', 'ADMIN']), getExamEvents);
+app.post('/exam-attempts/:attemptId/ai-coach', authenticateJWT, requireRole(['STUDENT', 'TEACHER', 'ADMIN']), generateAiCoach);
+app.post('/exam-attempts/generate-similar-question', authenticateJWT, requireRole(['STUDENT', 'TEACHER', 'ADMIN']), generateSimilarQuestion);
+app.post('/exams/:id/smart-retake', authenticateJWT, requireRole(['STUDENT', 'TEACHER', 'ADMIN']), createSmartRetake);
+app.get('/users/me/exam-history', authenticateJWT, requireRole(['STUDENT', 'TEACHER', 'ADMIN']), getExamHistory);
 
 // Protected Payment Routes
 app.post('/enrollments', authenticateJWT, requireRole(['STUDENT']), createVNPayPayment);
@@ -98,6 +175,35 @@ app.post('/ai/chat', (req, res, next) => {
 }, streamAIChat);
 app.post('/ai/roadmap/refresh', authenticateJWT, requireRole(['STUDENT']), refreshRoadmap);
 app.post('/ai/generate-questions', authenticateJWT, requireRole(['TEACHER', 'ADMIN']), generateAIQuestions);
+
+// AI Mindmap Routes
+app.post('/ai/mindmap', (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    return authenticateJWT(req as any, res, next);
+  }
+  next();
+}, generateMindmap);
+
+app.post('/ai/flashcards', (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    return authenticateJWT(req as any, res, next);
+  }
+  next();
+}, generateFlashcards);
+app.post('/mindmaps', authenticateJWT, saveMindmap);
+app.get('/mindmaps', authenticateJWT, getMindmaps);
+app.get('/mindmaps/:id', authenticateJWT, getMindmapById);
+app.get('/mindmaps/public/:id', getPublicMindmapById);
+app.delete('/mindmaps/:id', authenticateJWT, deleteMindmap);
+
+app.post('/ai/mindmap/quiz', authenticateJWT, generateNodeQuiz);
+app.post('/ai/mindmap/quiz/submit', authenticateJWT, submitNodeQuiz);
+app.get('/mindmaps/:id/progress', authenticateJWT, getNodeProgress);
+app.post('/ai/mindmap/weakness', authenticateJWT, generateWeaknessMindmap);
+app.post('/ai/mindmap/exam-upload', authenticateJWT, upload.single('file'), uploadExamFile);
+app.post('/ai/mindmap/exam-analyse', authenticateJWT, generateExamMindmap);
 
 // Public AI Chatbot Route (No Auth required so landing page guests can use it!)
 app.post('/chatbot', chatbotConsult);
@@ -126,6 +232,7 @@ app.post('/forum/study-groups/:id/join', authenticateJWT, joinStudyGroup);
 app.post('/forum/study-groups/:id/leave', authenticateJWT, leaveStudyGroup);
 app.get('/forum/study-groups/:id/announcements', authenticateJWT, getGroupAnnouncements);
 app.post('/forum/study-groups/:id/announcements', authenticateJWT, createGroupAnnouncement);
+<<<<<<< HEAD
 
 app.get('/forum/study-groups/:id/requests', authenticateJWT, getGroupRequests);
 app.post('/forum/study-groups/:id/requests/:requestId', authenticateJWT, handleGroupRequest);
@@ -134,9 +241,14 @@ app.post('/forum/study-groups/:id/invite', authenticateJWT, inviteToGroup);
 app.get('/forum/study-groups/invitations', authenticateJWT, getUserInvitations);
 app.post('/forum/study-groups/invitations/:requestId', authenticateJWT, handleGroupInvitation);
 app.get('/forum/users/search', authenticateJWT, searchUsersToInvite);
+=======
+>>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
 
 app.get('/forum/leaderboard', getLeaderboard);
 app.get('/forum/gamification/profile', authenticateJWT, getUserGamificationProfile);
+
+app.get('/v1/leaderboard', authenticateJWT, getLeaderboardRankings);
+app.get('/v1/users/:id/activity-heatmap', authenticateJWT, getActivityHeatmap);
 
 app.post('/forum/resources/:id/download', downloadResource);
 app.post('/forum/moderation/reports', authenticateJWT, createReport);
@@ -155,4 +267,39 @@ if (!process.env.VERCEL) {
   });
 }
 
+async function seedDefaultCategories() {
+  try {
+    const count = await prisma.forumCategory.count();
+    if (count === 0) {
+      console.log('[Seed] Seeding default forum categories...');
+      const defaultCategories = [
+        { name: 'Toán học', slug: 'toan-hoc', description: 'Thảo luận và học hỏi kiến thức môn Toán học THPTQG' },
+        { name: 'Vật lý', slug: 'vat-ly', description: 'Trao đổi lời giải bài tập Vật lý và đề thi thử' },
+        { name: 'Hóa học', slug: 'hoa-hoc', description: 'Góc học tập môn Hóa học lớp 10, 11, 12' },
+        { name: 'Tiếng Anh', slug: 'tieng-anh', description: 'Chia sẻ từ vựng, ngữ pháp và đề thi mẫu THPTQG' },
+        { name: 'Sinh học', slug: 'sinh-hoc', description: 'Nơi thảo luận về môn Sinh học và kiến thức liên quan' },
+        { name: 'Thảo luận chung', slug: 'thao-luan-chung', description: 'Chia sẻ kinh nghiệm thi cử, phương pháp học tập chung' }
+      ];
+
+      for (const cat of defaultCategories) {
+        await prisma.forumCategory.create({
+          data: {
+            name: cat.name,
+            slug: cat.slug,
+            description: cat.description,
+            allowedRoles: ['STUDENT', 'TEACHER', 'ADMIN']
+          }
+        });
+      }
+      console.log('[Seed] Default forum categories seeded successfully!');
+    }
+  } catch (err) {
+    console.error('[Seed Error] Failed to seed default categories:', err);
+  }
+}
+
+// Auto-seed on startup
+seedDefaultCategories();
+
 export default app;
+

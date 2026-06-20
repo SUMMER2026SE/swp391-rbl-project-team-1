@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
+import { toast } from '../utils/toast';
 import { api } from '../api';
-import { HiArrowRight, HiCheck, HiStar, HiLightningBolt, HiMenuAlt3, HiX, HiTrendingUp, HiSparkles, HiLockClosed, HiClock, HiPlay } from 'react-icons/hi';
+import { HiArrowRight, HiCheck, HiStar, HiLightningBolt, HiMenuAlt3, HiX, HiTrendingUp, HiSparkles, HiLockClosed, HiClock, HiPlay, HiShoppingCart } from 'react-icons/hi';
 import FooterSunMascot from './FooterSunMascot';
 import Forum from './Forum';
 import SubjectsPage from './SubjectsPage';
@@ -623,6 +624,7 @@ function CourseCard({ course, currentUser, onBackToDashboard, onNavigateToAuth }
 }
 
 export default function LandingPage({ 
+  courses = [],
   currentUser, 
   onNavigateToAuth, 
   onBackToDashboard, 
@@ -636,7 +638,9 @@ export default function LandingPage({
   onNavigateToLearn,
   onUpdateUser,
   currentPath,
-  navigateTo
+  navigateTo,
+  cartCourse,
+  onAddToCart
 }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -726,6 +730,9 @@ export default function LandingPage({
       setSelectedCourseId(null);
     } else if (currentPath?.startsWith('/mock-exams')) {
       setActiveLandingView('exams');
+      setSelectedCourseId(null);
+    } else if (currentPath === '/forum' || currentPath === '/community' || currentPath === '/direct') {
+      setActiveLandingView('forum');
       setSelectedCourseId(null);
     } else if (currentPath) {
       const match = currentPath.match(/^\/courses\/(\d+)$/);
@@ -992,7 +999,7 @@ export default function LandingPage({
       setExamReviewing(false);
     } catch (err) {
       console.error("Lỗi khi tải câu hỏi đề thi:", err);
-      alert("Không thể tải câu hỏi của đề thi này. Vui lòng thử lại sau!");
+      toast("Không thể tải câu hỏi của đề thi này. Vui lòng thử lại sau!", 'error');
     } finally {
       setLoadingQuestions(false);
     }
@@ -1006,14 +1013,14 @@ export default function LandingPage({
       }, 1000);
     } else if (examTimeLeft === 0 && !examSubmitted && selectedExamSimulator && examMode === 'exam') {
       setExamSubmitted(true);
-      alert("Đã hết thời gian làm bài! Hệ thống tự động nộp bài thi thử của bạn.");
+      toast("Đã hết thời gian làm bài! Hệ thống tự động nộp bài.", 'warning');
     }
     return () => clearInterval(timer);
   }, [selectedExamSimulator, examMode, examSubmitted, examTimeLeft, examIsPaused]);
 
   const handleGenerateRoadmap = () => {
     if (!generatorWeakness.trim()) {
-      alert("Vui lòng nhập một số điểm yếu học tập chính của bạn (ví dụ: mất gốc hình không gian, ngữ pháp...) để AI phân tích!");
+      toast("Vui lòng nhập điểm yếu học tập để AI phân tích lộ trình phù hợp!", 'warning');
       return;
     }
     setGeneratorStatus('analyzing');
@@ -1053,7 +1060,10 @@ export default function LandingPage({
 
   const handleApplyPromoCode = () => {
     const code = pricingPromoCode.trim().toUpperCase();
-    if (code === 'EDUPATH2026' || code === 'THPT2026' || code === 'KHUYENMAI20') {
+    if (code === 'FREE100') {
+      setPricingPromoStatus('success');
+      setPricingDiscountPercent(100);
+    } else if (code === 'EDUPATH2026' || code === 'THPT2026' || code === 'KHUYENMAI20') {
       setPricingPromoStatus('success');
       setPricingDiscountPercent(20);
     } else {
@@ -1064,7 +1074,7 @@ export default function LandingPage({
 
   const handleAddPostPublic = (newPost) => {
     if (!currentUser) {
-      alert("Vui lòng đăng nhập hoặc đăng ký tài khoản để đóng góp bài viết trên Diễn đàn!");
+      toast("Vui lòng đăng nhập để đóng góp bài viết trên Diễn đàn!", 'warning');
       onNavigateToAuth('login');
       return;
     }
@@ -1073,7 +1083,7 @@ export default function LandingPage({
 
   const handleLikePostPublic = (postId) => {
     if (!currentUser) {
-      alert("Vui lòng đăng nhập để bình chọn bài viết yêu thích!");
+      toast("Vui lòng đăng nhập để bình chọn bài viết yêu thích!", 'warning');
       onNavigateToAuth('login');
       return;
     }
@@ -1082,7 +1092,7 @@ export default function LandingPage({
 
   const handleAddCommentPublic = (postId, newComment) => {
     if (!currentUser) {
-      alert("Vui lòng đăng nhập để tham gia thảo luận!");
+      toast("Vui lòng đăng nhập để tham gia thảo luận!", 'warning');
       onNavigateToAuth('login');
       return;
     }
@@ -1256,17 +1266,84 @@ export default function LandingPage({
           </div>
 
           <div className="lp-nav__links">
-            <a href="#home" className={activeLandingView === 'home' ? 'lp-link--active' : ''} onClick={(e) => { e.preventDefault(); setActiveLandingView('home'); }}>Trang chủ</a>
             <a href="/courses" className={activeLandingView === 'courses' ? 'lp-link--active' : ''} onClick={(e) => { e.preventDefault(); if (navigateTo) { navigateTo('/courses'); } else { setActiveLandingView('courses'); } }}>Khóa học</a>
+<<<<<<< HEAD
             <a href="/mock-exams" className={currentPath?.startsWith('/mock-exams') ? 'lp-link--active' : ''} onClick={(e) => { e.preventDefault(); if (navigateTo) { navigateTo('/mock-exams'); } else { setActiveLandingView('exams'); } }}>Thi thử</a>
             <a href="#features" className={activeLandingView === 'features' ? 'lp-link--active' : ''} onClick={(e) => { e.preventDefault(); setActiveLandingView('features'); }}>Lộ trình học</a>
             <a href="/ai-tutor" className={currentPath === '/ai-tutor' ? 'lp-link--active' : ''} onClick={(e) => { e.preventDefault(); if (navigateTo) { navigateTo('/ai-tutor'); } else { setActiveLandingView('ai-tutor'); } }}>AI Gia sư</a>
             <a href="/exam-bank" className={currentPath === '/exam-bank' ? 'lp-link--active' : ''} onClick={(e) => { e.preventDefault(); if (navigateTo) { navigateTo('/exam-bank'); } }}>Ngân hàng đề</a>
+=======
+            <a href="/mock-exams" className={currentPath?.startsWith('/mock-exams') ? 'lp-link--active' : ''} onClick={(e) => { e.preventDefault(); if (!currentUser) { toast("Vui lòng đăng nhập để sử dụng chức năng thi thử!", 'warning'); if (onNavigateToAuth) onNavigateToAuth('login'); } else { if (navigateTo) { navigateTo('/mock-exams'); } else { setActiveLandingView('exams'); } } }}>Thi thử</a>
+            <a href="/flashcards" className={currentPath === '/flashcards' ? 'lp-link--active' : ''} onClick={(e) => { e.preventDefault(); if (navigateTo) { navigateTo('/flashcards'); } else { setActiveLandingView('features'); } }}>Flashcard</a>
+            <a href="/ai-tutor" className={currentPath === '/ai-tutor' ? 'lp-link--active' : ''} onClick={(e) => { e.preventDefault(); if (navigateTo) { navigateTo('/ai-tutor'); } else { setActiveLandingView('ai-tutor'); } }}>Mindmap</a>
+            <a href="/exam-bank" className={currentPath === '/exam-bank' ? 'lp-link--active' : ''} onClick={(e) => { e.preventDefault(); if (navigateTo) { navigateTo('/exam-bank'); } }}>Ngân hàng tài liệu</a>
+>>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
             <a href="#leaderboard" className={activeLandingView === 'leaderboard' ? 'lp-link--active' : ''} onClick={(e) => { e.preventDefault(); setActiveLandingView('home'); setTimeout(() => { const el = document.getElementById('leaderboard'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 100); }}>Bảng xếp hạng</a>
-            <a href="#forum" className={activeLandingView === 'forum' ? 'lp-link--active' : ''} onClick={(e) => { e.preventDefault(); setActiveLandingView('forum'); }}>Cộng đồng</a>
+            <a href="/forum" className={activeLandingView === 'forum' ? 'lp-link--active' : ''} onClick={(e) => { e.preventDefault(); if (navigateTo) { navigateTo('/forum'); } else { setActiveLandingView('forum'); } }}>Cộng đồng</a>
           </div>
 
           <div className="lp-nav__cta">
+            {/* Desktop Cart Button */}
+            <button
+              onClick={() => {
+                if (cartCourse) {
+                  onCheckoutCourse(cartCourse);
+                } else {
+                  toast('Giỏ hàng trống! Hãy chọn một khóa học để thêm vào giỏ.', 'warning');
+                }
+              }}
+              style={{
+                background: 'rgba(255, 255, 255, 0.1)',
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                borderRadius: '50%',
+                width: '40px',
+                height: '40px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                color: '#ffffff',
+                position: 'relative',
+                transition: 'all 0.2s ease',
+                marginRight: '8px',
+                outline: 'none'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)';
+                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.3)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+              }}
+              title="Giỏ hàng"
+            >
+              <HiShoppingCart style={{ fontSize: '20px' }} />
+              {cartCourse && (
+                <span
+                  style={{
+                    position: 'absolute',
+                    top: '-4px',
+                    right: '-4px',
+                    backgroundColor: '#ef4444',
+                    color: '#ffffff',
+                    fontSize: '10px',
+                    fontWeight: 'bold',
+                    borderRadius: '50%',
+                    width: '18px',
+                    height: '18px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    border: '2px solid var(--lp-bg, #0f172a)',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                  }}
+                >
+                  1
+                </span>
+              )}
+            </button>
+
             {currentUser ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: '16px', position: 'relative' }}>
                 <button 
@@ -1490,6 +1567,57 @@ export default function LandingPage({
             )}
           </div>
 
+          {/* Mobile Cart Button */}
+          <button
+            onClick={() => {
+              if (cartCourse) {
+                onCheckoutCourse(cartCourse);
+              } else {
+                toast('Giỏ hàng trống! Hãy chọn một khóa học để thêm vào giỏ.', 'warning');
+              }
+            }}
+            className="lp-mobile-cart-btn"
+            style={{
+              background: 'rgba(255, 255, 255, 0.1)',
+              border: '1px solid rgba(255, 255, 255, 0.2)',
+              borderRadius: '50%',
+              width: '38px',
+              height: '38px',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              color: '#ffffff',
+              position: 'relative',
+              marginRight: '8px',
+              outline: 'none'
+            }}
+            title="Giỏ hàng"
+          >
+            <HiShoppingCart style={{ fontSize: '18px' }} />
+            {cartCourse && (
+              <span
+                style={{
+                  position: 'absolute',
+                  top: '-3px',
+                  right: '-3px',
+                  backgroundColor: '#ef4444',
+                  color: '#ffffff',
+                  fontSize: '9px',
+                  fontWeight: 'bold',
+                  borderRadius: '50%',
+                  width: '16px',
+                  height: '16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  border: '1.5px solid var(--lp-bg, #0f172a)'
+                }}
+              >
+                1
+              </span>
+            )}
+          </button>
+
           <button className="lp-nav__hamburger" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
             {mobileMenuOpen ? <HiX /> : <HiMenuAlt3 />}
           </button>
@@ -1497,14 +1625,20 @@ export default function LandingPage({
 
         {mobileMenuOpen && (
           <div className="lp-mobile-menu">
-            <a href="#home" onClick={(e) => { e.preventDefault(); setActiveLandingView('home'); setMobileMenuOpen(false); }}>Trang chủ</a>
             <a href="/courses" onClick={(e) => { e.preventDefault(); if (navigateTo) { navigateTo('/courses'); } else { setActiveLandingView('courses'); } setMobileMenuOpen(false); }}>Khóa học</a>
+<<<<<<< HEAD
             <a href="/mock-exams" onClick={(e) => { e.preventDefault(); if (navigateTo) { navigateTo('/mock-exams'); } else { setActiveLandingView('exams'); } setMobileMenuOpen(false); }}>Thi thử</a>
             <a href="#features" onClick={(e) => { e.preventDefault(); setActiveLandingView('features'); setMobileMenuOpen(false); }}>Lộ trình học</a>
             <a href="/ai-tutor" onClick={(e) => { e.preventDefault(); if (navigateTo) { navigateTo('/ai-tutor'); } else { setActiveLandingView('ai-tutor'); } setMobileMenuOpen(false); }}>AI Gia sư</a>
             <a href="/exam-bank" onClick={(e) => { e.preventDefault(); if (navigateTo) { navigateTo('/exam-bank'); } setMobileMenuOpen(false); }}>Ngân hàng đề</a>
+=======
+            <a href="/mock-exams" onClick={(e) => { e.preventDefault(); if (!currentUser) { toast("Vui lòng đăng nhập để sử dụng chức năng thi thử!", 'warning'); if (onNavigateToAuth) onNavigateToAuth('login'); } else { if (navigateTo) { navigateTo('/mock-exams'); } else { setActiveLandingView('exams'); } } setMobileMenuOpen(false); }}>Thi thử</a>
+            <a href="/flashcards" onClick={(e) => { e.preventDefault(); if (navigateTo) { navigateTo('/flashcards'); } else { setActiveLandingView('features'); } setMobileMenuOpen(false); }}>Flashcard</a>
+            <a href="/ai-tutor" onClick={(e) => { e.preventDefault(); if (navigateTo) { navigateTo('/ai-tutor'); } else { setActiveLandingView('ai-tutor'); } setMobileMenuOpen(false); }}>Mindmap</a>
+            <a href="/exam-bank" onClick={(e) => { e.preventDefault(); if (navigateTo) { navigateTo('/exam-bank'); } setMobileMenuOpen(false); }}>Ngân hàng tài liệu</a>
+>>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
             <a href="#leaderboard" onClick={(e) => { e.preventDefault(); setActiveLandingView('home'); setMobileMenuOpen(false); setTimeout(() => { const el = document.getElementById('leaderboard'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 100); }}>Bảng xếp hạng</a>
-            <a href="#forum" onClick={(e) => { e.preventDefault(); setActiveLandingView('forum'); setMobileMenuOpen(false); }}>Cộng đồng</a>
+            <a href="/forum" onClick={(e) => { e.preventDefault(); if (navigateTo) { navigateTo('/forum'); } else { setActiveLandingView('forum'); } setMobileMenuOpen(false); }}>Cộng đồng</a>
             
             {currentUser ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '12px', paddingTop: '12px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
@@ -1679,51 +1813,6 @@ export default function LandingPage({
         </div>
       </section>
 
-      {/* ── FEATURED PREMIUM COURSES ── */}
-      <section className="lp-premium-courses-section">
-        <div className="lp-container">
-          <div className="lp-section-header lp-section-header--light" style={{ marginBottom: '40px' }}>
-            <span className="lp-eyebrow lp-eyebrow--outline">Khóa Học Premium Nổi Bật</span>
-            <h2>Chương Trình Luyện Thi THPTQG Chuyên Sâu</h2>
-            <p>Đăng ký khóa học của các giáo viên hàng đầu để nhận lộ trình thích ứng thông minh.</p>
-          </div>
-
-          <div className="lp-courses-grid">
-            {displayCourses.map(course => (
-              <div key={course.id} className="lp-course-neo-card">
-                <div className="lp-course-header" style={{ background: course.imageBg }}>
-                  <span className="lp-course-subject-badge">
-                    {course.subject}
-                  </span>
-                  <h4 className="lp-course-title">{course.title}</h4>
-                </div>
-
-                <div className="lp-course-body">
-                  <div>
-                    <p className="lp-course-instructor">Giảng viên: <strong>{course.teacherName}</strong></p>
-                    <p className="lp-course-duration">{course.duration}</p>
-                    
-                    <div className="lp-course-meta">
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><HiStar style={{ color: '#FFC229' }} /> {course.rating}</span>
-                      <span>👤 {course.students} học viên</span>
-                    </div>
-                  </div>
-
-                  <div className="lp-course-footer">
-                    <span className="lp-course-price">{course.price}đ</span>
-                    <button 
-                      className="lp-btn-course-syllabus" 
-                      onClick={() => setSelectedPreviewCourse(course)}
-                    >
-                      Xem đề cương
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
 
       {/* ── LEADERBOARD SECTION ── */}
       <section id="leaderboard" className="lp-leaderboard-section">
@@ -1952,38 +2041,6 @@ export default function LandingPage({
       </section>
 
 
-      {/* ── STUDENT PHOTO + WHY ── */}
-      <section className="subj-why is-visible" style={{ marginTop: '80px', marginBottom: '80px' }}>
-        <div className="subj-why-photo">
-          <img src={studentSuccessImg} alt="Học sinh EduPath đạt thành tích cao" />
-          <div className="subj-why-photo-badge">
-            <strong>28.5+</strong>
-            <span>Điểm THPTQG</span>
-          </div>
-        </div>
-        <div className="subj-why-content">
-          <span className="subj-why-eyebrow">Tại sao chọn EduPath?</span>
-          <h2>Học thông minh —<br />không chỉ học chăm</h2>
-          <ul className="subj-why-list">
-            <li><HiCheck />AI phân tích điểm yếu, gợi ý đúng chương cần ôn ngay</li>
-            <li><HiCheck />Đề thi bám sát cấu trúc Bộ GD&ĐT 2024–2025</li>
-            <li><HiCheck />Lộ trình ôn tập cá nhân hóa theo từng khối thi</li>
-            <li><HiCheck />Giáo viên trực tiếp chữa bài — không phải chatbot</li>
-            <li><HiCheck />Học mọi lúc mọi nơi: điện thoại, máy tính, tablet</li>
-          </ul>
-          <div className="subj-why-stats">
-            <div className="subj-why-stat">
-              <strong>100%</strong>
-              <span>Giáo viên đạt 8.0+</span>
-            </div>
-            <div className="subj-why-stat">
-              <strong>42,500+</strong>
-              <span>Học sinh đồng hành</span>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* ── CTA BANNER ── */}
       <section className="lp-cta-banner">
         <div className="lp-container lp-cta-inner">
@@ -2030,8 +2087,8 @@ export default function LandingPage({
 
         {/* ================= 2. SUBJECTS DEDICATED PAGE ================= */}
         {activeLandingView === 'courses' && (
-          <div className="lp-container animate-in" style={{ padding: '40px 16px 80px', minHeight: '60vh' }}>
-            <div style={{ marginBottom: '24px', maxWidth: '1100px', margin: '0 auto 24px auto', padding: '0 16px' }}>
+          <div className="animate-in" style={{ background: '#F5F1E8', minHeight: '100vh', padding: '40px 0 80px' }}>
+            <div style={{ marginBottom: '24px', maxWidth: '1440px', margin: '0 auto', padding: '0 24px' }}>
               <button
                 onClick={() => {
                   if (selectedCourseId) {
@@ -2043,7 +2100,7 @@ export default function LandingPage({
                 style={{
                   background: 'none',
                   border: 'none',
-                  color: 'var(--primary, #6c5ce7)',
+                  color: 'var(--emerald-primary, #059669)',
                   fontWeight: 'bold',
                   cursor: 'pointer',
                   display: 'flex',
@@ -2063,9 +2120,12 @@ export default function LandingPage({
                 currentUser={currentUser}
                 onNavigateToLearn={onNavigateToLearn}
                 onUpdateUser={onUpdateUser}
+                onAddToCart={onAddToCart}
+                onCheckoutCourse={onCheckoutCourse}
               />
             ) : (
               <CoursesPage
+                courses={courses}
                 currentUser={currentUser}
                 onSelectCourse={(course) => setSelectedCourseId(course.id)}
                 onCheckoutCourse={onCheckoutCourse}
@@ -2381,7 +2441,7 @@ export default function LandingPage({
                 </div>
                 {pricingPromoStatus === 'success' && (
                   <p style={{ margin: '0', fontSize: '12px', color: '#22c55e', fontWeight: 'bold' }}>
-                    ✅ Áp dụng mã giảm giá thành công! Giảm ngay 20% học phí trọn gói.
+                    ✅ Áp dụng mã giảm giá thành công! Giảm ngay {pricingDiscountPercent}% học phí trọn gói.
                   </p>
                 )}
                 {pricingPromoStatus === 'invalid' && (
@@ -2558,7 +2618,7 @@ export default function LandingPage({
 
         {/* ================= 6. FORUM DEDICATED PAGE ================= */}
         {activeLandingView === 'forum' && (
-          <div className="lp-container" style={{ padding: '40px 28px 80px' }}>
+          <div style={{ maxWidth: '95%', margin: '0 auto', padding: '40px 28px 80px' }}>
             <button 
               onClick={() => setActiveLandingView('home')}
               style={{
@@ -2678,7 +2738,7 @@ export default function LandingPage({
                     </div>
                     <span className="time-display">05:42 / {selectedLessonPlayer.lesson.duration}</span>
                     <select 
-                      onChange={(e) => alert(`Đã chuyển tốc độ phát sang ${e.target.value}`)}
+                      onChange={(e) => toast(`Tốc độ phát: ${e.target.value}x`, 'success')}
                       className="speed-select"
                     >
                       <option value="1">1.0x</option>
@@ -2779,7 +2839,7 @@ export default function LandingPage({
                           style={{ marginTop: '15px' }}
                           onClick={() => {
                             if (Object.keys(lessonQuizAnswers).length < getLessonQuizQuestions(selectedLessonPlayer.course.id).length) {
-                              alert("Vui lòng hoàn thành toàn bộ các câu hỏi trắc nghiệm trước khi nộp bài!");
+                              toast("Vui lòng hoàn thành tất cả câu hỏi trước khi nộp bài!", 'warning');
                               return;
                             }
                             setLessonQuizSubmitted(true);
@@ -2944,7 +3004,7 @@ export default function LandingPage({
                   className="lp-btn lp-btn--accent lp-btn--full" 
                   onClick={() => {
                     setPricingShowCheckout(false);
-                    alert(`Đăng ký giao dịch thành công! Đặc quyền ${selectedPackage === 'elite' ? 'Elite Mentor' : 'Premium Pro'} sẽ tự động đồng bộ khi bạn đăng ký hoặc đăng nhập tài khoản bằng email này.`);
+                    toast(`Đăng ký thành công! Đặc quyền ${selectedPackage === 'elite' ? 'Elite Mentor' : 'Premium Pro'} sẽ được kích hoạt sau khi xác nhận giao dịch.`, 'success');
                     onNavigateToAuth('signup');
                   }}
                   style={{ padding: '12px', fontSize: '13.5px', fontWeight: 'bold' }}
@@ -2985,9 +3045,9 @@ export default function LandingPage({
             </div>
             <div className="lp-footer__col">
               <h4>Tính năng</h4>
-              <a href="#features" onClick={(e) => { e.preventDefault(); setActiveLandingView('features'); }}>Lộ trình học</a>
-              <a href="/mock-exams" onClick={(e) => { e.preventDefault(); if (navigateTo) { navigateTo('/mock-exams'); } else { setActiveLandingView('exams'); } }}>Thi thử</a>
-              <a href="#forum" onClick={(e) => { e.preventDefault(); setActiveLandingView('forum'); }}>Cộng đồng</a>
+              <a href="/flashcards" onClick={(e) => { e.preventDefault(); if (navigateTo) { navigateTo('/flashcards'); } }}>Flashcard</a>
+              <a href="/mock-exams" onClick={(e) => { e.preventDefault(); if (!currentUser) { toast("Vui lòng đăng nhập để sử dụng chức năng thi thử!", 'warning'); if (onNavigateToAuth) onNavigateToAuth('login'); } else { if (navigateTo) { navigateTo('/mock-exams'); } else { setActiveLandingView('exams'); } } }}>Thi thử</a>
+              <a href="/forum" onClick={(e) => { e.preventDefault(); if (navigateTo) { navigateTo('/forum'); } else { setActiveLandingView('forum'); } }}>Cộng đồng</a>
               <a href="#stats" onClick={(e) => { e.preventDefault(); setActiveLandingView('about'); }}>Về chúng tôi</a>
             </div>
             <div className="lp-footer__col">

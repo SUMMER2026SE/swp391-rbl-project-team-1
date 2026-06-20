@@ -19,7 +19,9 @@ export async function createVNPayPayment(req: AuthRequest, res: Response) {
     if (!course) return res.status(404).json({ success: false, error: 'Không tìm thấy khóa học!' });
 
     const orderId = `EDUPATH_${Date.now()}`;
-    const amount = Math.round(course.price * 1000) * 100; // VNPay uses cents (x100)
+    const basePrice = course.price < 10000 ? course.price * 1000 : course.price;
+    const salePrice = basePrice * (1 - (course.discount || 0) / 100);
+    const amount = Math.round(salePrice) * 100; // VNPay uses cents (x100)
     
     // Compile standard VNPay queries parameters
     const vnpParams: any = {
@@ -204,12 +206,12 @@ export async function sepayWebhook(req: any, res: Response) {
     }
 
     // Parse the amounts to verify payment validity
-    // If course.price is 499 (representing 499,000đ), let's compare accordingly
-    const expectedAmount = course.price < 10000 ? course.price * 1000 : course.price;
+    const basePrice = course.price < 10000 ? course.price * 1000 : course.price;
+    const expectedAmount = basePrice * (1 - (course.discount || 0) / 100);
     const paidAmount = Number(transferAmount);
 
     if (paidAmount < expectedAmount) {
-      console.warn(`[SePay Webhook] Cảnh báo: Số tiền thanh toán (${paidAmount}đ) ít hơn số tiền khóa học (${expectedAmount}đ).`);
+      console.warn(`[SePay Webhook] Cảnh báo: Số tiền thanh toán (${paidAmount}đ) ít hơn số tiền khóa học đã giảm giá (${expectedAmount}đ).`);
       // We will still process it but log a warning.
     }
 

@@ -1,10 +1,85 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { 
+  HiSearch, 
+  HiCheck, 
+  HiX, 
+  HiCheckCircle, 
+  HiOutlineExclamation, 
+  HiLightBulb,
+  HiSparkles,
+  HiChevronDown,
+  HiChevronUp,
+  HiRefresh
+} from 'react-icons/hi';
+import { mockExamService } from '../../services/mockExamService';
 
-export default function ExamReviewList({ questions = [], userAnswers = {} }) {
+export default function ExamReviewList({ questions = [], userAnswers = {}, subject = 'Toán học' }) {
+  const [similarStates, setSimilarStates] = useState({});
+
+  const handleLuyenTuongTu = async (q) => {
+    // If we already have the data and it's visible, and we didn't just click "Luyện câu khác", we toggle visibility
+    if (similarStates[q.id]?.visible && !similarStates[q.id]?.checked) {
+      setSimilarStates(prev => ({
+        ...prev,
+        [q.id]: { ...prev[q.id], visible: false }
+      }));
+      return;
+    }
+
+    setSimilarStates(prev => ({
+      ...prev,
+      [q.id]: { ...prev[q.id], loading: true, error: null, visible: true, checked: false, selectedOption: null }
+    }));
+
+    try {
+      const data = await mockExamService.generateSimilarQuestion({
+        content: q.question_text,
+        topic: q.topic || 'Chung',
+        difficulty: q.difficulty === 'Dễ' ? 'EASY' : (q.difficulty === 'Khó' ? 'HARD' : 'MEDIUM'),
+        options: q.options?.map(o => ({ label: o.option_label, text: o.option_text })) || [],
+        explanation: q.explanation,
+        subject: subject || 'Toán học'
+      });
+
+      if (data) {
+        setSimilarStates(prev => ({
+          ...prev,
+          [q.id]: {
+            ...prev[q.id],
+            loading: false,
+            data,
+            selectedOption: null,
+            checked: false
+          }
+        }));
+        setTimeout(() => {
+          window.MathJax?.typesetPromise?.().catch(e => console.log('MathJax typeset error:', e));
+        }, 100);
+      } else {
+        setSimilarStates(prev => ({
+          ...prev,
+          [q.id]: {
+            ...prev[q.id],
+            loading: false,
+            error: 'Không thể tạo câu hỏi mới. Vui lòng thử lại.'
+          }
+        }));
+      }
+    } catch (err) {
+      setSimilarStates(prev => ({
+        ...prev,
+        [q.id]: {
+          ...prev[q.id],
+          loading: false,
+          error: err.message || 'Lỗi kết nối máy chủ.'
+        }
+      }));
+    }
+  };
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginTop: '24px' }}>
-      <h3 style={{ fontSize: '16px', fontWeight: '900', color: 'var(--text-primary)', borderBottom: '1px solid var(--border)', paddingBottom: '10px' }}>
-        🔍 XEM LẠI BÀI LÀM CHI TIẾT
+      <h3 style={{ fontSize: '16px', fontWeight: '900', color: 'var(--text-primary)', borderBottom: '1px solid var(--border)', paddingBottom: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <HiSearch style={{ color: 'var(--exams-purple)' }} /> XEM LẠI BÀI LÀM CHI TIẾT
       </h3>
 
       {questions.map((q) => {
@@ -35,10 +110,17 @@ export default function ExamReviewList({ questions = [], userAnswers = {} }) {
                   padding: '4px 10px',
                   borderRadius: '20px',
                   background: isBlank ? '#64748b' : (isCorrect ? 'var(--exams-green)' : 'var(--exams-red)'),
-                  color: '#ffffff'
+                  color: '#ffffff',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px'
                 }}
               >
-                {isBlank ? 'CHƯA TRẢ LỜI' : (isCorrect ? 'ĐÚNG ✓' : 'SAI ✕')}
+                {isBlank ? 'CHƯA TRẢ LỜI' : isCorrect ? (
+                  <>ĐÚNG <HiCheck /></>
+                ) : (
+                  <>SAI <HiX /></>
+                )}
               </span>
             </div>
 
@@ -61,16 +143,19 @@ export default function ExamReviewList({ questions = [], userAnswers = {} }) {
 
                 let optionBg = 'transparent';
                 let optionBorder = 'var(--border)';
-                let optionIcon = '';
+                let showStatus = false;
+                let isOptCorrect = false;
 
                 if (isCorrectOpt) {
                   optionBg = 'rgba(0, 184, 148, 0.08)';
                   optionBorder = 'var(--exams-green)';
-                  optionIcon = '🟢 (Đáp án đúng)';
+                  showStatus = true;
+                  isOptCorrect = true;
                 } else if (isSelectedOpt && !isCorrectOpt) {
                   optionBg = 'rgba(214, 48, 49, 0.08)';
                   optionBorder = 'var(--exams-red)';
-                  optionIcon = '🔴 (Lựa chọn của bạn)';
+                  showStatus = true;
+                  isOptCorrect = false;
                 }
 
                 return (
@@ -98,13 +183,29 @@ export default function ExamReviewList({ questions = [], userAnswers = {} }) {
                         alignItems: 'center',
                         justifyContent: 'center',
                         fontWeight: 'bold',
-                        fontSize: '11px'
+                        fontSize: '11px',
+                        flexShrink: 0
                       }}
                     >
                       {opt.option_label}
                     </span>
                     <span style={{ color: 'var(--text-primary)', flex: 1 }}>{opt.option_text}</span>
-                    {optionIcon && <span style={{ fontSize: '11px', fontWeight: 'bold', color: isCorrectOpt ? 'var(--exams-green)' : 'var(--exams-red)' }}>{optionIcon}</span>}
+                    {showStatus && (
+                      <span style={{ 
+                        fontSize: '11px', 
+                        fontWeight: 'bold', 
+                        color: isOptCorrect ? 'var(--exams-green)' : 'var(--exams-red)',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '2px'
+                      }}>
+                        {isOptCorrect ? (
+                          <><HiCheckCircle /> (Đáp án đúng)</>
+                        ) : (
+                          <><HiOutlineExclamation /> (Lựa chọn của bạn)</>
+                        )}
+                      </span>
+                    )}
                   </div>
                 );
               })}
@@ -122,7 +223,9 @@ export default function ExamReviewList({ questions = [], userAnswers = {} }) {
                   color: 'var(--text-secondary)'
                 }}
               >
-                <strong style={{ display: 'block', color: 'var(--exams-purple)', marginBottom: '4px' }}>💡 Hướng dẫn giải chi tiết:</strong>
+                <strong style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--exams-purple)', marginBottom: '4px' }}>
+                  <HiLightBulb /> Hướng dẫn giải chi tiết:
+                </strong>
                 <p style={{ margin: 0, whiteSpace: 'pre-line', lineHeight: 1.5 }}>
                   {q.explanation || `Đáp án đúng là ${correctAnswer?.option_label}.`}
                 </p>
@@ -133,6 +236,239 @@ export default function ExamReviewList({ questions = [], userAnswers = {} }) {
                 )}
               </div>
             )}
+
+            {/* inline similar practice panel */}
+            <div style={{ marginTop: '12px' }}>
+              <style>{`
+                @keyframes spin {
+                  0% { transform: rotate(0deg); }
+                  100% { transform: rotate(360deg); }
+                }
+                @keyframes fadeIn {
+                  from { opacity: 0; transform: translateY(8px); }
+                  to { opacity: 1; transform: translateY(0); }
+                }
+              `}</style>
+
+              <button
+                onClick={() => handleLuyenTuongTu(q)}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  background: 'linear-gradient(135deg, #6c5ce7 0%, #a29bfe 100%)',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: '8px',
+                  padding: '8px 16px',
+                  fontSize: '12px',
+                  fontWeight: 'bold',
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 10px rgba(108, 92, 231, 0.15)',
+                  transition: 'transform 0.2s, opacity 0.2s'
+                }}
+                onMouseOver={(e) => { e.currentTarget.style.opacity = '0.9'; }}
+                onMouseOut={(e) => { e.currentTarget.style.opacity = '1'; }}
+              >
+                <HiSparkles /> 🤖 Luyện câu tương tự AI {similarStates[q.id]?.visible ? <HiChevronUp /> : <HiChevronDown />}
+              </button>
+
+              {similarStates[q.id]?.visible && (
+                <div style={{
+                  marginTop: '12px',
+                  background: 'var(--bg-main, #f8fafc)',
+                  border: '1.5px solid var(--exams-purple)',
+                  borderRadius: '12px',
+                  padding: '16px',
+                  animation: 'fadeIn 0.3s ease-out'
+                }}>
+                  {similarStates[q.id]?.loading ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', padding: '16px' }}>
+                      <div className="spinner" style={{
+                        width: '24px',
+                        height: '24px',
+                        border: '3px solid rgba(108, 92, 231, 0.2)',
+                        borderTop: '3px solid var(--exams-purple)',
+                        borderRadius: '50%',
+                        animation: 'spin 1s linear infinite'
+                      }} />
+                      <span style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: '600' }}>
+                        AI đang biên soạn câu hỏi tương tự...
+                      </span>
+                    </div>
+                  ) : similarStates[q.id]?.error ? (
+                    <div style={{ color: 'var(--exams-red)', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <HiOutlineExclamation /> {similarStates[q.id].error}
+                      <button 
+                        onClick={() => handleLuyenTuongTu(q)} 
+                        style={{ border: 'none', background: 'transparent', color: 'var(--exams-purple)', fontWeight: 'bold', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '2px' }}
+                      >
+                        <HiRefresh /> Thử lại
+                      </button>
+                    </div>
+                  ) : (
+                    <div>
+                      {/* Similar Question Content */}
+                      <p style={{ fontSize: '13.5px', color: 'var(--text-primary)', fontWeight: '600', marginBottom: '12px', whiteSpace: 'pre-line', lineHeight: 1.5 }}>
+                        {similarStates[q.id].data.content}
+                      </p>
+
+                      {/* Options List */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '14px' }}>
+                        {similarStates[q.id].data.options?.map((opt) => {
+                          const isSelected = similarStates[q.id].selectedOption === opt.label;
+                          const isCorrect = opt.label === similarStates[q.id].data.correctAnswer;
+                          const isChecked = similarStates[q.id].checked;
+
+                          let optionBg = 'var(--bg-card, #ffffff)';
+                          let optionBorder = 'var(--border)';
+                          let cursor = 'pointer';
+
+                          if (isChecked) {
+                            cursor = 'default';
+                            if (isCorrect) {
+                              optionBg = 'rgba(0, 184, 148, 0.08)';
+                              optionBorder = 'var(--exams-green)';
+                            } else if (isSelected) {
+                              optionBg = 'rgba(214, 48, 49, 0.08)';
+                              optionBorder = 'var(--exams-red)';
+                            }
+                          } else if (isSelected) {
+                            optionBg = 'rgba(108, 92, 231, 0.08)';
+                            optionBorder = 'var(--exams-purple)';
+                          }
+
+                          return (
+                            <button
+                              key={opt.label}
+                              disabled={isChecked}
+                              onClick={() => {
+                                setSimilarStates(prev => ({
+                                  ...prev,
+                                  [q.id]: { ...prev[q.id], selectedOption: opt.label }
+                                }));
+                              }}
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '10px',
+                                padding: '10px 14px',
+                                borderRadius: '8px',
+                                border: `1.5px solid ${optionBorder}`,
+                                background: optionBg,
+                                fontSize: '12.5px',
+                                width: '100%',
+                                textAlign: 'left',
+                                cursor: cursor,
+                                transition: 'all 0.2s',
+                                outline: 'none'
+                              }}
+                            >
+                              <span 
+                                style={{
+                                  width: '24px',
+                                  height: '24px',
+                                  borderRadius: '50%',
+                                  background: isChecked && isCorrect ? 'var(--exams-green)' : (isChecked && isSelected ? 'var(--exams-red)' : (isSelected ? 'var(--exams-purple)' : 'var(--bg-main, #f1f5f9)')),
+                                  color: (isSelected || (isChecked && (isCorrect || isSelected))) ? '#fff' : 'var(--text-secondary)',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  fontWeight: 'bold',
+                                  fontSize: '11px',
+                                  flexShrink: 0
+                                }}
+                              >
+                                {opt.label}
+                              </span>
+                              <span style={{ color: 'var(--text-primary)', flex: 1 }}>{opt.text}</span>
+                              {isChecked && isCorrect && (
+                                <span style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--exams-green)', display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
+                                  <HiCheckCircle /> Đúng
+                                </span>
+                              )}
+                              {isChecked && isSelected && !isCorrect && (
+                                <span style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--exams-red)', display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
+                                  <HiX /> Sai
+                                </span>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      {/* Actions */}
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center', justifyContent: 'flex-end', marginTop: '12px' }}>
+                        {!similarStates[q.id].checked ? (
+                          <button
+                            disabled={!similarStates[q.id].selectedOption}
+                            onClick={() => {
+                              setSimilarStates(prev => ({
+                                ...prev,
+                                [q.id]: { ...prev[q.id], checked: true }
+                              }));
+                            }}
+                            style={{
+                              background: similarStates[q.id].selectedOption ? 'var(--exams-purple)' : '#cbd5e1',
+                              color: '#fff',
+                              border: 'none',
+                              borderRadius: '6px',
+                              padding: '8px 16px',
+                              fontSize: '12px',
+                              fontWeight: 'bold',
+                              cursor: similarStates[q.id].selectedOption ? 'pointer' : 'default',
+                              transition: 'opacity 0.2s'
+                            }}
+                          >
+                            Kiểm tra
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => handleLuyenTuongTu(q)}
+                            style={{
+                              background: '#f1f5f9',
+                              color: 'var(--exams-purple)',
+                              border: '1.5px solid var(--exams-purple)',
+                              borderRadius: '6px',
+                              padding: '6px 14px',
+                              fontSize: '12px',
+                              fontWeight: 'bold',
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px'
+                            }}
+                          >
+                            <HiRefresh /> Luyện câu khác
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Explanation for Similar Question */}
+                      {similarStates[q.id].checked && (
+                        <div style={{
+                          marginTop: '12px',
+                          background: 'rgba(108, 92, 231, 0.03)',
+                          borderRadius: '8px',
+                          padding: '12px',
+                          borderLeft: '3px solid var(--exams-purple)',
+                          fontSize: '12px',
+                          color: 'var(--text-secondary)',
+                          animation: 'fadeIn 0.2s ease-out'
+                        }}>
+                          <strong style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--exams-purple)', marginBottom: '4px' }}>
+                            <HiLightBulb /> Hướng dẫn giải AI:
+                          </strong>
+                          <p style={{ margin: 0, whiteSpace: 'pre-line', lineHeight: 1.5 }}>
+                            {similarStates[q.id].data.explanation}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         );
       })}

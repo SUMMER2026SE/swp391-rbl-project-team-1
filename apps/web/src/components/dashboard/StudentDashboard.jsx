@@ -7,6 +7,7 @@ import RecentExams from './RecentExams';
 import PerformanceAnalytics from './PerformanceAnalytics';
 import Achievements from './Achievements';
 import UpcomingTasks from './UpcomingTasks';
+import ContributionHeatmap from '../ContributionHeatmap';
 
 export default function StudentDashboard({ currentUser, setActiveTab, navigateTo }) {
   const handleNavigate = (section) => {
@@ -42,6 +43,11 @@ export default function StudentDashboard({ currentUser, setActiveTab, navigateTo
 
       {/* SECTION 6: Recent exams */}
       <RecentExams onNavigateTo={handleNavigate} />
+
+      {/* SECTION 6.5: Learning Heatmap */}
+      <div style={{ marginBottom: '24px' }}>
+        <ContributionHeatmap userId={currentUser?.id} />
+      </div>
 
       {/* SECTION 7 + 8: Performance + Achievements */}
       <div className="student-dashboard__row student-dashboard__row--analytics">

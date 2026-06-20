@@ -92,7 +92,7 @@ async function awardXP(userId: number, points: number, action: any, referenceId?
 async function checkAndAwardBadges(userId: number) {
   try {
     // Standard badges definition helper
-    const badges = [
+    const badges: Array<{ name: string; desc: string; cat: string; code: string; req: { posts?: number; solutions?: number; xp?: number } }> = [
       { name: 'Khởi đầu', desc: 'Đã tạo câu hỏi đầu tiên trên diễn đàn', cat: 'POSTING', code: 'FIRST_POST', req: { posts: 1 } },
       { name: 'Chuyên gia giải đáp', desc: 'Có 5 câu trả lời được chấp nhận là Lời giải hay', cat: 'ANSWERS', code: 'GURU', req: { solutions: 5 } },
       { name: 'Cây sáng kiến', desc: 'Đạt điểm uy tín (XP) từ 500 trở lên', cat: 'REPUTATION', code: 'POPULAR', req: { xp: 500 } }
@@ -134,6 +134,10 @@ async function checkAndAwardBadges(userId: number) {
         if (badgeInfo.code === 'FIRST_POST' && badgeInfo.req.posts !== undefined && postsCount >= badgeInfo.req.posts) qualifies = true;
         if (badgeInfo.code === 'GURU' && badgeInfo.req.solutions !== undefined && solutionsCount >= badgeInfo.req.solutions) qualifies = true;
         if (badgeInfo.code === 'POPULAR' && badgeInfo.req.xp !== undefined && xpCount >= badgeInfo.req.xp) qualifies = true;
+<<<<<<< HEAD
+=======
+
+>>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
 
         if (qualifies) {
           await prisma.userBadge.create({
@@ -585,7 +589,12 @@ export async function acceptCommentSolution(req: AuthRequest, res: Response) {
 
     // Validate permission: only author of post OR a teacher can accept solutions
     const isAuthor = comment.post.authorId === userId;
+<<<<<<< HEAD
     const isTeacher = req.user?.role === 'TEACHER' || req.user?.role === 'ADMIN';
+=======
+    const isTeacher = req.user!.role === 'TEACHER' || req.user!.role === 'ADMIN';
+
+>>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
 
     if (!isAuthor && !isTeacher) {
       return res.status(403).json({ success: false, error: 'Không có quyền chọn lời giải hay cho câu hỏi này!' });
@@ -680,6 +689,17 @@ export async function createStudyGroup(req: AuthRequest, res: Response) {
         }
       }
     });
+
+    // Broadcast real-time update to all connected clients
+    const io = getIO();
+    if (io) {
+      io.emit('study_group_created', {
+        ...group,
+        isMember: false,
+        memberCount: 1
+      });
+    }
+
     return res.status(201).json({ success: true, data: group });
   } catch (err: any) {
     return res.status(500).json({ success: false, error: err.message });
@@ -1032,6 +1052,7 @@ export async function createGroupAnnouncement(req: AuthRequest, res: Response) {
   }
 }
 
+<<<<<<< HEAD
 export async function getGroupRequests(req: AuthRequest, res: Response) {
   const { id } = req.params;
   const userId = req.user?.id;
@@ -1350,3 +1371,5 @@ export async function searchUsersToInvite(req: AuthRequest, res: Response) {
   }
 }
 
+=======
+>>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb

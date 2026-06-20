@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { toast } from '../utils/toast';
 import { HiPlay, HiDocumentDownload, HiStar, HiArrowLeft, HiArrowDown } from 'react-icons/hi';
 
 export default function CourseDetails({ course, onBack, addLog }) {
@@ -28,7 +29,7 @@ export default function CourseDetails({ course, onBack, addLog }) {
   const handleDownloadDoc = (docName) => {
     addLog(`Học viên tải xuống tài liệu bài học: "${docName}"`, 'sys');
     // Simulate web download behavior
-    alert(`Đã tải xuống tài liệu: ${docName}`);
+    toast(`Đã tải xuống tài liệu: ${docName}`, 'success');
   };
 
   return (

@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 // Mock Data 12 khóa học ôn thi THPT Quốc Gia - EduPath AI
 
 export const MOCK_COURSES = [
@@ -484,3 +485,7 @@ export const MOCK_COURSES = [
     ]
   }
 ];
+=======
+// Clear MOCK_COURSES list to only use database course records.
+export const MOCK_COURSES = [];
+>>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb

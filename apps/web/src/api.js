@@ -3,18 +3,85 @@ export const API_BASE = import.meta.env.VITE_API_URL ||
     ? 'http://localhost:4000'
     : '/api');
 
+let refreshPromise = null;
+
 async function request(path, options = {}) {
-  const token = localStorage.getItem('access_token');
+  let token = localStorage.getItem('access_token');
+  const isFormData = options.body instanceof FormData;
   const headers = {
-    'Content-Type': 'application/json',
+    ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
     ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
     ...(options.headers || {})
   };
-  const res = await fetch(`${API_BASE}${path}`, {
+  
+  let res = await fetch(`${API_BASE}${path}`, {
     headers,
     ...options,
-    body: options.body ? JSON.stringify(options.body) : undefined
+    body: isFormData ? options.body : (options.body ? JSON.stringify(options.body) : undefined)
   });
+
+  // Handle expired/invalid JWT token by automatically refreshing it
+  if ((res.status === 401 || res.status === 403) && token) {
+    const refreshToken = localStorage.getItem('refresh_token');
+    if (refreshToken) {
+      try {
+        if (!refreshPromise) {
+          refreshPromise = fetch(`${API_BASE}/auth/refresh`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ refreshToken })
+          }).then(async r => {
+            const d = await r.json();
+            if (r.ok && d.success && d.data) {
+              localStorage.setItem('access_token', d.data.accessToken);
+              localStorage.setItem('refresh_token', d.data.refreshToken);
+              return d.data.accessToken;
+            }
+            throw new Error(d.error || 'Refresh failed');
+          }).finally(() => {
+            refreshPromise = null;
+          });
+        }
+
+        const newAccessToken = await refreshPromise;
+
+        // Retry original request with new token
+        const retryHeaders = {
+          ...headers,
+          'Authorization': `Bearer ${newAccessToken}`
+        };
+
+        res = await fetch(`${API_BASE}${path}`, {
+          headers: retryHeaders,
+          ...options,
+          body: isFormData ? options.body : (options.body ? JSON.stringify(options.body) : undefined)
+        });
+
+        if (res.status === 401 || res.status === 403) {
+          localStorage.removeItem('access_token');
+          localStorage.removeItem('refresh_token');
+          window.dispatchEvent(new CustomEvent('edupath-auth-logout'));
+          const err = new Error('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!');
+          err.status = res.status;
+          throw err;
+        }
+      } catch (refreshErr) {
+        console.error('[api] Silent refresh failed:', refreshErr.message);
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
+        // Notify application components to clear state and visually logout the user
+        window.dispatchEvent(new CustomEvent('edupath-auth-logout'));
+      }
+    } else {
+      // No refresh token available, logout user immediately
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('refresh_token');
+      window.dispatchEvent(new CustomEvent('edupath-auth-logout'));
+    }
+  }
+
   const data = await res.json().catch(() => ({}));
   if (!res.ok || !data.success) {
     const err = new Error(data.error || `Lỗi ${res.status}`);
@@ -25,6 +92,12 @@ async function request(path, options = {}) {
 }
 
 export const api = {
+  uploadFile: (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return request('/upload', { method: 'POST', body: formData });
+  },
+
   login: (email, password) =>
     request('/login', { method: 'POST', body: { email, password } }),
 
@@ -55,6 +128,9 @@ export const api = {
   forgotPassword: (email) =>
     request('/auth/forgot-password', { method: 'POST', body: { email } }),
 
+  verifyResetOtp: (email, otp) =>
+    request('/auth/verify-reset-otp', { method: 'POST', body: { email, otp } }),
+
   resetPassword: (token, password) =>
     request('/auth/reset-password', { method: 'POST', body: { token, password } }),
 
@@ -67,16 +143,70 @@ export const api = {
 
   createCourse: (payload) => request('/courses', { method: 'POST', body: payload }),
 
-  getExams: (subject) => request(`/exams${subject ? `?subject=${subject}` : ''}`),
+  getExams: (filters = {}) => {
+    const params = new URLSearchParams();
+    Object.entries(filters).forEach(([k, v]) => {
+      if (v !== undefined && v !== null && v !== '') {
+        params.append(k, String(v));
+      }
+    });
+    return request(`/exams?${params.toString()}`);
+  },
+
+  getDocumentResources: (filters = {}) => {
+    const params = new URLSearchParams();
+    Object.entries(filters).forEach(([k, v]) => {
+      if (v !== undefined && v !== null && v !== '') {
+        params.append(k, String(v));
+      }
+    });
+    return request(`/document-resources?${params.toString()}`);
+  },
+  getDocumentComments: (documentId) => request(`/document-resources/${documentId}/comments`),
+  addDocumentComment: (documentId, content) => request(`/document-resources/${documentId}/comments`, {
+    method: 'POST',
+    body: { content },
+  }),
+
+  getExamById: (examId) => request(`/exams/${examId}`),
 
   getExamQuestionsPublic: (examId) => request(`/exams/${examId}/questions`),
 
   getAttempts: () => request('/exams/attempts'),
 
-  startAttempt: (examId) => request(`/exams/${examId}/attempts`, { method: 'POST' }),
+  getAttemptById: (attemptId) => request(`/exams/attempts/${attemptId}`),
 
-  submitAttempt: (examId, attemptId, answers) => 
-    request(`/exams/${examId}/attempts/${attemptId}/submit`, { method: 'POST', body: { answers } }),
+  startAttempt: (examId, retakeMode = null, questionIds = []) => request('/exam-attempts/start', { method: 'POST', body: { examId, retakeMode, questionIds } }),
+
+  saveAttemptAnswer: (attemptId, questionId, selectedAnswer) =>
+    request(`/exam-attempts/${attemptId}/save-answer`, { method: 'POST', body: { questionId, selectedAnswer } }),
+
+  submitAttempt: (attemptId, answers = [], retakeMode = null, questionIds = []) => 
+    request(`/exam-attempts/${attemptId}/submit`, { method: 'POST', body: { answers, retakeMode, questionIds } }),
+
+  getAttemptResult: (attemptId) => request(`/exam-attempts/${attemptId}/result`),
+
+  getExamHistory: () => request('/users/me/exam-history'),
+
+  recordViolation: (attemptId) => request(`/exam-attempts/${attemptId}/violation`, { method: 'POST' }),
+
+  recordViolationDetail: (attemptId, violationType) =>
+    request(`/exam-attempts/${attemptId}/violation-detail`, { method: 'POST', body: { violationType } }),
+
+  recordExamEvent: (attemptId, eventType, questionId, payload) =>
+    request(`/exam-attempts/${attemptId}/events`, { method: 'POST', body: { eventType, questionId, payload } }),
+
+  getExamEvents: (attemptId) =>
+    request(`/exam-attempts/${attemptId}/events`),
+
+  generateAiCoach: (attemptId, body = undefined) =>
+    request(`/exam-attempts/${attemptId}/ai-coach`, { method: 'POST', body }),
+
+  generateSimilarQuestion: (payload) =>
+    request('/exam-attempts/generate-similar-question', { method: 'POST', body: payload }),
+
+  createSmartRetake: (examId, mode, attemptId) =>
+    request(`/exams/${examId}/smart-retake`, { method: 'POST', body: { mode, attemptId } }),
 
   refreshRoadmap: () => request('/ai/roadmap/refresh', { method: 'POST' }),
 
@@ -169,6 +299,7 @@ export const api = {
   createGroupAnnouncement: (groupId, title, content) =>
     request(`/forum/study-groups/${groupId}/announcements`, { method: 'POST', body: { title, content } }),
 
+<<<<<<< HEAD
   getGroupRequests: (groupId) =>
     request(`/forum/study-groups/${groupId}/requests`, { method: 'GET' }),
 
@@ -190,6 +321,8 @@ export const api = {
   searchUsers: (query, groupId) =>
     request(`/forum/users/search?q=${encodeURIComponent(query)}${groupId ? `&groupId=${groupId}` : ''}`, { method: 'GET' }),
 
+=======
+>>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
   getForumReports: () =>
     request('/forum/moderation/reports', { method: 'GET' }),
 
