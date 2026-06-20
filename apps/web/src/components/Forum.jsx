@@ -1,9 +1,4 @@
 import { useState, useEffect, useRef } from 'react';
-<<<<<<< HEAD
-=======
-import { createPortal } from 'react-dom';
-import { toast } from '../utils/toast';
->>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
 import {
   HiChat, HiHeart, HiSearch, HiPlus, HiArrowLeft, HiUser, HiTag,
   HiCheckCircle, HiDownload, HiUserGroup, HiStar, HiTrendingUp,
@@ -12,7 +7,6 @@ import {
 import { io } from 'socket.io-client';
 import { api, API_BASE } from '../api';
 
-<<<<<<< HEAD
 // Fallback Toast Helper since it is used in components but not defined in codebase
 const toast = (msg, type = 'success') => {
   alert(msg);
@@ -22,67 +16,12 @@ const toast = (msg, type = 'success') => {
 function stripImages(content) {
   if (!content) return '';
   return content.replace(/!\[.*?\]\(.*?\)/g, '').replace(/https?:\/\/.*?\.(png|jpg|jpeg|gif)/gi, '').trim();
-=======
-function stripImages(text) {
-  if (!text) return '';
-  return text.replace(/!\[(.*?)\]\((.*?)\)/g, '').trim();
-}
-
-function getFirstImageUrl(text) {
-  if (!text) return null;
-  const regex = /!\[(.*?)\]\((.*?)\)/;
-  const match = regex.exec(text);
-  return match ? match[2] : null;
-}
-
-function renderTextWithImages(text) {
-  if (!text) return null;
-  
-  const regex = /!\[(.*?)\]\((.*?)\)/g;
-  const parts = [];
-  let lastIndex = 0;
-  let match;
-  
-  while ((match = regex.exec(text)) !== null) {
-    const matchIndex = match.index;
-    
-    if (matchIndex > lastIndex) {
-      parts.push(text.substring(lastIndex, matchIndex));
-    }
-    
-    const alt = match[1];
-    const url = match[2];
-    
-    parts.push(
-      <div key={matchIndex} style={{ margin: '10px 0' }}>
-        <img 
-          src={url} 
-          alt={alt || 'Image'} 
-          style={{ maxWidth: '100%', maxHeight: '400px', borderRadius: '8px', border: '1px solid var(--border)', display: 'block' }} 
-        />
-      </div>
-    );
-    
-    lastIndex = regex.lastIndex;
-  }
-  
-  if (lastIndex < text.length) {
-    parts.push(text.substring(lastIndex));
-  }
-  
-  return parts.length > 0 ? (
-    <div style={{ whiteSpace: 'pre-line' }}>
-      {parts.map((part, index) => part)}
-    </div>
-  ) : text;
->>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
 }
 
 export default function Forum({ currentUser }) {
   // Global View Controls
   const [activeTab, setActiveTab] = useState('feed'); // feed, groups, drive, leaderboard
   const [selectedPost, setSelectedPost] = useState(null);
-<<<<<<< HEAD
 
   // Missing Study Group detailed states
   const [selectedGroup, setSelectedGroup] = useState(null);
@@ -91,11 +30,6 @@ export default function Forum({ currentUser }) {
   const [newAnnContent, setNewAnnContent] = useState('');
   const [chatInput, setChatInput] = useState('');
 
-=======
-  const [selectedGroup, setSelectedGroup] = useState(null);
-  const [groupTab, setGroupTab] = useState('announcements'); // announcements, discussion, chat, members
-  
->>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
   // API State data
   const [posts, setPosts] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -105,16 +39,12 @@ export default function Forum({ currentUser }) {
   const [groupAnnouncements, setGroupAnnouncements] = useState([]);
   const [groupPosts, setGroupPosts] = useState([]);
   const [groupChatMessages, setGroupChatMessages] = useState([]);
-<<<<<<< HEAD
   const [invitations, setInvitations] = useState([]);
   const [groupRequests, setGroupRequests] = useState([]);
   const [userSearchQuery, setUserSearchQuery] = useState('');
   const [userSearchResults, setUserSearchResults] = useState([]);
   const [searchingUsers, setSearchingUsers] = useState(false);
 
-=======
-  
->>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
   // Loading & Filtering controls
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -137,14 +67,6 @@ export default function Forum({ currentUser }) {
   const [newPostType, setNewPostType] = useState('GENERAL');
   const [newDifficulty, setNewDifficulty] = useState('MEDIUM');
   const [newTagsString, setNewTagsString] = useState('');
-<<<<<<< HEAD
-=======
-  
-  // Group Announcement form states
-  const [newAnnTitle, setNewAnnTitle] = useState('');
-  const [newAnnContent, setNewAnnContent] = useState('');
-  const [chatInput, setChatInput] = useState('');
->>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
 
   // Resource file attachment states
   const [resourceFile, setResourceFile] = useState(null); // { fileUrl, fileType, fileSize }
@@ -184,7 +106,6 @@ export default function Forum({ currentUser }) {
       });
     });
 
-<<<<<<< HEAD
     // Listen to real-time incoming chat messages
     socketRef.current.on('receive_message', (newMsg) => {
       setGroupChatMessages(prev => {
@@ -193,24 +114,6 @@ export default function Forum({ currentUser }) {
       });
     });
 
-=======
-    socketRef.current.on('receive_message', (msg) => {
-      setGroupChatMessages(prev => {
-        if (prev.some(m => m.id === msg.id)) return prev;
-        const mappedMsg = {
-          ...msg,
-          authorName: msg.role === 'ADMIN' ? 'Quản trị viên' : (msg.role === 'TEACHER' ? 'Giáo viên' : 'Học sinh')
-        };
-        return [...prev, mappedMsg];
-      });
-    });
-
-    socketRef.current.on('study_group_created', () => {
-      console.log('[Socket] New study group created, refreshing list...');
-      fetchStudyGroups();
-    });
-
->>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
     // Fetch initial categories
     fetchCategories();
 
@@ -252,15 +155,12 @@ export default function Forum({ currentUser }) {
       socketRef.current.emit('join_room', room);
       fetchGroupAnnouncements(selectedGroup.id);
       fetchGroupPosts(selectedGroup.id);
-<<<<<<< HEAD
 
       const isCreatorOrAdmin = selectedGroup.creatorId === currentUser?.id || selectedGroup.members?.some(m => m.userId === currentUser?.id && (m.role === 'CREATOR' || m.role === 'ADMIN'));
       if (isCreatorOrAdmin) {
         fetchGroupRequests(selectedGroup.id);
       }
 
-=======
->>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
       setGroupChatMessages([
         {
           id: 'welcome',
@@ -273,7 +173,6 @@ export default function Forum({ currentUser }) {
     }
   }, [selectedGroup]);
 
-<<<<<<< HEAD
   useEffect(() => {
     const delayDebounce = setTimeout(() => {
       if (userSearchQuery.trim().length >= 2 && selectedGroup) {
@@ -364,86 +263,7 @@ export default function Forum({ currentUser }) {
     }
   };
 
-  const fetchGroupAnnouncements = async (groupId) => {
-    try {
-      const data = await api.getGroupAnnouncements(groupId);
-      setGroupAnnouncements(data || []);
-    } catch (err) {
-      console.error('Lỗi tải thông báo nhóm:', err);
-    }
-  };
 
-  const fetchGroupPosts = async (groupId) => {
-    try {
-      const data = await api.getForumPosts({ studyGroupId: groupId });
-      setGroupPosts(data || []);
-    } catch (err) {
-      console.error('Lỗi tải bài thảo luận nhóm:', err);
-    }
-  };
-
-  const handleCreateGroupAnnouncement = async (e) => {
-    e.preventDefault();
-    if (!newAnnTitle.trim() || !newAnnContent.trim() || !selectedGroup) return;
-    try {
-      await api.createGroupAnnouncement(selectedGroup.id, newAnnTitle, newAnnContent);
-      setNewAnnTitle('');
-      setNewAnnContent('');
-      fetchGroupAnnouncements(selectedGroup.id);
-      toast('Đăng thông báo nhóm thành công!', 'success');
-    } catch (err) {
-      toast(err.message || 'Lỗi đăng thông báo nhóm!', 'error');
-    }
-  };
-
-  const handleCreateGroupPost = async (e) => {
-    e.preventDefault();
-    if (!newTitle.trim() || !newContent.trim() || !selectedGroup) return;
-    try {
-      await api.createForumPost({
-        title: newTitle,
-        content: newContent,
-        categoryId: Number(newCategoryId),
-        postType: 'GENERAL',
-        studyGroupId: selectedGroup.id
-      });
-      setNewTitle('');
-      setNewContent('');
-      fetchGroupPosts(selectedGroup.id);
-      toast('Đăng bài thảo luận nội bộ thành công!', 'success');
-    } catch (err) {
-      toast(err.message || 'Lỗi đăng thảo luận nội bộ!', 'error');
-    }
-  };
-
-  const handleLeaveGroup = async (groupId) => {
-    if (!window.confirm('Bạn có chắc chắn muốn rời nhóm học tập này?')) return;
-    try {
-      await api.leaveStudyGroup(groupId);
-      setSelectedGroup(null);
-      fetchStudyGroups();
-      toast('Đã rời nhóm thành công.', 'success');
-    } catch (err) {
-      toast(err.message || 'Lỗi khi rời nhóm!', 'error');
-    }
-  };
-
-  const handleSendChatMessage = (e) => {
-    e.preventDefault();
-    if (!chatInput.trim() || !selectedGroup || !socketRef.current) return;
-
-    const room = `group_${selectedGroup.id}`;
-    const messagePayload = {
-      roomId: room,
-      studentId: currentUser?.id,
-      role: currentUser?.role || 'STUDENT',
-      content: chatInput,
-      authorName: currentUser?.fullName
-    };
-
-    socketRef.current.emit('send_message', messagePayload);
-    setChatInput('');
-  };
 
   const handleAcceptDeclineInvitation = async (requestId, action) => {
     try {
@@ -456,8 +276,6 @@ export default function Forum({ currentUser }) {
     }
   };
 
-=======
->>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
   // =========================================================================
   // API CLIENT CALLS
   // =========================================================================
@@ -751,10 +569,7 @@ export default function Forum({ currentUser }) {
     try {
       const newComment = await api.createForumComment(selectedPost.id, commentText, replyTargetId);
 
-<<<<<<< HEAD
       // Update local comment nodes
-=======
->>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
       if (replyTargetId) {
         setComments(prev => prev.map(c => {
           if (c.id === replyTargetId) {
@@ -825,11 +640,8 @@ export default function Forum({ currentUser }) {
   const handleAcceptSolution = async (commentId) => {
     try {
       await api.acceptCommentSolution(commentId);
-<<<<<<< HEAD
 
       // Redraw comment solution state check
-=======
->>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
       setComments(prev => prev.map(c => {
         if (c.id === commentId) {
           return { ...c, isSolution: !c.isSolution };
@@ -872,10 +684,6 @@ export default function Forum({ currentUser }) {
         toast('Đã tham gia nhóm học tập thành công!', 'success');
       }
       fetchStudyGroups();
-<<<<<<< HEAD
-=======
-      toast('Đã tham gia nhóm học tập thành công!', 'success');
->>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
     } catch (err) {
       toast(err.message || 'Không thể tham gia nhóm!', 'error');
     }
@@ -1263,7 +1071,6 @@ export default function Forum({ currentUser }) {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                       {posts.length > 0 ? (
                         posts.map(post => (
-<<<<<<< HEAD
                           <div
                             key={post.id}
                             className="card post-card"
@@ -1272,11 +1079,6 @@ export default function Forum({ currentUser }) {
                               border: post.isPinned ? '1.5px solid var(--primary)' : '1px solid var(--border)',
                               transition: 'transform 0.2s', hover: { transform: 'translateY(-2px)' }
                             }}
-=======
-                          <div 
-                            key={post.id} 
-                            className={`forum-post-card ${post.isPinned ? 'pinned' : ''}`} 
->>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
                             onClick={() => setSelectedPost(post)}
                           >
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2px' }}>
@@ -1346,7 +1148,6 @@ export default function Forum({ currentUser }) {
                 </div>
               )}
 
-<<<<<<< HEAD
 
 
 
@@ -1648,331 +1449,6 @@ export default function Forum({ currentUser }) {
                 </div>
               )}
               {searchingUsers && <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '6px' }}>⏳ Đang tìm kiếm học viên...</div>}
-=======
-              {activeTab === 'groups' && selectedGroup ? (
-                /* GROUP WORKSPACE DETAIL VIEW */
-                <div className="card detailed-post-card animate-in" style={{ padding: '24px', background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
-                  {/* Header info */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '16px', marginBottom: '20px' }}>
-                    <div style={{ display: 'flex', gap: '14px', alignItems: 'center' }}>
-                      <button className="btn-outline" onClick={() => setSelectedGroup(null)} style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '6px 12px' }}>
-                        <HiArrowLeft /> Danh sách nhóm
-                      </button>
-                      <div>
-                        <h2 style={{ fontSize: '18px', fontWeight: 'bold', margin: 0 }}>👥 {selectedGroup.name}</h2>
-                        <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: '2px 0 0 0' }}>{selectedGroup.description}</p>
-                      </div>
-                    </div>
-                    
-                    <button 
-                      className="btn-outline" 
-                      onClick={() => handleLeaveGroup(selectedGroup.id)}
-                      style={{ color: 'var(--accent-red)', borderColor: 'var(--accent-red)', background: 'none', padding: '6px 14px' }}
-                    >
-                      Rời nhóm
-                    </button>
-                  </div>
-
-                  {/* Tabs menu */}
-                  <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', marginBottom: '20px', gap: '8px' }}>
-                    {[
-                      { id: 'announcements', label: 'Bảng tin thông báo' },
-                      { id: 'discussion', label: 'Thảo luận nội bộ' },
-                      { id: 'chat', label: 'Hộp chat trực tuyến ⚡' },
-                      { id: 'members', label: 'Thành viên (' + (selectedGroup.members?.length || 0) + ')' }
-                    ].map(tab => (
-                      <button
-                        key={tab.id}
-                        id={`group-tab-${tab.id}`}
-                        onClick={() => setGroupTab(tab.id)}
-                        style={{
-                          padding: '10px 16px',
-                          border: 'none',
-                          borderBottom: groupTab === tab.id ? '2px solid var(--primary)' : '2px solid transparent',
-                          background: 'none',
-                          color: groupTab === tab.id ? 'var(--primary)' : 'var(--text-secondary)',
-                          cursor: 'pointer',
-                          fontWeight: '600',
-                          fontSize: '13px',
-                          transition: 'all 0.2s'
-                        }}
-                      >
-                        {tab.label}
-                      </button>
-                    ))}
-                  </div>
-
-                  {/* Tab Announcement contents */}
-                  {groupTab === 'announcements' && (
-                    <div>
-                      {/* Only creators/admin can announce */}
-                      {(selectedGroup.creatorId === currentUser?.id || currentUser?.role === 'ADMIN' || currentUser?.role === 'TEACHER') && (
-                        <form onSubmit={handleCreateGroupAnnouncement} className="card" style={{ padding: '16px', background: 'var(--bg-main)', border: '1px solid var(--border)', marginBottom: '20px' }}>
-                          <h4 style={{ fontSize: '13.5px', fontWeight: 'bold', marginBottom: '10px' }}>📢 Phát hành thông báo nhóm mới</h4>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                            <input 
-                              type="text" 
-                              className="form-control" 
-                              placeholder="Tiêu đề thông báo..." 
-                              value={newAnnTitle}
-                              onChange={e => setNewAnnTitle(e.target.value)}
-                              required
-                            />
-                            <textarea 
-                              className="form-control" 
-                              placeholder="Nội dung thông báo chi tiết..." 
-                              value={newAnnContent}
-                              onChange={e => setNewAnnContent(e.target.value)}
-                              style={{ minHeight: '80px' }}
-                              required
-                            />
-                            <button type="submit" className="btn-primary" style={{ alignSelf: 'flex-end', padding: '6px 16px' }} disabled={submitting}>
-                              {submitting ? 'Đang phát...' : 'Phát thông báo'}
-                            </button>
-                          </div>
-                        </form>
-                      )}
-
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                        {groupAnnouncements.length > 0 ? (
-                          groupAnnouncements.map(ann => (
-                            <div key={ann.id} className="card" style={{ padding: '16px', border: '1px solid var(--border)' }}>
-                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                                  <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: 'var(--primary)', color: '#fff', fontSize: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
-                                    {ann.author?.fullName?.slice(0, 2).toUpperCase() || 'TR'}
-                                  </div>
-                                  <span style={{ fontSize: '12.5px', fontWeight: 'bold' }}>{ann.author?.fullName}</span>
-                                </div>
-                                <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{new Date(ann.createdAt).toLocaleString()}</span>
-                              </div>
-                              <h5 style={{ fontWeight: 'bold', fontSize: '14px', marginBottom: '6px', color: 'var(--text-main)' }}>{ann.title}</h5>
-                              <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: 0, whiteSpace: 'pre-line' }}>{ann.content}</p>
-                            </div>
-                          ))
-                        ) : (
-                          <div style={{ padding: '30px', textAlign: 'center', color: 'var(--text-secondary)', fontStyle: 'italic' }}>
-                            Không có thông báo nhóm nào.
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Tab Discussion content */}
-                  {groupTab === 'discussion' && (
-                    <div>
-                      {/* Simple group create post form */}
-                      <form onSubmit={handleCreateGroupPost} className="card" style={{ padding: '16px', background: 'var(--bg-main)', border: '1px solid var(--border)', marginBottom: '20px' }}>
-                        <h4 style={{ fontSize: '13.5px', fontWeight: 'bold', marginBottom: '10px' }}>✍️ Tạo bài thảo luận nội bộ</h4>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                          <select className="form-control" value={newCategoryId} onChange={e => setNewCategoryId(e.target.value)}>
-                            {categories.map(cat => (
-                              <option key={cat.id} value={cat.id}>{cat.name}</option>
-                            ))}
-                          </select>
-                          <input 
-                            type="text" 
-                            className="form-control" 
-                            placeholder="Tiêu đề thảo luận..." 
-                            value={newTitle}
-                            onChange={e => setNewTitle(e.target.value)}
-                            required
-                          />
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <label style={{ fontSize: '12.5px', fontWeight: '600', margin: 0 }}>Nội dung thảo luận:</label>
-                            <label className="btn-outline" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', cursor: 'pointer', padding: '4px 10px', fontSize: '11px', margin: 0 }}>
-                              📷 {uploadingImage ? 'Đang tải...' : 'Chèn ảnh'}
-                              <input 
-                                type="file" 
-                                accept="image/*" 
-                                onChange={handleUploadImageForPost} 
-                                disabled={uploadingImage} 
-                                style={{ display: 'none' }} 
-                              />
-                            </label>
-                          </div>
-                          <textarea 
-                            className="form-control" 
-                            placeholder="Nội dung thảo luận... (Hỗ trợ Ctrl+V để dán ảnh từ clipboard)" 
-                            value={newContent}
-                            onPaste={(e) => handlePasteImage(e, setNewContent)}
-                            onChange={e => setNewContent(e.target.value)}
-                            style={{ minHeight: '80px' }}
-                            required
-                          />
-                          <button type="submit" className="btn-primary" style={{ alignSelf: 'flex-end', padding: '6px 16px' }} disabled={submitting}>
-                            {submitting ? 'Đang đăng...' : 'Đăng thảo luận'}
-                          </button>
-                        </div>
-                      </form>
-
-                      {/* Display internal group posts */}
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                        {groupPosts.length > 0 ? (
-                          groupPosts.map(post => (
-                            <div 
-                              key={post.id} 
-                              className="forum-post-card" 
-                              onClick={() => setSelectedPost(post)}
-                            >
-                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2px' }}>
-                                <span className="badge-pill" style={{ background: 'var(--primary-bg)', color: 'var(--primary)', fontSize: '10px' }}>{post.category?.name}</span>
-                                <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{new Date(post.createdAt).toLocaleDateString()}</span>
-                              </div>
-                              <h4 style={{ fontWeight: 'bold', fontSize: '15.5px', margin: '0 0 2px 0', color: 'var(--text-main)' }}>{post.title}</h4>
-                              
-                              {getFirstImageUrl(post.content) && (
-                                <div className="forum-post-preview-image">
-                                  <img 
-                                    src={getFirstImageUrl(post.content)} 
-                                    alt="Preview" 
-                                    loading="lazy"
-                                  />
-                                </div>
-                              )}
-
-                              {stripImages(post.content) && (
-                                <p style={{ fontSize: '13px', color: 'var(--text-secondary)', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', margin: '0 0 4px 0', lineHeight: 1.5 }}>{stripImages(post.content)}</p>
-                              )}
-
-                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border)', paddingTop: '10px', fontSize: '12px', color: 'var(--text-secondary)' }}>
-                                <span>Tác giả: {post.author?.fullName}</span>
-                                <span>💬 {post.comments?.length || 0} bình luận</span>
-                              </div>
-                            </div>
-                          ))
-                        ) : (
-                          <div style={{ padding: '30px', textAlign: 'center', color: 'var(--text-secondary)', fontStyle: 'italic' }}>
-                            Chưa có chủ đề thảo luận nội bộ nào. Hãy khởi xướng chủ đề đầu tiên!
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Tab Chat room */}
-                  {groupTab === 'chat' && (
-                    <div style={{ display: 'flex', flexDirection: 'column', height: '400px', border: '1px solid var(--border)', borderRadius: '8px', overflow: 'hidden' }}>
-                      {/* Messages list */}
-                      <div style={{ flex: 1, padding: '16px', overflowY: 'auto', background: 'var(--bg-main)', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                        {groupChatMessages.map((msg, i) => {
-                          const isSystem = msg.role === 'SYSTEM';
-                          const isMe = msg.studentId === currentUser?.id;
-
-                          if (isSystem) {
-                            return (
-                              <div key={msg.id || i} style={{ alignSelf: 'center', background: 'var(--border)', color: 'var(--text-secondary)', padding: '4px 12px', borderRadius: '12px', fontSize: '11.5px', textAlign: 'center', maxWidth: '80%' }}>
-                                {msg.content}
-                              </div>
-                            );
-                          }
-
-                          return (
-                            <div key={msg.id || i} style={{ alignSelf: isMe ? 'flex-end' : 'flex-start', display: 'flex', flexDirection: 'column', alignItems: isMe ? 'flex-end' : 'flex-start', maxWidth: '70%' }}>
-                              <span style={{ fontSize: '10.5px', color: 'var(--text-secondary)', marginBottom: '2px', fontWeight: 'bold' }}>
-                                {isMe ? 'Tôi' : (msg.authorName || 'Học viên')}
-                              </span>
-                              <div style={{
-                                padding: '10px 14px',
-                                borderRadius: '12px',
-                                background: isMe ? 'var(--primary)' : 'var(--bg-card)',
-                                color: isMe ? '#fff' : 'var(--text-primary)',
-                                border: isMe ? 'none' : '1px solid var(--border)',
-                                fontSize: '13px',
-                                wordBreak: 'break-word'
-                              }}>
-                                {msg.content}
-                              </div>
-                              <span style={{ fontSize: '9px', color: 'var(--text-muted)', marginTop: '2px' }}>
-                                {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                              </span>
-                            </div>
-                          );
-                        })}
-                      </div>
-
-                      {/* Chat input form */}
-                      <form onSubmit={handleSendChatMessage} style={{ display: 'flex', borderTop: '1px solid var(--border)', background: 'var(--bg-card)' }}>
-                        <input 
-                          type="text" 
-                          className="form-control" 
-                          placeholder="Nhập nội dung tin nhắn và ấn Enter..." 
-                          value={chatInput}
-                          onChange={e => setChatInput(e.target.value)}
-                          style={{ flex: 1, border: 'none', borderRadius: 0, padding: '14px', outline: 'none', background: 'none' }}
-                        />
-                        <button type="submit" className="btn-primary" style={{ borderRadius: 0, border: 'none', padding: '0 24px' }}>Gửi</button>
-                      </form>
-                    </div>
-                  )}
-
-                  {/* Tab Members */}
-                  {groupTab === 'members' && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                      <h4 style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '6px' }}>Danh sách thành viên nhóm:</h4>
-                      {selectedGroup.members?.map(m => (
-                        <div key={m.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', border: '1px solid var(--border)', borderRadius: '6px', background: 'var(--bg-main)' }}>
-                          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                            <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: m.role === 'CREATOR' ? 'var(--primary)' : 'var(--accent-blue)', color: '#fff', fontSize: '11px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
-                              {m.user?.fullName?.slice(0, 2).toUpperCase() || 'HV'}
-                            </div>
-                            <div>
-                              <span style={{ fontSize: '13.5px', fontWeight: 'bold' }}>{m.user?.fullName}</span>
-                              <span style={{ fontSize: '10px', color: 'var(--text-muted)', marginLeft: '8px' }}>Tham gia: {new Date(m.joinedAt).toLocaleDateString()}</span>
-                            </div>
-                          </div>
-                          
-                          <span className="badge-pill" style={{
-                            background: m.role === 'CREATOR' ? 'rgba(108,92,231,0.12)' : 'rgba(9,132,227,0.12)',
-                            color: m.role === 'CREATOR' ? 'var(--primary)' : 'var(--accent-blue)',
-                            fontSize: '11px', fontWeight: 'bold'
-                          }}>
-                            {m.role === 'CREATOR' ? 'Trưởng nhóm' : 'Thành viên'}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ) : activeTab === 'groups' ? (
-                /* REGULAR LIST OF GROUPS */
-                <div>
-                  {loading ? (
-                    <div style={{ textAlign: 'center', padding: '40px' }}><HiRefresh className="animate-spin" style={{ fontSize: '24px' }} /> Đang tải...</div>
-                  ) : (
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
-                      {studyGroups.map(group => (
-                        <div key={group.id} className="card" style={{ padding: '20px', background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
-                          <h4 style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '8px' }}>👥 {group.name}</h4>
-                          <p style={{ fontSize: '12.5px', color: 'var(--text-secondary)', minHeight: '40px', marginBottom: '14px' }}>{group.description}</p>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px', color: 'var(--text-muted)', borderTop: '1px solid var(--border)', paddingTop: '10px' }}>
-                            <span>Thành viên: {group.memberCount}</span>
-                            {group.isMember ? (
-                              <div style={{ display: 'flex', gap: '6px' }}>
-                                <span style={{ color: 'var(--accent-green)', fontWeight: 'bold', display: 'flex', alignItems: 'center' }}>✓</span>
-                                <button 
-                                  className="btn-primary" 
-                                  onClick={() => setSelectedGroup(group)} 
-                                  style={{ padding: '4px 10px', fontSize: '11px', background: 'var(--primary)' }}
-                                >
-                                  Vào nhóm
-                                </button>
-                              </div>
-                            ) : (
-                              <button className="btn-primary" onClick={() => handleJoinStudyGroup(group.id)} style={{ padding: '4px 10px', fontSize: '11px' }}>
-                                Tham gia
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ) : null}
-
->>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
             </div>
           )}
 
@@ -2022,201 +1498,8 @@ export default function Forum({ currentUser }) {
                 )}
               </div>
             </div>
-<<<<<<< HEAD
           ))}
         </div>
-=======
-          )}
-
-          {/* Quick Guidance Card */}
-          <div className="card" style={{ padding: '16px', background: 'var(--bg-card)', border: '1px solid var(--border)', fontSize: '12.5px', color: 'var(--text-secondary)' }}>
-            <h5 style={{ fontWeight: 'bold', color: 'var(--text-main)', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              💡 Thể lệ tính điểm XP:
-            </h5>
-            <ul style={{ paddingLeft: '18px', display: 'flex', flexDirection: 'column', gap: '4px', margin: 0 }}>
-              <li>Câu hỏi hữu ích: +5 XP</li>
-              <li>Lời giải được chọn: +15 XP</li>
-              <li>Đóng góp bình luận: +2 XP</li>
-              <li>Tải xuống tài liệu hữu ích: +5 XP</li>
-            </ul>
-          </div>
-        </div>
-      </div>
-
-      {/* ================= MODALS ================= */}
-
-      {/* Create New Post Modal */}
-      {showCreateModal && createPortal(
-        <div className="modal-backdrop" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 999 }}>
-          <div className="modal-card card" style={{ maxWidth: '600px', width: '90%', maxHeight: '90vh', overflowY: 'auto', padding: '24px', background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-              <h3 style={{ fontSize: '17px', fontWeight: 'bold' }}>Tạo bài viết thảo luận mới</h3>
-              <button onClick={() => setShowCreateModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '18px', color: 'var(--text-muted)' }}>✕</button>
-            </div>
-
-            <form onSubmit={handleCreatePost} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <div className="form-group">
-                <label style={{ fontSize: '12px', fontWeight: '600', marginBottom: '6px', display: 'block' }}>Chủ đề / Môn học:</label>
-                <select className="form-control" value={newCategoryId} onChange={e => setNewCategoryId(e.target.value)} style={{ width: '100%' }}>
-                  {categories.map(cat => (
-                    <option key={cat.id} value={cat.id}>{cat.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="form-group">
-                <label style={{ fontSize: '12px', fontWeight: '600', marginBottom: '6px', display: 'block' }}>Dạng bài đăng:</label>
-                <select className="form-control" value={newPostType} onChange={e => setNewPostType(e.target.value)} style={{ width: '100%' }}>
-                  <option value="GENERAL">Thảo luận chung</option>
-                  <option value="QA">Hỏi & Đáp (Q&A)</option>
-                  <option value="RESOURCE">Chia sẻ tài liệu / Đề thi</option>
-                </select>
-              </div>
-
-              {newPostType === 'QA' && (
-                <div className="form-group">
-                  <label style={{ fontSize: '12px', fontWeight: '600', marginBottom: '6px', display: 'block' }}>Độ khó:</label>
-                  <select className="form-control" value={newDifficulty} onChange={e => setNewDifficulty(e.target.value)} style={{ width: '100%' }}>
-                    <option value="EASY">Dễ</option>
-                    <option value="MEDIUM">Trung bình</option>
-                    <option value="HARD">Khó</option>
-                  </select>
-                </div>
-              )}
-
-              {newPostType === 'RESOURCE' && (
-                <div className="form-group" style={{ background: 'var(--bg-main)', padding: '12px', borderRadius: '6px', border: '1px dashed var(--border)' }}>
-                  <label style={{ fontSize: '12px', fontWeight: '600', marginBottom: '6px', display: 'block' }}>Đính kèm tệp học liệu (Mô phỏng):</label>
-                  <input 
-                    type="text" 
-                    className="form-control" 
-                    placeholder="URL tài liệu (ví dụ: https://edupath.cdn/files/math12.pdf)" 
-                    onChange={e => setResourceFile({ fileUrl: e.target.value, fileType: 'PDF', fileSize: 2048000 })}
-                    style={{ width: '100%', fontSize: '12px' }}
-                    required
-                  />
-                </div>
-              )}
-
-              <div className="form-group">
-                <label style={{ fontSize: '12px', fontWeight: '600', marginBottom: '6px', display: 'block' }}>Tiêu đề câu hỏi / bài thảo luận:</label>
-                <input 
-                  type="text" className="form-control" placeholder="Ví dụ: Cách bấm máy Casio nghiệm nguyên đạo hàm?"
-                  value={newTitle} onChange={e => setNewTitle(e.target.value)} style={{ width: '100%' }} required
-                />
-              </div>
-
-              <div className="form-group">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                  <label style={{ fontSize: '12px', fontWeight: '600', margin: 0 }}>Nội dung chi tiết câu hỏi:</label>
-                  <label className="btn-outline" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', cursor: 'pointer', padding: '4px 10px', fontSize: '11px', margin: 0 }}>
-                    📷 {uploadingImage ? 'Đang tải...' : 'Chèn ảnh'}
-                    <input 
-                      type="file" 
-                      accept="image/*" 
-                      onChange={handleUploadImageForPost} 
-                      disabled={uploadingImage} 
-                      style={{ display: 'none' }} 
-                    />
-                  </label>
-                </div>
-                <textarea 
-                  className="form-control" placeholder="Nhập nội dung chi tiết bài toán, bạn đã thử cách nào... (Hỗ trợ Ctrl+V để dán ảnh từ clipboard)"
-                  value={newContent} onChange={e => setNewContent(e.target.value)} 
-                  onPaste={(e) => handlePasteImage(e, setNewContent)}
-                  style={{ width: '100%', minHeight: '120px', resize: 'vertical' }} required
-                />
-              </div>
- 
-              <div className="form-group">
-                <label style={{ fontSize: '12px', fontWeight: '600', marginBottom: '6px', display: 'block' }}>Thẻ phân loại (ngăn cách bởi dấu phẩy):</label>
-                <input 
-                  type="text" className="form-control" placeholder="Ví dụ: casio, daoham, toan12"
-                  value={newTagsString} onChange={e => setNewTagsString(e.target.value)} style={{ width: '100%' }}
-                />
-              </div>
- 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>
-                <button type="button" className="btn-outline" onClick={() => setShowCreateModal(false)} disabled={submitting}>Hủy bỏ</button>
-                <button type="submit" className="btn-primary" disabled={submitting}>
-                  {submitting ? 'Đang đăng...' : 'Đăng lên diễn đàn'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>,
-        document.body
-      )}
-
-      {/* Create New Group Modal */}
-      {showGroupModal && createPortal(
-        <div className="modal-backdrop" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 999 }}>
-          <div className="modal-card card" style={{ maxWidth: '500px', width: '90%', maxHeight: '90vh', overflowY: 'auto', padding: '24px', background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-              <h3 style={{ fontSize: '17px', fontWeight: 'bold' }}>Tạo nhóm học tập mới</h3>
-              <button onClick={() => setShowGroupModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '18px', color: 'var(--text-muted)' }}>✕</button>
-            </div>
-
-            <form onSubmit={handleCreateStudyGroup} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <div className="form-group">
-                <label style={{ fontSize: '12px', fontWeight: '600', marginBottom: '6px', display: 'block' }}>Tên nhóm học tập:</label>
-                <input type="text" name="groupName" className="form-control" placeholder="Ví dụ: Ôn thi khối A1 chuyên sâu" style={{ width: '100%' }} required />
-              </div>
-
-              <div className="form-group">
-                <label style={{ fontSize: '12px', fontWeight: '600', marginBottom: '6px', display: 'block' }}>Mô tả mục tiêu nhóm:</label>
-                <textarea name="groupDesc" className="form-control" placeholder="Mô tả lịch học, tài liệu trao đổi..." style={{ width: '100%', minHeight: '80px' }} required />
-              </div>
-
-              <div className="form-group" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                <input type="checkbox" name="groupPrivate" id="groupPrivate" />
-                <label htmlFor="groupPrivate" style={{ fontSize: '13px' }}>Đặt nhóm ở chế độ riêng tư (Yêu cầu lời mời)</label>
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>
-                <button type="button" className="btn-outline" onClick={() => setShowGroupModal(false)} disabled={submitting}>Hủy bỏ</button>
-                <button type="submit" className="btn-primary" disabled={submitting}>
-                  {submitting ? 'Đang tạo...' : 'Tạo nhóm'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>,
-        document.body
-      )}
-
-      {/* Safety Report Modal */}
-      {showReportModal && createPortal(
-        <div className="modal-backdrop" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 999 }}>
-          <div className="modal-card card" style={{ maxWidth: '400px', width: '90%', padding: '24px', background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <h3 style={{ fontSize: '16px', fontWeight: 'bold' }}>Báo cáo nội dung không lành mạnh</h3>
-              <button onClick={() => setShowReportModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '18px', color: 'var(--text-muted)' }}>✕</button>
-            </div>
-
-            <form onSubmit={handleSendReport} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <div className="form-group">
-                <label style={{ fontSize: '12.5px', marginBottom: '6px', display: 'block' }}>Lý do báo cáo:</label>
-                <textarea 
-                  id="report-reason-input"
-                  className="form-control" 
-                  placeholder="Vui lòng cung cấp lý do chi tiết (Spam, ngôn từ kích động, xúc phạm giáo viên/học sinh...)" 
-                  value={reportReason} 
-                  onChange={e => setReportReason(e.target.value)} 
-                  style={{ width: '100%', minHeight: '100px' }} 
-                  required 
-                />
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>
-                <button id="report-cancel-btn" type="button" className="btn-outline" onClick={() => setShowReportModal(false)}>Hủy</button>
-                <button id="report-submit-btn" type="submit" className="btn-primary">Gửi báo cáo</button>
-              </div>
-            </form>
-          </div>
-        </div>,
-        document.body
->>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
       )}
     </div>
   ) : activeTab === 'groups' ? (

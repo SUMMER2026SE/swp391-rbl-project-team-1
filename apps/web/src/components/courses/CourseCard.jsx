@@ -114,10 +114,6 @@ export default function CourseCard({ course, onSelect, onPurchase, isOwned }) {
         }
       }}
       aria-label={`Khóa học ${title} giảng dạy bởi ${instructor.name}`}
-<<<<<<< HEAD
-=======
-      style={{ borderTop: `4px solid ${subjectColor}` }}
->>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
     >
       {/* ── THUMBNAIL ── */}
       <div className="cc-thumb">
@@ -214,7 +210,6 @@ export default function CourseCard({ course, onSelect, onPurchase, isOwned }) {
       {/* ── FOOTER ── */}
       <div className="cc-footer">
         <div className="cc-price-group">
-<<<<<<< HEAD
           {discountPercent > 0 && priceOriginal > 0 && (
             <span className="cc-price-original">
               {priceOriginal.toLocaleString('vi-VN')}đ
@@ -226,21 +221,6 @@ export default function CourseCard({ course, onSelect, onPurchase, isOwned }) {
           {discountPercent > 0 && (
             <span className="cc-discount">-{discountPercent}%</span>
           )}
-=======
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            {discountPercent > 0 && priceOriginal > 0 && (
-              <span className="cc-price-original">
-                {priceOriginal.toLocaleString('vi-VN')}đ
-              </span>
-            )}
-            {discountPercent > 0 && (
-              <span className="cc-discount">-{discountPercent}%</span>
-            )}
-          </div>
-          <span className="cc-price-current" style={{ color: subjectColor, fontWeight: 900 }}>
-            {priceSale === 0 ? 'Miễn phí' : `${priceSale.toLocaleString('vi-VN')}đ`}
-          </span>
->>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
         </div>
 
         {isOwned ? (
@@ -256,14 +236,7 @@ export default function CourseCard({ course, onSelect, onPurchase, isOwned }) {
             className="cc-btn cc-btn--enroll"
             onClick={handleButtonClick}
             aria-label={`Đăng ký khóa học ${title}`}
-<<<<<<< HEAD
             style={{ backgroundColor: subjectColor }}
-=======
-            style={{
-              background: `linear-gradient(135deg, ${subjectColor}, var(--emerald-primary))`,
-              boxShadow: `0 4px 12px ${subjectColor}25`
-            }}
->>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
           >
             Đăng ký ngay
           </button>

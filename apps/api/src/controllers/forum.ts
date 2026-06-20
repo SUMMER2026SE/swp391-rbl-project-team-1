@@ -134,10 +134,6 @@ async function checkAndAwardBadges(userId: number) {
         if (badgeInfo.code === 'FIRST_POST' && badgeInfo.req.posts !== undefined && postsCount >= badgeInfo.req.posts) qualifies = true;
         if (badgeInfo.code === 'GURU' && badgeInfo.req.solutions !== undefined && solutionsCount >= badgeInfo.req.solutions) qualifies = true;
         if (badgeInfo.code === 'POPULAR' && badgeInfo.req.xp !== undefined && xpCount >= badgeInfo.req.xp) qualifies = true;
-<<<<<<< HEAD
-=======
-
->>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
 
         if (qualifies) {
           await prisma.userBadge.create({
@@ -589,12 +585,7 @@ export async function acceptCommentSolution(req: AuthRequest, res: Response) {
 
     // Validate permission: only author of post OR a teacher can accept solutions
     const isAuthor = comment.post.authorId === userId;
-<<<<<<< HEAD
     const isTeacher = req.user?.role === 'TEACHER' || req.user?.role === 'ADMIN';
-=======
-    const isTeacher = req.user!.role === 'TEACHER' || req.user!.role === 'ADMIN';
-
->>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
 
     if (!isAuthor && !isTeacher) {
       return res.status(403).json({ success: false, error: 'Không có quyền chọn lời giải hay cho câu hỏi này!' });
@@ -1052,7 +1043,6 @@ export async function createGroupAnnouncement(req: AuthRequest, res: Response) {
   }
 }
 
-<<<<<<< HEAD
 export async function getGroupRequests(req: AuthRequest, res: Response) {
   const { id } = req.params;
   const userId = req.user?.id;
@@ -1371,5 +1361,3 @@ export async function searchUsersToInvite(req: AuthRequest, res: Response) {
   }
 }
 
-=======
->>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb

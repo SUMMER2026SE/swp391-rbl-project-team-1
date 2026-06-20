@@ -10,8 +10,10 @@ const navGroups = {
     {
       groupLabel: '📊 Tổng quan',
       items: [
-        { label: 'Bảng điều khiển', id: 'home', icon: HiHome },
-        { label: 'Về trang chủ', id: 'landing', icon: HiArrowUp },
+        { label: 'Trang chủ', id: 'home', icon: HiHome },
+        { label: 'Khóa học', id: 'courses', icon: HiAcademicCap },
+        { label: 'Lộ trình AI', id: 'path', icon: HiMap },
+        { label: 'Sơ đồ tư duy', id: 'mindmap', icon: HiCollection },
       ],
     },
     {

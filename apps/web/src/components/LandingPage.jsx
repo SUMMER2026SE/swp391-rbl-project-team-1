@@ -1267,17 +1267,10 @@ export default function LandingPage({
 
           <div className="lp-nav__links">
             <a href="/courses" className={activeLandingView === 'courses' ? 'lp-link--active' : ''} onClick={(e) => { e.preventDefault(); if (navigateTo) { navigateTo('/courses'); } else { setActiveLandingView('courses'); } }}>Khóa học</a>
-<<<<<<< HEAD
-            <a href="/mock-exams" className={currentPath?.startsWith('/mock-exams') ? 'lp-link--active' : ''} onClick={(e) => { e.preventDefault(); if (navigateTo) { navigateTo('/mock-exams'); } else { setActiveLandingView('exams'); } }}>Thi thử</a>
-            <a href="#features" className={activeLandingView === 'features' ? 'lp-link--active' : ''} onClick={(e) => { e.preventDefault(); setActiveLandingView('features'); }}>Lộ trình học</a>
-            <a href="/ai-tutor" className={currentPath === '/ai-tutor' ? 'lp-link--active' : ''} onClick={(e) => { e.preventDefault(); if (navigateTo) { navigateTo('/ai-tutor'); } else { setActiveLandingView('ai-tutor'); } }}>AI Gia sư</a>
-            <a href="/exam-bank" className={currentPath === '/exam-bank' ? 'lp-link--active' : ''} onClick={(e) => { e.preventDefault(); if (navigateTo) { navigateTo('/exam-bank'); } }}>Ngân hàng đề</a>
-=======
             <a href="/mock-exams" className={currentPath?.startsWith('/mock-exams') ? 'lp-link--active' : ''} onClick={(e) => { e.preventDefault(); if (!currentUser) { toast("Vui lòng đăng nhập để sử dụng chức năng thi thử!", 'warning'); if (onNavigateToAuth) onNavigateToAuth('login'); } else { if (navigateTo) { navigateTo('/mock-exams'); } else { setActiveLandingView('exams'); } } }}>Thi thử</a>
             <a href="/flashcards" className={currentPath === '/flashcards' ? 'lp-link--active' : ''} onClick={(e) => { e.preventDefault(); if (navigateTo) { navigateTo('/flashcards'); } else { setActiveLandingView('features'); } }}>Flashcard</a>
-            <a href="/ai-tutor" className={currentPath === '/ai-tutor' ? 'lp-link--active' : ''} onClick={(e) => { e.preventDefault(); if (navigateTo) { navigateTo('/ai-tutor'); } else { setActiveLandingView('ai-tutor'); } }}>Mindmap</a>
+            <a href="/mindmaps" className={currentPath === '/mindmaps' ? 'lp-link--active' : ''} onClick={(e) => { e.preventDefault(); if (navigateTo) { navigateTo('/mindmaps'); } else { setActiveLandingView('ai-tutor'); } }}>Mindmap</a>
             <a href="/exam-bank" className={currentPath === '/exam-bank' ? 'lp-link--active' : ''} onClick={(e) => { e.preventDefault(); if (navigateTo) { navigateTo('/exam-bank'); } }}>Ngân hàng tài liệu</a>
->>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
             <a href="#leaderboard" className={activeLandingView === 'leaderboard' ? 'lp-link--active' : ''} onClick={(e) => { e.preventDefault(); setActiveLandingView('home'); setTimeout(() => { const el = document.getElementById('leaderboard'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 100); }}>Bảng xếp hạng</a>
             <a href="/forum" className={activeLandingView === 'forum' ? 'lp-link--active' : ''} onClick={(e) => { e.preventDefault(); if (navigateTo) { navigateTo('/forum'); } else { setActiveLandingView('forum'); } }}>Cộng đồng</a>
           </div>
@@ -1626,17 +1619,6 @@ export default function LandingPage({
         {mobileMenuOpen && (
           <div className="lp-mobile-menu">
             <a href="/courses" onClick={(e) => { e.preventDefault(); if (navigateTo) { navigateTo('/courses'); } else { setActiveLandingView('courses'); } setMobileMenuOpen(false); }}>Khóa học</a>
-<<<<<<< HEAD
-            <a href="/mock-exams" onClick={(e) => { e.preventDefault(); if (navigateTo) { navigateTo('/mock-exams'); } else { setActiveLandingView('exams'); } setMobileMenuOpen(false); }}>Thi thử</a>
-            <a href="#features" onClick={(e) => { e.preventDefault(); setActiveLandingView('features'); setMobileMenuOpen(false); }}>Lộ trình học</a>
-            <a href="/ai-tutor" onClick={(e) => { e.preventDefault(); if (navigateTo) { navigateTo('/ai-tutor'); } else { setActiveLandingView('ai-tutor'); } setMobileMenuOpen(false); }}>AI Gia sư</a>
-            <a href="/exam-bank" onClick={(e) => { e.preventDefault(); if (navigateTo) { navigateTo('/exam-bank'); } setMobileMenuOpen(false); }}>Ngân hàng đề</a>
-=======
-            <a href="/mock-exams" onClick={(e) => { e.preventDefault(); if (!currentUser) { toast("Vui lòng đăng nhập để sử dụng chức năng thi thử!", 'warning'); if (onNavigateToAuth) onNavigateToAuth('login'); } else { if (navigateTo) { navigateTo('/mock-exams'); } else { setActiveLandingView('exams'); } } setMobileMenuOpen(false); }}>Thi thử</a>
-            <a href="/flashcards" onClick={(e) => { e.preventDefault(); if (navigateTo) { navigateTo('/flashcards'); } else { setActiveLandingView('features'); } setMobileMenuOpen(false); }}>Flashcard</a>
-            <a href="/ai-tutor" onClick={(e) => { e.preventDefault(); if (navigateTo) { navigateTo('/ai-tutor'); } else { setActiveLandingView('ai-tutor'); } setMobileMenuOpen(false); }}>Mindmap</a>
-            <a href="/exam-bank" onClick={(e) => { e.preventDefault(); if (navigateTo) { navigateTo('/exam-bank'); } setMobileMenuOpen(false); }}>Ngân hàng tài liệu</a>
->>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
             <a href="#leaderboard" onClick={(e) => { e.preventDefault(); setActiveLandingView('home'); setMobileMenuOpen(false); setTimeout(() => { const el = document.getElementById('leaderboard'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 100); }}>Bảng xếp hạng</a>
             <a href="/forum" onClick={(e) => { e.preventDefault(); if (navigateTo) { navigateTo('/forum'); } else { setActiveLandingView('forum'); } setMobileMenuOpen(false); }}>Cộng đồng</a>
             

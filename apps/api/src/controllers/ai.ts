@@ -29,31 +29,6 @@ function processLines(buffer: string, res: Response): string {
   return lastLine;
 }
 
-// Helper to process SSE lines from OpenRouter
-function processLines(buffer: string, res: Response): string {
-  const lines = buffer.split('\n');
-  const lastLine = lines.pop() || '';
-
-  for (const line of lines) {
-    const trimmed = line.trim();
-    if (!trimmed) continue;
-    if (trimmed === 'data: [DONE]') continue;
-    if (trimmed.startsWith('data: ')) {
-      try {
-        const jsonStr = trimmed.slice(6);
-        const parsed = JSON.parse(jsonStr);
-        const text = parsed.choices?.[0]?.delta?.content || '';
-        if (text) {
-          res.write(`data: ${JSON.stringify({ text })}\n\n`);
-        }
-      } catch (e) {
-        // Ignored, might be incomplete JSON chunk
-      }
-    }
-  }
-  return lastLine;
-}
-
 // Server-Sent Events (SSE) AI Streaming Chat
 export async function streamAIChat(req: AuthRequest, res: Response) {
   const { message } = req.body;
@@ -64,11 +39,7 @@ export async function streamAIChat(req: AuthRequest, res: Response) {
   res.flushHeaders();
 
   const apiKey = process.env.OPENROUTER_API_KEY;
-<<<<<<< HEAD
   const model = process.env.OPENROUTER_MODEL || 'google/gemini-2.5-flash';
-=======
-  const model = process.env.OPENROUTER_MODEL || 'openrouter/free';
->>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
 
   if (!apiKey) {
     res.write(`data: ${JSON.stringify({ text: "Hệ thống AI Gia sư đang bảo trì (thiếu cấu hình API Key)." })}\n\n`);
@@ -79,13 +50,9 @@ export async function streamAIChat(req: AuthRequest, res: Response) {
 
   const systemPrompt = {
     role: 'system',
-<<<<<<< HEAD
     content: 'Bạn là "EduBot" - Trợ lý AI gia sư và hướng dẫn ôn thi THPT Quốc gia của hệ thống giáo dục trực tuyến EduPath AI. ' +
       'Nhiệm vụ của bạn là giải đáp chi tiết, hướng dẫn từng bước một cách khoa học cho các câu hỏi về lý thuyết, bài tập của học sinh (Toán, Vật lý, Hóa học, Tiếng Anh, v.v.). ' +
       'Hãy trả lời bằng tiếng Việt một cách thân thiện, nhiệt tình, chuyên nghiệp, luôn sử dụng định dạng markdown (in đậm, công thức, bullet points) rõ ràng để học sinh dễ theo dõi.'
-=======
-    content: 'Bạn là EduBot. Trả lời cực ngắn gọn (dưới 10 từ) bằng tiếng Việt.'
->>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
   };
 
   const abortController = new AbortController();
@@ -94,11 +61,6 @@ export async function streamAIChat(req: AuthRequest, res: Response) {
     res.end();
   });
 
-<<<<<<< HEAD
-=======
-  const slicedMessage = message ? String(message).substring(0, 60) : '';
-
->>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
   try {
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
@@ -112,19 +74,11 @@ export async function streamAIChat(req: AuthRequest, res: Response) {
         model: model,
         messages: [
           systemPrompt,
-<<<<<<< HEAD
           { role: 'user', content: message }
         ],
         stream: true,
         temperature: 0.7,
         max_tokens: 2000
-=======
-          { role: 'user', content: slicedMessage }
-        ],
-        stream: true,
-        temperature: 0.7,
-        max_tokens: 40
->>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
       }),
       signal: abortController.signal
     });

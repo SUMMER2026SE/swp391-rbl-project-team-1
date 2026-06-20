@@ -334,7 +334,6 @@ export default function AuthPage({ defaultMode = 'login', onAuthSuccess, usersLi
   const handleLogin = async () => {
     setLoading(true);
     setErrorMessage('');
-<<<<<<< HEAD
     // Admin demo bypass (keep for development)
     if ((email.toLowerCase() === 'admin@edupath.vn' || email.toLowerCase() === 'tranvanthuan2005tt@gmail.com') && password === 'admin123') {
       setLoading(false);
@@ -342,9 +341,6 @@ export default function AuthPage({ defaultMode = 'login', onAuthSuccess, usersLi
       onAuthSuccess({ name: email.toLowerCase() === 'tranvanthuan2005tt@gmail.com' ? 'Trần Văn Thuần' : 'Quản trị viên Hệ thống', email: email.toLowerCase(), role: 'admin', avatar: 'AD' });
       return;
     }
-=======
-    
->>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
     try {
       const data = await api.login(email, password);
       saveAuthTokens(data);

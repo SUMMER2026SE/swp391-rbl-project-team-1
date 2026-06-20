@@ -6,15 +6,16 @@ export const API_BASE = import.meta.env.VITE_API_URL ||
 let refreshPromise = null;
 
 async function request(path, options = {}) {
-  let token = localStorage.getItem('access_token');
+  const token = localStorage.getItem('access_token');
   const isFormData = options.body instanceof FormData;
+  
   const headers = {
     ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
     ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
     ...(options.headers || {})
   };
   
-  let res = await fetch(`${API_BASE}${path}`, {
+  const res = await fetch(`${API_BASE}${path}`, {
     headers,
     ...options,
     body: isFormData ? options.body : (options.body ? JSON.stringify(options.body) : undefined)
@@ -299,7 +300,6 @@ export const api = {
   createGroupAnnouncement: (groupId, title, content) =>
     request(`/forum/study-groups/${groupId}/announcements`, { method: 'POST', body: { title, content } }),
 
-<<<<<<< HEAD
   getGroupRequests: (groupId) =>
     request(`/forum/study-groups/${groupId}/requests`, { method: 'GET' }),
 
@@ -321,8 +321,6 @@ export const api = {
   searchUsers: (query, groupId) =>
     request(`/forum/users/search?q=${encodeURIComponent(query)}${groupId ? `&groupId=${groupId}` : ''}`, { method: 'GET' }),
 
-=======
->>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
   getForumReports: () =>
     request('/forum/moderation/reports', { method: 'GET' }),
 

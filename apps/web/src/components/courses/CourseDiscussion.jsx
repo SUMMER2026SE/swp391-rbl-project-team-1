@@ -96,13 +96,8 @@ export default function CourseDiscussion({ discussions, onAddComment, currentUse
 
       {/* Main Comment Input */}
       {currentUser ? (
-<<<<<<< HEAD
         <form onSubmit={handlePostComment} style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
           <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'var(--primary)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '12px', flexShrink: 0 }}>
-=======
-        <form onSubmit={handlePostComment} className="cd-form">
-          <div className="cd-avatar">
->>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
             {currentUser.avatar && currentUser.avatar.length <= 10 ? currentUser.avatar : 'U'}
           </div>
           <div className="cd-input-row">
@@ -123,13 +118,8 @@ export default function CourseDiscussion({ discussions, onAddComment, currentUse
           </div>
         </form>
       ) : (
-<<<<<<< HEAD
         <div style={{ padding: '14px', background: 'var(--emerald-light)', color: 'var(--emerald-primary)', borderRadius: '10px', fontSize: '12.5px', textAlign: 'center', marginBottom: '20px', border: '1px solid rgba(5, 150, 105, 0.1)', fontWeight: 'bold' }}>
           🔑 Bạn cần <a href="#" style={{ textDecoration: 'underline', color: 'var(--emerald-primary)', fontWeight: '800' }} onClick={(e) => { e.preventDefault(); alert("Vui lòng đăng ký tài khoản Học viên hoặc đăng nhập để tham gia thảo luận cùng cả lớp nhé!"); }}>đăng nhập hoặc đăng ký</a> để tham gia bình luận học tập.
-=======
-        <div className="cd-login-prompt">
-          🔑 Bạn cần <a href="#" style={{ textDecoration: 'underline', color: 'var(--emerald-primary)', fontWeight: '800' }} onClick={(e) => { e.preventDefault(); toast("Vui lòng đăng ký tài khoản Học viên hoặc đăng nhập để tham gia thảo luận!", 'warning'); }}>đăng nhập hoặc đăng ký</a> để tham gia bình luận học tập.
->>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
         </div>
       )}
 

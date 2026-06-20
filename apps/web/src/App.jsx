@@ -41,16 +41,13 @@ import './styles/dashboard.css';
 import './styles/courses.css';
 import AITutorPage from './pages/AITutorPage';
 import './styles/aitutor.css';
-<<<<<<< HEAD
-import ExamBankPage from './pages/ExamBankPage';
-import './styles/exambank.css';
-=======
 import FlashcardPage from './pages/FlashcardPage';
 import './styles/flashcards.css';
 import ExamBankPage from './pages/ExamBankPage';
 import './styles/exambank.css';
 import ConfirmEmailPage from './pages/ConfirmEmailPage';
->>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
+import MindmapPage from './pages/MindmapPage';
+import './styles/mindmap.css';
 
 
 import { HiPlay, HiDocumentDownload, HiBeaker, HiX, HiBookOpen } from 'react-icons/hi';
@@ -1006,25 +1003,11 @@ export default function App() {
     const handleAuthRedirect = (e) => {
       setActiveTab(e.detail.mode);
     };
-<<<<<<< HEAD
     window.addEventListener('popstate', handlePopState);
     window.addEventListener('edupath-auth-redirect', handleAuthRedirect);
     return () => {
       window.removeEventListener('popstate', handlePopState);
       window.removeEventListener('edupath-auth-redirect', handleAuthRedirect);
-=======
-    const handleAuthLogout = () => {
-      handleLogout();
-      showToast.current?.('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!', 'warning');
-    };
-    window.addEventListener('popstate', handlePopState);
-    window.addEventListener('edupath-auth-redirect', handleAuthRedirect);
-    window.addEventListener('edupath-auth-logout', handleAuthLogout);
-    return () => {
-      window.removeEventListener('popstate', handlePopState);
-      window.removeEventListener('edupath-auth-redirect', handleAuthRedirect);
-      window.removeEventListener('edupath-auth-logout', handleAuthLogout);
->>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
     };
   }, []);
 
@@ -1068,28 +1051,22 @@ export default function App() {
       return { route: 'ai-tutor' };
     }
 
-<<<<<<< HEAD
-=======
-    if (currentPath.startsWith('/flashcards')) {
-      return { route: 'flashcards' };
-    }
-
->>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
     if (currentPath === '/exam-bank') {
       return { route: 'exam-bank' };
     }
 
-<<<<<<< HEAD
-=======
-    if (currentPath === '/forum' || currentPath === '/community' || currentPath === '/direct') {
-      return { route: 'forum' };
+    if (currentPath === '/mindmaps') {
+      return { route: 'mindmaps-list' };
     }
 
-    if (currentPath.startsWith('/confirm-email')) {
-      return { route: 'confirm-email' };
+    if (currentPath === '/login') {
+      return { route: 'login' };
     }
 
->>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
+    if (currentPath === '/signup') {
+      return { route: 'signup' };
+    }
+
     return { route: 'legacy' };
   };
 
@@ -1874,12 +1851,7 @@ export default function App() {
       {role !== 'guest' && role !== 'admin' && activeTab !== 'landing' && parsedRoute.route !== 'mock-exam-taking' && !parsedRoute.route.startsWith('mock-') && parsedRoute.route !== 'learn' && parsedRoute.route !== 'admin' && (
         <Sidebar
           role={role}
-<<<<<<< HEAD
-          active={parsedRoute.route !== 'legacy' ? (parsedRoute.route.startsWith('mock-') ? 'tests' : (parsedRoute.route === 'ai-tutor' ? 'ai-qa' : (parsedRoute.route === 'exam-bank' ? 'library' : 'courses'))) : activeTab}
-=======
-          featureFlags={featureFlags}
-          active={parsedRoute.route !== 'legacy' ? (parsedRoute.route.startsWith('mock-') ? 'tests' : (parsedRoute.route === 'ai-tutor' ? 'ai-qa' : (parsedRoute.route === 'flashcards' ? 'path' : (parsedRoute.route === 'exam-bank' ? 'library' : (parsedRoute.route === 'forum' ? 'forum' : 'courses'))))) : activeTab}
->>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
+          active={parsedRoute.route !== 'legacy' ? (parsedRoute.route.startsWith('mock-') ? 'tests' : (parsedRoute.route === 'ai-tutor' ? 'ai-qa' : (parsedRoute.route === 'exam-bank' ? 'library' : (parsedRoute.route === 'mindmaps-list' ? 'mindmap' : 'courses')))) : activeTab}
           setActive={(tab) => {
             if (tab === 'courses') {
               navigateTo('/courses');
@@ -1887,17 +1859,10 @@ export default function App() {
               navigateTo('/mock-exams');
             } else if (tab === 'ai-qa') {
               navigateTo('/ai-tutor');
-<<<<<<< HEAD
             } else if (tab === 'library') {
               navigateTo('/exam-bank');
-=======
-            } else if (tab === 'path') {
-              navigateTo('/flashcards');
-            } else if (tab === 'library') {
-              navigateTo('/exam-bank');
-            } else if (tab === 'forum') {
-              navigateTo('/forum');
->>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
+            } else if (tab === 'mindmap') {
+              navigateTo('/mindmaps');
             } else {
               navigateTo('/');
               setActiveTab(tab);
@@ -1959,11 +1924,7 @@ export default function App() {
           )}
 
           {/* ================= PUBLIC OR PREVIEW LANDING PAGE ================= */}
-<<<<<<< HEAD
-          {(role === 'guest' || activeTab === 'landing') && !parsedRoute.route.startsWith('mock-') && parsedRoute.route !== 'ai-tutor' && parsedRoute.route !== 'exam-bank' && (
-=======
-          {(role === 'guest' || role === 'admin' || activeTab === 'landing') && parsedRoute.route !== 'admin' && !parsedRoute.route.startsWith('mock-') && parsedRoute.route !== 'ai-tutor' && parsedRoute.route !== 'exam-bank' && parsedRoute.route !== 'flashcards' && (
->>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
+          {(role === 'guest' || activeTab === 'landing') && !parsedRoute.route.startsWith('mock-') && parsedRoute.route !== 'ai-tutor' && parsedRoute.route !== 'exam-bank' && parsedRoute.route !== 'mindmaps-list' && (
             <div>
               {role === 'guest' && activeTab === 'reset-password' ? (
                 <div className="auth-page-layout" style={{ position: 'relative', display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '80vh', padding: '20px' }}>
@@ -2014,9 +1975,9 @@ export default function App() {
                     </div>
                   </div>
                 </div>
-              ) : role === 'guest' && (activeTab === 'login' || activeTab === 'signup') ? (
+              ) : role === 'guest' && (activeTab === 'login' || activeTab === 'signup' || parsedRoute.route === 'login' || parsedRoute.route === 'signup') ? (
                 <AuthPage
-                  defaultMode={activeTab === 'signup' ? 'signup' : 'login'}
+                  defaultMode={(activeTab === 'signup' || parsedRoute.route === 'signup') ? 'signup' : 'login'}
                   onAuthSuccess={(user, newlyRegistered) => {
                     if (newlyRegistered) {
                       setUsersList(prev => [...prev, newlyRegistered]);
@@ -2026,7 +1987,10 @@ export default function App() {
                   }}
                   usersList={usersList}
                   addLog={addLog}
-                  onBackToLanding={() => setActiveTab('home')}
+                  onBackToLanding={() => {
+                    navigateTo('/');
+                    setActiveTab('home');
+                  }}
                 />
               ) : (
                 <LandingPage
@@ -2166,11 +2130,7 @@ export default function App() {
 
           {/* ================= AI TUTOR WORKSPACE ================= */}
           {parsedRoute.route === 'ai-tutor' && (
-<<<<<<< HEAD
             <div style={{ padding: '20px 0' }}>
-=======
-            <div style={{ padding: '0', background: '#141410', minHeight: '100vh' }}>
->>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
               <AITutorPage
                 currentUser={currentUser}
                 navigateTo={navigateTo}
@@ -2179,20 +2139,6 @@ export default function App() {
             </div>
           )}
 
-<<<<<<< HEAD
-=======
-          {/* ================= FLASHCARDS WORKSPACE ================= */}
-          {parsedRoute.route === 'flashcards' && (
-            <div style={{ padding: '0', background: '#141410', minHeight: '100vh' }}>
-              <FlashcardPage
-                currentUser={currentUser}
-                navigateTo={navigateTo}
-                addLog={addLog}
-              />
-            </div>
-          )}
-
->>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
           {/* ================= EXAM BANK PAGE ================= */}
           {parsedRoute.route === 'exam-bank' && (
             <div style={{ padding: '0' }}>
@@ -2203,16 +2149,16 @@ export default function App() {
             </div>
           )}
 
-<<<<<<< HEAD
-=======
-          {/* ================= FORUM WORKSPACE ================= */}
-          {parsedRoute.route === 'forum' && (
-            <div style={{ padding: '0' }}>
-              <Forum currentUser={currentUser} />
+          {/* ================= MINDMAPS WORKSPACE ================= */}
+          {parsedRoute.route === 'mindmaps-list' && (
+            <div style={{ padding: '20px 0' }}>
+              <MindmapPage
+                currentUser={currentUser}
+                navigateTo={navigateTo}
+              />
             </div>
           )}
 
->>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
           {/* ================= STUDENT LEARNING WORKSPACE ================= */}
           {(role === 'student' || window.location.search.includes('demo=true')) && activeTab !== 'landing' && parsedRoute.route === 'learn' && (
             <div style={{ padding: '20px 0' }}>
@@ -2221,11 +2167,7 @@ export default function App() {
                 lessonId={parsedRoute.lessonId}
                 currentUser={currentUser}
                 onSelectLesson={(courseId, lessonId) => navigateTo(`/learn/${courseId}/lesson/${lessonId}${window.location.search}`)}
-<<<<<<< HEAD
                 onBackToCourse={() => navigateTo(`/courses/${parsedRoute.courseId}`)}
-=======
-                onBackToCourse={(targetPath) => navigateTo(targetPath || `/courses/${parsedRoute.courseId}`)}
->>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
               />
             </div>
           )}

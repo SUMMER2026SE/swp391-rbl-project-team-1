@@ -372,11 +372,7 @@ export default function CheckoutModal({ course, onClose, onPaymentSuccess, addLo
             <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '16px', lineHeight: 1.4 }}>
               Bạn đang mua khóa học: <strong style={{ color: 'var(--primary)' }}>{course.title}</strong>
             </p>
-<<<<<<< HEAD
 
-=======
- 
->>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '28px', alignItems: 'start' }}>
               {/* CỘT TRÁI: Thông tin chuyển khoản & Thẻ Ngân hàng */}
               <div style={{ flex: '1 1 380px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
@@ -387,7 +383,6 @@ export default function CheckoutModal({ course, onClose, onPaymentSuccess, addLo
                 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12.5px', marginBottom: '4px' }}>
                     <span>Giá niêm yết:</span>
-<<<<<<< HEAD
                     <span style={{ textDecoration: 'line-through', color: 'var(--text-muted)' }}>899.000đ</span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14.5px', fontWeight: 'bold' }}>
@@ -396,16 +391,6 @@ export default function CheckoutModal({ course, onClose, onPaymentSuccess, addLo
                   </div>
                 </div>
 
-=======
-                    <span style={{ textDecoration: 'line-through', color: 'var(--text-muted)' }}>{originalAmount.toLocaleString()}đ</span>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14.5px', fontWeight: 'bold' }}>
-                    <span>Thành tiền:</span>
-                    <span style={{ color: 'var(--accent-orange)' }}>{finalAmount.toLocaleString()}đ</span>
-                  </div>
-                </div>
- 
->>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
                 {/* Elegant CSS Banking Card Mockup */}
                 <div style={{
                   background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
@@ -430,11 +415,7 @@ export default function CheckoutModal({ course, onClose, onPaymentSuccess, addLo
                       Premium Debit
                     </span>
                   </div>
-<<<<<<< HEAD
 
-=======
- 
->>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
                   {/* EMV Chip Mockup */}
                   <div style={{
                     width: '32px', height: '24px',
@@ -447,20 +428,12 @@ export default function CheckoutModal({ course, onClose, onPaymentSuccess, addLo
                     <div style={{ position: 'absolute', top: '4px', bottom: '4px', left: '10px', right: '10px', borderLeft: '1px solid rgba(0,0,0,0.15)', borderRight: '1px solid rgba(0,0,0,0.15)' }} />
                     <div style={{ position: 'absolute', left: '4px', right: '4px', top: '8px', bottom: '8px', borderTop: '1px solid rgba(0,0,0,0.15)', borderBottom: '1px solid rgba(0,0,0,0.15)' }} />
                   </div>
-<<<<<<< HEAD
 
-=======
- 
->>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
                   {/* Card Number */}
                   <div style={{ fontSize: '18px', fontWeight: 'bold', letterSpacing: '3px', fontFamily: 'monospace', marginBottom: '12px', textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>
                     {ACCOUNT_NO}
                   </div>
-<<<<<<< HEAD
 
-=======
- 
->>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
                   {/* Footer: Cardholder & Expiry */}
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
                     <div>
@@ -473,11 +446,7 @@ export default function CheckoutModal({ course, onClose, onPaymentSuccess, addLo
                     </div>
                   </div>
                 </div>
-<<<<<<< HEAD
 
-=======
- 
->>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
                 {/* Bank details panel */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   {/* Account Number */}
@@ -498,11 +467,7 @@ export default function CheckoutModal({ course, onClose, onPaymentSuccess, addLo
                       {copiedField === 'no' ? <><HiCheck /> Đã lưu</> : <><HiDuplicate /> Sao chép</>}
                     </button>
                   </div>
-<<<<<<< HEAD
 
-=======
- 
->>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
                   {/* Transfer Code */}
                   <div style={{
                     display: 'flex', justifyContent: 'space-between', alignItems: 'center',
@@ -521,11 +486,7 @@ export default function CheckoutModal({ course, onClose, onPaymentSuccess, addLo
                       {copiedField === 'code' ? <><HiCheck /> Đã lưu</> : <><HiDuplicate /> Sao chép</>}
                     </button>
                   </div>
-<<<<<<< HEAD
 
-=======
- 
->>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
                   {/* Account Holder */}
                   <div style={{
                     display: 'flex', justifyContent: 'space-between',
@@ -536,11 +497,7 @@ export default function CheckoutModal({ course, onClose, onPaymentSuccess, addLo
                     <strong style={{ color: 'var(--text-primary)' }}>{ACCOUNT_NAME}</strong>
                   </div>
                 </div>
-<<<<<<< HEAD
 
-=======
- 
->>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
                 {/* Vào học DEMO Link */}
                 <div style={{
                   background: 'var(--emerald-light)',
@@ -568,7 +525,6 @@ export default function CheckoutModal({ course, onClose, onPaymentSuccess, addLo
                   >
                     Vào học thử DEMO ngay!
                   </a>
-<<<<<<< HEAD
                 </div>
               </div>
 
@@ -629,68 +585,6 @@ export default function CheckoutModal({ course, onClose, onPaymentSuccess, addLo
               </div>
             </div>
 
-=======
-                </div>
-              </div>
- 
-              {/* CỘT PHẢI: VietQR & Quét mã thanh toán */}
-              <div style={{ flex: '1 1 300px', display: 'flex', flexDirection: 'column', gap: '14px', alignItems: 'center' }}>
-                {/* Dynamic VietQR code */}
-                <div style={{
-                  background: '#fff', padding: '16px', borderRadius: 'var(--radius-lg)',
-                  display: 'flex', flexDirection: 'column', alignItems: 'center',
-                  justifyContent: 'center', border: '1px solid var(--border)',
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.05)', width: '100%'
-                }}>
-                  <img 
-                    src={qrCodeUrl} 
-                    alt="VietQR Code" 
-                    style={{ width: '200px', height: '200px', objectFit: 'contain' }}
-                  />
-                  <p style={{ fontSize: '11.5px', color: '#636e72', fontWeight: 600, marginTop: '8px', textAlign: 'center', margin: '8px 0 0 0' }}>
-                    Quét mã QR để điền tự động Số tiền & Nội dung
-                  </p>
-                </div>
- 
-                {/* Timer countdown & Polling Status indicator */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', padding: '0 4px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <span className="pulse-green"></span>
-                    <span style={{ fontSize: '11.5px', color: 'var(--accent-green)', fontWeight: 600 }}>
-                      Đang đợi giao dịch...
-                    </span>
-                  </div>
-                  <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                    Thời gian: <span style={{ color: 'var(--accent-red)', fontWeight: 'bold' }}>{formatTime(seconds)}</span>
-                  </div>
-                </div>
- 
-                {pollingError && (
-                  <p style={{ color: 'var(--accent-red)', fontSize: '12px', fontWeight: 500, margin: 0, textAlign: 'center' }}>
-                    ⚠️ {pollingError}
-                  </p>
-                )}
- 
-                {/* Main Action Buttons */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
-                  <button 
-                    className="btn-primary" 
-                    style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }} 
-                    onClick={handleManualCheck}
-                    disabled={isVerifying}
-                  >
-                    <HiRefresh className={isVerifying ? 'spin' : ''} /> 
-                    {isVerifying ? 'Đang đối soát...' : 'Tôi đã chuyển khoản'}
-                  </button>
-                  
-                  <button className="btn-outline" style={{ width: '100%' }} onClick={() => setStep(1)} disabled={isVerifying}>
-                    Quay lại Giỏ hàng
-                  </button>
-                </div>
-              </div>
-            </div>
- 
->>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
           </div>
         )}
  

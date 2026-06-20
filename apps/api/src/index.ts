@@ -9,15 +9,11 @@ import { initSocket } from './lib/socket.js';
 import { prisma } from './lib/prisma.js';
 import { upload } from './lib/s3.js';
 
-<<<<<<< HEAD
 // Controller imports
-import { login, logout, sendOtp, resendOtp, verifyOtpRegister, googleAuth, googleCompleteOnboarding, changePassword, forgotPassword, resetPassword, requestRoleChange, getRoleChangeRequests, reviewRoleChange } from './controllers/auth.js';
-=======
-import { login, logout, sendOtp, resendOtp, verifyOtpRegister, googleAuth, googleCompleteOnboarding, changePassword, forgotPassword, verifyResetOtp, resetPassword, requestRoleChange, getRoleChangeRequests, reviewRoleChange, refreshToken } from './controllers/auth.js';
->>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
+import { login, logout, sendOtp, resendOtp, verifyOtpRegister, googleAuth, googleCompleteOnboarding, changePassword, forgotPassword, resetPassword, requestRoleChange, getRoleChangeRequests, reviewRoleChange, verifyResetOtp, refreshToken } from './controllers/auth.js';
 import { getCourses, getCourseById, createCourse, getCourseStats } from './controllers/course.js';
 import { getExams, getExamById, startAttempt, saveAnswer, submitAttempt, getAttempts, getExamQuestionsPublic, getAttemptById, getAttemptResult, getExamHistory, recordViolation, recordExamEvent, getExamEvents, recordViolationDetail, generateAiCoach, createSmartRetake, importExam, generateSimilarQuestion } from './controllers/exam.js';
-import { streamAIChat, refreshRoadmap, generateAIQuestions, generateMindmap, saveMindmap, getMindmaps, getMindmapById, deleteMindmap, generateFlashcards, getPublicMindmapById, generateNodeQuiz, submitNodeQuiz, getNodeProgress, generateWeaknessMindmap, uploadExamFile, generateExamMindmap } from './controllers/ai.js';
+import { streamAIChat, refreshRoadmap, generateAIQuestions, generateFlashcards } from './controllers/ai.js';
 
 import { chatbotConsult } from './controllers/chatbot.js';
 import { getDocumentResources, getDocumentComments, addDocumentComment } from './controllers/document.js';
@@ -35,9 +31,26 @@ import {
   downloadResource, createReport, getReports, resolveReport,
   getGroupRequests, handleGroupRequest, promoteGroupMember,
   inviteToGroup, getUserInvitations, handleGroupInvitation,
-  searchUsersToInvite,
-  getGroupAnnouncements, createGroupAnnouncement
+  searchUsersToInvite
 } from './controllers/forum.js';
+
+import {
+  generateMindmap,
+  saveMindmap,
+  getMindmaps,
+  getMindmapById,
+  deleteMindmap,
+  getPublicMindmapById,
+  generateNodeQuiz,
+  submitNodeQuiz,
+  getNodeProgress,
+  generateWeaknessMindmap,
+  uploadExamFile,
+  generateExamMindmap
+} from './controllers/mindmap.js';
+
+import multer from 'multer';
+const localUpload = multer({ dest: 'uploads/' });
 
 dotenv.config();
 
@@ -176,31 +189,16 @@ app.post('/ai/chat', (req, res, next) => {
 app.post('/ai/roadmap/refresh', authenticateJWT, requireRole(['STUDENT']), refreshRoadmap);
 app.post('/ai/generate-questions', authenticateJWT, requireRole(['TEACHER', 'ADMIN']), generateAIQuestions);
 
-// AI Mindmap Routes
-app.post('/ai/mindmap', (req, res, next) => {
-  const authHeader = req.headers.authorization;
-  if (authHeader && authHeader.startsWith('Bearer ')) {
-    return authenticateJWT(req as any, res, next);
-  }
-  next();
-}, generateMindmap);
-
-app.post('/ai/flashcards', (req, res, next) => {
-  const authHeader = req.headers.authorization;
-  if (authHeader && authHeader.startsWith('Bearer ')) {
-    return authenticateJWT(req as any, res, next);
-  }
-  next();
-}, generateFlashcards);
+// Protected Mindmap Routes
+app.post('/ai/mindmap', authenticateJWT, generateMindmap);
 app.post('/mindmaps', authenticateJWT, saveMindmap);
 app.get('/mindmaps', authenticateJWT, getMindmaps);
 app.get('/mindmaps/:id', authenticateJWT, getMindmapById);
-app.get('/mindmaps/public/:id', getPublicMindmapById);
 app.delete('/mindmaps/:id', authenticateJWT, deleteMindmap);
-
+app.get('/mindmaps/public/:id', getPublicMindmapById);
 app.post('/ai/mindmap/quiz', authenticateJWT, generateNodeQuiz);
 app.post('/ai/mindmap/quiz/submit', authenticateJWT, submitNodeQuiz);
-app.get('/mindmaps/:id/progress', authenticateJWT, getNodeProgress);
+app.get('/mindmaps/:mindmapId/progress', authenticateJWT, getNodeProgress);
 app.post('/ai/mindmap/weakness', authenticateJWT, generateWeaknessMindmap);
 app.post('/ai/mindmap/exam-upload', authenticateJWT, upload.single('file'), uploadExamFile);
 app.post('/ai/mindmap/exam-analyse', authenticateJWT, generateExamMindmap);
@@ -232,7 +230,6 @@ app.post('/forum/study-groups/:id/join', authenticateJWT, joinStudyGroup);
 app.post('/forum/study-groups/:id/leave', authenticateJWT, leaveStudyGroup);
 app.get('/forum/study-groups/:id/announcements', authenticateJWT, getGroupAnnouncements);
 app.post('/forum/study-groups/:id/announcements', authenticateJWT, createGroupAnnouncement);
-<<<<<<< HEAD
 
 app.get('/forum/study-groups/:id/requests', authenticateJWT, getGroupRequests);
 app.post('/forum/study-groups/:id/requests/:requestId', authenticateJWT, handleGroupRequest);
@@ -241,8 +238,6 @@ app.post('/forum/study-groups/:id/invite', authenticateJWT, inviteToGroup);
 app.get('/forum/study-groups/invitations', authenticateJWT, getUserInvitations);
 app.post('/forum/study-groups/invitations/:requestId', authenticateJWT, handleGroupInvitation);
 app.get('/forum/users/search', authenticateJWT, searchUsersToInvite);
-=======
->>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
 
 app.get('/forum/leaderboard', getLeaderboard);
 app.get('/forum/gamification/profile', authenticateJWT, getUserGamificationProfile);

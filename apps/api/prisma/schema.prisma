@@ -29,7 +29,6 @@ model User {
   teacher            Teacher?
 
   // Forum Relations
-<<<<<<< HEAD
   forumPosts           ForumPost[]
   forumComments        ForumComment[]
   forumReactions       ForumReaction[]
@@ -49,26 +48,6 @@ model User {
   mindmaps             Mindmap[]
   dailyContributions   DailyContribution[]
   subjectStreaks       SubjectStreak[]
-=======
-  forumPosts         ForumPost[]
-  forumComments      ForumComment[]
-  forumReactions     ForumReaction[]
-  moderatedCategories ForumCategory[]     @relation("CategoryModerators")
-  createdGroups      StudyGroup[]        @relation("GroupCreator")
-  groupMemberships   StudyGroupMember[]
-  announcements      GroupAnnouncement[]
-  reviewedResources  ResourceShare[]     @relation("ReviewedResources")
-  reputations        ReputationHistory[]
-  badges             UserBadge[]
-  gamification       UserGamification?
-  reportsSubmitted   ForumReport[]       @relation("Reporter")
-  reportsResolved    ForumReport[]       @relation("Resolver")
-  auditLogs          ForumAuditLog[]
-  documentComments   DocumentComment[]
-  mindmaps           Mindmap[]
-  dailyContributions DailyContribution[]
-  subjectStreaks     SubjectStreak[]
->>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
   leaderboardSnapshots LeaderboardSnapshot[]
   nodeProgress         NodeProgress[]
   nodeQuizAttempts     NodeQuizAttempt[]
@@ -79,7 +58,6 @@ model User {
 
 
 model Student {
-<<<<<<< HEAD
   userId         Int              @id
   subjectGroup   String
   chatMessages   ChatMessage[]
@@ -89,17 +67,6 @@ model Student {
   user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   testAttempts   TestAttempt[]
   StudentProfile StudentProfile[]
-=======
-  userId       Int             @id
-  subjectGroup String
-  chatMessages ChatMessage[]
-  enrollments  Enrollment[]
-  reviews      Review[]
-  roadmap      Roadmap?
-  user         User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  testAttempts TestAttempt[]
-  profile      StudentProfile?
->>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
 }
 
 model Teacher {
@@ -679,7 +646,6 @@ model ForumAuditLog {
 }
 
 model DocumentResource {
-<<<<<<< HEAD
   id                  Int               @id @default(autoincrement())
   title               String
   description         String?           @db.Text
@@ -695,23 +661,6 @@ model DocumentResource {
   updatedAt           DateTime          @default(now()) @updatedAt
   commissionPercent   Float?
   markdownDescription String?           @db.Text
-=======
-  id                  Int      @id @default(autoincrement())
-  title               String
-  description         String?  @db.Text
-  subject             String
-  level               String
-  isFree              Boolean  @default(false)
-  driveUrl            String?
-  imageUrl            String?
-  price               Int      @default(0)
-  isActive            Boolean  @default(true)
-  isDeleted           Boolean  @default(false)
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @default(now()) @updatedAt
-  commissionPercent   Float?
-  markdownDescription String?  @db.Text
->>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
   comments            DocumentComment[]
 
   @@map("document_resources")
@@ -724,33 +673,19 @@ model DocumentComment {
   content    String   @db.Text
   createdAt  DateTime @default(now())
 
-<<<<<<< HEAD
   user     User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   document DocumentResource @relation(fields: [documentId], references: [id], onDelete: Cascade)
-=======
-  user       User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  document   DocumentResource @relation(fields: [documentId], references: [id], onDelete: Cascade)
->>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
 
   @@map("document_comments")
 }
 
 model Mindmap {
-<<<<<<< HEAD
   id        Int      @id @default(autoincrement())
   userId    Int
   title     String
   content   Json
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
-=======
-  id           Int                @id @default(autoincrement())
-  userId       Int
-  title        String
-  content      Json
-  createdAt    DateTime           @default(now())
-  updatedAt    DateTime           @updatedAt @default(now())
->>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
 
   user         User               @relation(fields: [userId], references: [id], onDelete: Cascade)
   nodes        MindmapNode[]
@@ -777,7 +712,6 @@ model FeatureFlag {
 }
 
 model StudentProfile {
-<<<<<<< HEAD
   studentId Int     @id
   grade     Int // 10, 11, 12
   province  String // "Hà Nội", "Đà Nẵng", etc.
@@ -795,32 +729,12 @@ model DailyContribution {
   xpEarned         Int      @default(0)
   subjectsStudied  Json // Array of subject tags e.g. ["math", "physics"]
   user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-=======
-  studentId  Int      @id
-  grade      Int      // 10, 11, 12
-  province   String   // "Hà Nội", "Đà Nẵng", etc.
-  student    Student  @relation(fields: [studentId], references: [userId], onDelete: Cascade)
-}
-
-model DailyContribution {
-  id              Int      @id @default(autoincrement())
-  userId          Int
-  date            DateTime // Normalized YYYY-MM-DD
-  exerciseCount   Int      @default(0)
-  examsCompleted  Int      @default(0)
-  lessonsCompleted Int     @default(0)
-  studyMinutes    Int      @default(0)
-  xpEarned        Int      @default(0)
-  subjectsStudied Json     // Array of subject tags e.g. ["math", "physics"]
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
->>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
 
   @@unique([userId, date])
   @@index([userId, date])
 }
 
 model SubjectStreak {
-<<<<<<< HEAD
   id            Int       @id @default(autoincrement())
   userId        Int
   subject       String // "math", "physics", etc.
@@ -828,26 +742,13 @@ model SubjectStreak {
   longestStreak Int       @default(0)
   lastActive    DateTime?
   user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-=======
-  id           Int      @id @default(autoincrement())
-  userId       Int
-  subject      String   // "math", "physics", etc.
-  currentStreak Int     @default(0)
-  longestStreak Int     @default(0)
-  lastActive   DateTime?
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
->>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
 
   @@unique([userId, subject])
 }
 
 model LeaderboardSnapshot {
   id           Int      @id @default(autoincrement())
-<<<<<<< HEAD
   dimensionKey String // e.g. "grade_12_math_danang"
-=======
-  dimensionKey String   // e.g. "grade_12_math_danang"
->>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
   rank         Int
   userId       Int
   score        Float
@@ -862,26 +763,15 @@ model LeaderboardSnapshot {
 model MindmapNode {
   id          Int      @id @default(autoincrement())
   mindmapId   Int
-<<<<<<< HEAD
   nodeKey     String // e.g. "0-1-0"
-=======
-  nodeKey     String   // e.g. "0-1-0"
->>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
   name        String
   description String   @db.Text
   createdAt   DateTime @default(now())
 
-<<<<<<< HEAD
   mindmap   Mindmap           @relation(fields: [mindmapId], references: [id], onDelete: Cascade)
   progress  NodeProgress[]
   attempts  NodeQuizAttempt[]
   questions QuizQuestion[]
-=======
-  mindmap     Mindmap          @relation(fields: [mindmapId], references: [id], onDelete: Cascade)
-  progress    NodeProgress[]
-  attempts    NodeQuizAttempt[]
-  questions   QuizQuestion[]
->>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
 
   @@unique([mindmapId, nodeKey])
   @@map("mindmap_nodes")
@@ -892,21 +782,12 @@ model NodeProgress {
   userId        Int
   mindmapNodeId Int
   mastery       Float    @default(0.0) // 0.0 to 1.0
-<<<<<<< HEAD
   bestScore     Int      @default(0) // out of 10
   attempts      Int      @default(0)
   lastPracticed DateTime @default(now()) @updatedAt
 
   user User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   node MindmapNode @relation(fields: [mindmapNodeId], references: [id], onDelete: Cascade)
-=======
-  bestScore     Int      @default(0)   // out of 10
-  attempts      Int      @default(0)
-  lastPracticed DateTime @default(now()) @updatedAt
-
-  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  node          MindmapNode  @relation(fields: [mindmapNodeId], references: [id], onDelete: Cascade)
->>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
 
   @@unique([userId, mindmapNodeId])
   @@map("node_progress")
@@ -916,7 +797,6 @@ model QuizQuestion {
   id            Int      @id @default(autoincrement())
   mindmapNodeId Int
   questionText  String   @db.Text
-<<<<<<< HEAD
   options       Json // array of strings
   correctOption Int // index 0-3
   explanation   String   @db.Text
@@ -924,21 +804,11 @@ model QuizQuestion {
 
   node        MindmapNode  @relation(fields: [mindmapNodeId], references: [id], onDelete: Cascade)
   userAnswers UserAnswer[]
-=======
-  options       Json     // array of strings
-  correctOption Int      // index 0-3
-  explanation   String   @db.Text
-  createdAt     DateTime @default(now())
-
-  node          MindmapNode  @relation(fields: [mindmapNodeId], references: [id], onDelete: Cascade)
-  userAnswers   UserAnswer[]
->>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
 
   @@map("quiz_questions")
 }
 
 model NodeQuizAttempt {
-<<<<<<< HEAD
   id             Int      @id @default(autoincrement())
   userId         Int
   mindmapNodeId  Int
@@ -950,19 +820,6 @@ model NodeQuizAttempt {
   user    User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   node    MindmapNode  @relation(fields: [mindmapNodeId], references: [id], onDelete: Cascade)
   answers UserAnswer[]
-=======
-  id            Int      @id @default(autoincrement())
-  userId        Int
-  mindmapNodeId Int
-  score         Int
-  totalQuestions Int     @default(10)
-  completionTime Int     // in seconds
-  createdAt     DateTime @default(now())
-
-  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  node          MindmapNode  @relation(fields: [mindmapNodeId], references: [id], onDelete: Cascade)
-  answers       UserAnswer[]
->>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
 
   @@map("node_quiz_attempts")
 }
@@ -975,13 +832,8 @@ model UserAnswer {
   isCorrect      Boolean
   createdAt      DateTime @default(now())
 
-<<<<<<< HEAD
   attempt  NodeQuizAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
   question QuizQuestion    @relation(fields: [questionId], references: [id], onDelete: Cascade)
-=======
-  attempt        NodeQuizAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
-  question       QuizQuestion    @relation(fields: [questionId], references: [id], onDelete: Cascade)
->>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
 
   @@map("user_answers")
 }
@@ -993,17 +845,12 @@ model WeaknessMindmap {
   content   Json
   createdAt DateTime @default(now())
 
-<<<<<<< HEAD
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-=======
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
->>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
 
   @@map("weakness_mindmaps")
 }
 
 model ExamPaperAnalysis {
-<<<<<<< HEAD
   id             Int      @id @default(autoincrement())
   userId         Int
   title          String
@@ -1016,26 +863,11 @@ model ExamPaperAnalysis {
   user    User               @relation(fields: [userId], references: [id], onDelete: Cascade)
   mindmap Mindmap?           @relation("ExamMindmap", fields: [mindmapId], references: [id], onDelete: SetNull)
   files   UploadedExamFile[]
-=======
-  id              Int      @id @default(autoincrement())
-  userId          Int
-  title           String
-  subject         String
-  grade           String
-  analysisResult  Json
-  mindmapId       Int?     @unique
-  createdAt       DateTime @default(now())
-
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  mindmap         Mindmap? @relation("ExamMindmap", fields: [mindmapId], references: [id], onDelete: SetNull)
-  files           UploadedExamFile[]
->>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
 
   @@map("exam_paper_analyses")
 }
 
 model UploadedExamFile {
-<<<<<<< HEAD
   id         Int      @id @default(autoincrement())
   userId     Int
   filename   String
@@ -1049,23 +881,3 @@ model UploadedExamFile {
 
   @@map("uploaded_exam_files")
 }
-=======
-  id          Int      @id @default(autoincrement())
-  userId      Int
-  filename    String
-  fileUrl     String
-  fileType    String
-  analysisId  Int?
-  createdAt   DateTime @default(now())
-
-  user        User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  analysis    ExamPaperAnalysis? @relation(fields: [analysisId], references: [id], onDelete: Cascade)
-
-  @@map("uploaded_exam_files")
-}
-
-
-
-
-
->>>>>>> 4bc1289b76ef82769a2eecdb6c5655fe53eecbeb
