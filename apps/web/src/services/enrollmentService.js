@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabaseClient';
 import { getLocalData, setLocalData } from './mockDb';
+import { api } from '../api';
 
 export const enrollmentService = {
   async checkEnrollment(userId, courseId) {
@@ -137,6 +138,17 @@ export const enrollmentService = {
 
   async getEnrolledCourseProgress(userId, courseId) {
     const uId = parseInt(userId, 10);
+    if (courseId) {
+      try {
+        const completedIds = await api.getCourseLessonsProgress(courseId);
+        if (completedIds) {
+          return completedIds.map(Number);
+        }
+      } catch (err) {
+        console.warn('[enrollmentService] Backend API error, falling back to Supabase/Local:', err);
+      }
+    }
+    
     if (supabase) {
       try {
         const { data, error } = await supabase
@@ -156,9 +168,18 @@ export const enrollmentService = {
       .map(p => p.lesson_id);
   },
 
-  async updateLessonProgress(userId, lessonId, isCompleted = true) {
+  async updateLessonProgress(userId, lessonId, isCompleted = true, courseId = null) {
     const uId = parseInt(userId, 10);
     const lId = parseInt(lessonId, 10);
+
+    if (courseId) {
+      try {
+        await api.completeLesson(courseId, lessonId, isCompleted);
+      } catch (err) {
+        console.warn('[enrollmentService] Backend API error for completeLesson, falling back to Supabase/Local:', err);
+      }
+    }
+
     if (supabase) {
       try {
         const { data, error } = await supabase

@@ -14,13 +14,32 @@ const getCourseImage = (course) => {
   return educatorsTeamImg;
 };
 
-export default function CourseMall({ courses, currentUser, onSelectCourse, onLearnCourse, onCheckoutCourse, onRegisterLead }) {
+export default function CourseMall({ courses: initialCourses, currentUser, onSelectCourse, onLearnCourse, onCheckoutCourse, onRegisterLead }) {
+  const [courses, setCourses] = useState(initialCourses || []);
   const [selectedSubject, setSelectedSubject] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [activeViewTab, setActiveViewTab] = useState('my-courses');
   const [progresses, setProgresses] = useState({});
 
   const subjects = ['All', 'Toán học', 'Vật lý', 'Hóa học', 'Tiếng Anh'];
+
+  // Force re-fetch the latest list of courses on component mount
+  useEffect(() => {
+    const fetchLatestCourses = async () => {
+      try {
+        const { api } = await import('../api');
+        const data = await api.getCourses();
+        if (data && data.length > 0) {
+          const { mapDbCourseToMockFormat } = await import('../utils/courseMapper');
+          const mapped = data.map(c => mapDbCourseToMockFormat(c));
+          setCourses(mapped);
+        }
+      } catch (err) {
+        console.warn('[CourseMall] Failed to fetch latest courses:', err);
+      }
+    };
+    fetchLatestCourses();
+  }, []);
 
   // Load progress details from DB / local
   useEffect(() => {
@@ -38,8 +57,8 @@ export default function CourseMall({ courses, currentUser, onSelectCourse, onLea
             }).length;
             calculated = totalLessons > 0 ? Math.round((completedInCourse / totalLessons) * 100) : 0;
           }
-          // Set mock progression baseline if calculated is 0 so it looks active in demo
-          progressMap[course.id] = calculated > 0 ? calculated : (course.id === 1 ? 60 : (course.id === 2 ? 40 : 25));
+          // Use dynamically calculated progress from database
+          progressMap[course.id] = calculated;
         }
         setProgresses(progressMap);
       } catch (err) {

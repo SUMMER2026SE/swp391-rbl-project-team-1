@@ -94,7 +94,7 @@ export function mapDbCourseToMockFormat(c) {
   return {
     id: c.id.toString(),
     title: c.title,
-    subject: c.subject === 'Toán học' ? 'Toán' : c.subject,
+    subject: c.subject === 'Toán' ? 'Toán' : c.subject,
     block: c.subjectGroup ? `Khối ${c.subjectGroup}` : "Tổng hợp",
     thumbnail: c.thumbnailUrl,
     badge: badgeVal,
@@ -113,6 +113,8 @@ export function mapDbCourseToMockFormat(c) {
     priceSale: c.price * (1 - (c.discount || 0) / 100),
     discountPercent: c.discount || 0,
     level: levelVal,
-    curriculum: curriculumVal
+    curriculum: curriculumVal,
+    progress: c.progress !== undefined ? c.progress : 0,
+    lessons: c.lessons || []
   };
 }

@@ -3,8 +3,9 @@ import { HiX, HiCheckCircle, HiLockOpen, HiCheck, HiDuplicate, HiRefresh, HiSpar
 import { API_BASE } from '../api';
 
 
-export default function CheckoutModal({ course, onClose, onPaymentSuccess, addLog }) {
-  const [step, setStep] = useState(1); // 1: Cart view, 2: QR checkout, 3: Verification processing, 4: Success unlock
+export default function CheckoutModal({ course, onClose, onPaymentSuccess, addLog, amount, description }) {
+  const isProUpgrade = !!description || (course && course.id === 'pro');
+  const [step, setStep] = useState((amount || description) ? 2 : 1); // 1: Cart view, 2: QR checkout, 3: Verification processing, 4: Success unlock
   const [seconds, setSeconds] = useState(300); // 5 minutes timeout
   const [copiedField, setCopiedField] = useState(null); // tracking copy states
   const [isVerifying, setIsVerifying] = useState(false);
@@ -17,8 +18,14 @@ export default function CheckoutModal({ course, onClose, onPaymentSuccess, addLo
 
   const currentUser = JSON.parse(localStorage.getItem('current_user')) || {};
   const studentId = currentUser.id || 1;
-  const courseId = course.id;
-  const transferCode = `EP${studentId}C${courseId}`;
+  const courseId = course?.id;
+  const transferCode = isProUpgrade ? `UP${studentId}P3` : `EP${studentId}C${courseId}`;
+
+  // Fallbacks for package rendering
+  const displayTitle = course?.title || description || "Gói Premium Pro";
+  const displaySubject = course?.subject || "Hệ thống";
+  const displayTeacher = course?.teacherName || course?.instructor?.name || "EduPath AI";
+  const displayIcon = course?.subject?.slice(0, 1) || "⭐";
 
   // Helper function to parse course price to actual VND
   const parsePrice = (priceVal) => {
@@ -34,7 +41,7 @@ export default function CheckoutModal({ course, onClose, onPaymentSuccess, addLo
     return 0;
   };
 
-  const originalAmount = parsePrice(course.priceSale || course.price || course.priceOriginal);
+  const originalAmount = amount ? amount : parsePrice(course?.priceSale || course?.price || course?.priceOriginal);
   const discountAmount = Math.round(originalAmount * (discountPercent / 100));
   const finalAmount = originalAmount - discountAmount;
 
@@ -55,17 +62,37 @@ export default function CheckoutModal({ course, onClose, onPaymentSuccess, addLo
       if (!token) return;
 
       try {
-        const res = await fetch(`${API_BASE}/enrollments/status?courseId=${courseId}`, {
+        const url = isProUpgrade 
+          ? `${API_BASE}/users/pro-status`
+          : `${API_BASE}/enrollments/status?courseId=${courseId}`;
+
+        const res = await fetch(url, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
         });
         const data = await res.json();
         
-        if (data.success && data.data?.isEnrolled) {
-          addLog(`[SePay Webhook] Hệ thống đã ghi nhận khoản thanh toán tự động cho khóa "${course.title}".`, 'sys');
+        const isSuccess = isProUpgrade
+          ? (data.success && data.data?.isPro)
+          : (data.success && data.data?.isEnrolled);
+
+        if (isSuccess) {
+          if (addLog) {
+            addLog(
+              isProUpgrade
+                ? `[SePay Webhook] Hệ thống đã ghi nhận khoản thanh toán tự động nâng cấp tài khoản PRO.`
+                : `[SePay Webhook] Hệ thống đã ghi nhận khoản thanh toán tự động cho khóa "${displayTitle}".`, 
+              'sys'
+            );
+          }
+          if (isProUpgrade) {
+            const user = JSON.parse(localStorage.getItem('current_user')) || {};
+            user.isPro = true;
+            localStorage.setItem('current_user', JSON.stringify(user));
+          }
           setStep(4);
-          onPaymentSuccess(course.id);
+          if (onPaymentSuccess) onPaymentSuccess(courseId || 'pro');
         }
       } catch (err) {
         console.error('Lỗi khi thăm dò trạng thái giao dịch:', err);
@@ -108,37 +135,64 @@ export default function CheckoutModal({ course, onClose, onPaymentSuccess, addLo
   };
 
   const handleFreeCheckout = () => {
-    addLog(`[Free Code] Kích hoạt khóa học "${course.title}" miễn phí 100% bằng mã giảm giá...`, 'sys');
+    if (addLog) {
+      addLog(`[Free Code] Kích hoạt "${displayTitle}" miễn phí 100% bằng mã giảm giá...`, 'sys');
+    }
     setStep(3);
     setTimeout(() => {
-      addLog(`[Free Code] Kích hoạt thành công! Đã mở khóa khóa học: "${course.title}"`, 'sys');
-      onPaymentSuccess(course.id);
+      if (addLog) {
+        addLog(`[Free Code] Kích hoạt thành công! Đã mở khóa: "${displayTitle}"`, 'sys');
+      }
+      if (isProUpgrade) {
+        const user = JSON.parse(localStorage.getItem('current_user')) || {};
+        user.isPro = true;
+        localStorage.setItem('current_user', JSON.stringify(user));
+      }
+      if (onPaymentSuccess) onPaymentSuccess(courseId || 'pro');
       setStep(4);
     }, 1200);
   };
 
   const handleSimulatePayment = () => {
-    addLog(`[Demo Mode] Tiến hành mô phỏng thanh toán khóa học "${course.title}"...`, 'sys');
+    if (addLog) {
+      addLog(`[Demo Mode] Tiến hành mô phỏng thanh toán "${displayTitle}"...`, 'sys');
+    }
     setStep(3);
     setTimeout(() => {
-      addLog(`[Demo Mode] Xác nhận thành công! Đã kích hoạt quyền sở hữu khóa học "${course.title}".`, 'sys');
+      if (addLog) {
+        addLog(`[Demo Mode] Xác nhận thành công! Đã kích hoạt quyền sở hữu "${displayTitle}".`, 'sys');
+      }
+      if (isProUpgrade) {
+        const user = JSON.parse(localStorage.getItem('current_user')) || {};
+        user.isPro = true;
+        localStorage.setItem('current_user', JSON.stringify(user));
+      }
       setStep(4);
-      onPaymentSuccess(course.id);
+      if (onPaymentSuccess) onPaymentSuccess(courseId || 'pro');
     }, 1500);
   };
 
   const handleManualCheck = async () => {
     setIsVerifying(true);
     setPollingError('');
-    addLog(`[SePay] Học sinh yêu cầu kiểm tra sao kê thủ công giao dịch: ${transferCode}`, 'sys');
+    if (addLog) {
+      addLog(`[SePay] Học sinh yêu cầu kiểm tra sao kê thủ công giao dịch: ${transferCode}`, 'sys');
+    }
     
     const token = localStorage.getItem('access_token');
     if (!token) {
       // Fallback to simulation in mock/demo mode when no token is present
       setTimeout(() => {
-        addLog(`[Demo Mode] Xác nhận thành công! Đã kích hoạt quyền sở hữu khóa học "${course.title}".`, 'sys');
+        if (addLog) {
+          addLog(`[Demo Mode] Xác nhận thành công! Đã kích hoạt quyền sở hữu "${displayTitle}".`, 'sys');
+        }
+        if (isProUpgrade) {
+          const user = JSON.parse(localStorage.getItem('current_user')) || {};
+          user.isPro = true;
+          localStorage.setItem('current_user', JSON.stringify(user));
+        }
         setStep(4);
-        onPaymentSuccess(course.id);
+        if (onPaymentSuccess) onPaymentSuccess(courseId || 'pro');
         setIsVerifying(false);
       }, 1500);
       return;
@@ -147,28 +201,62 @@ export default function CheckoutModal({ course, onClose, onPaymentSuccess, addLo
     try {
       await new Promise((resolve) => setTimeout(resolve, 1500));
       
-      const res = await fetch(`${API_BASE}/enrollments/status?courseId=${courseId}`, {
+      const url = isProUpgrade 
+        ? `${API_BASE}/users/pro-status`
+        : `${API_BASE}/enrollments/status?courseId=${courseId}`;
+
+      const res = await fetch(url, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
       });
       const data = await res.json();
       
-      if (data.success && data.data?.isEnrolled) {
-        addLog(`[SePay] Chuyển khoản thành công! Đã mở khóa khóa học: "${course.title}"`, 'sys');
+      const isSuccess = isProUpgrade
+        ? (data.success && data.data?.isPro)
+        : (data.success && data.data?.isEnrolled);
+
+      if (isSuccess) {
+        if (addLog) {
+          addLog(
+            isProUpgrade
+              ? `[SePay] Chuyển khoản thành công! Đã kích hoạt nâng cấp PRO.`
+              : `[SePay] Chuyển khoản thành công! Đã mở khóa khóa học: "${displayTitle}"`, 
+            'sys'
+          );
+        }
+        if (isProUpgrade) {
+          const user = JSON.parse(localStorage.getItem('current_user')) || {};
+          user.isPro = true;
+          localStorage.setItem('current_user', JSON.stringify(user));
+        }
         setStep(4);
-        onPaymentSuccess(course.id);
+        if (onPaymentSuccess) onPaymentSuccess(courseId || 'pro');
       } else {
         // In demo/development, if the webhook isn't fully set up or processing, automatically approve to proceed.
-        addLog(`[SePay] Giao dịch "${transferCode}" chưa xuất hiện. Tự động mô phỏng thanh toán thành công...`, 'sys');
+        if (addLog) {
+          addLog(`[SePay] Giao dịch "${transferCode}" chưa xuất hiện. Tự động mô phỏng thanh toán thành công...`, 'sys');
+        }
+        if (isProUpgrade) {
+          const user = JSON.parse(localStorage.getItem('current_user')) || {};
+          user.isPro = true;
+          localStorage.setItem('current_user', JSON.stringify(user));
+        }
         setStep(4);
-        onPaymentSuccess(course.id);
+        if (onPaymentSuccess) onPaymentSuccess(courseId || 'pro');
       }
     } catch (err) {
       // If backend is offline or network error, fallback to simulation so flow is not blocked!
-      addLog(`[SePay] Lỗi kết nối máy chủ. Tự động mô phỏng thanh toán thành công...`, 'sys');
+      if (addLog) {
+        addLog(`[SePay] Lỗi kết nối máy chủ. Tự động mô phỏng thanh toán thành công...`, 'sys');
+      }
+      if (isProUpgrade) {
+        const user = JSON.parse(localStorage.getItem('current_user')) || {};
+        user.isPro = true;
+        localStorage.setItem('current_user', JSON.stringify(user));
+      }
       setStep(4);
-      onPaymentSuccess(course.id);
+      if (onPaymentSuccess) onPaymentSuccess(courseId || 'pro');
     } finally {
       setIsVerifying(false);
     }
@@ -247,16 +335,16 @@ export default function CheckoutModal({ course, onClose, onPaymentSuccess, addLo
                   fontWeight: 'bold',
                   flexShrink: 0
                 }}>
-                  {course.subject?.slice(0, 1) || '📚'}
+                  {displayIcon}
                 </div>
                 <div style={{ flex: 1 }}>
                   <h4 style={{ margin: '0 0 4px 0', fontSize: '15px', fontWeight: '800', color: 'var(--text-primary)' }}>
-                    {course.title}
+                    {displayTitle}
                   </h4>
                   <div style={{ display: 'flex', gap: '12px', fontSize: '12px', color: 'var(--text-secondary)' }}>
-                    <span>Môn: <strong>{course.subject}</strong></span>
+                    <span>Môn: <strong>{displaySubject}</strong></span>
                     <span>•</span>
-                    <span>Giảng viên: <strong>{course.teacherName || course.instructor?.name || 'Cố vấn EduPath'}</strong></span>
+                    <span>Giảng viên: <strong>{displayTeacher}</strong></span>
                   </div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
@@ -370,7 +458,7 @@ export default function CheckoutModal({ course, onClose, onPaymentSuccess, addLo
             </div>
             
             <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '16px', lineHeight: 1.4 }}>
-              Bạn đang mua khóa học: <strong style={{ color: 'var(--primary)' }}>{course.title}</strong>
+              Bạn đang mua: <strong style={{ color: 'var(--primary)' }}>{displayTitle}</strong>
             </p>
  
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '28px', alignItems: 'start' }}>
@@ -499,33 +587,35 @@ export default function CheckoutModal({ course, onClose, onPaymentSuccess, addLo
                 </div>
  
                 {/* Vào học DEMO Link */}
-                <div style={{
-                  background: 'var(--emerald-light)',
-                  padding: '12px 16px',
-                  borderRadius: '12px',
-                  border: '1px solid rgba(5, 150, 105, 0.15)',
-                  fontSize: '13px',
-                  textAlign: 'center',
-                  marginTop: '4px'
-                }}>
-                  Bạn muốn dùng thử trước?{' '}
-                  <a
-                    href="#"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      onClose();
-                      window.history.pushState({}, '', `/learn/${course.id}?demo=true`);
-                      window.dispatchEvent(new PopStateEvent('popstate'));
-                    }}
-                    style={{
-                      color: 'var(--emerald-primary)',
-                      fontWeight: '800',
-                      textDecoration: 'underline'
-                    }}
-                  >
-                    Vào học thử DEMO ngay!
-                  </a>
-                </div>
+                {!isProUpgrade && course && (
+                  <div style={{
+                    background: 'var(--emerald-light)',
+                    padding: '12px 16px',
+                    borderRadius: '12px',
+                    border: '1px solid rgba(5, 150, 105, 0.15)',
+                    fontSize: '13px',
+                    textAlign: 'center',
+                    marginTop: '4px'
+                  }}>
+                    Bạn muốn dùng thử trước?{' '}
+                    <a
+                      href="#"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        onClose();
+                        window.history.pushState({}, '', `/learn/${course.id}?demo=true`);
+                        window.dispatchEvent(new PopStateEvent('popstate'));
+                      }}
+                      style={{
+                        color: 'var(--emerald-primary)',
+                        fontWeight: '800',
+                        textDecoration: 'underline'
+                      }}
+                    >
+                      Vào học thử DEMO ngay!
+                    </a>
+                  </div>
+                )}
               </div>
  
               {/* CỘT PHẢI: VietQR & Quét mã thanh toán */}
@@ -618,7 +708,7 @@ export default function CheckoutModal({ course, onClose, onPaymentSuccess, addLo
               Kích hoạt thành công! 🎉
             </h3>
             <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '20px', lineHeight: '1.5' }}>
-              Cảm ơn em! Khóa học <strong style={{ color: 'var(--primary)' }}>{course.title}</strong> đã được kích hoạt trên hệ thống. Hãy bắt đầu chinh phục kiến thức và nhận lộ trình học tập cá nhân hóa ngay nào!
+              Cảm ơn em! <strong style={{ color: 'var(--primary)' }}>{displayTitle}</strong> đã được kích hoạt trên hệ thống. Hãy bắt đầu chinh phục kiến thức và nhận lộ trình học tập cá nhân hóa ngay nào!
             </p>
             <div style={{ display: 'flex', justifyContent: 'center' }}>
               <button 

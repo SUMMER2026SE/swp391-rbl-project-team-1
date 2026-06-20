@@ -55,7 +55,7 @@ export default function useCourseProgress(courseId, currentUser, lessonsCount) {
       
       // Trigger async DB sync if logged in
       if (currentUser) {
-        enrollmentService.updateLessonProgress(currentUser.id, numericId, !isCompleted)
+        enrollmentService.updateLessonProgress(currentUser.id, numericId, !isCompleted, courseId)
           .catch(err => console.error('[useCourseProgress] DB progress update failed:', err));
       }
 
