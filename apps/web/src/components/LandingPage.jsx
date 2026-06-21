@@ -548,6 +548,121 @@ const GUEST_MOCK_EXAMS = [
   }
 ];
 
+const FEEDBACK_LIST = [
+  {
+    name: 'Bạn Lý Gia Linh',
+    school: 'Học sinh lớp 11A2 – THPT FPT Đà Nẵng',
+    bg: '#FFF0F5',
+    accent: '#EC4899',
+    border: '#FBCFE8',
+    text: 'Các học liệu tương tác về cơ bản em thấy đã sát với sách giáo khoa, nhưng được trực quan hóa một cách sinh động để em dễ hình dung và nhớ bài hơn.'
+  },
+  {
+    name: 'Thầy Đào Anh Phúc – P20 Study',
+    school: 'Tác giả SGK môn Sinh học lớp 12, người sáng lập P20 Study',
+    bg: '#EBF3FF',
+    accent: '#2563EB',
+    border: '#BFDBFE',
+    text: 'Phương pháp dạy học bằng mô hình 3D như EduPath AI có thể là một bước chuyển mình tích cực cho giáo viên trong bối cảnh siết chặt dạy thêm – học thêm hiện nay. Khi không còn nhiều thời gian bổ trợ ngoài lớp, việc tạo ra bài giảng sinh động, trực quan, dễ hiểu ngay tại lớp sẽ giúp học sinh tiếp thu tốt hơn, giáo viên cũng yên tâm hơn.'
+  },
+  {
+    name: 'Ths Nguyễn Thành Công',
+    school: 'Giáo viên môn Sinh học tại Trường THPT Chuyên Sư Phạm, ĐH Sư Phạm Hà Nội',
+    bg: '#FFF8EB',
+    accent: '#D97706',
+    border: '#FEF3C7',
+    text: 'Phần lớn công cụ giáo dục hiện đại như mô hình 3D và thực tế ảo tăng cường thường đến từ nước ngoài, yêu cầu giáo viên phải thành thạo tiếng Anh để sử dụng. Tuy nhiên, EduPath AI đã nỗ lực dịch các học liệu sang tiếng Việt và tích hợp với hệ thống bài tập, giúp tiếp cận và sử dụng dễ dàng hơn, đạt được hiệu quả tương đương với công cụ quốc tế.'
+  },
+  {
+    name: 'Cô Lê Thu Hương',
+    school: 'Giảng viên Vật lý – THPT Chuyên Chợ Rẫy',
+    bg: '#EBF3FF',
+    accent: '#2563EB',
+    border: '#BFDBFE',
+    text: 'Hệ thống đề thi thử bám sát ma trận đề minh họa của Bộ. Học sinh của tôi rất thích làm bài trên này vì có bảng phân tích chi tiết phổ điểm và chỉ ra các chương kiến thức còn yếu để ôn luyện lại ngay lập tức.'
+  },
+  {
+    name: 'Bạn Nguyễn Lâm Vy',
+    school: 'Thủ khoa khối A01 năm 2025',
+    bg: '#FFF0F5',
+    accent: '#EC4899',
+    border: '#FBCFE8',
+    text: 'Bản đồ lộ trình học tập cá nhân hóa do AI xây dựng rất sát thực tế lực học của em. Những gợi ý học tập chuẩn xác giúp em bứt phá điểm số từ 7.5 lên 9.6 môn Toán chỉ trong vòng 2 tháng cuối.'
+  },
+  {
+    name: 'Thầy Trần Minh Đức',
+    school: 'Giáo viên Hóa học – THPT Chuyên Quốc Học Huế',
+    bg: '#F0FDF4',
+    accent: '#16A34A',
+    border: '#BBF7D0',
+    text: 'Công cụ Mindmap tích hợp AI giúp học sinh liên kết các chương Hóa hữu cơ vốn rất phức tạp thành một sơ đồ trực quan. Việc này giúp các em nhớ lâu hơn và tự tin hơn khi giải quyết các câu hỏi vận dụng cao.'
+  },
+  {
+    name: 'Bạn Lê Quỳnh Chi',
+    school: 'Thủ khoa khối D01 năm 2025 – THPT Chuyên Chu Văn An',
+    bg: '#FFF8EB',
+    accent: '#D97706',
+    border: '#FEF3C7',
+    text: 'Học từ vựng Tiếng Anh qua Flashcard thông minh của EduPath AI tiết kiệm cho em rất nhiều thời gian. Các thẻ từ được thiết kế khoa học, có ví dụ thực tế và giải nghĩa cặn kẽ giúp em dễ dàng nhớ từ mới chỉ sau vài lần lướt.'
+  },
+  {
+    name: 'Cô Nguyễn Mai Anh',
+    school: 'Giáo viên Tiếng Anh – THPT Chuyên Lê Hồng Phong, TP.HCM',
+    bg: '#FFF0F5',
+    accent: '#EC4899',
+    border: '#FBCFE8',
+    text: 'Giao diện web rất đẹp, phong cách Neo-Brutalist hiện đại kích thích hứng thú học tập của học sinh. Tôi đánh giá cao tính năng AI Tutor phản hồi và sửa bài viết luận cực kỳ chi tiết cho học sinh.'
+  },
+  {
+    name: 'Bạn Phạm Minh Hoàng',
+    school: 'Học sinh lớp 12 chuyên Toán – THPT Chuyên Hà Nội - Amsterdam',
+    bg: '#EBF3FF',
+    accent: '#2563EB',
+    border: '#BFDBFE',
+    text: 'Em đã thử nhiều app tự học nhưng EduPath AI là xuất sắc nhất. Đề thi thử Toán ở đây phân cấp rõ ràng, các bài toán thực tế và đồ thị được minh họa 3D trực quan giúp em hiểu sâu bản chất thay vì học vẹt công thức.'
+  },
+  {
+    name: 'Ths Phan Thanh Tùng',
+    school: 'Giảng viên Toán học – Đại học Sư phạm TP.HCM',
+    bg: '#F0FDF4',
+    accent: '#16A34A',
+    border: '#BBF7D0',
+    text: 'EduPath AI đã tạo ra một hệ sinh thái học tập số hóa toàn diện. Không chỉ giúp học sinh tự ôn luyện, nền tảng còn hỗ trợ nhà trường quản lý học liệu và theo dõi sát sao tiến độ học tập của từng lớp một cách tự động.'
+  },
+  {
+    name: 'Bạn Đỗ Gia Bảo',
+    school: 'Học sinh lớp 12 Hóa – THPT Chuyên Lam Sơn, Thanh Hóa',
+    bg: '#FFF8EB',
+    accent: '#D97706',
+    border: '#FEF3C7',
+    text: 'Tính năng sinh đề sửa sai chuyên biệt của AI hoạt động quá tốt. Sau khi em làm sai câu nào ở đề thi thử, AI lập tức đề xuất 3-5 câu tương tự kèm giải thích chi tiết giúp em sửa ngay lỗi sai đó tại chỗ.'
+  },
+  {
+    name: 'Bạn Vũ Hoàng Long',
+    school: 'Cựu học sinh THPT Chuyên Trần Phú, Hải Phòng (9.8 điểm Vật lý)',
+    bg: '#FFF0F5',
+    accent: '#EC4899',
+    border: '#FBCFE8',
+    text: 'Các thí nghiệm Vật lý ảo trên web siêu sinh động! Thay vì chỉ đọc hình vẽ tĩnh trong SGK, việc được kéo thả và quan sát dòng điện chạy trong mạch ảo giúp em ghi nhớ các định luật Vật lý cực kỳ nhanh chóng.'
+  },
+  {
+    name: 'Cô Hoàng Lê Na',
+    school: 'Giáo viên Ngữ văn – THPT Chuyên Phan Bội Châu, Nghệ An',
+    bg: '#EBF3FF',
+    accent: '#2563EB',
+    border: '#BFDBFE',
+    text: 'Cách tiếp cận sơ đồ tư duy (Mindmap) cho môn Văn của EduPath rất mới mẻ. Học sinh không còn cảm thấy khô khan mà hào hứng vẽ bản đồ nhân vật, tóm tắt tác phẩm trực quan trước mỗi buổi học.'
+  },
+  {
+    name: 'Bạn Nguyễn Thanh Thảo',
+    school: 'Học sinh lớp 12D1 – THPT Nguyễn Thị Minh Khai, TP.HCM',
+    bg: '#F0FDF4',
+    accent: '#16A34A',
+    border: '#BBF7D0',
+    text: 'Em thích nhất là biểu đồ dự đoán điểm THPTQG dựa trên phong độ thực tế của web. Mỗi khi điểm số tăng lên, nhìn biểu đồ đi lên và nhận được lời động viên từ AI Tutor khiến em có thêm động lực học mỗi đêm.'
+  }
+];
+
 // ── Component card khoá học tái sử dụng ──
 function CourseCard({ course, currentUser, onBackToDashboard, onNavigateToAuth }) {
   return (
@@ -647,6 +762,24 @@ export default function LandingPage({
   const [scrolled, setScrolled] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const [activeLandingView, setActiveLandingView] = useState('home'); // 'home' | 'courses' | 'exams' | 'features' | 'ai-tutor' | 'question-bank' | 'leaderboard' | 'forum' | 'about'
+  const [activeTab, setActiveTab] = useState('teacher'); // 'teacher' | 'student' | 'school'
+  const [feedbackIndex, setFeedbackIndex] = useState(0);
+  const [itemsPerPage, setItemsPerPage] = useState(3);
+
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth <= 768) {
+        setItemsPerPage(1);
+      } else if (window.innerWidth <= 1024) {
+        setItemsPerPage(2);
+      } else {
+        setItemsPerPage(3);
+      }
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
   const [guestChatInput, setGuestChatInput] = useState('');
   const [guestChatLoading, setGuestChatLoading] = useState(false);
   const [guestChatHistory, setGuestChatHistory] = useState([
@@ -1358,6 +1491,9 @@ export default function LandingPage({
       setMobileMenuOpen(false);
     }
   };
+
+  const maxIdx = FEEDBACK_LIST.length - itemsPerPage;
+  const safeFeedbackIndex = Math.min(feedbackIndex, maxIdx >= 0 ? maxIdx : 0);
 
   return (
     <div className="lp-root">
@@ -2233,139 +2369,648 @@ export default function LandingPage({
         </div>
       </section>
 
-      {/* ── SAMPLE BESTSELLER COURSES ── */}
-      <section id="sample-courses" className="lp-subjects" style={{ background: '#FFF', borderBottom: '3.5px solid #000', padding: '60px 0' }}>
-        <div className="lp-container">
-          <div className="lp-section-header lp-section-header--light" style={{ marginBottom: '40px' }}>
-            <span className="lp-eyebrow lp-eyebrow--dark" style={{ background: '#FF7675', border: '2px solid #000', color: '#000', boxShadow: '2px 2px 0 #000' }}>
-              🔥 KHÓA HỌC BÁN CHẠY
-            </span>
-            <h2 style={{ fontSize: '28px', fontWeight: '950', color: '#000', marginTop: '12px' }}>Khóa Học Bestseller Nổi Bật</h2>
-            <p style={{ fontSize: '14px', color: '#444' }}>Tìm hiểu đề cương, học thử bài giảng mẫu từ các thủ khoa và giáo viên 8.0+ điểm thi THPTQG.</p>
+      {/* ── STATISTICS & ROLES TABS SECTION ── */}
+      <section id="role-tabs-section" className="lp-subjects" style={{ background: '#FFF', borderBottom: '3.5px solid #000', padding: '70px 0' }}>
+        <div className="lp-container" style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 24px' }}>
+          
+          {/* Section Header */}
+          <div className="lp-section-header lp-section-header--light" style={{ marginBottom: '45px', textAlign: 'center' }}>
+            <h2 style={{ fontSize: '32px', fontWeight: '950', color: '#000', letterSpacing: '-0.8px', margin: '0 0 16px 0' }}>
+              Hơn <span style={{ color: '#2563EB' }}>20,000</span> giáo viên, học sinh và <span style={{ color: '#2563EB' }}>30</span> trường học đã sử dụng
+            </h2>
+            <p style={{ fontSize: '15px', color: '#4B5563', maxWidth: '750px', margin: '0 auto', lineHeight: 1.6, fontWeight: '500' }}>
+              Dạy hiệu quả hơn, học dễ hiểu hơn, triển khai số hóa chất lượng hơn – tất cả đều bắt đầu từ kho học liệu tương tác chuẩn hóa.
+            </p>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px' }}>
-            {displayCourses.slice(0, 3).map((course) => (
-              <div 
-                key={course.id}
-                style={{
-                  background: '#FFF',
-                  border: '3.5px solid #000',
-                  borderRadius: '16px',
-                  overflow: 'hidden',
-                  boxShadow: '4px 4px 0px #000',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'space-between'
-                }}
-              >
-                <div style={{ background: course.imageBg || 'linear-gradient(135deg, #0984E3, #74b9ff)', padding: '24px 20px', color: '#fff', borderBottom: '3px solid #000' }}>
-                  <span style={{ background: '#000', color: '#fff', fontSize: '9px', fontWeight: '900', padding: '2px 8px', borderRadius: '4px', border: '1px solid #fff' }}>
-                    {course.subject}
-                  </span>
-                  <h4 style={{ fontSize: '16px', fontWeight: '950', margin: '12px 0 0', lineHeight: 1.3 }}>
-                    {course.title}
-                  </h4>
-                </div>
-
-                <div style={{ padding: '20px', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                  <div style={{ fontSize: '13px', color: '#333', fontWeight: '750', marginBottom: '16px' }}>
-                    <p style={{ margin: '0 0 6px 0' }}>🧑‍🏫 Giảng viên: <strong>{course.teacherName}</strong></p>
-                    <p style={{ margin: '0 0 6px 0' }}>📖 Thời lượng: {course.duration}</p>
-                    <p style={{ margin: '0', color: '#666', fontSize: '12px', fontWeight: '600' }}>{course.description}</p>
-                  </div>
-
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '2px dashed #000', paddingTop: '14px' }}>
-                    <span style={{ fontSize: '18px', fontWeight: '950', color: 'var(--accent-orange)' }}>
-                      {course.price}đ
-                    </span>
-                    <button
-                      onClick={() => setSelectedPreviewCourse(course)}
-                      style={{
-                        padding: '8px 16px',
-                        background: '#FFF',
-                        color: '#000',
-                        border: '2.5px solid #000',
-                        borderRadius: '8px',
-                        fontWeight: '900',
-                        fontSize: '12px',
-                        cursor: 'pointer',
-                        boxShadow: '2px 2px 0 #000'
-                      }}
-                    >
-                      Xem giới thiệu 🔎
-                    </button>
-                  </div>
-                </div>
+          {/* Tab Triggers */}
+          <div style={{ 
+            display: 'flex', 
+            justifyContent: 'center', 
+            alignItems: 'center', 
+            gap: '40px', 
+            marginBottom: '40px',
+            flexWrap: 'wrap'
+          }}>
+            {/* Tab 1: Giáo viên */}
+            <button 
+              onClick={() => setActiveTab('teacher')}
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '8px',
+                outline: 'none',
+                transition: 'transform 0.2s'
+              }}
+              onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.05)'}
+              onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+            >
+              <div style={{
+                width: '76px',
+                height: '76px',
+                borderRadius: '50%',
+                overflow: 'hidden',
+                border: activeTab === 'teacher' ? '3.5px solid #2563EB' : '2.5px solid #D1D5DB',
+                boxShadow: activeTab === 'teacher' ? '0 0 12px rgba(37,99,235,0.2)' : 'none',
+                transition: 'all 0.2s',
+                padding: '2px',
+                background: '#fff'
+              }}>
+                <img 
+                  src={teacherMathImg} 
+                  alt="Giáo viên" 
+                  style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }}
+                />
               </div>
-            ))}
+              <span style={{
+                fontSize: '14.5px',
+                fontWeight: '800',
+                color: activeTab === 'teacher' ? '#2563EB' : '#4B5563',
+                transition: 'color 0.2s'
+              }}>
+                Giáo viên
+              </span>
+            </button>
+
+            {/* Tab 2: Học sinh */}
+            <button 
+              onClick={() => setActiveTab('student')}
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '8px',
+                outline: 'none',
+                transition: 'transform 0.2s'
+              }}
+              onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.05)'}
+              onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+            >
+              <div style={{
+                width: '76px',
+                height: '76px',
+                borderRadius: '50%',
+                overflow: 'hidden',
+                border: activeTab === 'student' ? '3.5px solid #EC4899' : '2.5px solid #D1D5DB',
+                boxShadow: activeTab === 'student' ? '0 0 12px rgba(236,72,153,0.2)' : 'none',
+                transition: 'all 0.2s',
+                padding: '2px',
+                background: '#fff'
+              }}>
+                <img 
+                  src={studentSuccessImg} 
+                  alt="Học sinh" 
+                  style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }}
+                />
+              </div>
+              <span style={{
+                fontSize: '14.5px',
+                fontWeight: '800',
+                color: activeTab === 'student' ? '#EC4899' : '#4B5563',
+                transition: 'color 0.2s'
+              }}>
+                Học sinh
+              </span>
+            </button>
+
+            {/* Tab 3: Trường học */}
+            <button 
+              onClick={() => setActiveTab('school')}
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '8px',
+                outline: 'none',
+                transition: 'transform 0.2s'
+              }}
+              onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.05)'}
+              onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+            >
+              <div style={{
+                width: '76px',
+                height: '76px',
+                borderRadius: '50%',
+                overflow: 'hidden',
+                border: activeTab === 'school' ? '3.5px solid #D97706' : '2.5px solid #D1D5DB',
+                boxShadow: activeTab === 'school' ? '0 0 12px rgba(217,119,6,0.2)' : 'none',
+                transition: 'all 0.2s',
+                padding: '2px',
+                background: '#fff'
+              }}>
+                <img 
+                  src={educatorsTeamImg} 
+                  alt="Trường học" 
+                  style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }}
+                />
+              </div>
+              <span style={{
+                fontSize: '14.5px',
+                fontWeight: '800',
+                color: activeTab === 'school' ? '#D97706' : '#4B5563',
+                transition: 'color 0.2s'
+              }}>
+                Trường học
+              </span>
+            </button>
           </div>
+
+          {/* Tab Content Display Card */}
+          <div style={{
+            background: activeTab === 'teacher' ? '#EBF3FF' : (activeTab === 'student' ? '#FFF0F5' : '#FFF8EB'),
+            border: '3.5px solid #000',
+            borderRadius: '24px',
+            boxShadow: '6px 6px 0px #000',
+            display: 'flex',
+            flexDirection: 'row',
+            alignItems: 'stretch',
+            overflow: 'hidden',
+            transition: 'all 0.3s ease',
+            minHeight: '480px',
+            maxWidth: '1000px',
+            margin: '0 auto'
+          }}
+          className="lp-role-card-responsive"
+          >
+            {/* Left: Image Panel */}
+            <div style={{
+              flex: '1 1 45%',
+              position: 'relative',
+              minHeight: '320px',
+              padding: '24px'
+            }}
+            className="lp-role-image-responsive"
+            >
+              <img 
+                src={activeTab === 'teacher' ? teacherMathImg : (activeTab === 'student' ? studentLearningImg : educatorsTeamImg)} 
+                alt={activeTab} 
+                style={{ 
+                  width: '100%', 
+                  height: '100%', 
+                  objectFit: 'cover', 
+                  borderRadius: '16px',
+                  border: '3px solid #000'
+                }} 
+              />
+            </div>
+
+            {/* Right: Info Panel */}
+            <div style={{
+              flex: '1 1 55%',
+              padding: '40px 36px',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center',
+              textAlign: 'left'
+            }}
+            className="lp-role-content-responsive"
+            >
+              {/* Card Title */}
+              <h3 style={{
+                fontSize: '24px',
+                fontWeight: '950',
+                color: activeTab === 'teacher' ? '#1D4ED8' : (activeTab === 'student' ? '#BE185D' : '#B45309'),
+                margin: '0 0 16px 0',
+                lineHeight: 1.35
+              }}>
+                {activeTab === 'teacher' && "Không phải loay hoay mất nhiều thời gian soạn bài & tìm tư liệu"}
+                {activeTab === 'student' && "Không còn khó khăn vì chưa hiểu bài khi tự học"}
+                {activeTab === 'school' && "Không còn tốn nhiều chi phí chuyển đổi số"}
+              </h3>
+
+              {/* Subtext */}
+              <p style={{
+                fontSize: '14.5px',
+                color: '#4B5563',
+                margin: '0 0 20px 0',
+                lineHeight: 1.5,
+                fontWeight: '600'
+              }}>
+                {activeTab === 'teacher' && "Nhờ thư viện học liệu tương tác cùng với công cụ tải lên tài liệu và tạo khóa học tiện lợi."}
+                {activeTab === 'student' && "Nhờ học liệu tương tác trực quan, sinh động hỗ trợ quá trình học tập."}
+                {activeTab === 'school' && "Đã có giải pháp tích hợp học liệu tương tác vào hệ thống LMS nhanh gọn, dễ dàng."}
+              </p>
+
+              {/* Bullet list */}
+              <ul style={{
+                listStyle: 'none',
+                padding: 0,
+                margin: '0 0 24px 0',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '12px'
+              }}>
+                {/* Bullets mapping */}
+                {activeTab === 'teacher' && (
+                  <>
+                    <li style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '14.5px', color: '#1F2937', fontWeight: '500' }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '20px', height: '20px', borderRadius: '50%', background: '#10B981', color: '#fff', fontSize: '11px', flexShrink: 0, marginTop: '2px' }}>✓</span>
+                      Dễ dàng upload tài liệu học tập, slide bài giảng từ máy tính
+                    </li>
+                    <li style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '14.5px', color: '#1F2937', fontWeight: '500' }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '20px', height: '20px', borderRadius: '50%', background: '#10B981', color: '#fff', fontSize: '11px', flexShrink: 0, marginTop: '2px' }}>✓</span>
+                      Đăng bán khóa học và cập nhật giá cả, mô tả nhanh chóng
+                    </li>
+                    <li style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '14.5px', color: '#1F2937', fontWeight: '500' }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '20px', height: '20px', borderRadius: '50%', background: '#10B981', color: '#fff', fontSize: '11px', flexShrink: 0, marginTop: '2px' }}>✓</span>
+                      Tự động public tài liệu hữu ích ra chuyên mục Tài liệu trang chủ
+                    </li>
+                    <li style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '14.5px', color: '#1F2937', fontWeight: '500' }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '20px', height: '20px', borderRadius: '50%', background: '#10B981', color: '#fff', fontSize: '11px', flexShrink: 0, marginTop: '2px' }}>✓</span>
+                      Tạo bài giảng mẫu trực quan kèm đề thi thử tương ứng
+                    </li>
+                  </>
+                )}
+                {activeTab === 'student' && (
+                  <>
+                    <li style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '14.5px', color: '#1F2937', fontWeight: '500' }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '20px', height: '20px', borderRadius: '50%', background: '#10B981', color: '#fff', fontSize: '11px', flexShrink: 0, marginTop: '2px' }}>✓</span>
+                      Học thử bài giảng mẫu chất lượng cao từ các giáo viên uy tín
+                    </li>
+                    <li style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '14.5px', color: '#1F2937', fontWeight: '500' }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '20px', height: '20px', borderRadius: '50%', background: '#10B981', color: '#fff', fontSize: '11px', flexShrink: 0, marginTop: '2px' }}>✓</span>
+                      Tương tác trực tiếp và trao đổi kiến thức cùng AI Tutor trong bài học
+                    </li>
+                    <li style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '14.5px', color: '#1F2937', fontWeight: '500' }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '20px', height: '20px', borderRadius: '50%', background: '#10B981', color: '#fff', fontSize: '11px', flexShrink: 0, marginTop: '2px' }}>✓</span>
+                      Luyện thi thử THPTQG với bộ đề thi bám sát cấu trúc thực tế
+                    </li>
+                    <li style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '14.5px', color: '#1F2937', fontWeight: '500' }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '20px', height: '20px', borderRadius: '50%', background: '#10B981', color: '#fff', fontSize: '11px', flexShrink: 0, marginTop: '2px' }}>✓</span>
+                      Ôn tập ghi nhớ nhanh công thức, từ vựng qua thẻ Flashcard
+                    </li>
+                  </>
+                )}
+                {activeTab === 'school' && (
+                  <>
+                    <li style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '14.5px', color: '#1F2937', fontWeight: '500' }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '20px', height: '20px', borderRadius: '50%', background: '#10B981', color: '#fff', fontSize: '11px', flexShrink: 0, marginTop: '2px' }}>✓</span>
+                      Đạt tiêu chuẩn chuyển đổi số và quản lý học liệu của Bộ GD&ĐT
+                    </li>
+                    <li style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '14.5px', color: '#1F2937', fontWeight: '500' }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '20px', height: '20px', borderRadius: '50%', background: '#10B981', color: '#fff', fontSize: '11px', flexShrink: 0, marginTop: '2px' }}>✓</span>
+                      Đồng bộ quản lý tài khoản giáo viên, học sinh và kết quả học tập
+                    </li>
+                    <li style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '14.5px', color: '#1F2937', fontWeight: '500' }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '20px', height: '20px', borderRadius: '50%', background: '#10B981', color: '#fff', fontSize: '11px', flexShrink: 0, marginTop: '2px' }}>✓</span>
+                      Hệ thống LMS tinh gọn, hoạt động mượt mà trên mọi thiết bị
+                    </li>
+                    <li style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '14.5px', color: '#1F2937', fontWeight: '500' }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '20px', height: '20px', borderRadius: '50%', background: '#10B981', color: '#fff', fontSize: '11px', flexShrink: 0, marginTop: '2px' }}>✓</span>
+                      Tích hợp sẵn với các tính năng AI hỗ trợ đắc lực công tác giảng dạy
+                    </li>
+                  </>
+                )}
+              </ul>
+
+              {/* Action Prompt */}
+              <p style={{
+                fontSize: '14px',
+                fontWeight: '750',
+                color: '#374151',
+                margin: '0 0 20px 0'
+              }}>
+                {activeTab === 'teacher' && "Bạn đã sẵn sàng để bứt phá hiệu quả giảng dạy?"}
+                {activeTab === 'student' && "Bạn muốn trải nghiệm phương pháp học tập cá nhân hóa này?"}
+                {activeTab === 'school' && "Bạn sẵn sàng nâng cấp chất lượng chuyển đổi số nhà trường?"}
+              </p>
+
+              {/* Action Buttons */}
+              <div style={{
+                display: 'flex',
+                gap: '14px',
+                flexWrap: 'wrap'
+              }}>
+                <button
+                  onClick={() => {
+                    if (activeTab === 'teacher') {
+                      if (currentUser) {
+                        onBackToDashboard('home');
+                      } else {
+                        onNavigateToAuth('signup');
+                      }
+                    } else if (activeTab === 'student') {
+                      if (navigateTo) {
+                        navigateTo('/courses');
+                      } else {
+                        setActiveLandingView('courses');
+                      }
+                    } else {
+                      // School consultation scroll to form
+                      const el = document.getElementById('pricing');
+                      if (el) el.scrollIntoView({ behavior: 'smooth' });
+                    }
+                  }}
+                  style={{
+                    backgroundColor: activeTab === 'teacher' ? '#3B82F6' : (activeTab === 'student' ? '#EC4899' : '#D97706'),
+                    color: '#FFF',
+                    fontWeight: '800',
+                    fontSize: '13.5px',
+                    padding: '12px 20px',
+                    border: '2.5px solid #000',
+                    borderRadius: '10px',
+                    cursor: 'pointer',
+                    boxShadow: '3px 3px 0px #000',
+                    transition: 'all 0.15s ease'
+                  }}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.transform = 'translate(-2px, -2px)';
+                    e.currentTarget.style.boxShadow = '5px 5px 0px #000';
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.transform = 'none';
+                    e.currentTarget.style.boxShadow = '3px 3px 0px #000';
+                  }}
+                >
+                  Dùng thử miễn phí ngay
+                </button>
+                <button
+                  onClick={(e) => {
+                    const el = document.getElementById('pricing');
+                    if (el) el.scrollIntoView({ behavior: 'smooth' });
+                  }}
+                  style={{
+                    backgroundColor: '#FFF',
+                    color: '#000',
+                    fontWeight: '800',
+                    fontSize: '13.5px',
+                    padding: '12px 20px',
+                    border: '2.5px solid #000',
+                    borderRadius: '10px',
+                    cursor: 'pointer',
+                    boxShadow: '3px 3px 0px #000',
+                    transition: 'all 0.15s ease'
+                  }}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.transform = 'translate(-2px, -2px)';
+                    e.currentTarget.style.boxShadow = '5px 5px 0px #000';
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.transform = 'none';
+                    e.currentTarget.style.boxShadow = '3px 3px 0px #000';
+                  }}
+                >
+                  Nhận tư vấn triển khai cho trường bạn
+                </button>
+              </div>
+
+            </div>
+          </div>
+
         </div>
       </section>
 
 
 
-      {/* ── LEADERBOARD SECTION ── */}
-      <section id="leaderboard" className="lp-leaderboard-section">
-        <div className="lp-container">
-          <div className="lp-section-header lp-section-header--light" style={{ marginBottom: '40px' }}>
-            <span className="lp-eyebrow lp-eyebrow--outline" style={{ display: 'flex', alignItems: 'center', gap: '6px', width: 'fit-content', margin: '0 auto 14px' }}>
-              <HiSparkles style={{ color: '#FFC229' }} /> Vinh danh học viên
-            </span>
-            <h2>Bảng Xếp Hạng Thành Tích Học Tập THPTQG 2026</h2>
-            <p>Học tập liên tục, bứt phá giới hạn và vươn lên dẫn đầu bảng xếp hạng cùng EduPath AI.</p>
+      {/* ── STUDENT FEEDBACK CAROUSEL SECTION ── */}
+      <section id="student-feedbacks" className="lp-subjects" style={{ background: '#FFFDF2', borderBottom: '3.5px solid #000', padding: '70px 0', overflow: 'hidden' }}>
+        <div className="lp-container" style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 24px' }}>
+          
+          {/* Section Header */}
+          <div className="lp-section-header lp-section-header--light" style={{ marginBottom: '32px', textAlign: 'center' }}>
+            <h2 style={{ fontSize: '32px', fontWeight: '950', color: '#000', letterSpacing: '-0.8px', margin: '0 0 16px 0' }}>
+              ❤️ Cộng đồng giáo viên và học sinh <br />
+              nói gì về <span style={{ color: '#2563EB' }}>EduPath AI</span>
+            </h2>
+            <p style={{ fontSize: '15px', color: '#4B5563', maxWidth: '750px', margin: '0 auto', lineHeight: 1.6, fontWeight: '500' }}>
+              Hàng trăm câu chuyện mỗi ngày cho thấy sức hút kỳ diệu của học liệu tương tác có mặt trong các tiết học. Bạn cũng muốn thấy lớp học thay đổi như vậy?
+            </p>
+
+            {/* Buttons under header */}
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '16px', marginTop: '24px' }}>
+              <button
+                onClick={() => {
+                  if (currentUser) {
+                    onBackToDashboard('home');
+                  } else {
+                    onNavigateToAuth('signup');
+                  }
+                }}
+                style={{
+                  backgroundColor: '#2563EB',
+                  color: '#FFF',
+                  fontWeight: '800',
+                  fontSize: '13.5px',
+                  padding: '12px 24px',
+                  border: '2.5px solid #000',
+                  borderRadius: '30px',
+                  cursor: 'pointer',
+                  boxShadow: '2px 2px 0px #000',
+                  transition: 'all 0.15s ease'
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.transform = 'translate(-1px, -1px)';
+                  e.currentTarget.style.boxShadow = '3px 3px 0px #000';
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.transform = 'none';
+                  e.currentTarget.style.boxShadow = '2px 2px 0px #000';
+                }}
+              >
+                Dùng thử miễn phí ngay
+              </button>
+              <button
+                onClick={() => {
+                  const el = document.getElementById('pricing');
+                  if (el) el.scrollIntoView({ behavior: 'smooth' });
+                }}
+                style={{
+                  backgroundColor: '#FFF',
+                  color: '#1F2937',
+                  fontWeight: '800',
+                  fontSize: '13.5px',
+                  padding: '12px 24px',
+                  border: '2.5px solid #E5E7EB',
+                  borderRadius: '30px',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease'
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.borderColor = '#9CA3AF';
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.borderColor = '#E5E7EB';
+                }}
+              >
+                Đọc thêm câu chuyện
+              </button>
+            </div>
           </div>
 
-          <div className="leaderboard-container">
-            <div className="leaderboard-header">
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <button 
-                  className={`badge-pill ${leaderboardTab === 'score' ? 'active' : ''}`}
-                  onClick={() => setLeaderboardTab('score')}
-                >
-                  🎯 Theo điểm thi thử
-                </button>
-                <button 
-                  className={`badge-pill ${leaderboardTab === 'streak' ? 'active' : ''}`}
-                  onClick={() => setLeaderboardTab('streak')}
-                >
-                  🔥 Theo chuỗi học tập (Streak)
-                </button>
-              </div>
-              <span className="leaderboard-timestamp">Cập nhật 5 phút trước</span>
-            </div>
+          {/* Slider Row */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '16px',
+            position: 'relative',
+            width: '100%'
+          }}>
+            {/* Prev Arrow */}
+            <button
+              onClick={() => setFeedbackIndex(prev => {
+                const safePrev = Math.min(prev, maxIdx);
+                return safePrev === 0 ? maxIdx : safePrev - 1;
+              })}
+              style={{
+                width: '44px',
+                height: '44px',
+                borderRadius: '50%',
+                border: '2.5px solid #000',
+                background: '#FFF',
+                color: '#000',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                boxShadow: '2px 2px 0px #000',
+                transition: 'all 0.15s ease',
+                flexShrink: 0,
+                outline: 'none'
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.transform = 'translate(-1px, -1px)';
+                e.currentTarget.style.boxShadow = '3px 3px 0px #000';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.transform = 'none';
+                e.currentTarget.style.boxShadow = '2px 2px 0px #000';
+              }}
+              title="Trước"
+            >
+              <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="15 18 9 12 15 6" />
+              </svg>
+            </button>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {[...MOCK_LEADERBOARD]
-                .sort((a, b) => leaderboardTab === 'score' ? parseFloat(b.actual) - parseFloat(a.actual) : b.streak - a.streak)
-                .map((student, index) => {
-                  const displayRank = index + 1;
-                  let rankClass = "rank-other";
-                  let rowClass = "";
-                  if (displayRank === 1) { rankClass = "rank-1"; rowClass = "top-1"; }
-                  else if (displayRank === 2) { rankClass = "rank-2"; rowClass = "top-2"; }
-                  else if (displayRank === 3) { rankClass = "rank-3"; rowClass = "top-3"; }
-
-                  return (
-                    <div key={student.name} className={`leaderboard-row ${rowClass}`}>
-                      <div className={`rank-badge ${rankClass}`}>{displayRank}</div>
-                      <div className="leaderboard-avatar">{student.avatar}</div>
-                      <div className="leaderboard-userinfo">
-                        <div className="leaderboard-name">{student.name}</div>
-                        <div className="leaderboard-badge-tag">{student.badge}</div>
+            {/* Viewport wrapper */}
+            <div className="lp-feedback-viewport">
+              <div 
+                className="lp-feedback-track"
+                style={{
+                  transform: `translateX(calc(-${safeFeedbackIndex} * (100% + 24px) / ${itemsPerPage}))`
+                }}
+              >
+                {FEEDBACK_LIST.map((review, idx) => (
+                  <div 
+                    key={idx}
+                    className="lp-feedback-card"
+                    style={{
+                      background: '#FFF',
+                      border: `2px solid ${review.border || '#000'}`,
+                      borderRadius: '16px',
+                      padding: '24px',
+                      boxShadow: 'none',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between',
+                      flexShrink: 0
+                    }}
+                  >
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '14px' }}>
+                        <div style={{
+                          width: '42px',
+                          height: '42px',
+                          borderRadius: '50%',
+                          background: review.bg,
+                          border: `2px solid ${review.accent}`,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontWeight: '800',
+                          color: review.accent,
+                          fontSize: '14px',
+                          flexShrink: 0
+                        }}>
+                          {review.name.replace(/^(Bạn |Thầy |Ths |Cô )/, '').slice(0, 2).toUpperCase()}
+                        </div>
+                        <div style={{ textAlign: 'left' }}>
+                          <h4 style={{ fontSize: '14px', fontWeight: '900', color: '#111', margin: 0, lineHeight: 1.3 }}>
+                            {review.name}
+                          </h4>
+                          <p style={{ fontSize: '10.5px', color: '#666', margin: '2px 0 0 0', fontWeight: '600', lineHeight: 1.3 }}>
+                            {review.school}
+                          </p>
+                        </div>
                       </div>
-                      <div className="leaderboard-combo-name">{student.combo}</div>
-                      <div className="leaderboard-score-tag">
-                        🎯 {student.actual}/{student.target}đ
-                      </div>
-                      <div className="leaderboard-streak-tag">
-                        🔥 {student.streak} ngày
-                      </div>
+                      <p style={{ fontSize: '13px', color: '#4B5563', lineHeight: '1.5', textAlign: 'left', margin: 0, fontWeight: '500' }}>
+                        "{review.text}"
+                      </p>
                     </div>
-                  );
-                })}
+                  </div>
+                ))}
+              </div>
             </div>
+
+            {/* Next Arrow */}
+            <button
+              onClick={() => setFeedbackIndex(prev => {
+                const safePrev = Math.min(prev, maxIdx);
+                return safePrev >= maxIdx ? 0 : safePrev + 1;
+              })}
+              style={{
+                width: '44px',
+                height: '44px',
+                borderRadius: '50%',
+                border: '2.5px solid #000',
+                background: '#FFF',
+                color: '#000',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                boxShadow: '2px 2px 0px #000',
+                transition: 'all 0.15s ease',
+                flexShrink: 0,
+                outline: 'none'
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.transform = 'translate(-1px, -1px)';
+                e.currentTarget.style.boxShadow = '3px 3px 0px #000';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.transform = 'none';
+                e.currentTarget.style.boxShadow = '2px 2px 0px #000';
+              }}
+              title="Tiếp theo"
+            >
+              <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+            </button>
           </div>
+
+          {/* Dots Pagination */}
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginTop: '24px' }}>
+            {Array.from({ length: maxIdx + 1 }).map((_, idx) => (
+              <button
+                key={idx}
+                onClick={() => setFeedbackIndex(idx)}
+                style={{
+                  width: '10px',
+                  height: '10px',
+                  borderRadius: '50%',
+                  background: safeFeedbackIndex === idx ? '#2563EB' : '#D1D5DB',
+                  border: 'none',
+                  padding: 0,
+                  cursor: 'pointer',
+                  transition: 'background 0.2s'
+                }}
+                title={`Trang ${idx + 1}`}
+              />
+            ))}
+          </div>
+
         </div>
       </section>
 

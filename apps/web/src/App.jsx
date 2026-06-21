@@ -1380,10 +1380,20 @@ export default function App() {
 
   const [checkoutCourse, setCheckoutCourse] = useState(null);
   const [paymentSuccessRedirect, setPaymentSuccessRedirect] = useState(false);
-  const [cartCourses, setCartCourses] = useState(() => JSON.parse(localStorage.getItem('app_cart_courses')) || []);
+  const [cartCourses, setCartCourses] = useState(() => {
+    const user = localStorage.getItem('current_user');
+    if (!user) return [];
+    return JSON.parse(localStorage.getItem('app_cart_courses')) || [];
+  });
   const [showUpgradePRO, setShowUpgradePRO] = useState(false);
 
   const handleAddToCart = (course) => {
+    if (!currentUser) {
+      showToast.current?.('Vui lòng đăng nhập để thêm khóa học vào giỏ hàng!', 'warning');
+      navigateTo('/');
+      setActiveTab('login');
+      return;
+    }
     const exists = cartCourses.some(c => c.id === course.id);
     if (exists) {
       showToast.current?.(`Khóa học "${course.title}" đã có trong giỏ hàng rồi!`, 'warning');
@@ -1396,6 +1406,12 @@ export default function App() {
   };
 
   const handleCheckoutCourse = (course) => {
+    if (!currentUser) {
+      showToast.current?.('Vui lòng đăng nhập để mua khóa học!', 'warning');
+      navigateTo('/');
+      setActiveTab('login');
+      return;
+    }
     const exists = cartCourses.some(c => c.id === course.id);
     let updated = cartCourses;
     if (!exists) {
@@ -1741,6 +1757,7 @@ export default function App() {
     localStorage.removeItem('access_token');
     localStorage.removeItem('refresh_token');
     localStorage.removeItem('current_user');
+    localStorage.removeItem('app_cart_courses');
     navigateTo('/');
     setCurrentUser(null);
     setRole('guest');
@@ -1749,6 +1766,7 @@ export default function App() {
     setActiveTestSimulator(null);
     setActiveOCRScanner(null);
     setCheckoutCourse(null);
+    setCartCourses([]);
   };
 
 

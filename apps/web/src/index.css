@@ -8665,4 +8665,69 @@ code, pre, a[href^="http"], .breakable {
   overflow: hidden;
 }
 
+/* ===== ROLE TABS RESPONSIVENESS ===== */
+@media (max-width: 768px) {
+  .lp-role-card-responsive {
+    flex-direction: column !important;
+  }
+  .lp-role-image-responsive {
+    flex: none !important;
+    width: 100% !important;
+    min-height: 220px !important;
+    max-height: 280px !important;
+    padding: 16px 16px 0 16px !important;
+  }
+  .lp-role-content-responsive {
+    flex: none !important;
+    width: 100% !important;
+    padding: 24px 20px !important;
+  }
+}
+
+/* ===== CAROUSEL SLIDER STYLES ===== */
+:root {
+  --feedback-multiplier: 33.33%;
+}
+
+@media (max-width: 1024px) {
+  :root {
+    --feedback-multiplier: 50%;
+  }
+}
+
+@media (max-width: 768px) {
+  :root {
+    --feedback-multiplier: 100%;
+  }
+}
+
+.lp-feedback-viewport {
+  overflow: hidden;
+  width: 100%;
+}
+
+.lp-feedback-track {
+  display: flex;
+  gap: 24px;
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.lp-feedback-card {
+  width: calc(33.33% - 16px);
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
+
+@media (max-width: 1024px) {
+  .lp-feedback-card {
+    width: calc(50% - 12px);
+  }
+}
+
+@media (max-width: 768px) {
+  .lp-feedback-card {
+    width: 100%;
+  }
+}
+
 

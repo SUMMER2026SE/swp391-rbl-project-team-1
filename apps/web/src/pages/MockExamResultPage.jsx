@@ -10,11 +10,23 @@ import SmartRetakeOptions from '../components/mock-exams/SmartRetakeOptions';
 import ExamReplayTimeline from '../components/mock-exams/ExamReplayTimeline';
 import { mockExamService } from '../services/mockExamService';
 import { toast } from '../utils/toast';
+import { 
+  HiCheck, 
+  HiX, 
+  HiCheckCircle, 
+  HiOutlineExclamation, 
+  HiLightBulb, 
+  HiSparkles,
+  HiChevronDown,
+  HiChevronUp,
+  HiRefresh
+} from 'react-icons/hi';
 
 const TABS = [
   { key: 'overview', label: '📊 Tổng quan' },
   { key: 'analysis', label: '📈 Phân tích' },
   { key: 'coach', label: '🤖 AI Coach' },
+  { key: 'wrong_questions', label: '❌ Phân tích câu sai' },
   { key: 'review', label: '📝 Xem lại bài' },
   { key: 'replay', label: '📼 Replay' }
 ];
@@ -30,6 +42,72 @@ export default function MockExamResultPage({ examId, attemptId, currentUser, nav
   const [eventsLoading, setEventsLoading] = useState(false);
   const [coachLoading, setCoachLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
+  const [similarStates, setSimilarStates] = useState({});
+
+  useEffect(() => {
+    if (window.MathJax) {
+      setTimeout(() => {
+        window.MathJax.typesetPromise?.().catch(e => console.log('MathJax error:', e));
+      }, 100);
+    }
+  }, [activeTab, similarStates]);
+
+  const handleLuyenTuongTu = async (q) => {
+    if (similarStates[q.id]?.visible && !similarStates[q.id]?.checked) {
+      setSimilarStates(prev => ({
+        ...prev,
+        [q.id]: { ...prev[q.id], visible: false }
+      }));
+      return;
+    }
+
+    setSimilarStates(prev => ({
+      ...prev,
+      [q.id]: { ...prev[q.id], loading: true, error: null, visible: true, checked: false, selectedOption: null }
+    }));
+
+    try {
+      const data = await mockExamService.generateSimilarQuestion({
+        content: q.question_text || q.content,
+        topic: q.topic || 'Chung',
+        difficulty: q.difficulty === 'Dễ' || q.difficulty === 'EASY' ? 'EASY' : (q.difficulty === 'Khó' || q.difficulty === 'HARD' ? 'HARD' : 'MEDIUM'),
+        options: q.options?.map(o => ({ label: o.option_label || o.label, text: o.option_text || o.text })) || [],
+        explanation: q.explanation,
+        subject: result?.mock_exams?.subject || result?.subject || 'Toán học'
+      });
+
+      if (data) {
+        setSimilarStates(prev => ({
+          ...prev,
+          [q.id]: {
+            ...prev[q.id],
+            loading: false,
+            data,
+            selectedOption: null,
+            checked: false
+          }
+        }));
+      } else {
+        setSimilarStates(prev => ({
+          ...prev,
+          [q.id]: {
+            ...prev[q.id],
+            loading: false,
+            error: 'Không thể tạo câu hỏi mới. Vui lòng thử lại.'
+          }
+        }));
+      }
+    } catch (err) {
+      setSimilarStates(prev => ({
+        ...prev,
+        [q.id]: {
+          ...prev[q.id],
+          loading: false,
+          error: err.message || 'Lỗi kết nối máy chủ.'
+        }
+      }));
+    }
+  };
 
   const loadResultDetails = async () => {
     setLoading(true);
@@ -343,6 +421,437 @@ export default function MockExamResultPage({ examId, attemptId, currentUser, nav
               isGenerating={coachLoading}
             />
           )}
+
+          {/* ── WRONG QUESTIONS ANALYSIS TAB ── */}
+          {activeTab === 'wrong_questions' && (() => {
+            const wrongQs = questions.filter(q => {
+              const qOptions = q.options || [];
+              const correctAnswer = qOptions.find(o => o.is_correct || o.isCorrect);
+              const selectedLabel = userAnswers[q.id];
+              const isCorrect = correctAnswer && (correctAnswer.option_label === selectedLabel || correctAnswer.label === selectedLabel);
+              return !isCorrect;
+            });
+
+            return (
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', borderBottom: '1px solid var(--border)', paddingBottom: '16px', marginBottom: '20px' }}>
+                  <div>
+                    <h3 style={{ fontSize: '15px', fontWeight: '900', color: 'var(--text-primary)', margin: '0 0 4px 0' }}>
+                      ❌ TỔNG HỢP CÂU SAI & PHÂN TÍCH CHI TIẾT
+                    </h3>
+                    <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0 }}>
+                      Bạn làm sai/bỏ trống {wrongQs.length} trên tổng số {questions.length} câu. Hãy luyện tập lại các dạng câu này!
+                    </p>
+                  </div>
+                  {wrongQs.length > 0 && (
+                    <button
+                      className="btn-primary"
+                      onClick={() => handleRetake(examId, 'wrong_similar', attemptId)}
+                      style={{
+                        padding: '8px 16px',
+                        fontSize: '12.5px',
+                        fontWeight: 'bold',
+                        background: 'linear-gradient(135deg, #a29bfe 0%, #6c5ce7 100%)',
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: '8px',
+                        cursor: 'pointer',
+                        boxShadow: '0 4px 10px rgba(108, 92, 231, 0.15)',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px'
+                      }}
+                    >
+                      <HiSparkles /> Tạo đề tương tự câu sai (AI) 🤖
+                    </button>
+                  )}
+                </div>
+
+                {wrongQs.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '40px 20px', background: 'var(--bg-main)', borderRadius: '16px', border: '1px dashed var(--border)' }}>
+                    <span style={{ fontSize: '48px' }}>🎉</span>
+                    <h4 style={{ fontSize: '15px', fontWeight: '900', margin: '12px 0 6px 0', color: 'var(--text-primary)' }}>Không có câu hỏi làm sai!</h4>
+                    <p style={{ fontSize: '12.5px', color: 'var(--text-secondary)', margin: 0 }}>
+                      Tuyệt vời! Bạn đã đạt điểm số tối đa cho các câu hỏi trong đề thi này.
+                    </p>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                    {wrongQs.map((q) => {
+                      const qOptions = q.options || [];
+                      const correctAnswer = qOptions.find(o => o.is_correct || o.isCorrect);
+                      const selectedLabel = userAnswers[q.id];
+                      const isCorrect = correctAnswer && (correctAnswer.option_label === selectedLabel || correctAnswer.label === selectedLabel);
+                      const isBlank = !selectedLabel;
+
+                      return (
+                        <div
+                          key={q.id}
+                          style={{
+                            background: 'var(--bg-card, #ffffff)',
+                            border: `1.5px solid ${isBlank ? 'var(--border)' : 'rgba(214, 48, 49, 0.25)'}`,
+                            borderRadius: '16px',
+                            padding: '20px',
+                            boxShadow: 'var(--shadow-sm)'
+                          }}
+                        >
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', borderBottom: '1px dashed var(--border)', paddingBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <strong style={{ fontSize: '13.5px', color: 'var(--exams-purple)' }}>Câu {q.question_number}</strong>
+                              {q.topic && (
+                                <span style={{ fontSize: '10.5px', background: 'var(--primary-bg)', color: 'var(--primary)', padding: '2px 8px', borderRadius: '4px', fontWeight: 'bold' }}>
+                                  🏷️ {q.topic}
+                                </span>
+                              )}
+                              <span style={{ fontSize: '10.5px', background: 'var(--bg-main)', color: 'var(--text-secondary)', padding: '2px 8px', borderRadius: '4px', fontWeight: 'bold' }}>
+                                ⚡ Độ khó: {q.difficulty === 'EASY' || q.difficulty === 'Dễ' ? 'Dễ' : (q.difficulty === 'HARD' || q.difficulty === 'Khó' ? 'Khó' : 'Trung bình')}
+                              </span>
+                            </div>
+                            <span
+                              style={{
+                                fontSize: '11px',
+                                fontWeight: 'bold',
+                                padding: '4px 10px',
+                                borderRadius: '20px',
+                                background: isBlank ? '#64748b' : 'var(--exams-red)',
+                                color: '#ffffff',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '4px'
+                              }}
+                            >
+                              {isBlank ? 'CHƯA TRẢ LỜI' : (
+                                <>SAI <HiX /></>
+                              )}
+                            </span>
+                          </div>
+
+                          <p style={{ fontSize: '13.5px', color: 'var(--text-primary)', marginBottom: '16px', whiteSpace: 'pre-line', lineHeight: 1.6, fontWeight: '500' }}>
+                            {q.question_text || q.content}
+                          </p>
+
+                          {q.question_image_url && (
+                            <div style={{ margin: '12px 0', textAlign: 'center' }}>
+                              <img src={q.question_image_url} alt="Minh họa" style={{ maxWidth: '100%', maxHeight: '200px', borderRadius: '8px' }} />
+                            </div>
+                          )}
+
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>
+                            {qOptions.map((opt) => {
+                              const isCorrectOpt = opt.is_correct || opt.isCorrect || opt.label === correctAnswer?.option_label || opt.option_label === correctAnswer?.option_label;
+                              const isSelectedOpt = selectedLabel === (opt.option_label || opt.label);
+
+                              let optionBg = 'transparent';
+                              let optionBorder = 'var(--border)';
+                              let showStatus = false;
+                              let isOptCorrect = false;
+
+                              if (isCorrectOpt) {
+                                optionBg = 'rgba(0, 184, 148, 0.08)';
+                                optionBorder = 'var(--exams-green)';
+                                showStatus = true;
+                                isOptCorrect = true;
+                              } else if (isSelectedOpt && !isCorrectOpt) {
+                                optionBg = 'rgba(214, 48, 49, 0.08)';
+                                optionBorder = 'var(--exams-red)';
+                                showStatus = true;
+                                isOptCorrect = false;
+                              }
+
+                              return (
+                                <div
+                                  key={opt.id || opt.label}
+                                  style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '10px',
+                                    padding: '10px 14px',
+                                    borderRadius: '8px',
+                                    border: `1px solid ${optionBorder}`,
+                                    background: optionBg,
+                                    fontSize: '12.5px'
+                                  }}
+                                >
+                                  <span
+                                    style={{
+                                      width: '24px',
+                                      height: '24px',
+                                      borderRadius: '50%',
+                                      background: isCorrectOpt ? 'var(--exams-green)' : (isSelectedOpt ? 'var(--exams-red)' : 'var(--bg-main)'),
+                                      color: (isCorrectOpt || isSelectedOpt) ? '#fff' : 'var(--text-secondary)',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      fontWeight: 'bold',
+                                      fontSize: '11px',
+                                      flexShrink: 0
+                                    }}
+                                  >
+                                    {opt.option_label || opt.label}
+                                  </span>
+                                  <span style={{ color: 'var(--text-primary)', flex: 1 }}>{opt.option_text || opt.text}</span>
+                                  {showStatus && (
+                                    <span style={{
+                                      fontSize: '11px',
+                                      fontWeight: 'bold',
+                                      color: isOptCorrect ? 'var(--exams-green)' : 'var(--exams-red)',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '2px'
+                                    }}>
+                                      {isOptCorrect ? (
+                                        <><HiCheckCircle /> (Đáp án đúng)</>
+                                      ) : (
+                                        <><HiOutlineExclamation /> (Lựa chọn của bạn)</>
+                                      )}
+                                    </span>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+
+                          {/* Phân tích giải thích và lỗi sai */}
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', background: 'var(--bg-main, #f8fafc)', borderRadius: '10px', padding: '14px', borderLeft: '3px solid var(--exams-purple)', fontSize: '12.5px', color: 'var(--text-secondary)', marginBottom: '16px' }}>
+                            <strong style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--exams-purple)' }}>
+                              <HiLightBulb /> Hướng dẫn giải chi tiết:
+                            </strong>
+                            <p style={{ margin: 0, whiteSpace: 'pre-line', lineHeight: 1.5 }}>
+                              {q.explanation || `Đáp án đúng là ${correctAnswer?.option_label || correctAnswer?.label || 'A'}.`}
+                            </p>
+
+                            <strong style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--exams-orange)', marginTop: '8px' }}>
+                              💡 Phân tích lỗi sai thường gặp & Kiến thức trọng tâm:
+                            </strong>
+                            <p style={{ margin: 0, whiteSpace: 'pre-line', lineHeight: 1.5, fontStyle: 'italic' }}>
+                              Đối với chủ đề <strong>{q.topic || 'này'}</strong>, lỗi phổ biến nhất là không xác định đúng dữ kiện cốt lõi hoặc áp dụng sai công thức cơ bản. Để khắc phục triệt để, bạn cần nắm vững kiến thức lý thuyết tương ứng và lưu ý kỹ các điều kiện ràng buộc của bài toán.
+                            </p>
+                          </div>
+
+                          {/* Luyện câu hỏi tương tự AI */}
+                          <div>
+                            <button
+                              onClick={() => handleLuyenTuongTu(q)}
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                background: 'linear-gradient(135deg, #6c5ce7 0%, #a29bfe 100%)',
+                                color: '#fff',
+                                border: 'none',
+                                borderRadius: '8px',
+                                padding: '8px 16px',
+                                fontSize: '12px',
+                                fontWeight: 'bold',
+                                cursor: 'pointer',
+                                boxShadow: '0 4px 10px rgba(108, 92, 231, 0.15)',
+                                transition: 'transform 0.2s, opacity 0.2s'
+                              }}
+                              onMouseOver={(e) => { e.currentTarget.style.opacity = '0.9'; }}
+                              onMouseOut={(e) => { e.currentTarget.style.opacity = '1'; }}
+                            >
+                              <HiSparkles /> 🤖 Luyện câu tương tự AI {similarStates[q.id]?.visible ? <HiChevronUp /> : <HiChevronDown />}
+                            </button>
+
+                            {similarStates[q.id]?.visible && (
+                              <div style={{
+                                marginTop: '12px',
+                                background: 'var(--bg-main, #f8fafc)',
+                                border: '1.5px solid var(--exams-purple)',
+                                borderRadius: '12px',
+                                padding: '16px'
+                              }}>
+                                {similarStates[q.id]?.loading ? (
+                                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', padding: '16px' }}>
+                                    <div className="spinner" style={{
+                                      width: '24px',
+                                      height: '24px',
+                                      border: '3px solid rgba(108, 92, 231, 0.2)',
+                                      borderTop: '3px solid var(--exams-purple)',
+                                      borderRadius: '50%',
+                                      animation: 'spin 1s linear infinite'
+                                    }} />
+                                    <span style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: '600' }}>
+                                      AI đang biên soạn câu hỏi tương tự...
+                                    </span>
+                                  </div>
+                                ) : similarStates[q.id]?.error ? (
+                                  <div style={{ color: 'var(--exams-red)', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <HiOutlineExclamation /> {similarStates[q.id].error}
+                                    <button
+                                      onClick={() => handleLuyenTuongTu(q)}
+                                      style={{ border: 'none', background: 'transparent', color: 'var(--exams-purple)', fontWeight: 'bold', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '2px' }}
+                                    >
+                                      <HiRefresh /> Thử lại
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <div>
+                                    <p style={{ fontSize: '13.5px', color: 'var(--text-primary)', fontWeight: '600', marginBottom: '12px', whiteSpace: 'pre-line', lineHeight: 1.5 }}>
+                                      {similarStates[q.id].data.content}
+                                    </p>
+
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '14px' }}>
+                                      {similarStates[q.id].data.options?.map((opt) => {
+                                        const isSelected = similarStates[q.id].selectedOption === opt.label;
+                                        const isCorrect = opt.label === similarStates[q.id].data.correctAnswer;
+                                        const isChecked = similarStates[q.id].checked;
+
+                                        let optionBg = 'var(--bg-card, #ffffff)';
+                                        let optionBorder = 'var(--border)';
+                                        let cursor = 'pointer';
+
+                                        if (isChecked) {
+                                          cursor = 'default';
+                                          if (isCorrect) {
+                                            optionBg = 'rgba(0, 184, 148, 0.08)';
+                                            optionBorder = 'var(--exams-green)';
+                                          } else if (isSelected) {
+                                            optionBg = 'rgba(214, 48, 49, 0.08)';
+                                            optionBorder = 'var(--exams-red)';
+                                          }
+                                        } else if (isSelected) {
+                                          optionBg = 'rgba(108, 92, 231, 0.08)';
+                                          optionBorder = 'var(--exams-purple)';
+                                        }
+
+                                        return (
+                                          <button
+                                            key={opt.label}
+                                            disabled={isChecked}
+                                            onClick={() => {
+                                              setSimilarStates(prev => ({
+                                                ...prev,
+                                                [q.id]: { ...prev[q.id], selectedOption: opt.label }
+                                              }));
+                                            }}
+                                            style={{
+                                              display: 'flex',
+                                              alignItems: 'center',
+                                              gap: '10px',
+                                              padding: '10px 14px',
+                                              borderRadius: '8px',
+                                              border: `1.5px solid ${optionBorder}`,
+                                              background: optionBg,
+                                              fontSize: '12.5px',
+                                              width: '100%',
+                                              textAlign: 'left',
+                                              cursor: cursor,
+                                              transition: 'all 0.2s',
+                                              outline: 'none'
+                                            }}
+                                          >
+                                            <span
+                                              style={{
+                                                width: '24px',
+                                                height: '24px',
+                                                borderRadius: '50%',
+                                                background: isChecked && isCorrect ? 'var(--exams-green)' : (isChecked && isSelected ? 'var(--exams-red)' : (isSelected ? 'var(--exams-purple)' : 'var(--bg-main, #f1f5f9)')),
+                                                color: (isSelected || (isChecked && (isCorrect || isSelected))) ? '#fff' : 'var(--text-secondary)',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                fontWeight: 'bold',
+                                                fontSize: '11px',
+                                                flexShrink: 0
+                                              }}
+                                            >
+                                              {opt.label}
+                                            </span>
+                                            <span style={{ color: 'var(--text-primary)', flex: 1 }}>{opt.text}</span>
+                                            {isChecked && isCorrect && (
+                                              <span style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--exams-green)', display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
+                                                <HiCheckCircle /> Đúng
+                                              </span>
+                                            )}
+                                            {isChecked && isSelected && !isCorrect && (
+                                              <span style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--exams-red)', display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
+                                                <HiX /> Sai
+                                              </span>
+                                            )}
+                                          </button>
+                                        );
+                                      })}
+                                    </div>
+
+                                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center', justifyContent: 'flex-end', marginTop: '12px' }}>
+                                      {!similarStates[q.id].checked ? (
+                                        <button
+                                          disabled={!similarStates[q.id].selectedOption}
+                                          onClick={() => {
+                                            setSimilarStates(prev => ({
+                                              ...prev,
+                                              [q.id]: { ...prev[q.id], checked: true }
+                                            }));
+                                          }}
+                                          style={{
+                                            background: similarStates[q.id].selectedOption ? 'var(--exams-purple)' : '#cbd5e1',
+                                            color: '#fff',
+                                            border: 'none',
+                                            borderRadius: '6px',
+                                            padding: '8px 16px',
+                                            fontSize: '12px',
+                                            fontWeight: 'bold',
+                                            cursor: similarStates[q.id].selectedOption ? 'pointer' : 'default',
+                                            transition: 'opacity 0.2s'
+                                          }}
+                                        >
+                                          Kiểm tra
+                                        </button>
+                                      ) : (
+                                        <button
+                                          onClick={() => handleLuyenTuongTu(q)}
+                                          style={{
+                                            background: '#f1f5f9',
+                                            color: 'var(--exams-purple)',
+                                            border: '1.5px solid var(--exams-purple)',
+                                            borderRadius: '6px',
+                                            padding: '6px 14px',
+                                            fontSize: '12px',
+                                            fontWeight: 'bold',
+                                            cursor: 'pointer',
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            gap: '4px'
+                                          }}
+                                        >
+                                          <HiRefresh /> Luyện câu khác
+                                        </button>
+                                      )}
+                                    </div>
+
+                                    {similarStates[q.id].checked && (
+                                      <div style={{
+                                        marginTop: '12px',
+                                        background: 'rgba(108, 92, 231, 0.03)',
+                                        borderRadius: '8px',
+                                        padding: '12px',
+                                        borderLeft: '3px solid var(--exams-purple)',
+                                        fontSize: '12px',
+                                        color: 'var(--text-secondary)',
+                                        animation: 'fadeIn 0.2s ease-out'
+                                      }}>
+                                        <strong style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--exams-purple)', marginBottom: '4px' }}>
+                                          <HiLightBulb /> Hướng dẫn giải AI:
+                                        </strong>
+                                        <p style={{ margin: 0, whiteSpace: 'pre-line', lineHeight: 1.5 }}>
+                                          {similarStates[q.id].data.explanation}
+                                        </p>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
 
           {/* ── REVIEW TAB ── */}
           {activeTab === 'review' && (

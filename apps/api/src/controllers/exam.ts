@@ -1219,7 +1219,7 @@ export async function createSmartRetake(req: AuthRequest, res: Response) {
 
     if (!exam) return res.status(404).json({ success: false, error: 'Không tìm thấy đề thi!' });
 
-    if (mode === 'ai_similar') {
+    if (mode === 'ai_similar' || mode === 'wrong_similar') {
       const apiKey = process.env.OPENROUTER_API_KEY;
       const model = process.env.OPENROUTER_MODEL || 'openrouter/free';
       
@@ -1231,15 +1231,22 @@ export async function createSmartRetake(req: AuthRequest, res: Response) {
         });
         if (prevAttempt) {
           const wrongAnswers = prevAttempt.attemptAnswers.filter(a => !a.isCorrect);
-          const rightAnswers = prevAttempt.attemptAnswers.filter(a => a.isCorrect);
-          const selectedWrong = wrongAnswers.slice(0, 7).map(a => exam.examQuestions.find(eq => eq.questionId === a.questionId)).filter(Boolean);
-          const selectedRight = rightAnswers.slice(0, 10 - selectedWrong.length).map(a => exam.examQuestions.find(eq => eq.questionId === a.questionId)).filter(Boolean);
-          baseQuestions = [...selectedWrong, ...selectedRight] as any;
+          if (mode === 'wrong_similar') {
+            baseQuestions = wrongAnswers.map(a => exam.examQuestions.find(eq => eq.questionId === a.questionId)).filter(Boolean) as any;
+          } else {
+            const rightAnswers = prevAttempt.attemptAnswers.filter(a => a.isCorrect);
+            const selectedWrong = wrongAnswers.slice(0, 7).map(a => exam.examQuestions.find(eq => eq.questionId === a.questionId)).filter(Boolean);
+            const selectedRight = rightAnswers.slice(0, 10 - selectedWrong.length).map(a => exam.examQuestions.find(eq => eq.questionId === a.questionId)).filter(Boolean);
+            baseQuestions = [...selectedWrong, ...selectedRight] as any;
+          }
         }
       }
 
       if (baseQuestions.length === 0) {
-        baseQuestions = exam.examQuestions;
+        baseQuestions = exam.examQuestions.filter(eq => eq.question.difficulty === 'HARD');
+        if (baseQuestions.length === 0) {
+          baseQuestions = exam.examQuestions;
+        }
       }
       if (baseQuestions.length > 10) {
         baseQuestions = baseQuestions.slice(0, 10);
@@ -1260,7 +1267,7 @@ export async function createSmartRetake(req: AuthRequest, res: Response) {
 - Giải thích chi tiết: "${q.explanation || ''}"`;
       }).join('\n\n');
 
-      const systemPrompt = `Bạn là một AI chuyên gia biên soạn đề thi THPT Quốc gia hàng đầu Việt Nam. Nhiệm vụ của bạn là tạo ra 10 câu hỏi MỚI hoàn toàn TƯƠNG TỰ các câu hỏi tham chiếu được cung cấp.
+      const systemPrompt = `Bạn là một AI chuyên gia biên soạn đề thi THPT Quốc gia hàng đầu Việt Nam. Nhiệm vụ của bạn là tạo ra ${baseQuestions.length} câu hỏi MỚI hoàn toàn TƯƠNG TỰ các câu hỏi tham chiếu được cung cấp.
 Với mỗi câu hỏi tham chiếu, hãy tạo một câu hỏi mới:
 1. Kiểm tra cùng một khái niệm, kiến thức, công thức toán học/vật lý/hóa học hoặc chủ đề ngữ pháp tiếng Anh.
 2. Có độ khó (EASY/MEDIUM/HARD) tương ứng.
@@ -1269,7 +1276,7 @@ Với mỗi câu hỏi tham chiếu, hãy tạo một câu hỏi mới:
 5. Giải thích pedagogical chi tiết từng bước.
 6. Các ký tự toán học, công thức vật lý, hóa học PHẢI sử dụng định dạng LaTeX chuẩn (ví dụ: $x^2 + 2x = 0$, $\\frac{a}{b}$) để trình duyệt render đẹp mắt.
 
-Bạn chỉ được phép trả về một mảng JSON duy nhất chứa 10 câu hỏi, KHÔNG có văn bản giải thích nào khác trước hoặc sau JSON.
+Bạn chỉ được phép trả về một mảng JSON duy nhất chứa ${baseQuestions.length} câu hỏi, KHÔNG có văn bản giải thích nào khác trước hoặc sau JSON.
 Cấu trúc mỗi câu hỏi trong JSON phải chính xác như sau:
 [
   {
@@ -1290,7 +1297,7 @@ Cấu trúc mỗi câu hỏi trong JSON phải chính xác như sau:
       let generatedQuestions: any[] = [];
       if (apiKey) {
         try {
-          console.log(`[AI Similar Exam] Generating 10 similar questions with model: ${model}`);
+          console.log(`[AI Similar Exam] Generating ${baseQuestions.length} similar questions with model: ${model}`);
           const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
             method: 'POST',
             headers: {
@@ -1362,11 +1369,11 @@ Cấu trúc mỗi câu hỏi trong JSON phải chính xác như sau:
         data: {
           exam: {
             id: exam.id,
-            title: `${exam.title} — Đề tương tự AI 🤖`,
+            title: `${exam.title} — ${mode === 'wrong_similar' ? 'Đề tương tự câu sai AI 🔮' : 'Đề tương tự AI 🤖'}`,
             subject: exam.subject,
             duration: Math.max(15, Math.ceil(mappedQuestions.length * 1.5)),
             totalQuestions: mappedQuestions.length,
-            retakeMode: 'ai_similar',
+            retakeMode: mode,
             sourceExamId: exam.id,
             sourceAttemptId: attemptId || null
           },
@@ -1433,6 +1440,7 @@ Cấu trúc mỗi câu hỏi trong JSON phải chính xác như sau:
     const modeLabel: Record<string, string> = {
       wrong_only: 'Làm lại câu sai',
       weak_topic: 'Luyện chủ đề yếu',
+      wrong_similar: 'Đề tương tự câu sai AI 🔮',
       full: 'Thi lại full đề'
     };
 

@@ -12,6 +12,16 @@ const RETAKE_MODES = [
     badge: 'Hiệu quả'
   },
   {
+    mode: 'wrong_similar',
+    icon: '🔮',
+    title: 'Đề tương tự câu sai AI',
+    desc: 'Tạo đề thi mới gồm các câu tương tự các câu bạn đã làm sai bằng AI',
+    color: '#a29bfe',
+    bg: '#a29bfe10',
+    border: '#a29bfe30',
+    badge: 'Đặc biệt'
+  },
+  {
     mode: 'weak_topic',
     icon: '📚',
     title: 'Luyện chủ đề yếu',
@@ -57,13 +67,13 @@ export default function SmartRetakeOptions({ examId, attemptId, onRetake, wrongC
   const [selected, setSelected] = useState(null);
 
   const getSubtext = (mode) => {
-    if (mode === 'wrong_only') return wrongCount > 0 ? `${wrongCount} câu` : 'Không có câu sai';
+    if (mode === 'wrong_only' || mode === 'wrong_similar') return wrongCount > 0 ? `${wrongCount} câu` : 'Không có câu sai';
     if (mode === 'bookmarked') return bookmarkedCount > 0 ? `${bookmarkedCount} câu` : 'Không có câu đánh dấu';
     return null;
   };
 
   const isDisabled = (mode) => {
-    if (mode === 'wrong_only') return wrongCount === 0;
+    if (mode === 'wrong_only' || mode === 'wrong_similar') return wrongCount === 0;
     if (mode === 'bookmarked') return bookmarkedCount === 0;
     return false;
   };
