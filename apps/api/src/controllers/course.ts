@@ -94,7 +94,7 @@ export async function getCourseById(req: AuthRequest, res: Response) {
 }
 
 export async function createCourse(req: AuthRequest, res: Response) {
-  const { title, description, subject, price, discount, thumbnailUrl, grade } = req.body;
+  const { title, description, subject, price, discount, thumbnailUrl, grade, level } = req.body;
   const teacherId = req.user?.id;
 
   if (!teacherId) return res.status(401).json({ success: false, error: 'Chưa xác thực!' });
@@ -122,6 +122,7 @@ export async function createCourse(req: AuthRequest, res: Response) {
         discount: discount !== undefined ? Number(discount) : 0,
         thumbnailUrl,
         grade: grade ? Number(grade) : null,
+        level: level || null,
         isPublished: published,
         isApproved: published, // Auto-approve if published
         teacherId
@@ -161,7 +162,7 @@ export async function getCourseStats(req: AuthRequest, res: Response) {
 
 export async function updateCourse(req: AuthRequest, res: Response) {
   const courseId = Number(req.params.id);
-  const { title, description, subject, price, discount, thumbnailUrl, grade, isPublished } = req.body;
+  const { title, description, subject, price, discount, thumbnailUrl, grade, isPublished, level } = req.body;
 
   try {
     const published = isPublished !== undefined ? (isPublished === 'true' || isPublished === true) : undefined;
@@ -175,6 +176,7 @@ export async function updateCourse(req: AuthRequest, res: Response) {
         ...(discount !== undefined ? { discount: Number(discount) } : {}),
         ...(thumbnailUrl !== undefined ? { thumbnailUrl } : {}),
         ...(grade !== undefined ? { grade: grade ? Number(grade) : null } : {}),
+        ...(level !== undefined ? { level } : {}),
         ...(published !== undefined ? { isPublished: published, isApproved: published } : {})
       }
     });

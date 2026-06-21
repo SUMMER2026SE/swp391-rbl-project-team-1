@@ -107,7 +107,7 @@ export function mapDbCourseToMockFormat(c) {
   }
 
   // Determine level
-  let levelVal = c.level || "Cơ bản";
+  let levelVal = (c.level && !c.level.startsWith('http') && !c.level.startsWith('/')) ? c.level : "Cơ bản";
   if (c.title.toLowerCase().includes('nâng cao') || c.title.toLowerCase().includes('chuyên sâu')) {
     levelVal = "Nâng cao";
   } else if (c.title.toLowerCase().includes('cấp tốc')) {
@@ -138,6 +138,7 @@ export function mapDbCourseToMockFormat(c) {
     priceSale: Number(c.price) * (1 - (c.discount || 0) / 100),
     discountPercent: c.discount || 0,
     level: levelVal,
+    trailerUrl: (c.level && (c.level.startsWith('http') || c.level.startsWith('/'))) ? c.level : null,
     grade: c.grade,
     curriculum: curriculumVal.map(c => ({
       ...c,

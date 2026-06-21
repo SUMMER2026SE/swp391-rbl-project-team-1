@@ -460,7 +460,7 @@ export default function LearningPage({
             ) : (
               <VideoPlayer
                 ref={videoRef}
-                videoUrl={currentLesson.videoUrl || "https://sample-videos.com/video321/mp4/720/big_buck_bunny_720p_1mb.mp4"}
+                videoUrl={currentLesson.videoUrl || "https://www.w3schools.com/html/mov_bbb.mp4"}
                 title={currentLesson.title}
                 lessonId={currentLesson.id}
                 nextLessonName={nextLessonName}

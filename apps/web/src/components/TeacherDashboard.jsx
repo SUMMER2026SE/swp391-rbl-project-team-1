@@ -165,8 +165,10 @@ export default function TeacherDashboard({
   const [cPrice, setCPrice] = useState('0');
   const [cDiscount, setCDiscount] = useState('0');
   const [cThumbnailUrl, setCThumbnailUrl] = useState('');
+  const [cTrailerUrl, setCTrailerUrl] = useState('');
   const [cIsPublished, setCIsPublished] = useState(false);
   const [cThumbnailUploading, setCThumbnailUploading] = useState(false);
+  const [cTrailerUploading, setCTrailerUploading] = useState(false);
 
   // --- LESSONS CRUD STATES ---
   const [lessonEditMode, setLessonEditMode] = useState('idle'); // idle, create, edit
@@ -197,6 +199,7 @@ export default function TeacherDashboard({
     setCPrice('0');
     setCDiscount('0');
     setCThumbnailUrl('');
+    setCTrailerUrl('');
     setCIsPublished(false);
     setCourseEditMode('create');
   };
@@ -209,6 +212,7 @@ export default function TeacherDashboard({
     setCPrice(String(course.price || '0'));
     setCDiscount(String(course.discount || '0'));
     setCThumbnailUrl(course.thumbnailUrl || '');
+    setCTrailerUrl(course.level || '');
     setCIsPublished(course.isPublished || false);
     setCourseEditMode('edit');
   };
@@ -227,6 +231,7 @@ export default function TeacherDashboard({
         price: Number(cPrice),
         discount: Number(cDiscount),
         thumbnailUrl: cThumbnailUrl,
+        level: cTrailerUrl,
         grade: Number(cGrade),
         isPublished: cIsPublished
       };
@@ -282,6 +287,24 @@ export default function TeacherDashboard({
       toast('Tải ảnh banner lên thất bại!', 'error');
     } finally {
       setCThumbnailUploading(false);
+    }
+  };
+
+  const handleCourseTrailerChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      setCTrailerUploading(true);
+      const res = await api.uploadFile(file);
+      if (res && res.url) {
+        setCTrailerUrl(res.url);
+        toast('Tải video giới thiệu lên thành công!', 'success');
+      }
+    } catch (err) {
+      console.error(err);
+      toast('Tải video giới thiệu lên thất bại!', 'error');
+    } finally {
+      setCTrailerUploading(false);
     }
   };
 
@@ -1642,6 +1665,49 @@ export default function TeacherDashboard({
                       </div>
                     </div>
 
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#0f172a' }}>Video giới thiệu khóa học (Trailer):</label>
+                      <div style={{ 
+                        border: '2px dashed #000000', borderRadius: '12px', background: '#ffffff', padding: '16px', 
+                        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '10px',
+                        minHeight: '110px'
+                      }}>
+                        {cTrailerUrl ? (
+                          <div style={{ position: 'relative', width: '100%' }}>
+                            <video src={cTrailerUrl} controls style={{ width: '100%', maxHeight: '120px', borderRadius: '8px', border: '1.5px solid #000000', background: '#000' }} />
+                            <button 
+                              type="button" 
+                              onClick={() => setCTrailerUrl('')}
+                              style={{ position: 'absolute', top: '4px', right: '4px', border: '1.5px solid #000000', background: '#fee2e2', color: '#ef4444', borderRadius: '50%', width: '24px', height: '24px', cursor: 'pointer', fontWeight: 'bold', fontSize: '11px', zIndex: 5 }}
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        ) : (
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                            <span style={{ fontSize: '28px' }}>🎬</span>
+                            <span style={{ fontSize: '11px', color: '#64748b', fontWeight: '600', margin: '4px 0 8px 0' }}>Hỗ trợ MP4, MOV (Tối đa 50MB)</span>
+                            <button 
+                              type="button" 
+                              disabled={cTrailerUploading}
+                              onClick={() => document.getElementById('course-trailer-upload').click()}
+                              className="tdb-upgrade-btn"
+                              style={{ width: 'auto', background: '#fff', color: '#000', border: '2px solid #000', padding: '6px 12px', boxShadow: 'none' }}
+                            >
+                              {cTrailerUploading ? '⏳ Đang tải...' : 'Tải video từ máy'}
+                            </button>
+                            <input 
+                              type="file" 
+                              id="course-trailer-upload" 
+                              accept="video/mp4,video/quicktime" 
+                              onChange={handleCourseTrailerChange} 
+                              style={{ display: 'none' }} 
+                            />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
                     <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontWeight: 'bold', color: '#1e293b', marginTop: '8px', background: '#fff', padding: '10px 14px', borderRadius: '10px', border: '2px solid #000000' }}>
                       <input 
                         type="checkbox" 
@@ -1834,33 +1900,46 @@ export default function TeacherDashboard({
                                 </div>
                               </div>
 
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                <label style={{ fontSize: '11.5px', fontWeight: 'bold' }}>Tải lên video bài giảng:</label>
-                                <div style={{ display: 'flex', gap: '8px' }}>
-                                  <input 
-                                    type="text" 
-                                    className="tdb-search-input" 
-                                    style={{ flex: 1, borderRadius: '8px', border: '1.5px solid #000' }} 
-                                    placeholder="Link video phát học..."
-                                    value={lVideoUrl}
-                                    onChange={e => setLVideoUrl(e.target.value)}
-                                  />
-                                  <button 
-                                    type="button" 
-                                    disabled={lVideoUploading}
-                                    onClick={() => document.getElementById('lesson-video-upload').click()}
-                                    className="tdb-upgrade-btn"
-                                    style={{ width: 'auto', background: '#f8fafc', color: '#000', border: '1.5px solid #000', padding: '6px 12px', boxShadow: 'none' }}
-                                  >
-                                    {lVideoUploading ? '⏳ Đang tải...' : 'Upload Video'}
-                                  </button>
-                                  <input 
-                                    type="file" 
-                                    id="lesson-video-upload" 
-                                    accept="video/*" 
-                                    onChange={handleLessonVideoChange} 
-                                    style={{ display: 'none' }} 
-                                  />
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                <label style={{ fontSize: '11.5px', fontWeight: 'bold', color: '#0f172a' }}>Video bài giảng học tập:</label>
+                                <div style={{ 
+                                  border: '2px dashed #000000', borderRadius: '12px', background: '#ffffff', padding: '12px', 
+                                  display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                                  minHeight: '100px'
+                                }}>
+                                  {lVideoUrl ? (
+                                    <div style={{ position: 'relative', width: '100%' }}>
+                                      <video src={lVideoUrl} controls style={{ width: '100%', maxHeight: '120px', borderRadius: '8px', border: '1.5px solid #000000', background: '#000' }} />
+                                      <button 
+                                        type="button" 
+                                        onClick={() => setLVideoUrl('')}
+                                        style={{ position: 'absolute', top: '4px', right: '4px', border: '1.5px solid #000000', background: '#fee2e2', color: '#ef4444', borderRadius: '50%', width: '22px', height: '22px', cursor: 'pointer', fontWeight: 'bold', fontSize: '10px', zIndex: 5 }}
+                                      >
+                                        ✕
+                                      </button>
+                                    </div>
+                                  ) : (
+                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                                      <span style={{ fontSize: '24px' }}>🎥</span>
+                                      <span style={{ fontSize: '10px', color: '#64748b', fontWeight: '600', margin: '2px 0 6px 0' }}>Hỗ trợ MP4, MOV (Tối đa 50MB)</span>
+                                      <button 
+                                        type="button" 
+                                        disabled={lVideoUploading}
+                                        onClick={() => document.getElementById('lesson-video-upload').click()}
+                                        className="tdb-upgrade-btn"
+                                        style={{ width: 'auto', background: '#fff', color: '#000', border: '2px solid #000', padding: '4px 10px', fontSize: '11px', boxShadow: 'none' }}
+                                      >
+                                        {lVideoUploading ? '⏳ Đang tải...' : 'Tải video từ máy'}
+                                      </button>
+                                      <input 
+                                        type="file" 
+                                        id="lesson-video-upload" 
+                                        accept="video/mp4,video/quicktime" 
+                                        onChange={handleLessonVideoChange} 
+                                        style={{ display: 'none' }} 
+                                      />
+                                    </div>
+                                  )}
                                 </div>
                               </div>
 
