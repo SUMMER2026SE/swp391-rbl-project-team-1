@@ -910,8 +910,6 @@ export default function StudentDashboard({ currentUser, setActiveTab, navigateTo
               </button>
             </div>
 
-            </div>
-
             {/* CONTINUE LEARNING RAIL */}
             <ContinueLearningRail 
               currentUser={currentUser}
