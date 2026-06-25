@@ -771,25 +771,67 @@ export async function syncMindmapNodes(mindmapId: number, content: any) {
 
   traverse(content);
 
+  // Fetch all existing mindmap nodes in a single query
+  const existingNodes = await prisma.mindmapNode.findMany({
+    where: { mindmapId },
+    select: { nodeKey: true, name: true, description: true }
+  });
+
+  const existingMap = new Map<string, typeof existingNodes[0]>();
+  for (const item of existingNodes) {
+    existingMap.set(item.nodeKey, item);
+  }
+
+  const nodesToCreate: typeof nodesToSync = [];
+  const nodesToUpdate: typeof nodesToSync = [];
+
   for (const n of nodesToSync) {
-    await prisma.mindmapNode.upsert({
-      where: {
-        mindmapId_nodeKey: {
-          mindmapId,
-          nodeKey: n.nodeKey
-        }
-      },
-      update: {
-        name: n.name,
-        description: n.description
-      },
-      create: {
-        mindmapId,
-        nodeKey: n.nodeKey,
-        name: n.name,
-        description: n.description
+    const existing = existingMap.get(n.nodeKey);
+    if (!existing) {
+      nodesToCreate.push(n);
+    } else {
+      if (existing.name !== n.name || existing.description !== n.description) {
+        nodesToUpdate.push(n);
       }
-    });
+    }
+  }
+
+  const operations: any[] = [];
+
+  if (nodesToCreate.length > 0) {
+    operations.push(
+      prisma.mindmapNode.createMany({
+        data: nodesToCreate.map(n => ({
+          mindmapId,
+          nodeKey: n.nodeKey,
+          name: n.name,
+          description: n.description
+        }))
+      })
+    );
+  }
+
+  if (nodesToUpdate.length > 0) {
+    operations.push(
+      ...nodesToUpdate.map(n =>
+        prisma.mindmapNode.update({
+          where: {
+            mindmapId_nodeKey: {
+              mindmapId,
+              nodeKey: n.nodeKey
+            }
+          },
+          data: {
+            name: n.name,
+            description: n.description
+          }
+        })
+      )
+    );
+  }
+
+  if (operations.length > 0) {
+    await prisma.$transaction(operations);
   }
 }
 

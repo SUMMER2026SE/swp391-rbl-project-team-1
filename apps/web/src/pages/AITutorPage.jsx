@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { 
   HiSparkles, HiPlus, HiMinus, HiTrash, HiSave, HiDownload, 
   HiDocumentText, HiRefresh, HiUpload, HiX, HiSearch, HiFolder,
@@ -525,17 +525,20 @@ export default function AITutorPage({ currentUser, navigateTo, addLog, hideHeade
     setSelectedNode(node);
   };
 
-  // Search Logic for Mindmap nodes
-  const findMatchingNodes = (node, query, results = []) => {
-    if (!node || !query) return results;
-    if (node.name.toLowerCase().includes(query.toLowerCase())) {
-      results.push(node.id);
-    }
-    if (node.children) {
-      node.children.forEach(child => findMatchingNodes(child, query, results));
-    }
-    return results;
-  };
+  // Flat Node Index Memoization for fast searches
+  const flatNodes = useMemo(() => {
+    if (!mindmapData) return [];
+    const list = [];
+    const traverse = (node) => {
+      if (!node) return;
+      list.push(node);
+      if (node.children) {
+        node.children.forEach(traverse);
+      }
+    };
+    traverse(mindmapData);
+    return list;
+  }, [mindmapData]);
 
   const handleSearchChange = (val) => {
     setSearchQuery(val);
@@ -544,7 +547,10 @@ export default function AITutorPage({ currentUser, navigateTo, addLog, hideHeade
       setSearchIndex(-1);
       return;
     }
-    const results = findMatchingNodes(mindmapData, val.trim());
+    const query = val.trim().toLowerCase();
+    const results = flatNodes
+      .filter(node => node.name.toLowerCase().includes(query))
+      .map(node => node.id);
     setSearchResults(results);
     if (results.length > 0) {
       setSearchIndex(0);
@@ -583,7 +589,7 @@ export default function AITutorPage({ currentUser, navigateTo, addLog, hideHeade
       setExpandedNodes(newExpanded);
 
       // Scroll canvas to focus on target node coordinates
-      const { nodes: layoutNodes } = computeTreeLayout();
+      const { nodes: layoutNodes } = computeTreeLayout(newExpanded);
       const targetLayout = layoutNodes.find(n => n.id === nodeId);
       if (targetLayout) {
         const containerWidth = svgRef.current ? svgRef.current.clientWidth : 800;
@@ -721,12 +727,12 @@ export default function AITutorPage({ currentUser, navigateTo, addLog, hideHeade
   };
 
   // SVB Tree coordinate layout algorithm (Horizontal Tree left-to-right)
-  const computeTreeLayout = () => {
+  const computeTreeLayout = (customExpanded = expandedNodes) => {
     if (!mindmapData) return { nodes: [], links: [] };
 
     // Inner recursive tree coordinate assigner
     const layoutSubtree = (node, depth = 0, state = { currentY: 50 }) => {
-      const isExpanded = expandedNodes.has(node.id);
+      const isExpanded = customExpanded.has(node.id);
       const children = (isExpanded && node.children) ? node.children : [];
       
       const layoutNode = {
@@ -736,7 +742,8 @@ export default function AITutorPage({ currentUser, navigateTo, addLog, hideHeade
         depth,
         x: depth * 310 + 130, // spacing between columns
         y: 0,
-        children: []
+        children: [],
+        rawNode: node
       };
 
       if (children.length === 0) {
@@ -761,7 +768,7 @@ export default function AITutorPage({ currentUser, navigateTo, addLog, hideHeade
     const linksList = [];
 
     const flatten = (layoutNode) => {
-      const rawNode = findNodeById(mindmapData, layoutNode.id);
+      const rawNode = layoutNode.rawNode;
       const hasChildren = rawNode && rawNode.children && rawNode.children.length > 0;
 
       nodesList.push({
@@ -791,7 +798,9 @@ export default function AITutorPage({ currentUser, navigateTo, addLog, hideHeade
     return { nodes: nodesList, links: linksList };
   };
 
-  const { nodes, links } = computeTreeLayout();
+  const { nodes, links } = useMemo(() => {
+    return computeTreeLayout();
+  }, [mindmapData, expandedNodes]);
 
   // Canvas zoom actions
   const zoomIn = () => setZoom(prev => Math.min(3, prev * 1.15));
