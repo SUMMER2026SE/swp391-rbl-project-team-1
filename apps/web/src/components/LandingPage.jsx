@@ -3407,13 +3407,18 @@ export default function LandingPage({
                 onUpdateUser={onUpdateUser}
                 onAddToCart={onAddToCart}
                 onCheckoutCourse={onCheckoutCourse}
+                navigateTo={navigateTo}
               />
             ) : (
               <CoursesPage
                 courses={courses}
                 currentUser={currentUser}
-                onSelectCourse={(course) => setSelectedCourseId(course.id)}
+                onSelectCourse={(course) => {
+                  setSelectedCourseId(course.id);
+                  if (navigateTo) navigateTo(`/courses/${course.id}`);
+                }}
                 onCheckoutCourse={onCheckoutCourse}
+                navigateTo={navigateTo}
               />
             )}
           </div>

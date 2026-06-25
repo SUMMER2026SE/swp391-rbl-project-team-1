@@ -1011,7 +1011,7 @@ body, .course-detail-page-fts {
   background: none;
   border: none;
   color: var(--fts-text-primary);
-  font-size: 24px;
+  font-size: 32px;
   cursor: pointer;
   position: relative;
   display: flex;
@@ -1028,19 +1028,20 @@ body, .course-detail-page-fts {
 
 .fts-header-cart-badge {
   position: absolute;
-  top: -6px;
-  right: -8px;
+  top: -2px;
+  right: -6px;
   background: #EF4444;
   color: #FFFFFF;
-  font-size: 10px;
-  font-weight: 700;
-  height: 16px;
-  min-width: 16px;
-  padding: 0 4px;
-  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 800;
+  height: 18px;
+  min-width: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
   display: flex;
   align-items: center;
   justify-content: center;
+  box-shadow: 0 2px 5px rgba(239, 68, 68, 0.4);
 }
 
 
