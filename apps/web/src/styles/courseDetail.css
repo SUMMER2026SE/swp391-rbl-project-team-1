@@ -6,7 +6,7 @@
   
   /* Background */
   --fts-page-bg: #FAF8F2;           /* warm cream page bg */
-  --fts-header-bg: linear-gradient(180deg, #EEEAFF 0%, #DBD3FF 100%);
+  --fts-header-bg: var(--fts-page-bg);
   --fts-card-bg: #FFFFFF;
   
   /* Text */
@@ -953,8 +953,8 @@ body, .course-detail-page-fts {
 }
 
 .fts-header-search-input:focus {
-  border-color: rgba(79, 63, 203, 0.3);
-  box-shadow: 0 0 0 4px rgba(79, 63, 203, 0.15);
+  border-color: rgba(14, 91, 66, 0.4);
+  box-shadow: 0 0 0 4px rgba(14, 91, 66, 0.15);
 }
 
 .fts-header-search-btn {
@@ -963,7 +963,7 @@ body, .course-detail-page-fts {
   width: 44px;
   height: 44px;
   border-radius: 50%;
-  background: var(--fts-purple);
+  background: #0e5b42;
   color: #FFFFFF;
   display: flex;
   align-items: center;
@@ -974,7 +974,7 @@ body, .course-detail-page-fts {
 }
 
 .fts-header-search-btn:hover {
-  background: var(--fts-purple-dark);
+  background: #0a3f2e;
   transform: scale(1.05);
 }
 
@@ -1022,7 +1022,7 @@ body, .course-detail-page-fts {
 }
 
 .fts-header-cart-btn:hover {
-  color: var(--fts-purple);
+  color: #0e5b42;
   transform: scale(1.1);
 }
 

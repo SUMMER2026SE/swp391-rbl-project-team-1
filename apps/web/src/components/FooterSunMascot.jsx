@@ -20,8 +20,8 @@ const getSpikePath = () => {
 };
 const spikePath = getSpikePath();
 
-export default function FooterSunMascot({ 
-  dinoText = 'Mệt thì nghỉ một chút, còn khỏe thì chiến tiếp cùng EduPath nha bạn.', 
+export default function FooterSunMascot({
+  dinoText = 'Mệt thì nghỉ một chút, còn khỏe thì chiến tiếp cùng EduPath nha bạn.',
   currentDinoMessage = 'Mệt thì nghỉ một chút, còn khỏe thì chiến tiếp cùng EduPath nha bạn.',
   isSmiling = false
 }) {
@@ -32,7 +32,7 @@ export default function FooterSunMascot({
   const showSmile = isSmiling || isCardHovered || isHovered || isMouthOpenAuto;
   const containerRef = useRef(null);
   const mascotRef = useRef(null);
-  
+
   const mouseX = useMotionValue(0);
   const mouseY = useMotionValue(0);
 
@@ -90,20 +90,20 @@ export default function FooterSunMascot({
 
     // Trigger talk immediately after 2 seconds
     const initialDelay = setTimeout(runTalking, 2000);
-    
+
     // Regular interval
     const mainTimer = setInterval(runTalking, 7500);
-    
+
     return () => {
       clearTimeout(initialDelay);
       clearInterval(mainTimer);
     };
   }, [mounted]);
 
-  if (!mounted) return <div style={{ height: '320px' }} />; 
+  if (!mounted) return <div style={{ height: '320px' }} />;
 
   return (
-    <div 
+    <div
       style={{ position: 'absolute', bottom: 0, right: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 0 }}
       ref={containerRef}
     >
@@ -124,45 +124,45 @@ export default function FooterSunMascot({
           <svg viewBox="0 0 63 63" fill="none" className="lp-cute-sun" style={{ overflow: 'visible' }}>
             {/* Symmetrical Sun Rays Path */}
             <path transform="translate(0 3)" d={spikePath} fill="#F3A20F" stroke="#1d3c29" strokeWidth="0.8" strokeLinejoin="round" />
-            
 
-            
+
+
             {/* Original Inner Face circle */}
             <path transform="translate(0 3)" d="M31.7666 7.90735C18.6034 7.90737 7.93262 18.5781 7.93262 31.7413C7.93264 44.9045 18.6034 55.5753 31.7666 55.5753C44.9298 55.5753 55.6006 44.9045 55.6006 31.7413C55.6006 18.5781 44.9298 7.90735 31.7666 7.90735Z" fill="#F3A20F" stroke="#1d3c29" strokeWidth="0.8" />
-            
+
             {/* Original Animated Face Container */}
             <motion.g style={{ x: faceX, y: faceY }}>
               <g transform="translate(27, 20) scale(0.6)">
                 {/* Left Eye */}
                 <circle cx="13.7" cy="2" r="1.9" fill="#1d3c29" />
-                
+
                 {/* Right Eye (Winks on Hover) */}
                 {isHovered ? (
                   <path d="M0 2 Q 2 4 4 2" stroke="#1d3c29" strokeWidth="0.8" strokeLinecap="round" fill="none" transform="translate(0, 0.5)" />
                 ) : (
                   <circle cx="2" cy="2" r="1.9" fill="#1d3c29" />
                 )}
-                
+
                 {/* Mouth */}
                 {showSmile ? (
                   <g>
                     {/* Mouth Interior (Pink/red tongue area) */}
-                    <path 
-                      d="M 4.36 9.0 C 6.0 9.5 13.0 8.5 14.74 8.0 C 14.0 13.5 11.5 15.5 8.99 15.5 C 6.5 15.5 4.8 13.5 4.36 9.0 Z" 
-                      fill="#FF7B90" 
-                      stroke="#1d3c29" 
-                      strokeWidth="1.0" 
-                      strokeLinecap="round" 
-                      strokeLinejoin="round" 
+                    <path
+                      d="M 4.36 9.0 C 6.0 9.5 13.0 8.5 14.74 8.0 C 14.0 13.5 11.5 15.5 8.99 15.5 C 6.5 15.5 4.8 13.5 4.36 9.0 Z"
+                      fill="#FF7B90"
+                      stroke="#1d3c29"
+                      strokeWidth="1.0"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
                     />
                     {/* Teeth (White upper band) */}
-                    <path 
-                      d="M 4.36 9.0 C 6.0 9.5 13.0 8.5 14.74 8.0 C 14.0 11.0 11.0 11.5 8.99 11.5 C 7.0 11.5 4.8 11.0 4.36 9.0 Z" 
-                      fill="#FFFFFF" 
-                      stroke="#1d3c29" 
-                      strokeWidth="1.0" 
-                      strokeLinecap="round" 
-                      strokeLinejoin="round" 
+                    <path
+                      d="M 4.36 9.0 C 6.0 9.5 13.0 8.5 14.74 8.0 C 14.0 11.0 11.0 11.5 8.99 11.5 C 7.0 11.5 4.8 11.0 4.36 9.0 Z"
+                      fill="#FFFFFF"
+                      stroke="#1d3c29"
+                      strokeWidth="1.0"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
                     />
                   </g>
                 ) : (

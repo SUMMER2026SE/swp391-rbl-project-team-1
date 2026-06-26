@@ -8767,9 +8767,16 @@ code, pre, a[href^="http"], .breakable {
   }
 }
 
+
 @media (max-width: 768px) {
   .lp-feedback-card {
     width: 100%;
+  }
+}
+
+@media (max-width: 900px) {
+  .lp-green-mascot-responsive {
+    display: none !important;
   }
 }
 
