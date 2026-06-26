@@ -4,6 +4,11 @@ import { prisma } from '../lib/prisma.js';
 import { incrementBothStats } from '../lib/monthlyStats.js';
 import fs from 'fs';
 import path from 'path';
+import mammoth from 'mammoth';
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+const pdfParseModule = require('pdf-parse');
+const PDFParse = pdfParseModule.PDFParse;
 
 
 // Helper to process SSE lines from OpenRouter
@@ -64,7 +69,7 @@ export async function streamAIChat(req: AuthRequest, res: Response) {
   const slicedMessage = message ? String(message).substring(0, 60) : '';
 
   try {
-    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    let response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${apiKey}`,
@@ -84,6 +89,34 @@ export async function streamAIChat(req: AuthRequest, res: Response) {
       }),
       signal: abortController.signal
     });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      if (response.status === 402 || response.status === 404 || errText.includes('credits') || errText.includes('402') || errText.includes('unavailable')) {
+        console.warn(`[AI Tutor Fallback] Out of credits or model unavailable. Retrying with free model router...`);
+        const fallbackModel = 'openrouter/free';
+        response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json',
+            'HTTP-Referer': 'https://edupath.vn',
+            'X-Title': 'EduPath AI Tutor'
+          },
+          body: JSON.stringify({
+            model: fallbackModel,
+            messages: [
+              systemPrompt,
+              { role: 'user', content: slicedMessage }
+            ],
+            stream: true,
+            temperature: 0.7,
+            max_tokens: 40
+          }),
+          signal: abortController.signal
+        });
+      }
+    }
 
     if (!response.ok) {
       const errText = await response.text();
@@ -687,32 +720,7 @@ Yêu cầu định dạng và nội dung:
 4. Mỗi trường "name" (tên nhánh) phải cực kỳ ngắn gọn, súc tích (dưới 6 từ). Mỗi trường "description" (mô tả/công thức/ví dụ) phải ngắn gọn, súc tích (dưới 15 từ, tối đa 20 từ) để đảm bảo tốc độ phản hồi nhanh và tránh bị cắt cụt dung lượng.
 5. Trả về đúng mã JSON. Không bao gồm bất cứ lời giải thích hay ký tự nào khác bên ngoài khối JSON.`;
 
-    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-        'HTTP-Referer': 'https://edupath.vn',
-        'X-Title': 'EduPath AI Mindmap'
-      },
-      body: JSON.stringify({
-        model: model,
-        messages: [
-          { role: 'user', content: prompt }
-        ],
-        temperature: 0.5,
-        max_tokens: 1500
-      })
-    });
-
-    if (!response.ok) {
-      const errText = await response.text();
-      throw new Error(`OpenRouter error: ${errText}`);
-    }
-
-    const data = await response.json() as any;
-    let content = data.choices?.[0]?.message?.content || '';
-    content = content.trim();
+    const content = await callOpenRouter(prompt, 1500, 0.5);
     console.log("[AI Mindmap Raw Output]:", content);
 
     // Parse the JSON structure robustly using regex to locate { ... } block
@@ -1005,32 +1013,7 @@ Yêu cầu cực kỳ quan trọng:
 - Định dạng trả về CHÍNH XÁC theo cấu trúc sau (mỗi thẻ cách nhau bằng dấu chấm phẩy ";", không kèm thêm bất cứ giải thích, lời chào hay lời dẫn nào khác):
 Mặt trước 1 = Mặt sau 1; Mặt trước 2 = Mặt sau 2; Mặt trước 3 = Mặt sau 3; Mặt trước 4 = Mặt sau 4; Mặt trước 5 = Mặt sau 5`;
 
-    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-        'HTTP-Referer': 'https://edupath.vn',
-        'X-Title': 'EduPath AI Flashcard'
-      },
-      body: JSON.stringify({
-        model: model,
-        messages: [
-          { role: 'user', content: prompt }
-        ],
-        temperature: 0.5,
-        max_tokens: 500
-      })
-    });
-
-    if (!response.ok) {
-      const errText = await response.text();
-      throw new Error(`OpenRouter error: ${errText}`);
-    }
-
-    const data = await response.json() as any;
-    let content = data.choices?.[0]?.message?.content || '';
-    content = content.trim();
+    const content = await callOpenRouter(prompt, 500, 0.5);
 
     // Parse outline string to expected flashcards JSON array
     const rawParts = content.split(/[;\n]+/).map((p: string) => p.trim());
@@ -1094,12 +1077,12 @@ Mặt trước 1 = Mặt sau 1; Mặt trước 2 = Mặt sau 2; Mặt trước 3
 
 async function callOpenRouter(prompt: string, maxTokens = 1500, temp = 0.5) {
   const apiKey = process.env.OPENROUTER_API_KEY;
-  const model = process.env.OPENROUTER_MODEL || 'openrouter/free';
+  let model = process.env.OPENROUTER_MODEL || 'openrouter/free';
   if (!apiKey) {
     throw new Error('API Key OpenRouter chưa được cấu hình.');
   }
 
-  const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+  let response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${apiKey}`,
@@ -1114,6 +1097,32 @@ async function callOpenRouter(prompt: string, maxTokens = 1500, temp = 0.5) {
       max_tokens: maxTokens
     })
   });
+
+  if (!response.ok) {
+    const errText = await response.text();
+    
+    // Check if error is due to out of credits / 402 or 404 (unavailable for free)
+    if (response.status === 402 || response.status === 404 || errText.includes('credits') || errText.includes('402') || errText.includes('unavailable')) {
+      console.warn(`[OpenRouter Fallback] Model ${model} failed. Retrying with openrouter/free...`);
+      const fallbackModel = 'openrouter/free';
+      
+      response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+          'HTTP-Referer': 'https://edupath.vn',
+          'X-Title': 'EduPath AI Mindmap'
+        },
+        body: JSON.stringify({
+          model: fallbackModel,
+          messages: [{ role: 'user', content: prompt }],
+          temperature: temp,
+          max_tokens: maxTokens
+        })
+      });
+    }
+  }
 
   if (!response.ok) {
     const errText = await response.text();
@@ -1493,8 +1502,10 @@ export async function generateWeaknessMindmap(req: AuthRequest, res: Response) {
     if (incorrectAnswers.length === 0) {
       return res.status(200).json({
         success: true,
-        message: 'Học sinh chưa có lỗi sai nào trong hệ thống! Hãy làm một vài bài quiz để chẩn đoán vùng yếu.',
-        data: null
+        data: {
+          isNoWeakness: true,
+          message: 'Học sinh chưa có lỗi sai nào trong hệ thống! Hãy làm một vài bài quiz để chẩn đoán vùng yếu.'
+        }
       });
     }
 
@@ -1611,12 +1622,19 @@ export async function uploadExamFile(req: AuthRequest, res: Response) {
 
     let extractedText = '';
 
-    // If it's a plain text file, read it.
+    // Extract content based on file extension
     if (ext === 'txt' || ext === 'md') {
       extractedText = fs.readFileSync(file.path, 'utf8');
+    } else if (ext === 'pdf') {
+      const fileBuffer = fs.readFileSync(file.path);
+      const parser = new PDFParse({ data: fileBuffer });
+      const parsed = await parser.getText();
+      extractedText = parsed.text || '';
+    } else if (ext === 'docx') {
+      const parsed = await mammoth.extractRawText({ path: file.path });
+      extractedText = parsed.value || '';
     } else {
-      // For images/PDFs/Word docs, return a high-quality simulated Vietnamese THPT exam paper text
-      // to ensure absolute usability and mock OCR robustness in local dev environments.
+      // For images, fallback to high-quality simulated Vietnamese THPT exam paper text
       const nameLower = filename.toLowerCase();
       if (nameLower.includes('toán') || nameLower.includes('toan') || nameLower.includes('math')) {
         extractedText = `ĐỀ THI THỬ THPT QUỐC GIA MÔN TOÁN HỌC 2026

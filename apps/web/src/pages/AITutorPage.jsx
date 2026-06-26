@@ -884,8 +884,8 @@ export default function AITutorPage({ currentUser, navigateTo, addLog, hideHeade
     if (!mindmapId || String(mindmapId).startsWith('local-')) return;
     try {
       const res = await api.getNodeProgress(mindmapId);
-      if (res && res.success && res.data) {
-        setNodeProgressMap(res.data);
+      if (res) {
+        setNodeProgressMap(res);
       }
     } catch (e) {
       console.error("Lỗi khi tải tiến trình học tập:", e);
@@ -939,8 +939,8 @@ export default function AITutorPage({ currentUser, navigateTo, addLog, hideHeade
 
     try {
       const res = await api.generateNodeQuiz(targetMindmapId, selectedNode.id);
-      if (res && res.success && res.data) {
-        setQuizQuestions(res.data);
+      if (res) {
+        setQuizQuestions(res);
       } else {
         toast("Không thể tải câu hỏi luyện tập.", "error");
         setIsQuizModalOpen(false);
@@ -979,11 +979,11 @@ export default function AITutorPage({ currentUser, navigateTo, addLog, hideHeade
 
     try {
       const res = await api.submitNodeQuiz(activeMindmapDbId, selectedNode.id, formattedAnswers, completionTime);
-      if (res && res.success && res.data) {
-        setQuizResult(res.data);
+      if (res && res.score !== undefined) {
+        setQuizResult(res);
         setQuizSubmitted(true);
         fetchNodeProgress(activeMindmapDbId);
-        toast(`Nộp bài thành công! Bạn đạt ${res.data.score}/${res.data.total} câu.`, "success");
+        toast(`Nộp bài thành công! Bạn đạt ${res.score}/${res.total} câu.`, "success");
       } else {
         toast("Lỗi nộp bài thi trắc nghiệm.", "error");
       }
@@ -999,11 +999,13 @@ export default function AITutorPage({ currentUser, navigateTo, addLog, hideHeade
     setIsGeneratingWeakness(true);
     try {
       const res = await api.generateWeaknessMindmap();
-      if (res && res.success && res.data) {
-        const parsed = typeof res.data.content === 'string' ? JSON.parse(res.data.content) : res.data.content;
+      if (res && res.isNoWeakness) {
+        toast(res.message, "info");
+      } else if (res && res.content) {
+        const parsed = typeof res.content === 'string' ? JSON.parse(res.content) : res.content;
         const structured = assignIds(parsed);
         setMindmapData(structured);
-        setActiveMindmapDbId(res.data.id);
+        setActiveMindmapDbId(res.id);
         setSelectedNode(null);
 
         const newExpanded = new Set();
@@ -1017,8 +1019,6 @@ export default function AITutorPage({ currentUser, navigateTo, addLog, hideHeade
         setSavedMindmaps(listData || []);
         
         toast("Đã tạo thành công Sơ đồ tư duy khắc phục lỗ hổng kiến thức!", "success");
-      } else if (res && res.message) {
-        toast(res.message, "info");
       } else {
         toast("Không thể chẩn đoán vùng yếu. Hãy làm thêm một số bài quiz nhé!", "warning");
       }
@@ -1047,11 +1047,11 @@ export default function AITutorPage({ currentUser, navigateTo, addLog, hideHeade
 
     try {
       const res = await api.uploadExamFile(formData);
-      if (res && res.success && res.data) {
-        setExamText(res.data.extractedText || '');
-        setExamFileUrl(res.data.fileUrl || '');
-        setExamFileType(res.data.fileType || '');
-        setUploadedFileId(res.data.id);
+      if (res && res.extractedText !== undefined) {
+        setExamText(res.extractedText || '');
+        setExamFileUrl(res.fileUrl || '');
+        setExamFileType(res.fileType || '');
+        setUploadedFileId(res.id);
         toast("Tải lên đề thi thành công! Đã trích xuất nội dung.", "success");
       } else {
         toast("Không thể trích xuất nội dung file.", "error");
@@ -1080,8 +1080,8 @@ export default function AITutorPage({ currentUser, navigateTo, addLog, hideHeade
         uploadId: uploadedFileId
       });
 
-      if (res && res.success && res.data) {
-        const data = await api.getMindmapById(res.data.mindmapId);
+      if (res && res.mindmapId) {
+        const data = await api.getMindmapById(res.mindmapId);
         if (data) {
           const parsed = typeof data.content === 'string' ? JSON.parse(data.content) : data.content;
           const structured = assignIds(parsed);
