@@ -802,6 +802,185 @@ export default function AITutorPage({ currentUser, navigateTo, addLog, hideHeade
     return computeTreeLayout();
   }, [mindmapData, expandedNodes]);
 
+  const renderedLinks = useMemo(() => {
+    return links.map((link) => {
+      const x1 = link.source.x + 110;
+      const y1 = link.source.y;
+      const x2 = link.target.x - 110;
+      const y2 = link.target.y;
+      const cx1 = x1 + 55;
+      const cy1 = y1;
+      const cx2 = x2 - 55;
+      const cy2 = y2;
+      const pathData = `M ${x1} ${y1} C ${cx1} ${cy1}, ${cx2} ${cy2}, ${x2} ${y2}`;
+      
+      const isTargetSelected = selectedNode?.id === link.target.id;
+
+      return (
+        <path
+          key={link.id}
+          d={pathData}
+          fill="none"
+          stroke="#000000"
+          strokeWidth="3.5"
+          strokeDasharray={isTargetSelected ? "4 3" : "none"}
+          style={{ transition: 'stroke 0.2s, stroke-width 0.2s' }}
+        />
+      );
+    });
+  }, [links, selectedNode]);
+
+  const renderedNodes = useMemo(() => {
+    return nodes.map((node) => {
+      const isSelected = selectedNode?.id === node.id;
+      const isRoot = node.depth === 0;
+      const isLevel1 = node.depth === 1;
+      const isExpanded = expandedNodes.has(node.id);
+
+      const progressStyle = getNodeProgressStyle(node, isRoot, isLevel1);
+
+      // Custom Shapes Styling
+      let borderRadius = '12px';
+      let clipPath = 'none';
+      let width = '100%';
+      let height = '100%';
+      let margin = '0';
+      let padding = '8px 12px';
+
+      if (node.shape === 'rectangle') {
+        borderRadius = '4px';
+      } else if (node.shape === 'oval') {
+        borderRadius = '100px';
+      } else if (node.shape === 'circle') {
+        borderRadius = '50%';
+        width = '80px';
+        height = '80px';
+        margin = '0 auto';
+        padding = '6px';
+      } else if (node.shape === 'rhombus') {
+        clipPath = 'polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)';
+        borderRadius = '0px';
+        padding = '12px 28px';
+      }
+
+      const nodeStatus = node.status || 'none';
+      let statusBadgeText = '';
+      if (nodeStatus === 'learned') statusBadgeText = '🟢';
+      else if (nodeStatus === 'learning') statusBadgeText = '🟡';
+      else if (nodeStatus === 'review') statusBadgeText = '🔴';
+      else if (nodeStatus === 'important') statusBadgeText = '⭐';
+
+      let depthClass = '';
+      if (isRoot) depthClass = 'canvas-node-card-root';
+      else if (isLevel1) depthClass = 'canvas-node-card-level1';
+      else if (node.depth === 2) depthClass = 'canvas-node-card-level2';
+
+      let statusClass = '';
+      if (nodeStatus !== 'none') statusClass = `node-status--${nodeStatus}`;
+
+      return (
+        <g key={node.id} transform={`translate(${node.x}, ${node.y})`}>
+          {/* Interactive HTML inside SVG foreignObject */}
+          <foreignObject x="-110" y="-40" width="220" height="80">
+            <div 
+              xmlns="http://www.w3.org/1999/xhtml"
+              onClick={() => handleNodeSelect(node)}
+              title={getNodeTooltip(node)}
+              style={{
+                width: width,
+                height: height,
+                margin: margin,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                textAlign: 'center',
+                padding: padding,
+                boxSizing: 'border-box',
+                background: progressStyle.background,
+                borderRadius: borderRadius,
+                clipPath: clipPath,
+                cursor: 'pointer',
+                overflow: 'hidden',
+                userSelect: 'none',
+                position: 'relative'
+              }}
+              className={`canvas-node-card ${isSelected ? 'canvas-node-card--selected' : ''} ${depthClass} ${statusClass}`}
+            >
+              {/* Left status color strip */}
+              {progressStyle.statusColor && (
+                <div 
+                  style={{
+                    position: 'absolute',
+                    left: 0,
+                    top: 0,
+                    bottom: 0,
+                    width: '7px',
+                    backgroundColor: progressStyle.statusColor,
+                    borderRight: '2px solid #000000',
+                    zIndex: 2
+                  }}
+                />
+              )}
+
+              {statusBadgeText && (
+                <span className="node-status-badge" style={{ pointerEvents: 'none' }}>
+                  {statusBadgeText}
+                </span>
+              )}
+              <span 
+                style={{ 
+                  fontSize: '11px', 
+                  fontWeight: '800', 
+                  lineHeight: '1.3',
+                  overflow: 'hidden', 
+                  textOverflow: 'ellipsis', 
+                  display: '-webkit-box', 
+                  WebkitLineClamp: 3, 
+                  WebkitBoxOrient: 'vertical',
+                  paddingLeft: progressStyle.statusColor ? '8px' : '0px'
+                }}
+                title={node.name}
+              >
+                {node.name}
+              </span>
+            </div>
+          </foreignObject>
+
+          {/* Node Collapse/Expand Toggle Controller */}
+          {node.hasChildren && (
+            <g 
+              transform="translate(110, 0)"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleToggleExpand(node.id);
+              }}
+              style={{ cursor: 'pointer' }}
+            >
+              <circle 
+                r="10" 
+                fill="#ffffff" 
+                stroke="#000000"
+                strokeWidth="2.5"
+                style={{ transition: 'all 0.2s' }}
+              />
+              <text
+                textAnchor="middle"
+                dominantBaseline="central"
+                fontSize="13"
+                fontWeight="900"
+                fill="#000000"
+                y="0.5"
+                style={{ userSelect: 'none' }}
+              >
+                {isExpanded ? '-' : '+'}
+              </text>
+            </g>
+          )}
+        </g>
+      );
+    });
+  }, [nodes, selectedNode, expandedNodes, nodeProgressMap]);
+
   // Canvas zoom actions
   const zoomIn = () => setZoom(prev => Math.min(3, prev * 1.15));
   const zoomOut = () => setZoom(prev => Math.max(0.15, prev * 0.85));
@@ -1113,86 +1292,60 @@ export default function AITutorPage({ currentUser, navigateTo, addLog, hideHeade
     }
   };
 
-  const getNodeProgressStyle = (node, isRoot, isLevel1) => {
+  function getNodeProgressStyle(node, isRoot, isLevel1) {
     const nodeId = node.id;
-    
+    let background = '#ffffff';
+    let statusColor = null;
+
     if (node.priority) {
       const priority = node.priority.toLowerCase();
-      let priorityBg = 'rgba(249, 115, 22, 0.15)';
-      let priorityBorder = '#F97316';
-      if (priority === 'critical') {
-        priorityBg = 'rgba(153, 27, 27, 0.18)';
-        priorityBorder = '#991B1B';
-      } else if (priority === 'high') {
-        priorityBg = 'rgba(220, 38, 38, 0.15)';
-        priorityBorder = '#DC2626';
-      } else if (priority === 'medium') {
-        priorityBg = 'rgba(217, 119, 6, 0.15)';
-        priorityBorder = '#D97606';
-      } else if (priority === 'low') {
-        priorityBg = 'rgba(202, 138, 4, 0.15)';
-        priorityBorder = '#CA8A04';
-      }
+      background = '#fee2e2'; // light pastel red/pink
+      if (priority === 'critical') statusColor = '#991B1B';
+      else if (priority === 'high') statusColor = '#DC2626';
+      else if (priority === 'medium') statusColor = '#D97606';
+      else if (priority === 'low') statusColor = '#CA8A04';
       
-      return {
-        background: priorityBg,
-        border: `2px solid ${priorityBorder}`,
-        borderLeft: `6px solid ${priorityBorder}`,
-        color: 'var(--text-primary)'
-      };
+      return { background, statusColor };
     }
 
     const progress = nodeProgressMap[nodeId];
     if (!progress || progress.mastery === undefined) {
-      return {
-        background: isRoot 
-          ? 'linear-gradient(135deg, #4F46E5, #7C3AED)' 
-          : (isLevel1 ? 'var(--bg-card)' : 'var(--bg-main)'),
-        borderLeft: isRoot ? 'none' : (isLevel1 ? '6px solid #8B5CF6' : '6px solid #0D9488'),
-        border: isRoot ? 'none' : (isLevel1 ? '2px solid #8B5CF6' : '1px solid var(--border)'),
-        color: isRoot ? '#FFFFFF' : 'var(--text-primary)'
-      };
+      if (isRoot) {
+        background = '#FFD234'; // yellow sun mascot color
+      } else if (isLevel1) {
+        const colors = ['#bfdbfe', '#a7f3d0', '#fed7aa', '#e9d5ff'];
+        const colorIdx = parseInt(node.id.split('-').slice(-1)[0]) % colors.length;
+        background = colors[colorIdx];
+      } else {
+        background = '#faf9f5'; // off-white/beige
+      }
+      return { background, statusColor };
     }
 
     const mastery = progress.mastery;
-    let masteryColor = '#94A3B8';
-    let borderColor = '#94A3B8';
-
-    if (mastery < 0.4) {
-      masteryColor = 'rgba(239, 68, 68, 0.15)';
-      borderColor = '#EF4444';
-    } else if (mastery < 0.6) {
-      masteryColor = 'rgba(249, 115, 22, 0.15)';
-      borderColor = '#F97316';
+    if (mastery < 0.5) {
+      statusColor = '#ef4444'; // Red
+      background = '#fee2e2';
     } else if (mastery < 0.8) {
-      masteryColor = 'rgba(234, 179, 8, 0.15)';
-      borderColor = '#EAB308';
-    } else if (mastery < 0.9) {
-      masteryColor = 'rgba(59, 130, 246, 0.15)';
-      borderColor = '#3B82F6';
+      statusColor = '#f59e0b'; // Orange
+      background = '#fef3c7';
     } else {
-      masteryColor = 'rgba(16, 185, 129, 0.15)';
-      borderColor = '#10B981';
+      statusColor = '#22c55e'; // Green
+      background = '#dcfce7';
     }
 
     if (isRoot) {
-      return {
-        background: 'linear-gradient(135deg, #4F46E5, #7C3AED)',
-        border: `3px solid ${borderColor}`,
-        color: '#FFFFFF',
-        borderLeft: 'none'
-      };
+      background = '#FFD234';
+    } else if (isLevel1 && !statusColor) {
+      const colors = ['#bfdbfe', '#a7f3d0', '#fed7aa', '#e9d5ff'];
+      const colorIdx = parseInt(node.id.split('-').slice(-1)[0]) % colors.length;
+      background = colors[colorIdx];
     }
 
-    return {
-      background: masteryColor,
-      border: `2px solid ${borderColor}`,
-      borderLeft: `6px solid ${borderColor}`,
-      color: 'var(--text-primary)'
-    };
-  };
+    return { background, statusColor };
+  }
 
-  const getNodeTooltip = (node) => {
+  function getNodeTooltip(node) {
     const nodeId = node.id;
     const progress = nodeProgressMap[nodeId];
     
@@ -1215,7 +1368,7 @@ export default function AITutorPage({ currentUser, navigateTo, addLog, hideHeade
     const dateStr = progress.lastPracticed ? new Date(progress.lastPracticed).toLocaleDateString('vi-VN') : 'Chưa rõ';
 
     return `${node.name}\n---\nĐộ thành thạo: ${status} (${Math.round(mastery * 100)}%)\nĐiểm cao nhất: ${progress.bestScore || 0}/10\nSố lần luyện tập: ${progress.attempts || 0}\nLần luyện tập cuối: ${dateStr}`;
-  };
+  }
 
   const handleShareMindmap = () => {
     if (!activeMindmapDbId) {
@@ -2231,190 +2384,15 @@ export default function AITutorPage({ currentUser, navigateTo, addLog, hideHeade
                   {/* Background grid representation */}
                   <defs>
                     <pattern id="grid" width="30" height="30" patternUnits="userSpaceOnUse">
-                      <path d="M 30 0 L 0 0 0 30" fill="none" stroke="var(--border)" strokeWidth="0.5" opacity="0.6" />
+                      <path d="M 30 0 L 0 0 0 30" fill="none" stroke="#ffffff" strokeWidth="0.5" opacity="0.08" />
                     </pattern>
                   </defs>
                   <rect width="100%" height="100%" fill="url(#grid)" data-canvas-bg="true" />
 
                   {/* Transform group with zoom/pan vector */}
                   <g transform={`translate(${pan.x}, ${pan.y}) scale(${zoom})`}>
-                    
-                    {/* Connection lines (bezier links) */}
-                    {links.map((link) => {
-                      const x1 = link.source.x + 110;
-                      const y1 = link.source.y;
-                      const x2 = link.target.x - 110;
-                      const y2 = link.target.y;
-                      const cx1 = x1 + 55;
-                      const cy1 = y1;
-                      const cx2 = x2 - 55;
-                      const cy2 = y2;
-                      const pathData = `M ${x1} ${y1} C ${cx1} ${cy1}, ${cx2} ${cy2}, ${x2} ${y2}`;
-                      
-                      // Style links based on hierarchy depth
-                      let strokeColor = 'var(--border)';
-                      if (link.depth === 0) strokeColor = '#818CF8'; // Indigo for Root -> Level 1
-                      else if (link.depth === 1) strokeColor = '#C084FC'; // Purple for Level 1 -> Level 2
-
-                      return (
-                        <path
-                          key={link.id}
-                          d={pathData}
-                          fill="none"
-                          stroke={strokeColor}
-                          strokeWidth="2.5"
-                          strokeDasharray={selectedNode?.id === link.target.id ? "4 2" : "none"}
-                          style={{ transition: 'stroke 0.2s, stroke-width 0.2s' }}
-                        />
-                      );
-                    })}
-
-                    {/* Nodes list mapping */}
-                    {nodes.map((node) => {
-                      const isSelected = selectedNode?.id === node.id;
-                      const isRoot = node.depth === 0;
-                      const isLevel1 = node.depth === 1;
-                      const isExpanded = expandedNodes.has(node.id);
-
-                      // Progress-based Styling
-                      const progressStyle = getNodeProgressStyle(node, isRoot, isLevel1);
-
-                      // Custom Shapes Styling
-                      let borderRadius = '14px';
-                      let borderLeft = progressStyle.borderLeft;
-                      let border = progressStyle.border;
-                      let clipPath = 'none';
-                      let width = '100%';
-                      let height = '100%';
-                      let margin = '0';
-                      let padding = '8px 12px';
-
-                      if (node.shape === 'rectangle') {
-                        borderRadius = '4px';
-                      } else if (node.shape === 'oval') {
-                        borderRadius = '100px';
-                      } else if (node.shape === 'circle') {
-                        borderRadius = '50%';
-                        width = '80px';
-                        height = '80px';
-                        margin = '0 auto';
-                        borderLeft = 'none';
-                        border = progressStyle.border;
-                        padding = '6px';
-                      } else if (node.shape === 'rhombus') {
-                        clipPath = 'polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)';
-                        borderRadius = '0px';
-                        borderLeft = 'none';
-                        border = progressStyle.border;
-                        padding = '12px 28px';
-                      }
-
-                      const nodeStatus = node.status || 'none';
-                      let statusBadgeText = '';
-                      if (nodeStatus === 'learned') statusBadgeText = '🟢';
-                      else if (nodeStatus === 'learning') statusBadgeText = '🟡';
-                      else if (nodeStatus === 'review') statusBadgeText = '🔴';
-                      else if (nodeStatus === 'important') statusBadgeText = '⭐';
-
-                      let depthClass = '';
-                      if (isRoot) depthClass = 'canvas-node-card-root';
-                      else if (isLevel1) depthClass = 'canvas-node-card-level1';
-                      else if (node.depth === 2) depthClass = 'canvas-node-card-level2';
-
-                      let statusClass = '';
-                      if (nodeStatus !== 'none') statusClass = `node-status--${nodeStatus}`;
-
-                      return (
-                        <g key={node.id} transform={`translate(${node.x}, ${node.y})`}>
-                          {/* Interactive HTML inside SVG foreignObject */}
-                          <foreignObject x="-110" y="-40" width="220" height="80">
-                            <div 
-                              xmlns="http://www.w3.org/1999/xhtml"
-                              onClick={() => handleNodeSelect(node)}
-                              title={getNodeTooltip(node)}
-                              style={{
-                                width: width,
-                                height: height,
-                                margin: margin,
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                textAlign: 'center',
-                                padding: padding,
-                                boxSizing: 'border-box',
-                                background: progressStyle.background,
-                                color: progressStyle.color,
-                                border: border,
-                                borderLeft: borderLeft,
-                                borderRadius: borderRadius,
-                                clipPath: clipPath,
-                                boxShadow: isSelected 
-                                  ? '0 0 0 3px #FFA751, 0 8px 16px rgba(0,0,0,0.12)' 
-                                  : '0 3px 8px rgba(0,0,0,0.06)',
-                                cursor: 'pointer',
-                                transition: 'all 0.2s ease',
-                                overflow: 'hidden',
-                                userSelect: 'none',
-                                position: 'relative'
-                              }}
-                              className={`canvas-node-card ${isSelected ? 'canvas-node-card--selected' : ''} ${depthClass} ${statusClass}`}
-                            >
-                              {statusBadgeText && (
-                                <span className="node-status-badge" style={{ pointerEvents: 'none' }}>
-                                  {statusBadgeText}
-                                </span>
-                              )}
-                              <span 
-                                style={{ 
-                                  fontSize: '11px', 
-                                  fontWeight: 'bold', 
-                                  lineHeight: '1.3',
-                                  overflow: 'hidden', 
-                                  textOverflow: 'ellipsis', 
-                                  display: '-webkit-box', 
-                                  WebkitLineClamp: 3, 
-                                  WebkitBoxOrient: 'vertical' 
-                                }}
-                                title={node.name}
-                              >
-                                {node.name}
-                              </span>
-                            </div>
-                          </foreignObject>
-
-                          {/* Node Collapse/Expand Toggle Controller */}
-                          {node.hasChildren && (
-                            <g 
-                              transform="translate(110, 0)"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleToggleExpand(node.id);
-                              }}
-                              style={{ cursor: 'pointer' }}
-                            >
-                              <circle 
-                                r="10" 
-                                fill="var(--bg-card)" 
-                                stroke={isRoot ? '#4F46E5' : '#8B5CF6'}
-                                strokeWidth="2"
-                                style={{ transition: 'all 0.2s' }}
-                              />
-                              <text
-                                textAnchor="middle"
-                                dominantBaseline="central"
-                                fontSize="13"
-                                fontWeight="900"
-                                fill="var(--text-primary)"
-                                y="0.5"
-                                style={{ userSelect: 'none' }}
-                              >
-                                {isExpanded ? '-' : '+'}
-                              </text>
-                            </g>
-                          )}
-                        </g>
-                      );
-                    })}
+                    {renderedLinks}
+                    {renderedNodes}
                   </g>
                 </svg>
               ) : (
