@@ -361,3 +361,356 @@ export async function getActivityHeatmap(req: AuthRequest, res: Response) {
     return res.status(500).json({ success: false, error: err.message });
   }
 }
+
+// Helper to award general XP to UserGamification
+async function awardGamificationXP(userId: number, xpEarned: number) {
+  let gamify = await prisma.userGamification.findUnique({
+    where: { userId }
+  });
+
+  if (!gamify) {
+    gamify = await prisma.userGamification.create({
+      data: {
+        userId,
+        level: 1,
+        xp: 0,
+        streakDays: 0,
+        milestonesReached: []
+      }
+    });
+  }
+
+  const nextXP = Math.max(0, gamify.xp + xpEarned);
+  const nextLevel = getLevelFromXP(nextXP);
+  const leveledUp = nextLevel > gamify.level;
+
+  await prisma.userGamification.update({
+    where: { userId },
+    data: {
+      xp: nextXP,
+      level: nextLevel,
+      lastActiveDate: new Date()
+    }
+  });
+
+  if (leveledUp) {
+    await prisma.notification.create({
+      data: {
+        userId,
+        title: '🎉 Lên cấp độ mới!',
+        message: `Chúc mừng bạn đã đạt cấp độ ${nextLevel} trên diễn đàn EduPath!`
+      }
+    });
+  }
+}
+
+// Helper to update general learning streak
+async function updateGeneralStreak(userId: number): Promise<number> {
+  let gamify = await prisma.userGamification.findUnique({
+    where: { userId }
+  });
+
+  if (!gamify) {
+    gamify = await prisma.userGamification.create({
+      data: {
+        userId,
+        level: 1,
+        xp: 0,
+        streakDays: 0,
+        milestonesReached: []
+      }
+    });
+  }
+
+  let newStreak = gamify.streakDays;
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+
+  if (gamify.lastActiveDate) {
+    const lastActive = new Date(gamify.lastActiveDate);
+    lastActive.setHours(0, 0, 0, 0);
+
+    const diffTime = now.getTime() - lastActive.getTime();
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 1) {
+      newStreak += 1;
+    } else if (diffDays > 1) {
+      newStreak = 1; // Reset streak
+    }
+  } else {
+    newStreak = 1; // Initial streak
+  }
+
+  await prisma.userGamification.update({
+    where: { userId },
+    data: {
+      streakDays: newStreak,
+      lastActiveDate: new Date()
+    }
+  });
+
+  return newStreak;
+}
+
+// Helper to award effort points from forum activities
+export async function awardForumEffortPoints(userId: number, points: number) {
+  try {
+    await prisma.userEffort.upsert({
+      where: { userId },
+      update: {
+        forumPoints: { increment: points },
+        score: { increment: points }
+      },
+      create: {
+        userId,
+        forumPoints: points,
+        studyPoints: 0,
+        score: points
+      }
+    });
+  } catch (err) {
+    console.error('[awardForumEffortPoints Error]', err);
+  }
+}
+
+// Helper to award effort points from study activities
+export async function awardStudyEffortPoints(userId: number, points: number) {
+  try {
+    await prisma.userEffort.upsert({
+      where: { userId },
+      update: {
+        studyPoints: { increment: points },
+        score: { increment: points }
+      },
+      create: {
+        userId,
+        forumPoints: 0,
+        studyPoints: points,
+        score: points
+      }
+    });
+  } catch (err) {
+    console.error('[awardStudyEffortPoints Error]', err);
+  }
+}
+
+// REST Endpoint: Record daily attendance
+export async function logAttendanceInternal(userId: number, activity: string) {
+  const validActivities = ['LESSON', 'TEST', 'MINDMAP', 'FLASHCARD'];
+  if (!validActivities.includes(activity)) return { streakAwarded: false, activityAwarded: false, streakDays: 0 };
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  // 1. Check if user has attended AT ALL today
+  const existingToday = await prisma.learningAttendance.findFirst({
+    where: { userId, date: today }
+  });
+
+  let streakAwarded = false;
+  let streakDays = 0;
+
+  if (!existingToday) {
+    // First learning activity of today!
+    // Award daily streak effort points + XP + update streak days
+    await awardStudyEffortPoints(userId, 30);
+    await awardGamificationXP(userId, 15);
+    streakDays = await updateGeneralStreak(userId);
+    streakAwarded = true;
+  } else {
+    const gamify = await prisma.userGamification.findUnique({
+      where: { userId }
+    });
+    streakDays = gamify?.streakDays || 0;
+  }
+
+  // 2. Check if they have done THIS specific activity today
+  const existingSpecific = await prisma.learningAttendance.findUnique({
+    where: {
+      userId_date_activity: {
+        userId,
+        date: today,
+        activity
+      }
+    }
+  });
+
+  let activityAwarded = false;
+  if (!existingSpecific) {
+    await prisma.learningAttendance.create({
+      data: { userId, date: today, activity }
+    });
+
+    // Award activity-specific points and XP
+    let xp = 0;
+    let studyPoints = 0;
+    if (activity === 'LESSON') {
+      xp = 20;
+      studyPoints = 20;
+    } else if (activity === 'TEST') {
+      xp = 50;
+      studyPoints = 40;
+    } else if (activity === 'MINDMAP') {
+      xp = 10;
+      studyPoints = 15;
+    } else if (activity === 'FLASHCARD') {
+      xp = 10;
+      studyPoints = 15;
+    }
+
+    await awardStudyEffortPoints(userId, studyPoints);
+    await awardGamificationXP(userId, xp);
+    activityAwarded = true;
+  }
+
+  return {
+    streakAwarded,
+    activityAwarded,
+    streakDays
+  };
+}
+
+// REST Endpoint: Record daily attendance
+export async function recordAttendance(req: AuthRequest, res: Response) {
+  const userId = req.user?.id;
+  if (!userId) return res.status(401).json({ success: false, error: 'Chưa đăng nhập!' });
+
+  const { activity } = req.body;
+  if (!activity) {
+    return res.status(400).json({ success: false, error: 'Hoạt động không hợp lệ!' });
+  }
+
+  try {
+    const result = await logAttendanceInternal(userId, activity);
+    return res.status(200).json({
+      success: true,
+      data: result
+    });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+}
+
+// REST Endpoint: Get attendance history within a date range
+export async function getAttendanceHistory(req: AuthRequest, res: Response) {
+  const userId = req.user?.id;
+  if (!userId) return res.status(401).json({ success: false, error: 'Chưa đăng nhập!' });
+
+  const { startDate, endDate } = req.query;
+  if (!startDate || !endDate) {
+    return res.status(400).json({ success: false, error: 'Thiếu tham số khoảng thời gian!' });
+  }
+
+  try {
+    const start = new Date(String(startDate));
+    const end = new Date(String(endDate));
+
+    const attendances = await prisma.learningAttendance.findMany({
+      where: {
+        userId,
+        date: {
+          gte: start,
+          lte: end
+        }
+      },
+      orderBy: { date: 'asc' }
+    });
+
+    return res.status(200).json({
+      success: true,
+      data: attendances
+    });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+}
+
+// REST Endpoint: Get top 5 efforts leaderboard
+export async function getEffortLeaderboard(req: AuthRequest, res: Response) {
+  try {
+    const efforts = await prisma.userEffort.findMany({
+      orderBy: { score: 'desc' },
+      take: 5,
+      include: {
+        user: {
+          select: {
+            fullName: true,
+            avatarUrl: true,
+            role: true
+          }
+        }
+      }
+    });
+
+    return res.status(200).json({
+      success: true,
+      data: efforts
+    });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+}
+
+// REST Endpoint: Get top 5 highest scores in practice tests per subject
+export async function getHighestScoreLeaderboard(req: AuthRequest, res: Response) {
+  const subject = req.query.subject ? String(req.query.subject).toLowerCase().trim() : 'toán';
+  try {
+    const attempts = await prisma.testAttempt.findMany({
+      where: {
+        status: 'SUBMITTED',
+        exam: {
+          subject: {
+            contains: subject,
+            mode: 'insensitive'
+          }
+        }
+      },
+      orderBy: { score: 'desc' },
+      take: 20, // Fetch more to deduplicate distinct students
+      include: {
+        student: {
+          include: {
+            user: {
+              select: {
+                fullName: true,
+                avatarUrl: true
+              }
+            }
+          }
+        },
+        exam: {
+          select: {
+            title: true,
+            subject: true
+          }
+        }
+      }
+    });
+
+    const seenStudents = new Set();
+    const distinctAttempts = [];
+    for (const attempt of attempts) {
+      if (!seenStudents.has(attempt.studentId)) {
+        seenStudents.add(attempt.studentId);
+        distinctAttempts.push({
+          userId: attempt.studentId,
+          name: attempt.student.user.fullName,
+          avatar: attempt.student.user.avatarUrl,
+          score: attempt.score,
+          examTitle: attempt.exam.title,
+          subject: attempt.exam.subject
+        });
+      }
+      if (distinctAttempts.length >= 5) break;
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: distinctAttempts
+    });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+}
+

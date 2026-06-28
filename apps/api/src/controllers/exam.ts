@@ -3,7 +3,7 @@ import type { AuthRequest } from '../middleware/auth.js';
 import { prisma } from '../lib/prisma.js';
 import { Difficulty } from '@prisma/client';
 import { importExamFromObject } from '../utils/examImporter.js';
-import { logUserActivity } from './gamification.js';
+import { logUserActivity, logAttendanceInternal } from './gamification.js';
 import { incrementBothStats } from '../lib/monthlyStats.js';
 
 
@@ -319,6 +319,7 @@ export async function submitAttempt(req: AuthRequest, res: Response) {
       const subject = attempt.exam?.subject || 'Chung';
       const studyMinutes = Math.max(1, Math.round(durationUsed / 60));
       await logUserActivity(studentId, 'exam', subject, 100, studyMinutes);
+      await logAttendanceInternal(studentId, 'TEST');
     } catch (err) {
       console.error('[submitAttempt Activity Log Error]', err);
     }

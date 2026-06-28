@@ -239,16 +239,17 @@ export default function AITutorPage({ currentUser, navigateTo, addLog, hideHeade
       loadSharedMindmap(shareId);
     } else {
       // Load default mindmap
-      const mapped = assignIds(WELCOME_MINDMAP);
-      setMindmapData(mapped);
-      
-      // Auto-expand root and first level children
-      const initialExpanded = new Set();
-      initialExpanded.add(mapped.id);
-      mapped.children?.forEach(ch => {
-        initialExpanded.add(ch.id);
-      });
-      setExpandedNodes(initialExpanded);
+      setMindmapData(null);
+      setExpandedNodes(new Set());
+      if (currentUser) {
+        api.logAttendance('MINDMAP')
+          .then(res => {
+            if (res && res.streakAwarded) {
+              toast(`🔥 Điểm danh ngày mới thành công! Chuỗi ngày: ${res.streakDays}`, 'success');
+            }
+          })
+          .catch(err => console.warn('[Attendance] Study mindmap log error:', err));
+      }
     }
 
     // Fetch saved list if logged in
@@ -1863,7 +1864,7 @@ export default function AITutorPage({ currentUser, navigateTo, addLog, hideHeade
                 padding: '12px',
                 marginBottom: '16px',
                 fontSize: '11px',
-                color: 'var(--text-secondary)'
+                color: '#ffffff'
               }}>
                 <h5 style={{ color: 'var(--fc-gold)', margin: '0 0 6px 0', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11.5px', fontWeight: 'bold' }}>
                   💡 HƯỚNG DẪN SỬ DỤNG HIỆU QUẢ
@@ -1926,7 +1927,7 @@ export default function AITutorPage({ currentUser, navigateTo, addLog, hideHeade
               >
                 {isLoading ? (
                   <>
-                    <span className="spinner" /> Đang phân tích...
+                    <span className="unique-loader" /> Đang phân tích...
                   </>
                 ) : (
                   <>
@@ -1938,7 +1939,7 @@ export default function AITutorPage({ currentUser, navigateTo, addLog, hideHeade
               {/* Loading progress status messages */}
               {isLoading && loadingStep && (
                 <div className="aitutor-step-progress animate-in">
-                  <span className="spinner-secondary" />
+                  <span className="unique-loader" />
                   <p>{loadingStep}</p>
                 </div>
               )}
@@ -1997,7 +1998,7 @@ export default function AITutorPage({ currentUser, navigateTo, addLog, hideHeade
                       ✏️ Chỉnh sửa nút đã chọn
                     </h5>
                     
-                    <label className="flashcard-modal-label" style={{ marginBottom: '4px', display: 'block', fontSize: '10px', color: 'var(--text-secondary)' }}>Tên nút sơ đồ</label>
+                    <label className="flashcard-modal-label" style={{ marginBottom: '4px', display: 'block', fontSize: '10px', color: '#ffffff' }}>Tên nút sơ đồ</label>
                     <input 
                       type="text"
                       className="flashcard-modal-input"
@@ -2006,7 +2007,7 @@ export default function AITutorPage({ currentUser, navigateTo, addLog, hideHeade
                       onChange={(e) => setEditNodeName(e.target.value)}
                     />
 
-                    <label className="flashcard-modal-label" style={{ marginBottom: '4px', display: 'block', fontSize: '10px', color: 'var(--text-secondary)' }}>Mô tả chi tiết</label>
+                    <label className="flashcard-modal-label" style={{ marginBottom: '4px', display: 'block', fontSize: '10px', color: '#ffffff' }}>Mô tả chi tiết</label>
                     <textarea 
                       className="flashcard-modal-textarea"
                       style={{ background: '#141410', width: '100%', marginBottom: '10px', fontSize: '12px', padding: '8px 10px', boxSizing: 'border-box' }}
@@ -2015,7 +2016,7 @@ export default function AITutorPage({ currentUser, navigateTo, addLog, hideHeade
                       rows={2}
                     />
 
-                    <label className="flashcard-modal-label" style={{ marginBottom: '4px', display: 'block', fontSize: '10px', color: 'var(--text-secondary)' }}>Hình dạng nút</label>
+                    <label className="flashcard-modal-label" style={{ marginBottom: '4px', display: 'block', fontSize: '10px', color: '#ffffff' }}>Hình dạng nút</label>
                     <select 
                       className="flashcard-modal-input"
                       style={{ background: '#141410', width: '100%', marginBottom: '12px', fontSize: '12.5px', color: 'var(--text-primary)', border: '1px solid var(--border)', height: '36px', borderRadius: '10px', padding: '0 8px', boxSizing: 'border-box' }}
@@ -2028,7 +2029,7 @@ export default function AITutorPage({ currentUser, navigateTo, addLog, hideHeade
                       <option value="rhombus">Hình Thoi (Rhombus)</option>
                     </select>
 
-                    <label className="flashcard-modal-label" style={{ marginBottom: '4px', display: 'block', fontSize: '10px', color: 'var(--text-secondary)' }}>Trạng thái học tập</label>
+                    <label className="flashcard-modal-label" style={{ marginBottom: '4px', display: 'block', fontSize: '10px', color: '#ffffff' }}>Trạng thái học tập</label>
                     <div className="status-tagger-group" style={{ marginBottom: '12px' }}>
                       <button 
                         type="button"
@@ -2127,7 +2128,7 @@ export default function AITutorPage({ currentUser, navigateTo, addLog, hideHeade
                   textAlign: 'center',
                   padding: '24px 12px',
                   fontSize: '11.5px',
-                  color: 'var(--text-secondary)',
+                  color: '#ffffff',
                   border: '1px dashed var(--border)',
                   borderRadius: '12px',
                   background: 'rgba(0,0,0,0.1)',
@@ -2150,7 +2151,7 @@ export default function AITutorPage({ currentUser, navigateTo, addLog, hideHeade
                   padding: '10px',
                   marginBottom: '10px',
                   fontSize: '10.5px',
-                  color: 'var(--mm-text-secondary)',
+                  color: '#ffffff',
                   display: 'flex',
                   flexDirection: 'column',
                   gap: '6px'
@@ -2166,7 +2167,7 @@ export default function AITutorPage({ currentUser, navigateTo, addLog, hideHeade
               )}
               {isHistoryLoading ? (
                 <div className="aitutor-history-loading">
-                  <span className="spinner-secondary" /> Đang tải danh sách...
+                  <span className="unique-loader" /> Đang tải danh sách...
                 </div>
               ) : savedMindmaps.length === 0 ? (
                 <div className="aitutor-history-empty">
@@ -2345,9 +2346,7 @@ export default function AITutorPage({ currentUser, navigateTo, addLog, hideHeade
                   </div>
                 </>
               )}
-              <div className="aitutor-badge-pro">
-                <HiSparkles /> Không gian AI
-              </div>
+              
             </div>
           </div>
 
@@ -2359,7 +2358,7 @@ export default function AITutorPage({ currentUser, navigateTo, addLog, hideHeade
                   📋 DÀN Ý KIẾN THỨC HỆ THỐNG HÓA
                 </h3>
                 {mindmapData ? renderOutlineNode(mindmapData) : (
-                  <div style={{ textAlign: 'center', color: 'var(--mm-text-secondary)', fontSize: '13px', padding: '20px' }}>
+                  <div style={{ textAlign: 'center', color: '#ffffff', fontSize: '13px', padding: '20px' }}>
                     Nhập tài liệu ở cột trái để bắt đầu lập sơ đồ
                   </div>
                 )}
@@ -2441,7 +2440,7 @@ export default function AITutorPage({ currentUser, navigateTo, addLog, hideHeade
             <div className="aitutor-drawer-body">
               {/* Node Title & Description with CRUD Edits */}
               <div className="drawer-section">
-                <label className="flashcard-modal-label" style={{ marginBottom: '4px', display: 'block', fontSize: '10px', color: 'var(--text-secondary)' }}>Tên nút sơ đồ</label>
+                <label className="flashcard-modal-label" style={{ marginBottom: '4px', display: 'block', fontSize: '10px', color: '#ffffff' }}>Tên nút sơ đồ</label>
                 <input 
                   type="text"
                   className="flashcard-modal-input"
@@ -2450,7 +2449,7 @@ export default function AITutorPage({ currentUser, navigateTo, addLog, hideHeade
                   onChange={(e) => setEditNodeName(e.target.value)}
                 />
 
-                <label className="flashcard-modal-label" style={{ marginBottom: '4px', display: 'block', fontSize: '10px', color: 'var(--text-secondary)' }}>Mô tả chi tiết</label>
+                <label className="flashcard-modal-label" style={{ marginBottom: '4px', display: 'block', fontSize: '10px', color: '#ffffff' }}>Mô tả chi tiết</label>
                 <textarea 
                   className="flashcard-modal-textarea"
                   style={{ background: '#141410', width: '100%', marginBottom: '10px', fontSize: '13px' }}
@@ -2459,7 +2458,7 @@ export default function AITutorPage({ currentUser, navigateTo, addLog, hideHeade
                   rows={3}
                 />
 
-                <label className="flashcard-modal-label" style={{ marginBottom: '4px', display: 'block', fontSize: '10px', color: 'var(--text-secondary)' }}>Hình dạng nút</label>
+                <label className="flashcard-modal-label" style={{ marginBottom: '4px', display: 'block', fontSize: '10px', color: '#ffffff' }}>Hình dạng nút</label>
                 <select 
                   className="flashcard-modal-input"
                   style={{ background: '#141410', width: '100%', marginBottom: '12px', fontSize: '13.5px', color: 'var(--text-primary)', border: '1px solid var(--border)', height: '38px', borderRadius: '10px', padding: '0 10px' }}
@@ -2472,7 +2471,7 @@ export default function AITutorPage({ currentUser, navigateTo, addLog, hideHeade
                   <option value="rhombus">Hình Thoi (Rhombus)</option>
                 </select>
 
-                <label className="flashcard-modal-label" style={{ marginBottom: '4px', display: 'block', fontSize: '10px', color: 'var(--text-secondary)' }}>Trạng thái học tập</label>
+                <label className="flashcard-modal-label" style={{ marginBottom: '4px', display: 'block', fontSize: '10px', color: '#ffffff' }}>Trạng thái học tập</label>
                 <div className="status-tagger-group" style={{ marginBottom: '12px' }}>
                   <button 
                     type="button"
@@ -2556,13 +2555,13 @@ export default function AITutorPage({ currentUser, navigateTo, addLog, hideHeade
                     padding: '8px',
                     textAlign: 'center'
                   }}>
-                    <div style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>Độ thành thạo</div>
+                    <div style={{ fontSize: '10px', color: '#ffffff' }}>Độ thành thạo</div>
                     <div style={{
                       fontSize: '14px',
                       fontWeight: 'bold',
                       color: nodeProgressMap[selectedNode.id]?.mastery !== undefined
                         ? (nodeProgressMap[selectedNode.id].mastery >= 0.9 ? '#10B981' : nodeProgressMap[selectedNode.id].mastery >= 0.8 ? '#3B82F6' : nodeProgressMap[selectedNode.id].mastery >= 0.6 ? '#EAB308' : nodeProgressMap[selectedNode.id].mastery >= 0.4 ? '#F97316' : '#EF4444')
-                        : 'var(--text-secondary)'
+                        : '#ffffff'
                     }}>
                       {nodeProgressMap[selectedNode.id]?.mastery !== undefined
                         ? `${Math.round(nodeProgressMap[selectedNode.id].mastery * 100)}%`
@@ -2577,7 +2576,7 @@ export default function AITutorPage({ currentUser, navigateTo, addLog, hideHeade
                     padding: '8px',
                     textAlign: 'center'
                   }}>
-                    <div style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>Điểm cao nhất</div>
+                    <div style={{ fontSize: '10px', color: '#ffffff' }}>Điểm cao nhất</div>
                     <div style={{ fontSize: '14px', fontWeight: 'bold', color: 'var(--fc-gold)' }}>
                       {nodeProgressMap[selectedNode.id]?.bestScore !== undefined
                         ? `${nodeProgressMap[selectedNode.id].bestScore}/10`
@@ -2760,7 +2759,7 @@ export default function AITutorPage({ currentUser, navigateTo, addLog, hideHeade
                   <p className="mm-quiz-loading-sub">Vui lòng chờ trong giây lát (khoảng 5-10 giây)</p>
                 </div>
               ) : quizQuestions.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '24px', color: 'var(--text-secondary)' }}>
+                <div style={{ textAlign: 'center', padding: '24px', color: '#ffffff' }}>
                   Không thể tải câu hỏi trắc nghiệm. Hãy đóng modal và thử lại.
                 </div>
               ) : (
@@ -2849,7 +2848,7 @@ export default function AITutorPage({ currentUser, navigateTo, addLog, hideHeade
                           <p>
                             Độ thành thạo cập nhật: <strong>{Math.round((quizResult?.mastery || 0) * 100)}%</strong>
                           </p>
-                          <p style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+                          <p style={{ fontSize: '11px', color: '#ffffff' }}>
                             Thời gian hoàn thành: {quizResult?.completionTime || 0} giây
                           </p>
                         </div>
@@ -2992,7 +2991,7 @@ export default function AITutorPage({ currentUser, navigateTo, addLog, hideHeade
                       />
                       {examUploadLoading ? (
                         <>
-                          <span className="spinner" />
+                          <span className="unique-loader" />
                           <p style={{ marginTop: '8px', fontSize: '12px', color: 'var(--mm-gold)' }}>
                             Đang trích xuất nội dung đề thi (OCR)...
                           </p>

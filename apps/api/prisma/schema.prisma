@@ -69,6 +69,8 @@ model User {
   reportsCreated       Report[]            @relation("ReportReporter")
   reportsReviewed      Report[]            @relation("ReportResolver")
   warningsReceived     Warning[]           @relation("UserWarnings")
+  learningAttendances  LearningAttendance[]
+  userEffort           UserEffort?
 }
 
 
@@ -1149,5 +1151,30 @@ enum LogLevel {
   ERROR
   CRITICAL
 }
+
+model LearningAttendance {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  date      DateTime // Normalized YYYY-MM-DD
+  activity  String   // "LESSON" | "TEST" | "MINDMAP" | "FLASHCARD"
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date, activity])
+  @@map("learning_attendances")
+}
+
+model UserEffort {
+  userId      Int      @id
+  score       Int      @default(0)
+  forumPoints Int      @default(0)
+  studyPoints Int      @default(0)
+  updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_efforts")
+}
+
+
 
 

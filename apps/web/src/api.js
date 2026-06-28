@@ -546,7 +546,12 @@ export const api = {
     });
     return request('/admin/logs?' + query.toString());
   },
-  getAdminLogById: (id) => request(`/admin/logs/${id}`)
+  getAdminLogById: (id) => request(`/admin/logs/${id}`),
+
+  getHighestScoreLeaderboard: (subject) => request(`/gamification/score-leaderboard?subject=${subject}`),
+  getEffortLeaderboard: () => request('/gamification/effort-leaderboard'),
+  logAttendance: (activity) => request('/gamification/attendance', { method: 'POST', body: { activity } }),
+  getAttendanceHistory: (startDate, endDate) => request(`/gamification/attendance?startDate=${startDate}&endDate=${endDate}`)
 };
 
 

@@ -37,7 +37,14 @@ import {
 
 import { getAdminLogs, getAdminLogById, getAdminLogsStatistics } from './controllers/adminLogs.js';
 
-import { getLeaderboardRankings, getActivityHeatmap } from './controllers/gamification.js';
+import {
+  getLeaderboardRankings,
+  getActivityHeatmap,
+  recordAttendance,
+  getAttendanceHistory,
+  getEffortLeaderboard,
+  getHighestScoreLeaderboard
+} from './controllers/gamification.js';
 import { getTeacherStats as getTeacherDashboardStats } from './controllers/teacher.js';
 
 import {
@@ -338,6 +345,11 @@ app.get('/forum/gamification/profile', authenticateJWT, getUserGamificationProfi
 
 app.get('/v1/leaderboard', authenticateJWT, getLeaderboardRankings);
 app.get('/v1/users/:id/activity-heatmap', authenticateJWT, getActivityHeatmap);
+
+app.post('/gamification/attendance', authenticateJWT, recordAttendance);
+app.get('/gamification/attendance', authenticateJWT, getAttendanceHistory);
+app.get('/gamification/effort-leaderboard', getEffortLeaderboard);
+app.get('/gamification/score-leaderboard', getHighestScoreLeaderboard);
 
 app.post('/forum/resources/:id/download', downloadResource);
 app.post('/forum/moderation/reports', authenticateJWT, createReport);

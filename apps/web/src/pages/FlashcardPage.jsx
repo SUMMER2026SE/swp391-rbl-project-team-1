@@ -89,6 +89,19 @@ export default function FlashcardPage({ currentUser, navigateTo, addLog }) {
   const [newDeckTitle, setNewDeckTitle] = useState('');
   const [newDeckHashtag, setNewDeckHashtag] = useState('# Tự tạo');
 
+  useEffect(() => {
+    // Record flashcard study attendance automatically when entering the page
+    if (currentUser) {
+      api.logAttendance('FLASHCARD')
+        .then(res => {
+          if (res && res.streakAwarded) {
+            toast(`🔥 Điểm danh ngày mới thành công! Chuỗi ngày: ${res.streakDays}`, 'success');
+          }
+        })
+        .catch(err => console.warn('[Attendance] Study flashcard log error:', err));
+    }
+  }, [currentUser]);
+
   // Attendance state loaded from localStorage
   const [attendance, setAttendance] = useState(() => {
     try {

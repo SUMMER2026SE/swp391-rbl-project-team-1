@@ -2,6 +2,7 @@ import type { Response } from 'express';
 import type { AuthRequest } from '../middleware/auth.js';
 import { prisma } from '../lib/prisma.js';
 import { getIO } from '../lib/socket.js';
+import { awardForumEffortPoints } from './gamification.js';
 
 // =========================================================================
 // HELPERS
@@ -39,6 +40,22 @@ async function awardXP(userId: number, points: number, action: any, referenceId?
         referenceId
       }
     });
+
+    // Award effort points
+    let effortPoints = 0;
+    if (action === 'POST_CREATED') effortPoints = 10;
+    else if (action === 'COMMENT_CREATED') effortPoints = 5;
+    else if (action === 'UPVOTE_RECEIVED') effortPoints = 15;
+    else if (action === 'ACCEPTED_ANSWER') effortPoints = 50;
+    else if (action === 'RESOURCE_DOWNLOADED') effortPoints = 5;
+
+    if (points < 0 && effortPoints > 0) {
+      effortPoints = -effortPoints;
+    }
+
+    if (effortPoints !== 0) {
+      await awardForumEffortPoints(userId, effortPoints);
+    }
 
     // 2. Fetch or initialize UserGamification
     let gamify = await prisma.userGamification.findUnique({

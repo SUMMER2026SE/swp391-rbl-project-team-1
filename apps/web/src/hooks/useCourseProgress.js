@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { enrollmentService } from '../services/enrollmentService';
+import { api } from '../api';
+import { toast } from '../utils/toast';
 
 export default function useCourseProgress(courseId, currentUser, lessonsCount) {
   const [completedLessons, setCompletedLessons] = useState([]);
@@ -68,6 +70,16 @@ export default function useCourseProgress(courseId, currentUser, lessonsCount) {
       if (currentUser) {
         enrollmentService.updateLessonProgress(currentUser.id, numericId, !isCompleted)
           .catch(err => console.error('[useCourseProgress] DB progress update failed:', err));
+
+        if (!isCompleted) {
+          api.logAttendance('LESSON')
+            .then(res => {
+              if (res && res.streakAwarded) {
+                toast(`🔥 Điểm danh ngày mới thành công! Chuỗi ngày: ${res.streakDays}`, 'success');
+              }
+            })
+            .catch(err => console.warn('[Attendance] Study lesson log error:', err));
+        }
       }
 
       return next;

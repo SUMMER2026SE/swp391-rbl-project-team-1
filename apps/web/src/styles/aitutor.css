@@ -4,8 +4,8 @@
    ========================================================================== */
 
 :root {
-  --mm-bg-dark: #173524;
-  --mm-card-dark: #1e4530;
+  --mm-bg-dark: #234932;
+  --mm-card-dark: #2b593d;
   --mm-border-dark: #000000;
   --mm-gold: #FFD234;
   --mm-text-primary: #ffffff;
@@ -20,7 +20,7 @@
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
-  font-family: 'Outfit', 'Inter', sans-serif;
+  font-family: 'Inter', system-ui, sans-serif;
   animation: fadeIn 0.4s ease;
   overflow: hidden;
   color: var(--mm-text-primary);
@@ -615,7 +615,7 @@
 /* Nodes */
 .canvas-node-card {
   box-sizing: border-box;
-  font-family: 'Outfit', 'Inter', sans-serif;
+  font-family: 'Inter', system-ui, sans-serif;
   border: 2.5px solid #000000 !important;
   color: #000000 !important;
   box-shadow: 4px 4px 0px #000000 !important;
@@ -1767,3 +1767,25 @@
 .outline-status-badge--review { background: rgba(239, 68, 68, 0.12); color: #EF4444; border: 1px solid rgba(239, 68, 68, 0.25); }
 .outline-status-badge--important { background: rgba(217, 70, 239, 0.12); color: #E879F9; border: 1px solid rgba(217, 70, 239, 0.25); }
 
+
+/* Unique Loader Animation */
+.unique-loader {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 3px solid var(--mm-gold);
+  border-right-color: transparent;
+  animation: spin 1s linear infinite, glow-loader 2s ease-in-out infinite alternate;
+  display: inline-block;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes glow-loader {
+  0% { box-shadow: 0 0 5px var(--mm-gold), inset 0 0 5px var(--mm-gold); }
+  100% { box-shadow: 0 0 15px var(--mm-gold), inset 0 0 10px var(--mm-gold); }
+}
