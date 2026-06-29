@@ -73,12 +73,7 @@ export default function StudentDashboard({ currentUser, setActiveTab, navigateTo
   const [currentStreakDate, setCurrentStreakDate] = useState(new Date());
   const [attendanceRecords, setAttendanceRecords] = useState([]);
   
-  // Home Dashboard Leaderboard States
-  const [effortLeaderboard, setEffortLeaderboard] = useState([]);
-  const [scoreLeaderboard, setScoreLeaderboard] = useState([]);
-  const [activeSubjectIdx, setActiveSubjectIdx] = useState(0);
-  const LEADERBOARD_SUBJECTS = ['Toán', 'Vật lý', 'Hóa học', 'Sinh học', 'Tiếng Anh', 'Ngữ văn'];
-  const [isRotating, setIsRotating] = useState(false);
+
   const [dashboardData, setDashboardData] = useState({
     courses: [],
     attempts: [],
@@ -229,44 +224,7 @@ export default function StudentDashboard({ currentUser, setActiveTab, navigateTo
     loadAttendanceData();
   }, [currentUser, streakViewMode, currentStreakDate, currentTab]);
 
-  // Load Leaderboards on Home
-  useEffect(() => {
-    if (currentTab !== 'home') return;
-    const loadEffort = async () => {
-      try {
-        const data = await api.getEffortLeaderboard();
-        setEffortLeaderboard(data || []);
-      } catch (err) {
-        console.error('Lỗi tải BXH nỗ lực:', err);
-      }
-    };
-    loadEffort();
-  }, [currentTab]);
 
-  useEffect(() => {
-    if (currentTab !== 'home') return;
-    const currentSubject = LEADERBOARD_SUBJECTS[activeSubjectIdx];
-    const loadScore = async () => {
-      setIsRotating(true);
-      try {
-        const data = await api.getHighestScoreLeaderboard(currentSubject);
-        setScoreLeaderboard(data || []);
-      } catch (err) {
-        console.error('Lỗi tải BXH điểm số:', err);
-      } finally {
-        setTimeout(() => setIsRotating(false), 300);
-      }
-    };
-    loadScore();
-  }, [currentTab, activeSubjectIdx]);
-
-  useEffect(() => {
-    if (currentTab !== 'home') return;
-    const timer = setInterval(() => {
-      setActiveSubjectIdx(prev => (prev + 1) % LEADERBOARD_SUBJECTS.length);
-    }, 8000);
-    return () => clearInterval(timer);
-  }, [currentTab]);
 
   // Sync profile editing inputs if currentUser updates
   useEffect(() => {
@@ -1020,103 +978,6 @@ export default function StudentDashboard({ currentUser, setActiveTab, navigateTo
                   </button>
                 </div>
                             </div>
-            </div>
-
-            {/* LEADERBOARDS SECTION */}
-            <div className="sdb-leaderboards-section" style={{ marginTop: '24px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '24px', textAlign: 'left' }}>
-              
-              {/* Score Leaderboard with rotation */}
-              <div className="card animate-in" style={{ border: '3px solid #000', borderRadius: '16px', padding: '24px', background: '#fff', boxShadow: '4px 4px 0px #000' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2.5px solid #000', paddingBottom: '12px', marginBottom: '16px' }}>
-                  <div>
-                    <h3 style={{ fontSize: '16px', fontWeight: '950', color: '#000', margin: 0 }}>
-                      🏆 ĐIỂM LUYỆN ĐỀ CAO NHẤT
-                    </h3>
-                    <p style={{ fontSize: '11px', color: '#6b7280', margin: '2px 0 0 0', fontWeight: '800' }}>
-                      Phân môn: <span style={{ color: '#8b5cf6' }}>{LEADERBOARD_SUBJECTS[activeSubjectIdx]}</span> (tự động chuyển sau 8s)
-                    </p>
-                  </div>
-                  <span style={{ fontSize: '24px' }}>🎯</span>
-                </div>
-
-                <div className={isRotating ? 'fade-out-slide' : 'fade-in-slide'} style={{ transition: 'opacity 0.3s ease, transform 0.3s ease', minHeight: '260px' }}>
-                  {scoreLeaderboard.length > 0 ? (
-                    scoreLeaderboard.map((item, idx) => (
-                      <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 0', borderBottom: idx < 4 ? '1px dashed #e2e8f0' : 'none' }}>
-                        <span style={{ fontSize: '14px', fontWeight: '950', width: '24px', color: idx === 0 ? '#fbbf24' : idx === 1 ? '#94a3b8' : idx === 2 ? '#b45309' : '#000' }}>
-                          #{idx + 1}
-                        </span>
-                        <div style={{
-                          width: '36px', height: '36px', borderRadius: '50%', border: '1.5px solid #000', background: '#e2e8f0', overflow: 'hidden',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '900', fontSize: '12px'
-                        }}>
-                          {item.avatar ? <img src={item.avatar} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : item.name.substring(0, 2).toUpperCase()}
-                        </div>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ fontSize: '13px', fontWeight: '900', color: '#000' }}>{item.name}</div>
-                          <div style={{ fontSize: '10px', color: '#64748b', fontWeight: '800' }}>{item.examTitle}</div>
-                        </div>
-                        <span style={{ background: '#fef3c7', border: '1.5px solid #000', padding: '2px 8px', borderRadius: '6px', fontSize: '12px', fontWeight: '950', color: '#b45309' }}>
-                          {item.score}đ
-                        </span>
-                      </div>
-                    ))
-                  ) : (
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '200px', flexDirection: 'column', color: '#94a3b8' }}>
-                      <span style={{ fontSize: '32px' }}>📊</span>
-                      <p style={{ fontSize: '12px', fontWeight: 'bold', marginTop: '8px' }}>Chưa có lượt nộp bài môn này</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Effort Leaderboard */}
-              <div className="card animate-in" style={{ border: '3px solid #000', borderRadius: '16px', padding: '24px', background: '#fff', boxShadow: '4px 4px 0px #000' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2.5px solid #000', paddingBottom: '12px', marginBottom: '16px' }}>
-                  <div>
-                    <h3 style={{ fontSize: '16px', fontWeight: '950', color: '#000', margin: 0 }}>
-                      ⚡ BẢNG XẾP HẠNG NỖ LỰC
-                    </h3>
-                    <p style={{ fontSize: '11px', color: '#6b7280', margin: '2px 0 0 0', fontWeight: '800' }}>
-                      Điểm tích lũy từ diễn đàn & chăm chỉ luyện tập
-                    </p>
-                  </div>
-                  <span style={{ fontSize: '24px' }}>⚡</span>
-                </div>
-
-                <div style={{ minHeight: '260px' }}>
-                  {effortLeaderboard.length > 0 ? (
-                    effortLeaderboard.map((item, idx) => (
-                      <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 0', borderBottom: idx < 4 ? '1px dashed #e2e8f0' : 'none' }}>
-                        <span style={{ fontSize: '14px', fontWeight: '950', width: '24px', color: idx === 0 ? '#fbbf24' : idx === 1 ? '#94a3b8' : idx === 2 ? '#b45309' : '#000' }}>
-                          #{idx + 1}
-                        </span>
-                        <div style={{
-                          width: '36px', height: '36px', borderRadius: '50%', border: '1.5px solid #000', background: '#e2e8f0', overflow: 'hidden',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '900', fontSize: '12px'
-                        }}>
-                          {item.user.avatarUrl ? <img src={item.user.avatarUrl} alt={item.user.fullName} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : item.user.fullName.substring(0, 2).toUpperCase()}
-                        </div>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ fontSize: '13px', fontWeight: '900', color: '#000' }}>{item.user.fullName}</div>
-                          <div style={{ fontSize: '9px', color: '#8b5cf6', fontWeight: '900' }}>
-                            Diễn đàn: +{item.forumPoints}đ • Học tập: +{item.studyPoints}đ
-                          </div>
-                        </div>
-                        <span style={{ background: '#e0f2fe', border: '1.5px solid #000', padding: '2px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: '950', color: '#0369a1' }}>
-                          {item.score} nỗ lực
-                        </span>
-                      </div>
-                    ))
-                  ) : (
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '200px', flexDirection: 'column', color: '#94a3b8' }}>
-                      <span style={{ fontSize: '32px' }}>⚡</span>
-                      <p style={{ fontSize: '12px', fontWeight: 'bold', marginTop: '8px' }}>Chưa có dữ liệu nỗ lực</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-
             </div>
           </>
         )}
