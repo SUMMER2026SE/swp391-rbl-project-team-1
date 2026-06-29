@@ -1078,37 +1078,27 @@ Mặt trước 1 = Mặt sau 1; Mặt trước 2 = Mặt sau 2; Mặt trước 3
 
 async function callOpenRouter(prompt: string, maxTokens = 1500, temp = 0.5) {
   const apiKey = process.env.OPENROUTER_API_KEY;
-  let model = process.env.OPENROUTER_MODEL || 'openrouter/free';
+  const primaryModel = process.env.OPENROUTER_MODEL || 'openrouter/free';
   if (!apiKey) {
     throw new Error('API Key OpenRouter chưa được cấu hình.');
   }
 
-  let response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-      'HTTP-Referer': 'https://edupath.vn',
-      'X-Title': 'EduPath AI Mindmap'
-    },
-    body: JSON.stringify({
-      model: model,
-      messages: [{ role: 'user', content: prompt }],
-      temperature: temp,
-      max_tokens: maxTokens
-    })
-  });
+  const candidateModels = [
+    primaryModel,
+    'google/gemma-4-31b-it:free',
+    'qwen/qwen3-coder:free',
+    'meta-llama/llama-3.3-70b-instruct:free',
+    'openrouter/free'
+  ];
 
-  let responseText = '';
-  if (!response.ok) {
-    const errText = await response.text();
-    
-    // Check if error is due to out of credits / 402 or 404 (unavailable for free)
-    if (response.status === 402 || response.status === 404 || errText.includes('credits') || errText.includes('402') || errText.includes('unavailable')) {
-      console.warn(`[OpenRouter Fallback] Model ${model} failed. Retrying with openrouter/free...`);
-      const fallbackModel = 'openrouter/free';
-      
-      response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+  // De-duplicate candidate models while preserving order
+  const modelsToTry = Array.from(new Set(candidateModels));
+
+  let lastError = '';
+  for (const currentModel of modelsToTry) {
+    try {
+      console.log(`[OpenRouter] Attempting request using model: ${currentModel}`);
+      const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${apiKey}`,
@@ -1117,49 +1107,47 @@ async function callOpenRouter(prompt: string, maxTokens = 1500, temp = 0.5) {
           'X-Title': 'EduPath AI Mindmap'
         },
         body: JSON.stringify({
-          model: fallbackModel,
+          model: currentModel,
           messages: [{ role: 'user', content: prompt }],
           temperature: temp,
           max_tokens: maxTokens
         })
       });
-    } else {
-      responseText = errText;
+
+      const responseText = await response.text();
+
+      if (response.ok) {
+        try {
+          const data = JSON.parse(responseText);
+          const content = (data.choices?.[0]?.message?.content || '').trim();
+          if (content) {
+            console.log(`[OpenRouter] Success with model: ${currentModel}`);
+            return content;
+          }
+        } catch (jsonErr) {
+          console.warn(`[OpenRouter] Failed to parse JSON from model ${currentModel}:`, jsonErr);
+        }
+      } else {
+        lastError = responseText;
+        console.warn(`[OpenRouter] Model ${currentModel} returned status ${response.status}: ${responseText}`);
+      }
+    } catch (fetchErr: any) {
+      lastError = fetchErr.message || String(fetchErr);
+      console.warn(`[OpenRouter] Network error with model ${currentModel}:`, fetchErr);
     }
   }
 
-  if (!response.ok) {
-    const errText = responseText || (await response.text());
-    const isTimeout = response.status === 408 || errText.includes('timeout') || errText.includes('Timeout');
-    await logSystemEvent(null, {
-      type: 'SYSTEM',
-      action: isTimeout ? 'AI_TIMEOUT' : 'AI_NO_RESPONSE',
-      module: 'AI_SERVICE',
-      description: `Lỗi kết nối AI (${response.status}): ${errText.substring(0, 300)}`,
-      metadata: { status: response.status, error: errText },
-      level: 'ERROR'
-    }).catch(logErr => console.error('Failed to log AI error:', logErr));
+  // If all models failed, log event and throw
+  await logSystemEvent(null, {
+    type: 'SYSTEM',
+    action: 'AI_NO_RESPONSE',
+    module: 'AI_SERVICE',
+    description: `Tất cả các model AI đều thất bại. Lỗi cuối cùng: ${lastError.substring(0, 300)}`,
+    metadata: { lastError },
+    level: 'ERROR'
+  }).catch(logErr => console.error('Failed to log AI error:', logErr));
 
-    throw new Error(`OpenRouter error: ${errText}`);
-  }
-
-  const resText = await response.text();
-  try {
-    const data = JSON.parse(resText) as any;
-    return (data.choices?.[0]?.message?.content || '').trim();
-  } catch (e) {
-    console.error("OpenRouter response was not valid JSON:", resText);
-    logSystemEvent(null, {
-      type: 'SYSTEM',
-      action: 'AI_NO_RESPONSE',
-      module: 'AI_SERVICE',
-      description: `Lỗi phản hồi AI: Phản hồi không phải JSON hợp lệ.`,
-      metadata: { responseText: resText.substring(0, 1000) },
-      level: 'ERROR'
-    }).catch(logErr => console.error('Failed to log AI parse error:', logErr));
-
-    throw new Error(`OpenRouter response was not valid JSON: ${resText.substring(0, 200)}`);
-  }
+  throw new Error(`Tất cả các mô hình AI trên OpenRouter đều đang bận hoặc quá tải. Vui lòng thử lại sau giây lát. Chi tiết lỗi: ${lastError.substring(0, 200)}`);
 }
 
 function findNodeAndParentContext(node: any, targetKey: string, currentPath = '0', parentNames: string[] = []): any {
