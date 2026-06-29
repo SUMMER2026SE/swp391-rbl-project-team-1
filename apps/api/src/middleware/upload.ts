@@ -3,6 +3,7 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import crypto from 'crypto';
+import { SystemSettingService } from '../services/systemSetting.service.js';
 
 const UPLOADS_DIR = path.resolve(process.cwd(), 'uploads');
 if (!fs.existsSync(UPLOADS_DIR)) {
@@ -25,7 +26,7 @@ const storage = multer.diskStorage({
 export const multerUpload = multer({
   storage,
   limits: {
-    fileSize: 100 * 1024 * 1024 // 100 MB Limit
+    fileSize: 500 * 1024 * 1024 // 500 MB Max Capability
   }
 });
 
@@ -74,13 +75,26 @@ export function uploadValidation(req: Request, res: Response, next: NextFunction
   multerUpload.single('file')(req, res, (err) => {
     if (err) {
       if (err instanceof multer.MulterError && err.code === 'LIMIT_FILE_SIZE') {
-        return res.status(400).json({ success: false, error: 'Dung lượng tệp tải lên vượt quá giới hạn 100MB!' });
+        return res.status(400).json({ success: false, error: 'Dung lượng tệp tải lên vượt quá giới hạn tối đa 500MB!' });
       }
       return res.status(400).json({ success: false, error: err.message });
     }
 
     if (!req.file) {
       return res.status(400).json({ success: false, error: 'Không tìm thấy tệp tải lên!' });
+    }
+
+    // Kiểm tra dung lượng tệp tải lên động
+    const maxMb = SystemSettingService.getNumber('MAX_UPLOAD_SIZE_MB') || 50;
+    const maxBytes = maxMb * 1024 * 1024;
+    if (req.file.size > maxBytes) {
+      try {
+        fs.unlinkSync(req.file.path);
+      } catch (unlinkErr) {}
+      return res.status(400).json({ 
+        success: false, 
+        error: `Dung lượng tệp tải lên vượt quá giới hạn cấu hình của hệ thống (Tối đa ${maxMb}MB)!` 
+      });
     }
 
     // Validate magic bytes

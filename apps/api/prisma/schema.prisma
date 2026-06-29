@@ -1175,6 +1175,17 @@ model UserEffort {
   @@map("user_efforts")
 }
 
+model SystemSetting {
+  id          Int      @id @default(autoincrement())
+  key         String   @unique
+  value       String
+  type        String   // "STRING" | "NUMBER" | "BOOLEAN"
+  description String?
+  updatedAt   DateTime @updatedAt
+
+  @@map("system_settings")
+}
+
 
 
 

@@ -4,6 +4,7 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import { prisma } from '../lib/prisma.js';
+import { SystemSettingService } from '../services/systemSetting.service.js';
 import { incrementBothStats } from '../lib/monthlyStats.js';
 import { sendOTPEmail, sendResetPasswordEmail, sendResetPasswordOTPEmail, sendRoleChangeNotification, isRealSmtpActive } from '../lib/mailer.js';
 import { isDisposableEmail, isValidEmailFormat } from '../lib/disposable-domains.js';
@@ -304,6 +305,10 @@ export async function logout(req: Request, res: Response) {
 // SEND OTP (DB-persisted, bcrypt-hashed, rate-limited)
 // ═════════════════════════════════════════════════════════
 export async function sendOtp(req: Request, res: Response) {
+  if (!SystemSettingService.getBoolean('REGISTRATION_ENABLED')) {
+    return res.status(400).json({ success: false, error: 'Hệ thống hiện đang tạm dừng đăng ký tài khoản.' });
+  }
+
   const { email, fullName, password, role, subjectGroup, bio, phone, referralCode } = req.body;
 
   if (!email || !password || !fullName) {
@@ -745,6 +750,10 @@ export async function googleAuth(req: Request, res: Response) {
     }
 
     // ── NEW USER — issue temp token for role selection ──
+    if (!SystemSettingService.getBoolean('REGISTRATION_ENABLED')) {
+      return res.status(400).json({ success: false, error: 'Hệ thống hiện đang tạm dừng đăng ký tài khoản.' });
+    }
+
     const tempToken = jwt.sign(
       {
         type: 'google_onboarding',
@@ -779,6 +788,10 @@ export async function googleAuth(req: Request, res: Response) {
 // GOOGLE COMPLETE ONBOARDING (role selection + account creation)
 // ═════════════════════════════════════════════════════════
 export async function googleCompleteOnboarding(req: Request, res: Response) {
+  if (!SystemSettingService.getBoolean('REGISTRATION_ENABLED')) {
+    return res.status(400).json({ success: false, error: 'Hệ thống hiện đang tạm dừng đăng ký tài khoản.' });
+  }
+
   const { tempToken, role, subjectGroup, referralCode } = req.body;
 
   if (!tempToken || !role) {

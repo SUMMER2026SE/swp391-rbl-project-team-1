@@ -3,7 +3,11 @@ import type { AuthRequest } from '../middleware/auth.js';
 import { prisma } from '../lib/prisma.js';
 import { incrementBothStats } from '../lib/monthlyStats.js';
 import { logSystemEvent } from '../utils/logger.js';
+import { SystemSettingService } from '../services/systemSetting.service.js';
 import fs from 'fs';
+
+// Bộ đếm lượt hỏi AI trong ngày của học sinh (Reset hàng ngày)
+const dailyQuestionCounter = new Map<number, { count: number; date: string }>();
 import path from 'path';
 import mammoth from 'mammoth';
 import { createRequire } from 'module';
@@ -40,6 +44,37 @@ function processLines(buffer: string, res: Response): string {
 // Server-Sent Events (SSE) AI Streaming Chat
 export async function streamAIChat(req: AuthRequest, res: Response) {
   const { message } = req.body;
+  const studentId = req.user?.id;
+  const role = req.user?.role?.toUpperCase();
+
+  // Kiểm tra giới hạn câu hỏi AI miễn phí của học sinh
+  if (studentId && role === 'STUDENT') {
+    const user = await prisma.user.findUnique({ where: { id: studentId } });
+    if (user && !user.isPro) {
+      const todayStr = new Date().toISOString().split('T')[0];
+      const maxLimit = SystemSettingService.getNumber('FREE_AI_QUESTION_LIMIT') || 20;
+
+      const record = dailyQuestionCounter.get(studentId) || { count: 0, date: todayStr };
+      if (record.date !== todayStr) {
+        record.count = 0;
+        record.date = todayStr;
+      }
+
+      if (record.count >= maxLimit) {
+        res.setHeader('Content-Type', 'text/event-stream');
+        res.setHeader('Cache-Control', 'no-cache');
+        res.setHeader('Connection', 'keep-alive');
+        res.flushHeaders();
+        res.write(`data: ${JSON.stringify({ text: `Bạn đã đạt giới hạn ${maxLimit} câu hỏi AI miễn phí trong ngày hôm nay. Hãy nâng cấp tài khoản Premium để hỏi không giới hạn!` })}\n\n`);
+        res.write('data: [DONE]\n\n');
+        res.end();
+        return;
+      }
+
+      record.count++;
+      dailyQuestionCounter.set(studentId, record);
+    }
+  }
 
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
@@ -1624,6 +1659,19 @@ export async function uploadExamFile(req: AuthRequest, res: Response) {
   const file = req.file;
   if (!file) {
     return res.status(400).json({ success: false, error: 'Không tìm thấy tệp tin được tải lên.' });
+  }
+
+  // Kiểm tra dung lượng tệp tải lên động
+  const maxMb = SystemSettingService.getNumber('MAX_UPLOAD_SIZE_MB') || 50;
+  const maxBytes = maxMb * 1024 * 1024;
+  if (file.size > maxBytes) {
+    try {
+      fs.unlinkSync(file.path);
+    } catch (e) {}
+    return res.status(400).json({ 
+      success: false, 
+      error: `Dung lượng tệp tải lên vượt quá giới hạn cấu hình của hệ thống (Tối đa ${maxMb}MB)!` 
+    });
   }
 
   try {

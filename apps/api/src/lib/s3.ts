@@ -28,7 +28,7 @@ const ALLOWED_EXTENSIONS = ['mp4', 'mov', 'pdf', 'docx', 'png', 'jpg', 'jpeg', '
 
 export const upload = multer({
   storage: storage,
-  limits: { fileSize: 50 * 1024 * 1024 }, // 50MB
+  limits: { fileSize: 500 * 1024 * 1024 }, // 500MB max capability
   fileFilter: (req, file, cb) => {
     const ext = file.originalname.split('.').pop()?.toLowerCase();
     if (ext && ALLOWED_EXTENSIONS.includes(ext)) {

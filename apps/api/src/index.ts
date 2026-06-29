@@ -16,7 +16,7 @@ import { streamAIChat, refreshRoadmap, generateAIQuestions, generateMindmap, sav
 
 import { chatbotConsult } from './controllers/chatbot.js';
 import { getDocumentResources, getDocumentComments, addDocumentComment, getUserDocuments, createUserDocument, deleteUserDocument } from './controllers/document.js';
-import { createVNPayPayment, vnpayWebhook, sepayWebhook, checkEnrollmentStatus, checkUserProStatus, createDemoEnrollment } from './controllers/payment.js';
+import { createVNPayPayment, vnpayWebhook, sepayWebhook, checkEnrollmentStatus, checkUserProStatus, createDemoEnrollment, getPremiumPricing } from './controllers/payment.js';
 import { authenticateJWT, requireRole } from './middleware/auth.js';
 import { ownsCourse, ownsLesson, ownsAttempt } from './middleware/ownership.js';
 import { rateLimiter } from './middleware/rateLimit.js';
@@ -36,6 +36,9 @@ import {
 } from './controllers/moderation.js';
 
 import { getAdminLogs, getAdminLogById, getAdminLogsStatistics } from './controllers/adminLogs.js';
+import { getSettings, updateSettings } from './controllers/systemSettings.js';
+import { SystemSettingService } from './services/systemSetting.service.js';
+import { seedSystemSettings } from '../prisma/seedSettings.js';
 
 import {
   getLeaderboardRankings,
@@ -123,6 +126,29 @@ app.use((req, res, next) => {
   next();
 });
 
+// Maintenance Mode Middleware
+app.use((req, res, next) => {
+  const isMaintenance = SystemSettingService.getBoolean('MAINTENANCE_MODE');
+  if (isMaintenance) {
+    const path = req.path;
+    const isExempt = 
+      path === '/' || 
+      path === '/login' || 
+      path === '/logout' || 
+      path.startsWith('/admin') ||
+      path.startsWith('/auth') ||
+      path === '/dev/reset';
+      
+    if (!isExempt) {
+      return res.status(503).json({ 
+        success: false, 
+        error: 'Hệ thống hiện đang trong chế độ bảo trì để nâng cấp. Vui lòng quay lại sau!' 
+      });
+    }
+  }
+  next();
+});
+
 // Logging Middleware
 app.use((req, res, next) => {
   console.log(`[API] ${req.method} ${req.url}`);
@@ -158,6 +184,14 @@ app.post('/upload', authenticateJWT, upload.single('file'), (req, res) => {
   if (!req.file) {
     return res.status(400).json({ success: false, error: 'Không nhận được tệp tải lên!' });
   }
+  const maxMb = SystemSettingService.getNumber('MAX_UPLOAD_SIZE_MB') || 50;
+  const maxBytes = maxMb * 1024 * 1024;
+  if (req.file.size > maxBytes) {
+    try {
+      fs.unlinkSync(req.file.path);
+    } catch (e) {}
+    return res.status(400).json({ success: false, error: `Dung lượng tệp tải lên vượt quá giới hạn cấu hình của hệ thống (Tối đa ${maxMb}MB)!` });
+  }
   const fileUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
   return res.status(200).json({
     success: true,
@@ -188,6 +222,8 @@ app.post('/admin/leads', authenticateJWT, createAdminLead);
 app.put('/admin/leads/:id/status', authenticateJWT, requireRole(['ADMIN']), updateAdminLeadStatus);
 app.get('/admin/features', getFeatureFlags);
 app.post('/admin/features/:id/toggle', authenticateJWT, requireRole(['ADMIN']), toggleFeatureFlag);
+app.get('/admin/system-settings', authenticateJWT, requireRole(['ADMIN']), getSettings);
+app.put('/admin/system-settings', authenticateJWT, requireRole(['ADMIN']), updateSettings);
 
 // Admin System Logs Routes
 app.get('/admin/logs/statistics', authenticateJWT, requireRole(['ADMIN']), getAdminLogsStatistics);
@@ -271,6 +307,7 @@ app.get('/enrollments/status', authenticateJWT, requireRole(['STUDENT']), checkE
 app.post('/enrollments/sepay-webhook', sepayWebhook);
 app.get('/users/pro-status', authenticateJWT, requireRole(['STUDENT']), checkUserProStatus);
 app.post('/enrollments/demo', authenticateJWT, requireRole(['STUDENT']), createDemoEnrollment);
+app.get('/enrollments/pricing', getPremiumPricing);
 
 // Protected AI Routes
 app.post('/ai/chat', (req, res, next) => {
@@ -439,8 +476,16 @@ app.post('/dev/reset', async (req, res) => {
 
 const PORT = process.env.PORT || 4000;
 if (!process.env.VERCEL) {
-  server.listen(PORT, () => {
+  server.listen(PORT, async () => {
     console.log(`[API] EduPath Server is running on port: ${PORT}`);
+    try {
+      // Tải và chạy seeder cấu hình mặc định
+      await seedSystemSettings();
+      // Nạp cấu hình từ DB vào bộ nhớ đệm
+      await SystemSettingService.loadAll();
+    } catch (err: any) {
+      console.error('[Startup] Lỗi khởi tạo cấu hình hệ thống:', err.message || err);
+    }
   });
   initCronJobs();
 }

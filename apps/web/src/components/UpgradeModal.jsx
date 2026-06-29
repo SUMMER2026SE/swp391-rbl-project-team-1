@@ -10,6 +10,7 @@ export default function UpgradeModal({ onClose, onUpgradeSuccess, addLog }) {
   const [copiedField, setCopiedField] = useState(null);
   const [isVerifying, setIsVerifying] = useState(false);
   const [pollingError, setPollingError] = useState('');
+  const [prices, setPrices] = useState({ monthly: 199000, yearly: 1990000 });
 
   const currentUser = JSON.parse(localStorage.getItem('current_user')) || {};
   const studentId = currentUser.id || 1;
@@ -19,14 +20,30 @@ export default function UpgradeModal({ onClose, onUpgradeSuccess, addLog }) {
   const ACCOUNT_NO = '18657431';
   const ACCOUNT_NAME = 'THUAN VAN TRAN';
 
+  // Fetch Pricing dynamically from DB System Setting
+  useEffect(() => {
+    const fetchPricing = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/enrollments/pricing`);
+        const data = await res.json();
+        if (data.success && data.data) {
+          setPrices(data.data);
+        }
+      } catch (err) {
+        console.error('Lỗi tải giá Premium từ hệ thống:', err);
+      }
+    };
+    fetchPricing();
+  }, []);
+
   // Pricing plans definition
   const plans = [
     {
       id: 1,
       name: 'PRO Monthly',
       duration: '1 Tháng',
-      price: 199000,
-      originalPrice: '299.000đ',
+      price: prices.monthly,
+      originalPrice: (Math.round(prices.monthly * 1.5 / 1000) * 1000).toLocaleString() + 'đ',
       discount: 'Tiết kiệm 33%',
       description: 'Phù hợp để trải nghiệm thử các công nghệ học tập của EduPath.',
       features: [
@@ -40,8 +57,8 @@ export default function UpgradeModal({ onClose, onUpgradeSuccess, addLog }) {
       id: 2,
       name: 'PRO 6-Month',
       duration: '6 Tháng',
-      price: 499000,
-      originalPrice: '1.199.000đ',
+      price: Math.round((prices.monthly * 2.5) / 1000) * 1000,
+      originalPrice: (Math.round((prices.monthly * 2.5 * 2.4) / 1000) * 1000).toLocaleString() + 'đ',
       discount: 'Tiết kiệm 58%',
       description: 'Lựa chọn phổ biến cho các bạn học sinh giai đoạn tăng tốc thi cử.',
       features: [
@@ -55,8 +72,8 @@ export default function UpgradeModal({ onClose, onUpgradeSuccess, addLog }) {
       id: 3,
       name: 'PRO Yearly',
       duration: '1 Năm (2026)',
-      price: 799000,
-      originalPrice: '2.399.000đ',
+      price: prices.yearly,
+      originalPrice: (Math.round(prices.yearly * 1.2 / 1000) * 1000).toLocaleString() + 'đ',
       discount: 'Tiết kiệm 66% · HOT',
       description: 'Cam kết bứt phá điểm số tối đa. Bạn đồng hành trọn vẹn của thủ khoa.',
       features: [

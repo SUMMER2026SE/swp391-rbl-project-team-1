@@ -338,7 +338,7 @@ export default function AdminDashboard({
 
   useEffect(() => {
     loadStats();
-  }, [activeTab, submissions, leadsList, users, timeFilter]);
+  }, [activeTab, timeFilter, customStartDate, customEndDate]);
 
 
   // ────────────────────────────────────────────────────────────
@@ -965,6 +965,47 @@ export default function AdminDashboard({
   const [aiWeightDifficulty, setAiWeightDifficulty] = useState(70);
   const [aiWeightWeakness, setAiWeightWeakness] = useState(85);
   const [aiWeightRoadmap, setAiWeightRoadmap] = useState(90);
+
+  // System Settings States
+  const [systemSettings, setSystemSettings] = useState([]);
+  const [loadingSettings, setLoadingSettings] = useState(false);
+  const [savingSettings, setSavingSettings] = useState(false);
+  const [formSettings, setFormSettings] = useState({
+    FREE_AI_QUESTION_LIMIT: '20',
+    MAX_UPLOAD_SIZE_MB: '50',
+    PREMIUM_MONTHLY_PRICE: '199000',
+    PREMIUM_YEARLY_PRICE: '1990000',
+    LOG_SYNC_INTERVAL_MINUTES: '5',
+    LOG_RETENTION_DAYS: '7'
+  });
+
+  const fetchSystemSettings = async () => {
+    setLoadingSettings(true);
+    try {
+      const { api } = await import('../api');
+      const data = await api.getAdminSystemSettings();
+      if (data) {
+        setSystemSettings(data);
+        const formUpdates = {};
+        data.forEach(item => {
+          if (item.type !== 'BOOLEAN') {
+            formUpdates[item.key] = item.value;
+          }
+        });
+        setFormSettings(prev => ({ ...prev, ...formUpdates }));
+      }
+    } catch (err) {
+      toast(`Lỗi khi tải cấu hình hệ thống: ${err.message || err}`, 'error');
+    } finally {
+      setLoadingSettings(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'features') {
+      fetchSystemSettings();
+    }
+  }, [activeTab]);
 
   // Role upgrade requests and Payouts states
   const [roleRequests, setRoleRequests] = useState([]);
@@ -3484,157 +3525,345 @@ export default function AdminDashboard({
           )}
 
           {/* ==========================================
-              TAB: FEATURE FLAGS & AI ALGORITHM CONFIG
+              TAB: SYSTEM SETTINGS MANAGEMENT (QUẢN LÝ CHỨC NĂNG & THÔNG SỐ HỆ THỐNG)
               ========================================== */}
-          {activeTab === 'features' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-              <div className="admin-card" style={{ marginBottom: 0 }}>
-                <div style={{ marginBottom: '24px' }}>
-                  <h2 style={{ fontSize: '20px', fontWeight: '800', marginBottom: '8px' }}>
-                    ⚙️ QUẢN LÝ CÁC CHỨC NĂNG HỆ THỐNG (FEATURE FLAGS)
+          {activeTab === 'features' && (() => {
+            const getFriendlySettingName = (key) => {
+              switch (key) {
+                case 'AI_ENABLED':
+                  return 'Kích hoạt Trợ lý ảo AI Coach';
+                case 'REGISTRATION_ENABLED':
+                  return 'Cho phép Đăng ký tài khoản';
+                case 'PAYMENT_ENABLED':
+                  return 'Kích hoạt Cổng thanh toán';
+                case 'COURSE_CREATION_ENABLED':
+                  return 'Cho phép Tạo khóa học mới';
+                case 'MAINTENANCE_MODE':
+                  return 'Chế độ Bảo trì hệ thống';
+                case 'FREE_AI_QUESTION_LIMIT':
+                  return 'Lượt hỏi AI miễn phí / ngày';
+                case 'MAX_UPLOAD_SIZE_MB':
+                  return 'Dung lượng tải lên tối đa (MB)';
+                case 'PREMIUM_MONTHLY_PRICE':
+                  return 'Giá Premium theo tháng (VND)';
+                case 'PREMIUM_YEARLY_PRICE':
+                  return 'Giá Premium theo năm (VND)';
+                case 'LOG_SYNC_INTERVAL_MINUTES':
+                  return 'Chu kỳ đồng bộ log (phút)';
+                case 'LOG_RETENTION_DAYS':
+                  return 'Số ngày lưu log trong DB';
+                default:
+                  return key;
+              }
+            };
+
+            return (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
+                
+                {/* Header Tab */}
+                <div style={{
+                  background: 'linear-gradient(135deg, #6C5CE7 0%, #a29bfe 100%)',
+                  padding: '24px',
+                  borderRadius: '16px',
+                  color: '#fff',
+                  boxShadow: '0 10px 25px rgba(108, 92, 227, 0.15)',
+                  border: '2px solid #000'
+                }}>
+                  <h2 style={{ fontSize: '22px', fontWeight: '900', marginBottom: '8px', color: '#fff', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    ⚙️ Cấu Hình Hệ Thống & Quản Lý Chức Năng Admin
                   </h2>
-                  <p style={{ fontSize: '13px', color: '#666', fontWeight: '600' }}>
-                    Bật hoặc tắt các module chức năng chính hiển thị cho học viên trên hệ thống. 
-                    Các thay đổi sẽ có hiệu lực ngay lập tức đối với người dùng cuối.
+                  <p style={{ fontSize: '13.5px', opacity: 0.9, margin: 0, fontWeight: '500' }}>
+                    Kiểm soát bật/tắt các module tính năng trực quan và thay đổi các tham số giới hạn, định giá Premium tại thời gian chạy (runtime) mà không cần cấu hình file .env hay khởi động lại máy chủ.
                   </p>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
-                  {(featureFlags || []).map(flag => (
-                    <div 
-                      key={flag.id} 
-                      className="admin-card" 
-                      style={{ 
-                        display: 'flex', 
-                        flexDirection: 'column', 
-                        justifyContent: 'space-between', 
-                        padding: '20px',
-                        border: '3px solid #000000',
-                        boxShadow: '4px 4px 0px #000000',
-                        borderRadius: '12px',
-                        background: '#FFFFFF',
-                        marginBottom: 0
-                      }}
-                    >
-                      <div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                          <span style={{ fontSize: '16px', fontWeight: '800' }}>
-                            {flag.name}
-                          </span>
-                          <span 
-                            style={{
-                              padding: '4px 10px',
-                              border: '2px solid #000000',
-                              borderRadius: '6px',
-                              fontSize: '11px',
-                              fontWeight: '800',
-                              background: flag.isEnabled ? '#D1FAE5' : '#FEE2E2',
-                              color: '#000000',
-                              boxShadow: '1px 1px 0px #000000'
-                            }}
-                          >
-                            {flag.isEnabled ? 'ĐANG BẬT' : 'ĐANG TẮT'}
-                          </span>
-                        </div>
-                        <p style={{ fontSize: '12px', color: '#777', fontWeight: '600', marginBottom: '16px' }}>
-                          Mã định danh: <code style={{ background: '#F3F4F6', padding: '2px 6px', borderRadius: '4px', border: '1px solid #E5E7EB' }}>{flag.id}</code>
+                {loadingSettings ? (
+                  <div style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '60px',
+                    background: '#fff',
+                    border: '2px solid #000',
+                    borderRadius: '16px',
+                    boxShadow: '4px 4px 0px #000'
+                  }}>
+                    <div className="spin" style={{ fontSize: '40px', marginBottom: '16px' }}>⚙️</div>
+                    <span style={{ fontWeight: '800', fontSize: '16px' }}>Đang nạp dữ liệu cấu hình từ Database...</span>
+                  </div>
+                ) : (
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '28px' }}>
+                    
+                    {/* NHÓM 1: BẬT / TẮT CHỨC NĂNG HỆ THỐNG */}
+                    <div className="admin-card" style={{ marginBottom: 0, border: '2.5px solid #000', borderRadius: '16px', padding: '24px', background: '#fff' }}>
+                      <div style={{ borderBottom: '2px solid #F3F4F6', paddingBottom: '16px', marginBottom: '20px' }}>
+                        <h3 style={{ fontSize: '18px', fontWeight: '800', margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          🟢 Nhóm 1: Bật/Tắt Chức Năng Hệ Thống (Feature Switches)
+                        </h3>
+                        <p style={{ fontSize: '12px', color: '#666', margin: '4px 0 0 0', fontWeight: '600' }}>
+                          Các tính năng dưới đây áp dụng trực tiếp lên trải nghiệm người dùng cuối ngay khi thay đổi.
                         </p>
                       </div>
 
-                      <button
-                        onClick={async () => {
-                          try {
-                            const { api } = await import('../api');
-                            const updated = await api.toggleFeatureFlag(flag.id, !flag.isEnabled);
-                            if (updated) {
-                              setFeatureFlags(prev => prev.map(f => f.id === flag.id ? { ...f, isEnabled: updated.isEnabled } : f));
-                              toast(`Đã ${updated.isEnabled ? 'bật' : 'tắt'} chức năng "${flag.name}" thành công!`, 'success');
-                              if (addLog) addLog(`[ADMIN] Đã ${updated.isEnabled ? 'bật' : 'tắt'} chức năng ${flag.id}`, 'info');
-                            }
-                          } catch (err) {
-                            toast(`Lỗi khi cập nhật trạng thái chức năng: ${err.message}`, 'error');
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px' }}>
+                        {systemSettings.filter(s => s.type === 'BOOLEAN').map(setting => {
+                          const isEnabled = setting.value === 'true';
+                          
+                          return (
+                            <div 
+                              key={setting.key} 
+                              style={{ 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                justifyContent: 'space-between',
+                                padding: '16px 20px',
+                                border: '2px solid #000',
+                                borderRadius: '12px',
+                                background: '#FCFBFA',
+                                boxShadow: '2px 2px 0px #000',
+                                transition: 'all 0.2s'
+                              }}
+                            >
+                              <div style={{ marginRight: '16px' }}>
+                                <div style={{ fontSize: '14.5px', fontWeight: '800', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                                  <span>{getFriendlySettingName(setting.key)}</span>
+                                  <span style={{ fontSize: '10px', color: '#6B7280', fontFamily: 'monospace', background: '#E5E7EB', padding: '1px 5px', borderRadius: '4px', fontWeight: 'normal' }}>
+                                    {setting.key}
+                                  </span>
+                                  {setting.key === 'MAINTENANCE_MODE' && isEnabled && (
+                                    <span style={{ fontSize: '10px', background: '#F59E0B', color: '#fff', padding: '2px 6px', borderRadius: '4px', border: '1px solid #000', fontWeight: 'bold' }}>
+                                      ĐANG BẢO TRÌ
+                                    </span>
+                                  )}
+                                </div>
+                                <div style={{ fontSize: '11px', color: '#6B7280', fontWeight: '600', lineHeight: 1.3 }}>
+                                  {setting.description || 'Không có mô tả chi tiết cho cấu hình này.'}
+                                </div>
+                              </div>
+
+                              {/* Premium Toggle Switch */}
+                              <div 
+                                onClick={async () => {
+                                  const nextVal = isEnabled ? 'false' : 'true';
+                                  if (window.confirm(`Bạn có chắc chắn muốn ${isEnabled ? 'TẮT' : 'BẬT'} cấu hình "${getFriendlySettingName(setting.key)}"?`)) {
+                                    try {
+                                      const { api } = await import('../api');
+                                      const res = await api.updateAdminSystemSettings([{ key: setting.key, value: nextVal }]);
+                                      if (res) {
+                                        toast(`Đã cập nhật cấu hình ${getFriendlySettingName(setting.key)} thành công!`, 'success');
+                                        setSystemSettings(prev => prev.map(s => s.key === setting.key ? { ...s, value: nextVal } : s));
+                                        if (addLog) addLog(`[ADMIN] Bật/tắt cấu hình ${setting.key} = ${nextVal}`, 'info');
+                                      }
+                                    } catch (err) {
+                                      toast(`Lỗi cập nhật cấu hình: ${err.message}`, 'error');
+                                    }
+                                  }
+                                }}
+                                style={{
+                                  width: '56px',
+                                  height: '28px',
+                                  borderRadius: '14px',
+                                  background: isEnabled ? 'linear-gradient(135deg, #10B981, #059669)' : '#D1D5DB',
+                                  position: 'relative',
+                                  cursor: 'pointer',
+                                  transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+                                  boxShadow: isEnabled ? '0 4px 10px rgba(16, 185, 129, 0.25)' : 'none',
+                                  border: '2px solid #000',
+                                  flexShrink: 0
+                                }}
+                              >
+                                <div style={{
+                                  width: '20px',
+                                  height: '20px',
+                                  borderRadius: '50%',
+                                  background: '#FFFFFF',
+                                  position: 'absolute',
+                                  top: '2px',
+                                  left: isEnabled ? '30px' : '2px',
+                                  transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+                                  border: '1.5px solid #000'
+                                }} />
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* NHÓM 2: CẤU HÌNH THÔNG SỐ HỆ THỐNG */}
+                    <div className="admin-card" style={{ marginBottom: 0, border: '2.5px solid #000', borderRadius: '16px', padding: '24px', background: '#fff' }}>
+                      <div style={{ borderBottom: '2px solid #F3F4F6', paddingBottom: '16px', marginBottom: '20px' }}>
+                        <h3 style={{ fontSize: '18px', fontWeight: '800', margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          🛠️ Nhóm 2: Cấu Hân Tham Số Hệ Thống & Giới Hạn (System Parameters)
+                        </h3>
+                        <p style={{ fontSize: '12px', color: '#666', margin: '4px 0 0 0', fontWeight: '600' }}>
+                          Điều chỉnh các hạn mức vận hành, thời gian chu kỳ hoặc biểu phí thanh toán Premium trực quan.
+                        </p>
+                      </div>
+
+                      <form onSubmit={async (e) => {
+                        e.preventDefault();
+                        setSavingSettings(true);
+
+                        // Client-side Validations
+                        const freeLimit = Number(formSettings.FREE_AI_QUESTION_LIMIT);
+                        if (isNaN(freeLimit) || freeLimit < 0) {
+                          toast('Số câu hỏi AI miễn phí phải lớn hơn hoặc bằng 0!', 'error');
+                          setSavingSettings(false);
+                          return;
+                        }
+
+                        const uploadLimit = Number(formSettings.MAX_UPLOAD_SIZE_MB);
+                        if (isNaN(uploadLimit) || uploadLimit < 1 || uploadLimit > 500) {
+                          toast('Dung lượng upload cho phép phải từ 1 đến 500MB!', 'error');
+                          setSavingSettings(false);
+                          return;
+                        }
+
+                        const monthlyPrice = Number(formSettings.PREMIUM_MONTHLY_PRICE);
+                        if (isNaN(monthlyPrice) || monthlyPrice <= 0) {
+                          toast('Giá Premium theo tháng phải lớn hơn 0 VND!', 'error');
+                          setSavingSettings(false);
+                          return;
+                        }
+
+                        const yearlyPrice = Number(formSettings.PREMIUM_YEARLY_PRICE);
+                        if (isNaN(yearlyPrice) || yearlyPrice <= 0) {
+                          toast('Giá Premium theo năm phải lớn hơn 0 VND!', 'error');
+                          setSavingSettings(false);
+                          return;
+                        }
+
+                        const logInterval = Number(formSettings.LOG_SYNC_INTERVAL_MINUTES);
+                        if (isNaN(logInterval) || logInterval < 1 || logInterval > 60) {
+                          toast('Chu kỳ đồng bộ Google Sheet phải từ 1 đến 60 phút!', 'error');
+                          setSavingSettings(false);
+                          return;
+                        }
+
+                        const logRetention = Number(formSettings.LOG_RETENTION_DAYS);
+                        if (isNaN(logRetention) || logRetention < 1) {
+                          toast('Số ngày lưu System Log phải từ 1 ngày trở lên!', 'error');
+                          setSavingSettings(false);
+                          return;
+                        }
+
+                        try {
+                          const { api } = await import('../api');
+                          const updates = Object.keys(formSettings).map(key => ({
+                            key,
+                            value: String(formSettings[key])
+                          }));
+
+                          const res = await api.updateAdminSystemSettings(updates);
+                          if (res) {
+                            toast('Đã lưu các thông số cấu hình hệ thống thành công!', 'success');
+                            if (addLog) addLog(`[ADMIN] Đã cập nhật hàng loạt tham số cấu hình hệ thống`, 'info');
+                            fetchSystemSettings(); // Refresh
                           }
-                        }}
-                        className="admin-back-btn"
-                        style={{
-                          width: '100%',
-                          background: flag.isEnabled ? '#EF4444' : '#10B981',
-                          color: '#FFFFFF',
-                          border: '3px solid #000000',
-                          boxShadow: '3px 3px 0px #000000',
-                          fontWeight: '800',
-                          cursor: 'pointer',
-                          padding: '10px',
-                          borderRadius: '8px'
-                        }}
-                      >
-                        {flag.isEnabled ? 'Tắt chức năng' : 'Bật chức năng'}
-                      </button>
+                        } catch (err) {
+                          toast(`Lưu cấu hình thất bại: ${err.message}`, 'error');
+                        } finally {
+                          setSavingSettings(false);
+                        }
+                      }}>
+                        
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '24px', marginBottom: '28px' }}>
+                          {systemSettings.filter(s => s.type !== 'BOOLEAN').map(setting => {
+                            return (
+                              <div key={setting.key} className="admin-form-group" style={{ marginBottom: 0 }}>
+                                <label style={{ fontSize: '13.5px', fontWeight: '800', display: 'block', marginBottom: '6px' }}>
+                                  {getFriendlySettingName(setting.key)}{' '}
+                                  <span style={{ color: '#6B7280', fontSize: '11px', fontFamily: 'monospace', fontWeight: 'normal', background: '#E5E7EB', padding: '1px 5px', borderRadius: '4px' }}>
+                                    {setting.key}
+                                  </span>
+                                </label>
+                                
+                                <input
+                                  type="text"
+                                  className="admin-input"
+                                  value={formSettings[setting.key] || ''}
+                                  onChange={(e) => setFormSettings(prev => ({ ...prev, [setting.key]: e.target.value }))}
+                                  style={{
+                                    width: '100%',
+                                    padding: '10px 12px',
+                                    fontSize: '14px',
+                                    border: '2px solid #000',
+                                    borderRadius: '8px',
+                                    outline: 'none',
+                                    background: '#fff',
+                                    boxShadow: 'inset 2px 2px 0px rgba(0,0,0,0.05)'
+                                  }}
+                                />
+
+                                <span style={{ fontSize: '11px', color: '#666', display: 'block', marginTop: '4px', fontWeight: '500' }}>
+                                  {setting.description}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* Action buttons */}
+                        <div style={{ display: 'flex', gap: '16px', borderTop: '2px solid #F3F4F6', paddingTop: '20px' }}>
+                          <button
+                            type="submit"
+                            className="admin-back-btn"
+                            disabled={savingSettings}
+                            style={{
+                              background: '#6C5CE7',
+                              color: '#fff',
+                              border: '2.5px solid #000',
+                              boxShadow: '3px 3px 0px #000',
+                              padding: '12px 28px',
+                              fontWeight: '800',
+                              cursor: 'pointer',
+                              borderRadius: '8px'
+                            }}
+                          >
+                            {savingSettings ? 'Đang lưu thay đổi...' : '💾 Lưu thay đổi thông số'}
+                          </button>
+                          
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (window.confirm('Bạn có chắc chắn muốn khôi phục toàn bộ thông số cấu hình về giá trị mặc định ban đầu?')) {
+                                setFormSettings({
+                                  FREE_AI_QUESTION_LIMIT: '20',
+                                  MAX_UPLOAD_SIZE_MB: '50',
+                                  PREMIUM_MONTHLY_PRICE: '199000',
+                                  PREMIUM_YEARLY_PRICE: '1990000',
+                                  LOG_SYNC_INTERVAL_MINUTES: '5',
+                                  LOG_RETENTION_DAYS: '7'
+                                });
+                                toast('Đã nạp các giá trị mặc định. Hãy nhấn "Lưu thay đổi" để áp dụng!', 'info');
+                              }
+                            }}
+                            className="admin-back-btn"
+                            style={{
+                              background: '#F3F4F6',
+                              color: '#000',
+                              border: '2.5px solid #000',
+                              boxShadow: '3px 3px 0px #000',
+                              padding: '12px 28px',
+                              fontWeight: '800',
+                              cursor: 'pointer',
+                              borderRadius: '8px'
+                            }}
+                          >
+                            🔄 Khôi phục mặc định
+                          </button>
+                        </div>
+
+                      </form>
                     </div>
-                  ))}
-                  {(featureFlags || []).length === 0 && (
-                    <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '40px', background: '#FCFBFA', border: '2px dashed #000000', borderRadius: '12px' }}>
-                      <span style={{ fontSize: '28px' }}>⚙️</span>
-                      <p style={{ fontWeight: '800', marginTop: '10px' }}>Không có chức năng nào để thiết lập.</p>
-                    </div>
-                  )}
-                </div>
+
+                  </div>
+                )}
               </div>
-
-              {/* AI Algorithm configuration card */}
-              <div className="admin-card" style={{ maxWidth: '600px', marginBottom: 0 }}>
-                <h3 className="chart-card-title">Cấu hình tham số thuật toán AI thích ứng</h3>
-                <p style={{ fontSize: '13px', color: '#7A7A7A', marginBottom: '20px', fontWeight: '700' }}>
-                  Điều chỉnh trọng số ưu tiên của hệ thống AI khi quét lỗ hổng kiến thức và đề xuất bài tập tự động cho học viên.
-                </p>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginBottom: '24px' }}>
-                  <div className="admin-form-group">
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', fontWeight: '800', marginBottom: '4px' }}>
-                      <span>Độ ưu tiên Độ khó câu hỏi sai:</span>
-                      <span style={{ color: '#6c5ce7' }}>{aiWeightDifficulty}%</span>
-                    </div>
-                    <input
-                      type="range" min="0" max="100"
-                      value={aiWeightDifficulty}
-                      onChange={e => setAiWeightDifficulty(e.target.value)}
-                      style={{ width: '100%', accentColor: '#6c5ce7' }}
-                    />
-                  </div>
-
-                  <div className="admin-form-group">
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', fontWeight: '800', marginBottom: '4px' }}>
-                      <span>Độ nhạy phân tích Điểm yếu:</span>
-                      <span style={{ color: '#6c5ce7' }}>{aiWeightWeakness}%</span>
-                    </div>
-                    <input
-                      type="range" min="0" max="100"
-                      value={aiWeightWeakness}
-                      onChange={e => setAiWeightWeakness(e.target.value)}
-                      style={{ width: '100%', accentColor: '#6c5ce7' }}
-                    />
-                  </div>
-
-                  <div className="admin-form-group">
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', fontWeight: '800', marginBottom: '4px' }}>
-                      <span>Tốc độ thay đổi Lộ trình học (Roadmap Adjust Rate):</span>
-                      <span style={{ color: '#6c5ce7' }}>{aiWeightRoadmap}%</span>
-                    </div>
-                    <input
-                      type="range" min="0" max="100"
-                      value={aiWeightRoadmap}
-                      onChange={e => setAiWeightRoadmap(e.target.value)}
-                      style={{ width: '100%', accentColor: '#6c5ce7' }}
-                    />
-                  </div>
-                </div>
-
-                <button className="admin-back-btn" onClick={handleUpdateAIWeights} style={{ background: '#1C2B17', color: '#FFFFFF' }}>
-                  Lưu cấu hình tham số AI
-                </button>
-              </div>
-            </div>
-          )}
+            );
+          })()}
 
           {activeTab === 'moderation' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>

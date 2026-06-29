@@ -84,7 +84,11 @@ async function request(path, options = {}) {
 
   const data = await res.json().catch(() => ({}));
   if (!res.ok || !data.success) {
+    if (res.status === 503 || (data.error && data.error.toLowerCase().includes('bảo trì'))) {
+      window.dispatchEvent(new CustomEvent('edupath-maintenance'));
+    }
     const err = new Error(data.error || `Lỗi ${res.status}`);
+    err.status = res.status;
     err.data = data.data || null;
     throw err;
   }
@@ -551,7 +555,10 @@ export const api = {
   getHighestScoreLeaderboard: (subject) => request(`/gamification/score-leaderboard?subject=${subject}`),
   getEffortLeaderboard: () => request('/gamification/effort-leaderboard'),
   logAttendance: (activity) => request('/gamification/attendance', { method: 'POST', body: { activity } }),
-  getAttendanceHistory: (startDate, endDate) => request(`/gamification/attendance?startDate=${startDate}&endDate=${endDate}`)
+  getAttendanceHistory: (startDate, endDate) => request(`/gamification/attendance?startDate=${startDate}&endDate=${endDate}`),
+  
+  getAdminSystemSettings: () => request('/admin/system-settings', { method: 'GET' }),
+  updateAdminSystemSettings: (settings) => request('/admin/system-settings', { method: 'PUT', body: { settings } })
 };
 
 

@@ -999,6 +999,7 @@ export default function App() {
   const [theme, setTheme] = useState(() => localStorage.getItem('app_theme') || 'light');
   const [activeTab, setActiveTab] = useState('home');
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isMaintenanceActive, setIsMaintenanceActive] = useState(false);
 
   // Custom SPA Router State
   const [currentPath, setCurrentPath] = useState(window.location.pathname);
@@ -1014,24 +1015,40 @@ export default function App() {
       handleLogout();
       showToast.current?.('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!', 'warning');
     };
+    const handleMaintenance = () => {
+      const savedUser = JSON.parse(localStorage.getItem('current_user') || 'null');
+      if (savedUser?.role !== 'admin' && savedUser?.role !== 'ADMIN') {
+        setIsMaintenanceActive(true);
+        if (savedUser) {
+          handleLogout();
+        }
+      }
+    };
     window.addEventListener('popstate', handlePopState);
     window.addEventListener('edupath-auth-redirect', handleAuthRedirect);
     window.addEventListener('edupath-auth-logout', handleAuthLogout);
+    window.addEventListener('edupath-maintenance', handleMaintenance);
     return () => {
       window.removeEventListener('popstate', handlePopState);
       window.removeEventListener('edupath-auth-redirect', handleAuthRedirect);
       window.removeEventListener('edupath-auth-logout', handleAuthLogout);
+      window.removeEventListener('edupath-maintenance', handleMaintenance);
     };
   }, []);
 
   // Sync role with currentUser state changes
   useEffect(() => {
     if (currentUser) {
-      setRole(currentUser.role.toLowerCase());
+      const uRole = currentUser.role.toLowerCase();
+      setRole(uRole);
+      if (isMaintenanceActive && uRole !== 'admin') {
+        handleLogout();
+        showToast.current?.('Hệ thống đang bảo trì. Chỉ Quản trị viên mới được phép truy cập!', 'warning');
+      }
     } else {
       setRole('guest');
     }
-  }, [currentUser]);
+  }, [currentUser, isMaintenanceActive]);
 
   // Verify JWT and sync profile with backend on page load
   useEffect(() => {
@@ -2079,6 +2096,160 @@ export default function App() {
   });
 
   const activeUserSubmissions = submissions.filter(s => s.email === currentUser?.email);
+
+  if (isMaintenanceActive && activeTab !== 'login') {
+    const savedUser = JSON.parse(localStorage.getItem('current_user') || 'null');
+    if (savedUser?.role !== 'admin' && savedUser?.role !== 'ADMIN') {
+      return (
+        <div style={{
+          minHeight: '100vh',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: 'linear-gradient(135deg, #0f0c1b 0%, #1e1b4b 100%)',
+          color: '#FFFFFF',
+          fontFamily: "'Inter', sans-serif",
+          textAlign: 'center',
+          padding: '20px'
+        }}>
+          <div style={{
+            background: 'rgba(255, 255, 255, 0.03)',
+            backdropFilter: 'blur(16px)',
+            border: '2px solid rgba(255, 255, 255, 0.1)',
+            padding: '48px',
+            borderRadius: '24px',
+            boxShadow: '0 20px 50px rgba(0, 0, 0, 0.3)',
+            maxWidth: '540px',
+            width: '100%',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center'
+          }}>
+            {/* Animated gear or icon */}
+            <div style={{
+              fontSize: '80px',
+              animation: 'spin 4s linear infinite',
+              marginBottom: '24px',
+              filter: 'drop-shadow(0 0 20px rgba(108, 92, 227, 0.5))'
+            }}>
+              ⚙️
+            </div>
+            
+            <h1 style={{
+              fontSize: '28px',
+              fontWeight: '900',
+              marginBottom: '16px',
+              background: 'linear-gradient(135deg, #a29bfe 0%, #6c5ce7 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              letterSpacing: '-0.5px'
+            }}>
+              Hệ Thống Đang Bảo Trì
+            </h1>
+            
+            <p style={{
+              fontSize: '15px',
+              color: '#cbd5e1',
+              lineHeight: 1.6,
+              marginBottom: '28px',
+              fontWeight: '500'
+            }}>
+              Chúng tôi hiện đang nâng cấp và tối ưu hóa hệ thống để mang lại trải nghiệm tốt nhất cho bạn. Vui lòng quay lại sau ít phút.
+            </p>
+
+            <div style={{
+              width: '100%',
+              height: '4px',
+              background: 'rgba(255, 255, 255, 0.08)',
+              borderRadius: '2px',
+              marginBottom: '28px',
+              position: 'relative',
+              overflow: 'hidden'
+            }}>
+              <div style={{
+                position: 'absolute',
+                height: '100%',
+                width: '50%',
+                background: 'linear-gradient(90deg, #a29bfe, #6c5ce7)',
+                borderRadius: '2px',
+                animation: 'loadingProgress 2s ease-in-out infinite'
+              }} />
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%' }}>
+              <button 
+                onClick={() => window.location.reload()}
+                style={{
+                  padding: '12px 24px',
+                  background: '#6C5CE7',
+                  color: '#FFFFFF',
+                  border: 'none',
+                  borderRadius: '12px',
+                  fontWeight: '800',
+                  cursor: 'pointer',
+                  boxShadow: '0 8px 20px rgba(108, 92, 227, 0.3)',
+                  transition: 'all 0.2s',
+                  outline: 'none'
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                  e.currentTarget.style.boxShadow = '0 12px 24px rgba(108, 92, 227, 0.4)';
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.transform = 'none';
+                  e.currentTarget.style.boxShadow = '0 8px 20px rgba(108, 92, 227, 0.3)';
+                }}
+              >
+                🔄 Tải lại trang
+              </button>
+
+              <button 
+                onClick={() => {
+                  setActiveTab('login');
+                  navigateTo('/login');
+                }}
+                style={{
+                  padding: '10px 24px',
+                  background: 'transparent',
+                  color: '#a29bfe',
+                  border: '2px solid rgba(162, 155, 254, 0.3)',
+                  borderRadius: '12px',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  outline: 'none',
+                  fontSize: '13px'
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.background = 'rgba(162, 155, 254, 0.1)';
+                  e.currentTarget.style.borderColor = 'rgba(162, 155, 254, 0.6)';
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.background = 'transparent';
+                  e.currentTarget.style.borderColor = 'rgba(162, 155, 254, 0.3)';
+                }}
+              >
+                🔑 Đăng nhập dành cho Quản trị viên
+              </button>
+            </div>
+          </div>
+
+          <style dangerouslySetInnerHTML={{__html: `
+            @keyframes spin {
+              0% { transform: rotate(0deg); }
+              100% { transform: rotate(360deg); }
+            }
+            @keyframes loadingProgress {
+              0% { left: -50%; }
+              50% { left: 25%; }
+              100% { left: 100%; }
+            }
+          `}} />
+        </div>
+      );
+    }
+  }
 
   return (
     <div className="app-layout">

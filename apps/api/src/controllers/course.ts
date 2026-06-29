@@ -95,11 +95,17 @@ export async function getCourseById(req: AuthRequest, res: Response) {
   }
 }
 
+import { SystemSettingService } from '../services/systemSetting.service.js';
+
 export async function createCourse(req: AuthRequest, res: Response) {
   const { title, description, subject, price, discount, thumbnailUrl, grade, level } = req.body;
   const teacherId = req.user?.id;
 
   if (!teacherId) return res.status(401).json({ success: false, error: 'Chưa xác thực!' });
+
+  if (!SystemSettingService.getBoolean('COURSE_CREATION_ENABLED')) {
+    return res.status(403).json({ success: false, error: 'Tính năng tạo khóa học mới hiện đang tạm khóa.' });
+  }
 
   try {
     // Check if Teacher is approved

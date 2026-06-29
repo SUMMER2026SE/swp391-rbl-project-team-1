@@ -4,6 +4,7 @@ import crypto from 'crypto';
 import { prisma } from '../lib/prisma.js';
 import { addBothRevenue } from '../lib/monthlyStats.js';
 import { logSystemEvent } from '../utils/logger.js';
+import { SystemSettingService } from '../services/systemSetting.service.js';
 
 
 const VNPAY_TMN_CODE = process.env.VNPAY_TMN_CODE || 'EDUPATH123';
@@ -474,6 +475,25 @@ export async function checkUserProStatus(req: AuthRequest, res: Response) {
       success: true,
       data: {
         isPro: user?.isPro || false
+      }
+    });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+}
+
+/**
+ * Lấy bảng giá gói nâng cấp Premium tài khoản từ settings
+ */
+export async function getPremiumPricing(req: any, res: Response) {
+  try {
+    const monthly = SystemSettingService.getNumber('PREMIUM_MONTHLY_PRICE') || 199000;
+    const yearly = SystemSettingService.getNumber('PREMIUM_YEARLY_PRICE') || 1990000;
+    return res.status(200).json({
+      success: true,
+      data: {
+        monthly,
+        yearly
       }
     });
   } catch (err: any) {

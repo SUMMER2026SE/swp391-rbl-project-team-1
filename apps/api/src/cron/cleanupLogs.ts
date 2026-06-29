@@ -1,6 +1,8 @@
 import cron from 'node-cron';
 import { prisma } from '../lib/prisma.js';
 
+import { SystemSettingService } from '../services/systemSetting.service.js';
+
 export function startLogCleanupJob() {
   const cronExpr = '0 2 * * *'; // Run daily at 02:00 AM
 
@@ -9,7 +11,7 @@ export function startLogCleanupJob() {
   cron.schedule(cronExpr, async () => {
     console.log('[Cron] Starting Database Log Cleanup...');
     try {
-      const retentionDays = parseInt(process.env.LOG_RETENTION_DAYS || '7', 10);
+      const retentionDays = SystemSettingService.getNumber('LOG_RETENTION_DAYS') || 7;
       const cutoffDate = new Date();
       cutoffDate.setDate(cutoffDate.getDate() - retentionDays);
 

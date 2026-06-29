@@ -2,13 +2,25 @@ import cron from 'node-cron';
 import { prisma } from '../lib/prisma.js';
 import { GoogleSheetService } from '../services/googleSheet.service.js';
 
-export function startLogSyncJob() {
-  const intervalMinutes = parseInt(process.env.LOG_SYNC_INTERVAL_MINUTES || '5', 10);
-  const cronExpr = `*/${intervalMinutes} * * * *`;
+import { SystemSettingService } from '../services/systemSetting.service.js';
 
-  console.log(`[Cron] Initializing System Log Sync job with schedule: "${cronExpr}"`);
+let lastSyncTime = 0;
+
+export function startLogSyncJob() {
+  const cronExpr = `* * * * *`; // Run every minute to check dynamic interval
+
+  console.log(`[Cron] Initializing System Log Sync job with dynamic check`);
 
   cron.schedule(cronExpr, async () => {
+    const now = Date.now();
+    const intervalMinutes = SystemSettingService.getNumber('LOG_SYNC_INTERVAL_MINUTES') || 5;
+    const intervalMs = intervalMinutes * 60 * 1000;
+
+    if (now - lastSyncTime < intervalMs) {
+      return; // Not time to sync yet
+    }
+
+    lastSyncTime = now;
     console.log('[Cron] Starting System Log Sync to Google Drive/Sheets...');
     try {
       // 1. Lấy toàn bộ các log chưa được đồng bộ kèm thông tin user
