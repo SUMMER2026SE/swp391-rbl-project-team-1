@@ -1099,6 +1099,7 @@ async function callOpenRouter(prompt: string, maxTokens = 1500, temp = 0.5) {
     })
   });
 
+  let responseText = '';
   if (!response.ok) {
     const errText = await response.text();
     
@@ -1122,11 +1123,13 @@ async function callOpenRouter(prompt: string, maxTokens = 1500, temp = 0.5) {
           max_tokens: maxTokens
         })
       });
+    } else {
+      responseText = errText;
     }
   }
 
   if (!response.ok) {
-    const errText = await response.text();
+    const errText = responseText || (await response.text());
     const isTimeout = response.status === 408 || errText.includes('timeout') || errText.includes('Timeout');
     await logSystemEvent(null, {
       type: 'SYSTEM',
