@@ -642,6 +642,14 @@ export default function StudentDashboard({ currentUser, setActiveTab, navigateTo
             <span>Chuỗi học tập</span>
           </button>
 
+          <button 
+            className={`sdb-menu-item ${currentTab === 'leaderboard' ? 'active' : ''}`}
+            onClick={() => navigateTo('/user/leaderboard')}
+          >
+            <span className="sdb-menu-icon"><HiTrophy /></span>
+            <span>Bảng xếp hạng</span>
+          </button>
+
           {/* CÁ NHÂN */}
           <div className="sdb-menu-category-title">Cá nhân</div>
           <button 

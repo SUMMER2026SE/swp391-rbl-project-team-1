@@ -27,6 +27,7 @@ import ChatbotWidget from './components/ChatbotWidget.jsx';
 import OCRScanner from './components/OCRScanner.jsx';
 import StudentDashboard from './components/dashboard/StudentDashboard';
 import ContributionHeatmap from './components/ContributionHeatmap';
+import LeaderboardTab from './components/LeaderboardTab';
 
 import CoursesPage from './pages/CoursesPage';
 import CourseDetailPage from './pages/CourseDetailPage';
@@ -599,7 +600,7 @@ const generateMassiveExamsList = (backendExams) => {
   return list;
 };
 
-function LeaderboardTab({ currentUser }) {
+function InlineLeaderboardTab({ currentUser }) {
   const [grade, setGrade] = useState('');
   const [subject, setSubject] = useState('');
   const [province, setProvince] = useState('');
@@ -1121,6 +1122,9 @@ export default function App() {
     if (currentPath === '/courses') {
       return { route: 'public-courses' };
     }
+    if (currentPath === '/leaderboard' || currentPath === '/leaderboard/') {
+      return { route: 'public-leaderboard' };
+    }
     const courseMatch = currentPath.match(/^\/courses\/(\d+)$/);
     if (courseMatch) {
       return { route: 'public-course-detail', courseId: courseMatch[1] };
@@ -1446,6 +1450,15 @@ export default function App() {
   useEffect(() => {
     if ((role === 'guest' || !currentUser) && (parsedRoute.route.startsWith('mock-') || parsedRoute.route.startsWith('public-mock-'))) {
       showToast.current?.('Vui lòng đăng nhập để sử dụng chức năng thi thử!', 'warning');
+      navigateTo('/');
+      setActiveTab('login');
+    }
+  }, [currentUser, role, parsedRoute.route]);
+
+  // Redirect guest users away from leaderboard
+  useEffect(() => {
+    if ((role === 'guest' || !currentUser) && parsedRoute.route === 'public-leaderboard') {
+      showToast.current?.('Vui lòng đăng nhập để xem bảng xếp hạng học tập!', 'warning');
       navigateTo('/');
       setActiveTab('login');
     }
@@ -2531,6 +2544,7 @@ export default function App() {
                   else if (tab === 'forum') navigateTo('/user/forum');
                   else if (tab === 'documents') navigateTo('/user/documents');
                   else if (tab === 'streak') navigateTo('/user/streak');
+                  else if (tab === 'leaderboard') navigateTo('/user/leaderboard');
                   else if (tab === 'settings') navigateTo('/user/settings');
                   else navigateTo('/user/home');
                 }}
@@ -2567,13 +2581,13 @@ export default function App() {
 
               {/* Leaderboard tab */}
               {parsedRoute.tab === 'leaderboard' && (
-                <div className="card animate-in" style={{ border: '3px solid #000', boxShadow: '5px 5px 0px #000', padding: '28px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2.5px solid #000', paddingBottom: '16px', marginBottom: '20px' }}>
+                <div className="card animate-in" style={{ border: '1px solid #2C3241', boxShadow: 'var(--shadow-md)', padding: '28px', background: '#1C202B', borderRadius: '16px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #2C3241', paddingBottom: '16px', marginBottom: '20px' }}>
                     <div>
-                      <h3 style={{ fontSize: '20px', fontWeight: '950', color: '#000', margin: 0 }}>
+                      <h3 style={{ fontSize: '20px', fontWeight: '950', color: '#FFF', margin: 0 }}>
                         🏆 BẢNG XẾP HẠNG HỌC VIÊN XUẤT SẮC
                       </h3>
-                      <p style={{ fontSize: '13px', color: '#6b7280', margin: '4px 0 0 0' }}>
+                      <p style={{ fontSize: '13px', color: '#9BA3B2', margin: '4px 0 0 0' }}>
                         Bảng vàng vinh danh những chiến thần học tập có phong độ cao nhất trên hệ thống EduPath.
                       </p>
                     </div>

@@ -832,13 +832,26 @@ export async function getUserGamificationProfile(req: AuthRequest, res: Response
     const prevLevelXP = gamify.level > 1 ? Math.floor(100 * Math.pow(gamify.level - 1, 1.5)) : 0;
     const progressPercent = Math.min(100, Math.round(((gamify.xp - prevLevelXP) / (nextLevelXP - prevLevelXP)) * 100));
 
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    let alreadyCheckedInToday = false;
+    if (gamify.lastActiveDate) {
+      const lastActive = new Date(gamify.lastActiveDate);
+      lastActive.setHours(0, 0, 0, 0);
+      if (lastActive.getTime() === today.getTime()) {
+        alreadyCheckedInToday = true;
+      }
+    }
+
     const result = {
       level: gamify.level,
       xp: gamify.xp,
       streakDays: gamify.streakDays,
       progress: progressPercent,
       nextLevelXP,
-      badges: (gamify.user.badges || []).map(ub => ub.badge)
+      badges: (gamify.user.badges || []).map(ub => ub.badge),
+      lastActiveDate: gamify.lastActiveDate,
+      alreadyCheckedInToday
     };
 
     return res.status(200).json({ success: true, data: result });
