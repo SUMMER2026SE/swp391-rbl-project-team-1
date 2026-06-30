@@ -2280,42 +2280,7 @@ export default function AITutorPage({ currentUser, navigateTo, addLog, hideHeade
                     {isFullscreen ? '🔍 Hiện Sidebar' : '🧘 Tập trung'}
                   </button>
 
-                  <button 
-                    className="canvas-action-pill"
-                    onClick={handleGenerateWeaknessMindmap}
-                    disabled={isGeneratingWeakness}
-                    style={{
-                      background: 'rgba(239, 68, 68, 0.12)',
-                      borderColor: 'rgba(239, 68, 68, 0.3)',
-                      color: '#EF4444'
-                    }}
-                    title="Phân tích lỗi sai & tạo sơ đồ lấp lỗ hổng kiến thức"
-                  >
-                    {isGeneratingWeakness ? (
-                      <><span className="spinner-mini" style={{ display: 'inline-block', width: '10px', height: '10px', border: '2px solid #ef4444', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.6s linear infinite', marginRight: '4px' }} /> Đang tạo...</>
-                    ) : (
-                      <>⚡ Sơ đồ vùng yếu</>
-                    )}
-                  </button>
 
-                  <button 
-                    className="canvas-action-pill"
-                    onClick={() => {
-                      setIsExamModalOpen(true);
-                      setExamText('');
-                      setExamFileUrl('');
-                      setExamFileType('');
-                      setUploadedFileId(null);
-                    }}
-                    style={{
-                      background: 'rgba(59, 130, 246, 0.12)',
-                      borderColor: 'rgba(59, 130, 246, 0.3)',
-                      color: '#3B82F6'
-                    }}
-                    title="Tải lên đề thi (PDF, DOCX, Ảnh) để lập sơ đồ cấu trúc chủ đề"
-                  >
-                    📝 Sơ đồ đề thi
-                  </button>
 
                   <button 
                     className="canvas-action-pill" 

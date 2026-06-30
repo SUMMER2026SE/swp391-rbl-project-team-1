@@ -184,6 +184,7 @@ export async function logUserActivity(
       });
     }
 
+    clearLeaderboardCache();
   } catch (err) {
     console.error('[logUserActivity Error]', err);
   }
@@ -201,6 +202,15 @@ export async function getLeaderboardRankings(req: AuthRequest, res: Response) {
     const page = Number(req.query.page) || 1;
     const limit = Number(req.query.limit) || 50;
     const skip = (page - 1) * limit;
+
+    const cacheKey = `rankings_page_${grade || ''}_${subject || ''}_${province || ''}_${search || ''}_${page}_${limit}_${sortBy}`;
+    const cached = getCachedData(cacheKey);
+    if (cached) {
+      return res.status(200).json({
+        success: true,
+        data: cached
+      });
+    }
 
     // Build Prisma query condition
     const whereClause: any = {};
@@ -321,18 +331,21 @@ export async function getLeaderboardRankings(req: AuthRequest, res: Response) {
       ...item
     }));
 
+    const responseData = {
+      rankings: paginated,
+      pagination: {
+        page,
+        totalPages: Math.ceil(totalCount / limit),
+        totalCount
+      }
+    };
+
+    setCachedData(cacheKey, responseData);
+
     return res.status(200).json({
       success: true,
-      data: {
-        rankings: paginated,
-        pagination: {
-          page,
-          totalPages: Math.ceil(totalCount / limit),
-          totalCount
-        }
-      }
+      data: responseData
     });
-
   } catch (err: any) {
     return res.status(500).json({ success: false, error: err.message });
   }
@@ -428,6 +441,8 @@ async function awardGamificationXP(userId: number, xpEarned: number) {
     }
   });
 
+  clearLeaderboardCache();
+
   if (leveledUp) {
     await prisma.notification.create({
       data: {
@@ -501,6 +516,7 @@ export async function awardForumEffortPoints(userId: number, points: number) {
         score: points
       }
     });
+    clearLeaderboardCache();
   } catch (err) {
     console.error('[awardForumEffortPoints Error]', err);
   }
@@ -522,6 +538,7 @@ export async function awardStudyEffortPoints(userId: number, points: number) {
         score: points
       }
     });
+    clearLeaderboardCache();
   } catch (err) {
     console.error('[awardStudyEffortPoints Error]', err);
   }
@@ -687,6 +704,13 @@ function setCachedData(key: string, data: any) {
     data,
     timestamp: Date.now()
   };
+}
+
+export function clearLeaderboardCache() {
+  console.log('[LeaderboardCache] Invalidating cached leaderboards...');
+  for (const key in leaderboardCache) {
+    delete leaderboardCache[key];
+  }
 }
 
 // REST Endpoint: Get top 5 efforts leaderboard
