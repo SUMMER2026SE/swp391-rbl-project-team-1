@@ -11,6 +11,15 @@ export function getLevelFromXP(xp: number): number {
   return level - 1 || 1;
 }
 
+// Helper to get local date at midnight in Vietnam timezone (UTC+7)
+export function getVietnamLocalDate(date: Date | string | number = new Date()): Date {
+  const d = new Date(date);
+  const utcMs = d.getTime() + d.getTimezoneOffset() * 60 * 1000;
+  const vnTime = new Date(utcMs + 7 * 60 * 60 * 1000);
+  vnTime.setHours(0, 0, 0, 0);
+  return vnTime;
+}
+
 // Function to log daily user study activity and update streaks/XP
 export async function logUserActivity(
   userId: number,
@@ -92,15 +101,12 @@ export async function logUserActivity(
 
     // Check general streak
     let newStreak = gamify.streakDays;
-    const now = new Date();
-    now.setHours(0, 0, 0, 0);
+    const vnToday = getVietnamLocalDate();
 
     if (gamify.lastActiveDate) {
-      const lastActive = new Date(gamify.lastActiveDate);
-      lastActive.setHours(0, 0, 0, 0);
-
-      const diffTime = now.getTime() - lastActive.getTime();
-      const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+      const lastActive = getVietnamLocalDate(gamify.lastActiveDate);
+      const diffTime = vnToday.getTime() - lastActive.getTime();
+      const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
 
       if (diffDays === 1) {
         newStreak += 1;
@@ -145,11 +151,9 @@ export async function logUserActivity(
     if (subjectStreak) {
       let currentSubStreak = subjectStreak.currentStreak;
       if (subjectStreak.lastActive) {
-        const lastActiveSub = new Date(subjectStreak.lastActive);
-        lastActiveSub.setHours(0, 0, 0, 0);
-
-        const diffTimeSub = now.getTime() - lastActiveSub.getTime();
-        const diffDaysSub = Math.floor(diffTimeSub / (1000 * 60 * 60 * 24));
+        const lastActiveSub = getVietnamLocalDate(subjectStreak.lastActive);
+        const diffTimeSub = vnToday.getTime() - lastActiveSub.getTime();
+        const diffDaysSub = Math.round(diffTimeSub / (1000 * 60 * 60 * 24));
 
         if (diffDaysSub === 1) {
           currentSubStreak += 1;
@@ -192,6 +196,7 @@ export async function getLeaderboardRankings(req: AuthRequest, res: Response) {
     const subject = req.query.subject ? String(req.query.subject).toLowerCase().trim() : undefined;
     const province = req.query.province ? String(req.query.province).trim() : undefined;
     const search = req.query.search ? String(req.query.search).trim() : undefined;
+    const sortBy = req.query.sortBy ? String(req.query.sortBy).trim() : 'streak';
 
     const page = Number(req.query.page) || 1;
     const limit = Number(req.query.limit) || 50;
@@ -205,12 +210,11 @@ export async function getLeaderboardRankings(req: AuthRequest, res: Response) {
       
       const studentFilters: any = {};
       if (grade !== undefined || province !== undefined) {
-        studentFilters.profile = {};
         if (grade !== undefined) {
-          studentFilters.profile.grade = grade;
+          studentFilters.grade = grade;
         }
         if (province !== undefined) {
-          studentFilters.profile.province = {
+          studentFilters.province = {
             contains: province,
             mode: 'insensitive'
           };
@@ -236,7 +240,7 @@ export async function getLeaderboardRankings(req: AuthRequest, res: Response) {
       totalCount = await prisma.userGamification.count({ where: whereClause });
       ranks = await prisma.userGamification.findMany({
         where: whereClause,
-        orderBy: { xp: 'desc' },
+        orderBy: sortBy === 'streak' ? [{ streakDays: 'desc' }, { xp: 'desc' }] : [{ xp: 'desc' }, { streakDays: 'desc' }],
         skip,
         take: limit,
         include: {
@@ -292,14 +296,23 @@ export async function getLeaderboardRankings(req: AuthRequest, res: Response) {
       };
     });
 
-    // If a subject is selected, rank them primarily by subject streak, secondarily by total XP
+    // If a subject is selected, rank them primarily by subject streak, secondarily by total XP (or vice versa based on sortBy)
     if (subject) {
-      formatted.sort((a, b) => {
-        if (b.subjectStreak !== a.subjectStreak) {
+      if (sortBy === 'streak') {
+        formatted.sort((a, b) => {
+          if (b.subjectStreak !== a.subjectStreak) {
+            return b.subjectStreak - a.subjectStreak;
+          }
+          return b.xp - a.xp;
+        });
+      } else {
+        formatted.sort((a, b) => {
+          if (b.xp !== a.xp) {
+            return b.xp - a.xp;
+          }
           return b.subjectStreak - a.subjectStreak;
-        }
-        return b.xp - a.xp;
-      });
+        });
+      }
     }
 
     // Apply pagination
@@ -445,15 +458,12 @@ async function updateGeneralStreak(userId: number): Promise<number> {
   }
 
   let newStreak = gamify.streakDays;
-  const now = new Date();
-  now.setHours(0, 0, 0, 0);
+  const vnToday = getVietnamLocalDate();
 
   if (gamify.lastActiveDate) {
-    const lastActive = new Date(gamify.lastActiveDate);
-    lastActive.setHours(0, 0, 0, 0);
-
-    const diffTime = now.getTime() - lastActive.getTime();
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    const lastActive = getVietnamLocalDate(gamify.lastActiveDate);
+    const diffTime = vnToday.getTime() - lastActive.getTime();
+    const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
 
     if (diffDays === 1) {
       newStreak += 1;
@@ -522,8 +532,7 @@ export async function logAttendanceInternal(userId: number, activity: string) {
   const validActivities = ['LESSON', 'TEST', 'MINDMAP', 'FLASHCARD'];
   if (!validActivities.includes(activity)) return { streakAwarded: false, activityAwarded: false, streakDays: 0 };
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const today = getVietnamLocalDate();
 
   // 1. Check if user has attended AT ALL today
   const existingToday = await prisma.learningAttendance.findFirst({
@@ -535,10 +544,18 @@ export async function logAttendanceInternal(userId: number, activity: string) {
 
   if (!existingToday) {
     // First learning activity of today!
-    // Award daily streak effort points + XP + update streak days
-    await awardStudyEffortPoints(userId, 30);
-    await awardGamificationXP(userId, 15);
+    // 1. Update general streak first to get the correct new streak count!
     streakDays = await updateGeneralStreak(userId);
+    
+    // 2. Calculate dynamic streak rewards based on the new streak count!
+    const basePoints = 30;
+    const baseXP = 15;
+    
+    const streakBonusPoints = Math.min(streakDays * 5, 50); // Capped at +50 effort points
+    const streakBonusXP = Math.min(streakDays * 2, 30); // Capped at +30 XP
+    
+    await awardStudyEffortPoints(userId, basePoints + streakBonusPoints);
+    await awardGamificationXP(userId, baseXP + streakBonusXP);
     streakAwarded = true;
   } else {
     const gamify = await prisma.userGamification.findUnique({
