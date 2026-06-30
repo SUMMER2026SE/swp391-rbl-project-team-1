@@ -699,14 +699,19 @@ export default function AITutorPage({ currentUser, navigateTo, addLog, hideHeade
                   e.stopPropagation();
                   handleToggleExpand(node.id);
                 }}
+                style={{ marginTop: '2px' }}
               >
                 {isExpanded ? '▼' : '▶'}
               </button>
             )}
-            <span className="outline-node-name" style={{ fontWeight: depth === 0 ? '800' : (depth === 1 ? '700' : '500') }}>
-              {node.name}
-            </span>
-            <span className="outline-node-desc">{node.description}</span>
+            <div className="outline-node-text-group">
+              <span className="outline-node-name" style={{ fontWeight: depth === 0 ? '800' : (depth === 1 ? '700' : '500') }}>
+                {node.name}
+              </span>
+              {node.description && (
+                <span className="outline-node-desc">{node.description}</span>
+              )}
+            </div>
           </div>
           <div className="outline-node-actions">
             {statusBadge}
@@ -1385,6 +1390,29 @@ export default function AITutorPage({ currentUser, navigateTo, addLog, hideHeade
         console.error(err);
         toast('Không thể sao chép liên kết chia sẻ!', 'error');
       });
+  };
+
+  const handleExpandAllOutline = () => {
+    if (!mindmapData) return;
+    const newExpanded = new Set();
+    const traverse = (node) => {
+      if (!node) return;
+      newExpanded.add(node.id);
+      if (node.children) {
+        node.children.forEach(traverse);
+      }
+    };
+    traverse(mindmapData);
+    setExpandedNodes(newExpanded);
+    toast('Đã mở rộng toàn bộ các cấp độ dàn ý!', 'success');
+  };
+
+  const handleCollapseAllOutline = () => {
+    if (!mindmapData) return;
+    const newExpanded = new Set();
+    newExpanded.add(mindmapData.id);
+    setExpandedNodes(newExpanded);
+    toast('Đã thu gọn toàn bộ các nhánh con!', 'success');
   };
 
   const handleCreateBlankMindmap = () => {
@@ -2319,11 +2347,29 @@ export default function AITutorPage({ currentUser, navigateTo, addLog, hideHeade
           {viewMode === 'outline' ? (
             <div className="aitutor-outline-view animate-in">
               <div className="outline-card">
-                <h3 style={{ fontSize: '15px', fontWeight: 'bold', marginBottom: '16px', color: 'var(--mm-gold)', borderBottom: '1px solid var(--mm-border-dark)', paddingBottom: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  📋 DÀN Ý KIẾN THỨC HỆ THỐNG HÓA
-                </h3>
+                <div style={{ fontSize: '15px', fontWeight: 'bold', marginBottom: '16px', color: 'var(--mm-gold)', borderBottom: '1px solid var(--mm-border-dark)', paddingBottom: '10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    📋 DÀN Ý KIẾN THỨC HỆ THỐNG HÓA
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button 
+                      onClick={handleExpandAllOutline}
+                      style={{ background: 'rgba(255, 210, 52, 0.12)', border: '1px solid rgba(255, 210, 52, 0.3)', color: 'var(--mm-gold)', borderRadius: '6px', padding: '4px 10px', fontSize: '11px', cursor: 'pointer', fontWeight: '700', transition: 'all 0.2s' }}
+                      title="Mở rộng toàn bộ các cấp độ dàn ý"
+                    >
+                      👐 Mở rộng hết
+                    </button>
+                    <button 
+                      onClick={handleCollapseAllOutline}
+                      style={{ background: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.1)', color: '#ffffff', borderRadius: '6px', padding: '4px 10px', fontSize: '11px', cursor: 'pointer', fontWeight: '700', transition: 'all 0.2s' }}
+                      title="Thu gọn các cấp độ nhánh con"
+                    >
+                      📁 Thu gọn hết
+                    </button>
+                  </div>
+                </div>
                 {mindmapData ? renderOutlineNode(mindmapData) : (
-                  <div style={{ textAlign: 'center', color: '#ffffff', fontSize: '13px', padding: '20px' }}>
+                  <div style={{ textAlign: 'center', color: 'var(--mm-text-secondary)', fontSize: '13px', padding: '20px' }}>
                     Nhập tài liệu ở cột trái để bắt đầu lập sơ đồ
                   </div>
                 )}
