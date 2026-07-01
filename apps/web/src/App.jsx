@@ -2091,7 +2091,7 @@ export default function App() {
 
   // Filter dynamic list of course purchases for current user session
   const activeUserCourses = courses.map(c => {
-    const isUnlocked = c.priceSale === 0 || currentUser?.unlockedCourses?.includes(Number(c.id)) || currentUser?.unlockedCourses?.includes(c.id.toString());
+    const isUnlocked = currentUser?.unlockedCourses?.includes(Number(c.id)) || currentUser?.unlockedCourses?.includes(c.id.toString());
     return { ...c, isUnlocked };
   });
 

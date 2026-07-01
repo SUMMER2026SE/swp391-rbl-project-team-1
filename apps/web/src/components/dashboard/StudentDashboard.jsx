@@ -434,8 +434,7 @@ export default function StudentDashboard({ currentUser, setActiveTab, navigateTo
 
   // Filter courses to show only the student's owned/purchased courses
   const ownedCourses = (dashboardData.courses || []).filter(c => {
-    return c.priceSale === 0 || 
-           currentUser?.unlockedCourses?.includes(c.id) || 
+    return currentUser?.unlockedCourses?.includes(c.id) || 
            currentUser?.unlockedCourses?.includes(c.id.toString()) ||
            currentUser?.unlockedCourses?.includes(Number(c.id));
   });

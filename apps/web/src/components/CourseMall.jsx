@@ -52,8 +52,7 @@ export default function CourseMall({ courses, currentUser, onSelectCourse, onLea
 
   // Add rich visual mockup info to initial courses
   const decoratedCourses = courses.map(c => {
-    const isUnlocked = c.priceSale === 0 || 
-                       currentUser?.unlockedCourses?.includes(c.id) || 
+    const isUnlocked = currentUser?.unlockedCourses?.includes(c.id) || 
                        currentUser?.unlockedCourses?.includes(c.id.toString()) ||
                        currentUser?.unlockedCourses?.includes(Number(c.id));
     
