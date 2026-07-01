@@ -202,8 +202,16 @@ model Exam {
   source         String?
   totalQuestions Int            @default(0)
   difficulty     Difficulty     @default(MEDIUM)
-  status         String         @default("published")
+  status         String         @default("pending")
   grade          Int?
+  approvedAt     DateTime?
+  approvedBy     Int?
+  rejectedAt     DateTime?
+  rejectedBy     Int?
+  rejectedReason String?        @db.Text
+  hiddenAt       DateTime?
+  hiddenBy       Int?
+  hiddenReason   String?        @db.Text
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @default(now()) @updatedAt
   examQuestions  ExamQuestion[]

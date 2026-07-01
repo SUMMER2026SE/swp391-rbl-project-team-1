@@ -536,6 +536,22 @@ export const api = {
   hideCourse: (id, reason) => request(`/admin/courses/${id}/hide`, { method: 'PATCH', body: { reason } }),
   showCourse: (id) => request(`/admin/courses/${id}/show`, { method: 'PATCH' }),
 
+  // ADMIN EXAM MANAGEMENT
+  getAdminTests: (params = {}) => {
+    const query = new URLSearchParams();
+    Object.entries(params).forEach(([k, v]) => {
+      if (v !== undefined && v !== null && v !== '') {
+        query.append(k, String(v));
+      }
+    });
+    return request('/admin/tests?' + query.toString());
+  },
+  getAdminTestById: (id) => request(`/admin/tests/${id}`),
+  approveTest: (id) => request(`/admin/tests/${id}/approve`, { method: 'PUT' }),
+  rejectTest: (id, reason) => request(`/admin/tests/${id}/reject`, { method: 'PUT', body: { reason } }),
+  hideTest: (id, reason) => request(`/admin/tests/${id}/hide`, { method: 'PUT', body: { reason } }),
+  showTest: (id) => request(`/admin/tests/${id}/show`, { method: 'PUT' }),
+
   getUserDocuments: () => request('/user-documents', { method: 'GET' }),
   createUserDocument: (title, fileUrl, fileType) => request('/user-documents', { method: 'POST', body: { title, fileUrl, fileType } }),
   deleteUserDocument: (id) => request(`/user-documents/${id}`, { method: 'DELETE' }),

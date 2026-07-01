@@ -25,6 +25,7 @@ import { logSystemEvent } from './utils/logger.js';
 import { getAdminStats, getAdminUsers, toggleUserBan, getAdminLeads, createAdminLead, updateAdminLeadStatus, getFeatureFlags, toggleFeatureFlag, getUserDetail, blockUser, unblockUser } from './controllers/admin.js';
 import { getTeacherStats, getAdminTeachers, getTeacherDetail, createTeacherAccount, approveTeacherProfile, rejectTeacherProfile, blockTeacher, unblockTeacher } from './controllers/adminTeachers.js';
 import { getAdminCoursesStats, getAdminCourses, getAdminCourseDetail, approveCourse, rejectCourse, hideCourse, showCourse } from './controllers/adminCourses.js';
+import { getAdminTests, getAdminTestById, approveTest, rejectTest, hideTest, showTest } from './controllers/adminTests.js';
 import {
   getAdminReports,
   getAdminReportById,
@@ -248,6 +249,14 @@ app.patch('/admin/courses/:id/approve', authenticateJWT, requireRole(['ADMIN']),
 app.patch('/admin/courses/:id/reject', authenticateJWT, requireRole(['ADMIN']), rejectCourse);
 app.patch('/admin/courses/:id/hide', authenticateJWT, requireRole(['ADMIN']), hideCourse);
 app.patch('/admin/courses/:id/show', authenticateJWT, requireRole(['ADMIN']), showCourse);
+
+// Admin Exam Management Routes
+app.get('/admin/tests', authenticateJWT, requireRole(['ADMIN']), getAdminTests);
+app.get('/admin/tests/:id', authenticateJWT, requireRole(['ADMIN']), getAdminTestById);
+app.put('/admin/tests/:id/approve', authenticateJWT, requireRole(['ADMIN']), approveTest);
+app.put('/admin/tests/:id/reject', authenticateJWT, requireRole(['ADMIN']), rejectTest);
+app.put('/admin/tests/:id/hide', authenticateJWT, requireRole(['ADMIN']), hideTest);
+app.put('/admin/tests/:id/show', authenticateJWT, requireRole(['ADMIN']), showTest);
 
 
 // Protected Course Routes

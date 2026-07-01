@@ -24,6 +24,7 @@ import { AreaChart, Area, BarChart, Bar, LineChart, Line, XAxis, YAxis, Cartesia
 import { api } from '../api';
 import { mockExamService } from '../services/mockExamService';
 import Header from './Header';
+import AdminExamManager from './AdminExamManager';
 
 // Custom Neo-Brutalist Select component with rounded corners and theme support
 const NeoSelect = ({ value, onChange, options, placeholder = 'Chọn...' }) => {
@@ -2334,12 +2335,6 @@ export default function AdminDashboard({
             <span style={{ fontSize: '18px' }}>🛡️</span> Kiểm duyệt báo cáo
           </button>
           <button 
-            className={`admin-menu-item ${activeTab === 'roles' ? 'active' : ''}`}
-            onClick={() => setActiveTab('roles')}
-          >
-            <HiShieldCheck style={{ fontSize: '18px' }} /> Duyệt nâng quyền
-          </button>
-          <button 
             className={`admin-menu-item ${activeTab === 'finance' ? 'active' : ''}`}
             onClick={() => setActiveTab('finance')}
           >
@@ -2399,7 +2394,6 @@ export default function AdminDashboard({
                 {activeTab === 'features' && 'QUẢN LÝ CÁC CHỨC NĂNG HỆ THỐNG'}
                 {activeTab === 'announcements' && 'GỬI THÔNG BÁO HỆ THỐNG'}
                 {activeTab === 'moderation' && 'KIỂM DUYỆT BÁO CÁO VI PHẠM'}
-                {activeTab === 'roles' && 'PHÊ DUYỆT NÂNG CẤP QUYỀN'}
                 {activeTab === 'finance' && 'QUẢN LÝ TÀI CHÍNH & CHI TRẢ'}
                 {activeTab === 'system-logs' && 'NHẬT KÝ HOẠT ĐỘNG HỆ THỐNG'}
               </h2>
@@ -4011,91 +4005,7 @@ export default function AdminDashboard({
             </div>
           )}
 
-          {/* ==========================================
-              TAB: ROLES UPGRADE APPROVALS
-              ========================================== */}
-          {activeTab === 'roles' && (
-            <div className="admin-card" style={{ border: '3px solid #000000', boxShadow: '4px 4px 0px #000000', borderRadius: '12px' }}>
-              <div style={{ marginBottom: '24px' }}>
-                <h2 style={{ fontSize: '20px', fontWeight: '800', marginBottom: '8px' }}>
-                  🛡️ PHÊ DUYỆT NÂNG CẤP QUYỀN NGƯỜI DÙNG
-                </h2>
-                <p style={{ fontSize: '13px', color: '#666', fontWeight: '600' }}>
-                  Duyệt hoặc từ chối các yêu cầu nâng cấp tài khoản của học viên lên giáo viên hoặc các quyền khác.
-                </p>
-              </div>
 
-              {loadingRoles ? (
-                <div style={{ textAlign: 'center', padding: '30px', fontWeight: '700' }}>Đang tải danh sách phê duyệt...</div>
-              ) : roleRequests.length > 0 ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                  {roleRequests.map((req) => (
-                    <div 
-                      key={req.id} 
-                      style={{ 
-                        padding: '20px', 
-                        border: '3px solid #000000', 
-                        borderRadius: '12px', 
-                        background: '#FCFBFA', 
-                        display: 'flex', 
-                        flexDirection: 'column', 
-                        gap: '12px',
-                        boxShadow: '4px 4px 0px #000000'
-                      }}
-                    >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2.5px dashed #000000', paddingBottom: '12px' }}>
-                        <span style={{ fontSize: '13px', fontWeight: '900', color: '#000000' }}>
-                          Yêu cầu từ: <strong style={{ color: '#6c5ce7' }}>{req.user?.fullName}</strong> ({req.user?.email})
-                        </span>
-                        <span style={{ fontSize: '12px', color: '#7A7A7A', fontWeight: '700' }}>
-                          Gửi lúc: {new Date(req.createdAt).toLocaleString()}
-                        </span>
-                      </div>
-
-                      <div style={{ fontSize: '14px', color: '#000000', margin: '4px 0', fontWeight: '700' }}>
-                        <strong>Quyền yêu cầu: </strong>
-                        <span style={{ color: '#059669', fontWeight: '900' }}>{req.currentRole} ➡️ {req.requestedRole}</span>
-                      </div>
-
-                      <div style={{ padding: '12px 16px', background: '#FFFFFF', border: '2px solid #000000', borderRadius: '8px', fontSize: '13px', fontWeight: '700' }}>
-                        <strong>Lý do nâng cấp:</strong> "{req.reason}"
-                      </div>
-
-                      <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
-                        {req.status === 'PENDING' ? (
-                          <>
-                            <button
-                              className="admin-back-btn"
-                              style={{ padding: '8px 16px', width: 'auto', background: '#10B981', color: '#FFFFFF', borderColor: '#000000', boxShadow: 'none' }}
-                              onClick={() => handleRoleReview(req.id, 'approve')}
-                            >
-                              ✓ Chấp thuận
-                            </button>
-                            <button
-                              className="admin-back-btn"
-                              style={{ padding: '8px 16px', width: 'auto', background: '#EF4444', color: '#FFFFFF', borderColor: '#000000', boxShadow: 'none' }}
-                              onClick={() => handleRoleReview(req.id, 'reject')}
-                            >
-                              ✗ Từ chối
-                            </button>
-                          </>
-                        ) : (
-                          <span style={{ fontWeight: '900', fontSize: '13px', color: req.status === 'APPROVED' ? '#059669' : '#DC2626' }}>
-                            Trạng thái: {req.status === 'APPROVED' ? 'ĐÃ PHÊ DUYỆT' : 'ĐÃ TỪ CHỐI'}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div style={{ textAlign: 'center', padding: '40px', background: '#FCFBFA', border: '2px dashed #000000', borderRadius: '12px' }}>
-                  <span style={{ fontSize: '28px' }}>🎉</span>
-                  <p style={{ fontWeight: '800', marginTop: '10px', margin: 0 }}>Không có yêu cầu nâng cấp nào đang chờ xử lý.</p>
-                </div>
-              )}
-            </div>
-          )}
 
           {/* ==========================================
               TAB: FINANCE & PAYOUTS
@@ -6236,136 +6146,3 @@ export default function AdminDashboard({
   );
 }
 
-/* ── SUB-COMPONENT: EXAMS MANAGER (JSON UPLOAD) ── */
-function AdminExamManager({ addLog }) {
-  const [exams, setExams] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [jsonText, setJsonText] = useState('');
-  const [importLogs, setImportLogs] = useState('');
-
-  const loadExams = async () => {
-    setLoading(true);
-    try {
-      const list = await mockExamService.getMockExams();
-      setExams(list || []);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    loadExams();
-  }, []);
-
-  const handleImport = async (e) => {
-    e.preventDefault();
-    if (!jsonText.trim()) return;
-
-    setImportLogs(prev => prev + `[${new Date().toLocaleTimeString()}] Bắt đầu kiểm tra cấu trúc JSON...\n`);
-    try {
-      const examData = JSON.parse(jsonText);
-      
-      setImportLogs(prev => prev + `[${new Date().toLocaleTimeString()}] Cấu trúc JSON hợp lệ. Đang gửi dữ liệu lên máy chủ...\n`);
-      const res = await mockExamService.importExam(examData);
-      
-      setImportLogs(prev => prev + `[${new Date().toLocaleTimeString()}] Nhập đề thi thành công! ID đề thi mới: ${res.examId}\n`);
-      addLog(`[Admin] Đã nhập đề thi mới: "${examData.title}" qua JSON Upload`, 'sys');
-      toast('Nhập đề thi mới thành công!', 'success');
-      setJsonText('');
-      loadExams();
-    } catch (err) {
-      setImportLogs(prev => prev + `[${new Date().toLocaleTimeString()}] LỖI: ${err.message}\n`);
-      toast('Nhập đề thi thất bại. Vui lòng kiểm tra định dạng JSON!', 'error');
-    }
-  };
-
-  return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '24px' }} className="animate-in">
-      {/* Left Column: Exams List */}
-      <div className="admin-card" style={{ marginBottom: 0 }}>
-        <h3 className="chart-card-title">📚 DANH SÁCH ĐỀ THI ĐÃ CÓ ({exams.length})</h3>
-        
-        {loading ? (
-          <p style={{ fontSize: '13px', color: '#7A7A7A' }}>Đang tải danh sách đề thi...</p>
-        ) : exams.length > 0 ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '550px', overflowY: 'auto', paddingRight: '6px' }}>
-            {exams.map(e => (
-              <div key={e.id} style={{ padding: '14px', border: '2px solid #000000', borderRadius: '10px', background: '#FCFBFA', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <span style={{ background: '#E0F2FE', border: '1.5px solid #000000', color: '#0369A1', fontSize: '10px', fontWeight: '800', padding: '3px 8px', borderRadius: '6px' }}>
-                    {e.exam_subjects?.name || 'Môn học'} · {e.year}
-                  </span>
-                  <h4 style={{ fontSize: '13.5px', fontWeight: '900', marginTop: '8px', color: '#000000' }}>{e.title}</h4>
-                  <span style={{ fontSize: '11px', color: '#7A7A7A', fontWeight: '700' }}>Mã đề: {e.exam_code} · {e.total_questions} câu · {e.duration_minutes} phút</span>
-                </div>
-                <span style={{ fontSize: '12.5px', color: '#7A7A7A', fontWeight: '850' }}>{e.source}</span>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p style={{ fontSize: '13px', color: '#7A7A7A', fontWeight: '750' }}>Chưa có đề thi nào trong hệ thống.</p>
-        )}
-      </div>
-
-      {/* Right Column: Paste JSON Form */}
-      <div className="admin-card" style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: 0 }}>
-        <h3 className="chart-card-title">📤 NHẬP ĐỀ THI MỚI (JSON UPLOAD)</h3>
-        <p style={{ fontSize: '12.5px', color: '#7A7A7A', lineHeight: '1.4', fontWeight: '700' }}>
-          Dán cấu trúc JSON chuẩn của đề thi tốt nghiệp THPT Quốc Gia (bao gồm các câu hỏi, các lựa chọn, đáp án đúng và hướng dẫn giải chi tiết).
-        </p>
-
-        <form onSubmit={handleImport} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          <div className="admin-form-group" style={{ marginBottom: 0 }}>
-            <textarea
-              className="admin-form-textarea"
-              rows="15"
-              placeholder='Cấu trúc JSON mẫu:
-{
-  "title": "Đề thi thử Toán THPTQG 2026",
-  "subject_slug": "toan",
-  "subject_name": "Toán học",
-  "year": 2026,
-  "exam_code": "101",
-  "source": "Trường chuyên Hùng Vương",
-  "duration_minutes": 90,
-  "total_questions": 1,
-  "questions": [
-    {
-      "question_number": 1,
-      "question_text": "Tìm tập nghiệm của phương trình...",
-      "difficulty": "Trung bình",
-      "topic": "Hàm số mũ",
-      "explanation": "Lời giải chi tiết...",
-      "options": [
-        {"option_label": "A", "option_text": "S = (0; 1)", "is_correct": false},
-        {"option_label": "B", "option_text": "S = [0; 1]", "is_correct": true}
-      ]
-    }
-  ]
-}'
-              value={jsonText}
-              onChange={e => setJsonText(e.target.value)}
-              required
-              style={{ fontFamily: 'monospace', fontSize: '11px', background: '#FCFBFA', padding: '10px' }}
-            />
-          </div>
-          
-          <button type="submit" className="admin-back-btn" style={{ alignSelf: 'flex-start', background: '#6c5ce7', color: '#FFFFFF' }}>
-            Bắt đầu Nhập đề thi ⚡
-          </button>
-        </form>
-
-        {importLogs && (
-          <div style={{ marginTop: '10px' }}>
-            <span style={{ fontSize: '11px', fontWeight: '900', color: '#7A7A7A' }}>LOG TIẾN TRÌNH IMPORT:</span>
-            <pre style={{ margin: '6px 0 0 0', padding: '12px', background: '#0E100D', color: '#38bdf8', border: '2px solid #000000', borderRadius: '8px', fontSize: '11px', fontFamily: 'monospace', maxHeight: '120px', overflowY: 'auto', whiteSpace: 'pre-wrap' }}>
-              {importLogs}
-            </pre>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}

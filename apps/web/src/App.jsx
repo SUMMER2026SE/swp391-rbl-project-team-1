@@ -1090,6 +1090,9 @@ export default function App() {
     }
     if (currentPath.startsWith('/admin/')) {
       const tab = currentPath.substring(7).replace(/\/$/, '');
+      if (tab === 'roles') {
+        return { route: 'admin', tab: 'stats' };
+      }
       return { route: 'admin', tab: tab };
     }
 

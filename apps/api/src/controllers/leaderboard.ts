@@ -110,29 +110,36 @@ export async function getScoreLeaderboard(req: Request, res: Response) {
 // ═════════════════════════════════════════════════════════
 export async function getStreakLeaderboard(req: Request, res: Response) {
   try {
-    const streaks = await prisma.learningStreak.findMany({
-      where: { currentStreak: { gt: 0 } },
+    const streaks = await prisma.userGamification.findMany({
+      where: { streakDays: { gt: 0 } },
       include: {
-        student: {
-          include: {
-            user: { select: { id: true, fullName: true, avatarUrl: true } }
+        user: {
+          select: {
+            id: true,
+            fullName: true,
+            avatarUrl: true,
+            student: {
+              select: {
+                subjectGroup: true
+              }
+            }
           }
         }
       },
-      orderBy: { currentStreak: 'desc' },
+      orderBy: { streakDays: 'desc' },
       take: 20
-    });
+    }) as any[];
 
     const entries = streaks.map((s, index) => ({
       rank: index + 1,
-      userId: s.studentId,
-      fullName: s.student.user.fullName,
-      avatarUrl: s.student.user.avatarUrl,
-      subjectGroup: s.student.subjectGroup,
-      currentStreak: s.currentStreak,
-      longestStreak: s.longestStreak,
-      lastActiveDate: s.lastActiveDate.toISOString(),
-      badge: getStreakBadge(s.currentStreak)
+      userId: s.userId,
+      fullName: s.user.fullName,
+      avatarUrl: s.user.avatarUrl,
+      subjectGroup: s.user.student?.subjectGroup || 'A01',
+      currentStreak: s.streakDays,
+      longestStreak: s.streakDays,
+      lastActiveDate: s.lastActiveDate ? s.lastActiveDate.toISOString() : new Date().toISOString(),
+      badge: getStreakBadge(s.streakDays)
     }));
 
     return res.status(200).json({
