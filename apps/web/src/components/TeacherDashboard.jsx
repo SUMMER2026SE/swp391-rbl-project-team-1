@@ -36,6 +36,7 @@ import {
   HiChevronRight
 } from 'react-icons/hi';
 import { api } from '../api';
+import { mapDbCourseToMockFormat } from '../utils/courseMapper';
 import '../styles/teacherDashboard.css';
 
 export default function TeacherDashboard({
@@ -120,9 +121,7 @@ export default function TeacherDashboard({
   };
 
   // Sync props
-  useEffect(() => {
-    if (initialCourses) setCourses(initialCourses);
-  }, [initialCourses]);
+  // We do not sync initialCourses here because it contains public courses, while the teacher needs their specific courses.
 
   useEffect(() => {
     if (initialQuestionBank) setQuestionBank(initialQuestionBank);
@@ -169,6 +168,7 @@ export default function TeacherDashboard({
   const [cIsPublished, setCIsPublished] = useState(false);
   const [cThumbnailUploading, setCThumbnailUploading] = useState(false);
   const [cTrailerUploading, setCTrailerUploading] = useState(false);
+  const [courseStatusFilter, setCourseStatusFilter] = useState('ALL'); // ALL | PENDING | APPROVED | REJECTED | HIDDEN
 
   // --- LESSONS CRUD STATES ---
   const [lessonEditMode, setLessonEditMode] = useState('idle'); // idle, create, edit
@@ -184,7 +184,8 @@ export default function TeacherDashboard({
     try {
       const data = await api.getCourses({ teacherId: currentUser.id });
       if (data) {
-        setCourses(data);
+        const mapped = data.map(c => mapDbCourseToMockFormat(c));
+        setCourses(mapped);
       }
     } catch (err) {
       console.error('Failed to load teacher courses:', err);
@@ -233,13 +234,12 @@ export default function TeacherDashboard({
         discount: Number(cDiscount),
         thumbnailUrl: cThumbnailUrl,
         level: cTrailerUrl,
-        grade: Number(cGrade),
-        isPublished: cIsPublished
+        grade: Number(cGrade)
       };
 
       if (courseEditMode === 'create') {
         const res = await api.createCourse(payload);
-        toast(`Tạo khóa học "${res.title}" thành công!`, 'success');
+        toast(`Tạo khóa học "${res.title}" thành công! Đang chờ Admin phê duyệt trước khi hiển thị cho học sinh.`, 'success');
         if (onCreateCourse) onCreateCourse(res);
       } else {
         const res = await api.updateCourse(selectedCourseId, payload);
@@ -1709,22 +1709,32 @@ export default function TeacherDashboard({
                       </div>
                     </div>
 
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontWeight: 'bold', color: '#1e293b', marginTop: '8px', background: '#fff', padding: '10px 14px', borderRadius: '10px', border: '2px solid #000000' }}>
-                      <input 
-                        type="checkbox" 
-                        checked={cIsPublished}
-                        onChange={e => setCIsPublished(e.target.checked)}
-                        style={{ width: '18px', height: '18px', cursor: 'pointer' }}
-                      />
-                      Đăng bán khóa học này (Công khai)
-                    </label>
+                    {/* Approval flow info notice */}
+                    <div style={{
+                      background: '#eff6ff',
+                      border: '2px solid #000',
+                      borderRadius: '10px',
+                      padding: '12px 16px',
+                      marginTop: '4px',
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      gap: '10px'
+                    }}>
+                      <span style={{ fontSize: '20px', flexShrink: 0 }}>ℹ️</span>
+                      <div>
+                        <p style={{ margin: '0 0 4px 0', fontSize: '12.5px', fontWeight: '800', color: '#1e40af' }}>Quy trình phê duyệt khóa học</p>
+                        <p style={{ margin: 0, fontSize: '11.5px', color: '#1e3a8a', lineHeight: '1.5' }}>
+                          Sau khi lưu, khóa học sẽ vào trạng thái <strong>Chờ duyệt (PENDING)</strong>. Admin sẽ xem xét nội dung và phê duyệt trước khi khóa học hiện lên cho học sinh.
+                        </p>
+                      </div>
+                    </div>
 
                     <button 
                       type="submit" 
                       className="tdb-upgrade-btn"
                       style={{ background: '#6366f1', color: '#fff', border: '2px solid #000', boxShadow: '3px 3px 0px #000', fontWeight: 'bold', fontSize: '13px', padding: '12px 14px', marginTop: '10px' }}
                     >
-                      💾 Lưu thông tin khóa học
+                      {courseEditMode === 'create' ? '📤 Tạo và gửi duyệt' : '💾 Lưu thay đổi'}
                     </button>
                   </div>
                 </form>
@@ -1973,8 +1983,73 @@ export default function TeacherDashboard({
                     </button>
                   </div>
 
+                  {/* Status Filter Tabs */}
+                  {(() => {
+                    const STATUS_TABS = [
+                      { key: 'ALL', label: 'Tất cả', icon: '📋' },
+                      { key: 'PENDING', label: 'Chờ duyệt', icon: '⏳', color: '#92400e', bg: '#fef3c7' },
+                      { key: 'APPROVED', label: 'Đã duyệt', icon: '✅', color: '#065f46', bg: '#d1fae5' },
+                      { key: 'REJECTED', label: 'Bị từ chối', icon: '❌', color: '#991b1b', bg: '#fee2e2' },
+                      { key: 'HIDDEN', label: 'Đã ẩn', icon: '🙈', color: '#475569', bg: '#f1f5f9' },
+                    ];
+                    const countByStatus = (s) => {
+                      if (s === 'ALL') return courses.length;
+                      if (s === 'HIDDEN') return courses.filter(c => c.visibility === 'HIDDEN' && c.status === 'APPROVED').length;
+                      if (s === 'APPROVED') return courses.filter(c => c.status === 'APPROVED' && c.visibility !== 'HIDDEN').length;
+                      return courses.filter(c => c.status === s).length;
+                    };
+                    return (
+                      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '12px' }}>
+                        {STATUS_TABS.map(tab => {
+                          const cnt = countByStatus(tab.key);
+                          const isActive = courseStatusFilter === tab.key;
+                          return (
+                            <button
+                              key={tab.key}
+                              onClick={() => setCourseStatusFilter(tab.key)}
+                              style={{
+                                display: 'inline-flex', alignItems: 'center', gap: '4px',
+                                padding: '5px 10px', fontSize: '11px', fontWeight: '800',
+                                border: `2px solid #000`,
+                                borderRadius: '8px', cursor: 'pointer',
+                                background: isActive ? (tab.bg || '#0f172a') : '#fff',
+                                color: isActive ? (tab.color || '#fff') : '#475569',
+                                boxShadow: isActive ? '2px 2px 0px #000' : 'none',
+                                transform: isActive ? 'translate(-1px, -1px)' : 'none',
+                                transition: 'all 0.1s'
+                              }}
+                            >
+                              {tab.icon} {tab.label}
+                              <span style={{
+                                background: isActive ? 'rgba(0,0,0,0.15)' : '#e2e8f0',
+                                color: isActive ? (tab.color || '#000') : '#64748b',
+                                borderRadius: '10px', padding: '0 5px', fontSize: '10px', fontWeight: '900'
+                              }}>{cnt}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    );
+                  })()}
+
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                    {courses.map((course) => {
+                    {(() => {
+                      const filteredCourses = courseStatusFilter === 'ALL'
+                        ? courses
+                        : courseStatusFilter === 'HIDDEN'
+                        ? courses.filter(c => c.visibility === 'HIDDEN' && c.status === 'APPROVED')
+                        : courseStatusFilter === 'APPROVED'
+                        ? courses.filter(c => c.status === 'APPROVED' && c.visibility !== 'HIDDEN')
+                        : courses.filter(c => c.status === courseStatusFilter);
+                      if (filteredCourses.length === 0) {
+                        return (
+                          <div style={{ textAlign: 'center', padding: '32px 16px', color: '#94a3b8' }}>
+                            <span style={{ fontSize: '32px', display: 'block', marginBottom: '8px' }}>📭</span>
+                            <p style={{ fontWeight: '700', fontSize: '13px', margin: 0 }}>Không có khóa học nào trong mục này.</p>
+                          </div>
+                        );
+                      }
+                      return filteredCourses.map((course) => {
                       const isSelected = course.id === selectedCourseId;
                       return (
                         <div 
@@ -2002,18 +2077,18 @@ export default function TeacherDashboard({
                                 
                                 <span 
                                   style={{ 
-                                    fontSize: '9px', fontWeight: 'bold', padding: '2px 6px', borderRadius: '6px', border: '1.5px solid #000', marginLeft: 'auto',
-                                    backgroundColor: course.isPublished ? '#d1fae5' : '#f1f5f9',
-                                    color: course.isPublished ? '#065f46' : '#475569'
+                                    fontSize: '9px', fontWeight: 'bold', padding: '2px 8px', borderRadius: '6px', border: '1.5px solid #000', marginLeft: 'auto', whiteSpace: 'nowrap',
+                                    backgroundColor: (course.status === 'APPROVED' && course.visibility === 'HIDDEN') ? '#f1f5f9' : course.status === 'APPROVED' ? '#d1fae5' : course.status === 'PENDING' ? '#fef3c7' : course.status === 'REJECTED' ? '#fee2e2' : '#f1f5f9',
+                                    color: (course.status === 'APPROVED' && course.visibility === 'HIDDEN') ? '#475569' : course.status === 'APPROVED' ? '#065f46' : course.status === 'PENDING' ? '#92400e' : course.status === 'REJECTED' ? '#991b1b' : '#475569'
                                   }}
                                 >
-                                  {course.isPublished ? '✓ ĐANG BÁN' : '🔒 BẢN NHÁP'}
+                                  {(course.status === 'APPROVED' && course.visibility === 'HIDDEN') ? '🙈 ĐÃ ẨN' : course.status === 'APPROVED' ? '✅ ĐÃ DUYỆT' : course.status === 'PENDING' ? '⏳ CHỜ DUYỆT' : course.status === 'REJECTED' ? '❌ BỊ TỪ CHỐI' : '📝 BẢN NHÁP'}
                                 </span>
                               </div>
                               <h4 style={{ fontSize: '14px', fontWeight: '800', margin: '8px 0 4px 0', color: '#0f172a' }}>{course.title}</h4>
                             </div>
 
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px dashed #e2e8f0', paddingTop: '8px', marginTop: '4px' }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px dashed #e2e8f0', paddingTop: '8px', marginTop: '4px' }}>
                               <div style={{ display: 'flex', gap: '8px', fontSize: '11px', fontWeight: '700', color: '#64748b' }}>
                                 <span>📖 {course.lessons?.length || 0} bài học</span>
                                 <span>•</span>
@@ -2021,6 +2096,12 @@ export default function TeacherDashboard({
                               </div>
 
                               <div style={{ display: 'flex', gap: '6px' }}>
+                                {(course.status === 'REJECTED') && (
+                                  <span style={{ fontSize: '10px', color: '#991b1b', fontWeight: '700', background: '#fee2e2', border: '1.5px solid #000', borderRadius: '6px', padding: '2px 6px', alignSelf: 'center' }}
+                                    title={course.rejectedReason}>
+                                    💬 {course.rejectedReason ? course.rejectedReason.slice(0, 30) + '...' : 'Xem lý do từ chối'}
+                                  </span>
+                                )}
                                 <button 
                                   onClick={() => {
                                     setSelectedCourseId(course.id);
@@ -2061,7 +2142,8 @@ export default function TeacherDashboard({
                           </div>
                         </div>
                       );
-                    })}
+                      });
+                    })()}
                   </div>
                 </div>
 
