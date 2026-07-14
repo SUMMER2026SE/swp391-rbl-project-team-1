@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
-import { HiX, HiCheckCircle, HiLockOpen, HiCheck, HiDuplicate, HiRefresh, HiSparkles, HiTrash, HiChevronLeft, HiCreditCard } from 'react-icons/hi';
+import { HiX, HiCheckCircle, HiLockOpen, HiCheck, HiDuplicate, HiRefresh, HiChevronLeft, HiTrash } from 'react-icons/hi';
 import { API_BASE, api } from '../api';
 import { toast } from '../utils/toast';
 
-export default function CheckoutModal({ courses = [], onClose, onPaymentSuccess, onRemoveCourse, addLog }) {
+export default function DocumentCheckoutModal({ document: docResource, cartDocs = [], onRemoveDoc, onClose, onPaymentSuccess, addLog }) {
   const [step, setStep] = useState(1); // 1: Cart view, 2: QR checkout, 3: Verification processing, 4: Success unlock
   const [seconds, setSeconds] = useState(300); // 5 minutes timeout
   const [copiedField, setCopiedField] = useState(null); // tracking copy states
@@ -18,27 +18,13 @@ export default function CheckoutModal({ courses = [], onClose, onPaymentSuccess,
 
   const currentUser = JSON.parse(localStorage.getItem('current_user')) || {};
   const studentId = currentUser.id || 1;
-  const isDocument = courses.length > 0 && (courses[0].type === 'DOCUMENT' || courses[0].driveUrl);
-  const transferCode = courses.length > 0 
-    ? (isDocument ? `ED${studentId}D${courses[0].id}` : `EP${studentId}C${courses[0].id}`) 
-    : `EP${studentId}CRT`;
 
-  // Helper function to parse course price to actual VND
-  const parsePrice = (priceVal, item) => {
-    const isDoc = item && (item.type === 'DOCUMENT' || item.driveUrl);
-    if (typeof priceVal === 'number') {
-      if (!isDoc && priceVal < 10000) return priceVal * 1000;
-      return priceVal;
-    }
-    if (typeof priceVal === 'string') {
-      const cleaned = Number(priceVal.replace(/\D/g, ''));
-      if (!isDoc && cleaned < 10000) return cleaned * 1000;
-      return cleaned;
-    }
-    return 0;
-  };
+  // The active document being processed in this transaction step (either the selected doc, or the first one in cart)
+  const activeDoc = docResource || cartDocs[0];
+  const transferCode = activeDoc ? `ED${studentId}D${activeDoc.id}` : '';
 
-  const originalAmount = courses.reduce((sum, c) => sum + parsePrice(c.priceSale ?? c.price ?? c.priceOriginal, c), 0);
+  // Sum of prices of all documents in the cart
+  const originalAmount = cartDocs.reduce((sum, d) => sum + (d.price || 0), 0);
   const discountAmount = discountVal;
   const finalAmount = Math.max(0, originalAmount - discountAmount);
 
@@ -48,42 +34,30 @@ export default function CheckoutModal({ courses = [], onClose, onPaymentSuccess,
   const ACCOUNT_NAME = 'THUAN VAN TRAN';
 
   // Live VietQR image endpoint using finalAmount (discounted)
-  const qrCodeUrl = `https://img.vietqr.io/image/${BANK_ID}-${ACCOUNT_NO}-compact.png?amount=${finalAmount}&addInfo=${transferCode}&accountName=${encodeURIComponent(ACCOUNT_NAME)}`;
+  const qrCodeUrl = activeDoc 
+    ? `https://img.vietqr.io/image/${BANK_ID}-${ACCOUNT_NO}-compact.png?amount=${finalAmount}&addInfo=${transferCode}&accountName=${encodeURIComponent(ACCOUNT_NAME)}`
+    : '';
 
   // Polling for automated checkout status update
   useEffect(() => {
     let intervalId;
-    if (courses.length === 0) return;
-    const item = courses[0];
-    const isDoc = item.type === 'DOCUMENT' || item.driveUrl;
+    if (!activeDoc) return;
 
     const checkPaymentStatus = async () => {
       const token = localStorage.getItem('access_token');
       if (!token) return;
 
       try {
-        if (isDoc) {
-          const res = await api.checkDocumentPurchaseStatus(item.id);
-          if (res.success && res.data?.isPurchased) {
-            addLog(`[SePay Webhook] Hệ thống đã ghi nhận khoản thanh toán tự động cho tài liệu "${item.title}".`, 'sys');
-            setStep(4);
-            onPaymentSuccess(courses.map(c => c.id));
+        const res = await api.checkDocumentPurchaseStatus(activeDoc.id);
+        if (res.success && res.data?.isPurchased) {
+          if (addLog) {
+            addLog(`[SePay Webhook] Hệ thống đã ghi nhận khoản thanh toán tự động cho tài liệu "${activeDoc.title}".`, 'sys');
           }
-        } else {
-          const res = await fetch(`${API_BASE}/enrollments/status?courseId=${item.id}`, {
-            headers: {
-              'Authorization': `Bearer ${token}`
-            }
-          });
-          const data = await res.json();
-          if (data.success && data.data?.isEnrolled) {
-            addLog(`[SePay Webhook] Hệ thống đã ghi nhận khoản thanh toán tự động cho giỏ hàng.`, 'sys');
-            setStep(4);
-            onPaymentSuccess(courses.map(c => c.id));
-          }
+          setStep(4);
+          if (onPaymentSuccess) onPaymentSuccess(activeDoc.id);
         }
       } catch (err) {
-        console.error('Lỗi khi thăm dò trạng thái giao dịch:', err);
+        console.error('Lỗi khi thăm dò trạng thái mua tài liệu:', err);
       }
     };
 
@@ -98,7 +72,7 @@ export default function CheckoutModal({ courses = [], onClose, onPaymentSuccess,
     return () => {
       if (intervalId) clearInterval(intervalId);
     };
-  }, [step, courses]);
+  }, [step, activeDoc]);
 
   // General countdown timer
   useEffect(() => {
@@ -113,10 +87,10 @@ export default function CheckoutModal({ courses = [], onClose, onPaymentSuccess,
     if (!code) return;
 
     try {
+      // Validate voucher generally as 'ALL' or 'COURSE'
       const res = await api.validateVoucher({
         code,
         type: 'COURSE',
-        courseId: courses[0]?.id,
         originalPrice: originalAmount
       });
       setDiscountVal(res.discountAmount);
@@ -129,113 +103,89 @@ export default function CheckoutModal({ courses = [], onClose, onPaymentSuccess,
     }
   };
 
-  const handleProceedToCheckout = async () => {
-    if (promoCode && promoStatus === 'success') {
-      try {
-        await api.reserveVoucher({
-          code: promoCode.trim().toUpperCase(),
-          type: 'COURSE',
-          courseId: courses[0]?.id
-        });
-      } catch (err) {
-        console.error('[Voucher Reserve Error] Failed to reserve voucher:', err);
-      }
+  const handleProceedToCheckout = () => {
+    if (!activeDoc) {
+      toast('Giỏ hàng của em đang trống!', 'warning');
+      return;
     }
     setStep(2);
   };
 
   const handleFreeCheckout = async () => {
-    const titleSummary = courses.map(c => `"${c.title}"`).join(', ');
-    const isDoc = courses.length > 0 && (courses[0].type === 'DOCUMENT' || courses[0].driveUrl);
-    
+    if (!activeDoc) return;
+    if (addLog) {
+      addLog(`[Voucher] Áp dụng mã giảm giá ${promoCode.trim().toUpperCase()} kích hoạt tài liệu "${activeDoc.title}"...`, 'sys');
+    }
     setStep(3);
     try {
-      if (isDoc) {
-        addLog(`[Voucher] Áp dụng mã giảm giá ${promoCode.trim().toUpperCase()} kích hoạt tài liệu "${courses[0].title}"...`, 'sys');
-        await api.purchaseDocumentDemo(courses[0].id);
-        addLog(`[Voucher] Kích hoạt thành công tài liệu: "${courses[0].title}"`, 'sys');
-      } else {
-        addLog(`[Voucher] Áp dụng mã giảm giá ${promoCode.trim().toUpperCase()} kích hoạt khóa học ${titleSummary}...`, 'sys');
-        await new Promise(r => setTimeout(r, 1200));
-        addLog(`[Voucher] Kích hoạt thành công! Đã mở khóa nhóm khóa học: ${titleSummary}`, 'sys');
-      }
-      onPaymentSuccess(courses.map(c => c.id), promoCode.trim().toUpperCase());
-      setStep(4);
+      await api.purchaseDocumentDemo(activeDoc.id);
+      setTimeout(() => {
+        if (addLog) {
+          addLog(`[Voucher] Kích hoạt thành công tài liệu: "${activeDoc.title}"`, 'sys');
+        }
+        if (onPaymentSuccess) onPaymentSuccess(activeDoc.id);
+        setStep(4);
+      }, 1200);
     } catch (err) {
       console.error(err);
-      toast('Không thể kích hoạt vật phẩm!', 'error');
+      setPromoStatus('invalid');
+      setPromoError('Không thể kích hoạt tài liệu. Vui lòng thử lại!');
       setStep(1);
     }
   };
 
   const handleSimulatePayment = async () => {
-    const titleSummary = courses.map(c => `"${c.title}"`).join(', ');
-    const isDoc = courses.length > 0 && (courses[0].type === 'DOCUMENT' || courses[0].driveUrl);
-    
+    if (!activeDoc) return;
+    if (addLog) {
+      addLog(`[Demo Mode] Tiến hành mô phỏng thanh toán tài liệu "${activeDoc.title}"...`, 'sys');
+    }
     setStep(3);
     try {
-      if (isDoc) {
-        addLog(`[Demo Mode] Tiến hành mô phỏng thanh toán tài liệu "${courses[0].title}"...`, 'sys');
-        await api.purchaseDocumentDemo(courses[0].id);
-        addLog(`[Demo Mode] Xác nhận thành công! Đã kích hoạt quyền sở hữu tài liệu.`, 'sys');
-      } else {
-        addLog(`[Demo Mode] Tiến hành mô phỏng thanh toán nhóm khóa học ${titleSummary}...`, 'sys');
-        await new Promise(r => setTimeout(r, 1500));
-        addLog(`[Demo Mode] Xác nhận thành công! Đã kích hoạt quyền sở hữu nhóm khóa học.`, 'sys');
-      }
-      onPaymentSuccess(courses.map(c => c.id), promoCode.trim().toUpperCase());
-      setStep(4);
+      await api.purchaseDocumentDemo(activeDoc.id);
+      setTimeout(() => {
+        if (addLog) {
+          addLog(`[Demo Mode] Xác nhận thành công! Đã kích hoạt quyền sở hữu tài liệu.`, 'sys');
+        }
+        if (onPaymentSuccess) onPaymentSuccess(activeDoc.id);
+        setStep(4);
+      }, 1200);
     } catch (err) {
       console.error(err);
-      toast('Không thể mô phỏng thanh toán!', 'error');
+      setPollingError(err.message || 'Lỗi kết nối máy chủ!');
       setStep(1);
     }
   };
 
   const handleManualCheck = async () => {
+    if (!activeDoc) return;
     setIsVerifying(true);
     setPollingError('');
-    addLog(`[SePay] Học sinh yêu cầu kiểm tra sao kê thủ công giao dịch: ${transferCode}`, 'sys');
+    if (addLog) {
+      addLog(`[SePay] Học sinh yêu cầu kiểm tra sao kê thủ công giao dịch mua tài liệu: ${transferCode}`, 'sys');
+    }
     
     const token = localStorage.getItem('access_token');
-    const primaryItem = courses[0];
-    if (!token || !primaryItem) {
+    if (!token) {
       setPollingError('Vui lòng đăng nhập để thực hiện giao dịch!');
       setIsVerifying(false);
       return;
     }
 
-    const isDoc = primaryItem.type === 'DOCUMENT' || primaryItem.driveUrl;
-
     try {
       await new Promise((resolve) => setTimeout(resolve, 1500));
+      const res = await api.checkDocumentPurchaseStatus(activeDoc.id);
       
-      if (isDoc) {
-        const res = await api.checkDocumentPurchaseStatus(primaryItem.id);
-        if (res.success && res.data?.isPurchased) {
+      if (res.success && res.data?.isPurchased) {
+        if (addLog) {
           addLog(`[SePay] Chuyển khoản thành công! Đã mở khóa tài liệu.`, 'sys');
-          setStep(4);
-          onPaymentSuccess(courses.map(c => c.id));
-        } else {
-          addLog(`[SePay] Giao dịch "${transferCode}" chưa xuất hiện.`, 'sys');
-          setPollingError('Hệ thống chưa nhận được giao dịch chuyển khoản của em. Vui lòng đợi từ 1-2 phút sau khi chuyển khoản thành công và kiểm tra lại.');
         }
+        setStep(4);
+        if (onPaymentSuccess) onPaymentSuccess(activeDoc.id);
       } else {
-        const res = await fetch(`${API_BASE}/enrollments/status?courseId=${primaryItem.id}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-        const data = await res.json();
-        
-        if (data.success && data.data?.isEnrolled) {
-          addLog(`[SePay] Chuyển khoản thành công! Đã mở khóa nhóm khóa học.`, 'sys');
-          setStep(4);
-          onPaymentSuccess(courses.map(c => c.id));
-        } else {
+        if (addLog) {
           addLog(`[SePay] Giao dịch "${transferCode}" chưa xuất hiện.`, 'sys');
-          setPollingError('Hệ thống chưa nhận được giao dịch chuyển khoản của em. Vui lòng đợi từ 1-2 phút sau khi chuyển khoản thành công và kiểm tra lại.');
         }
+        setPollingError('Hệ thống chưa nhận được giao dịch chuyển khoản của em. Vui lòng đợi từ 1-2 phút sau khi chuyển khoản thành công và kiểm tra lại.');
       }
     } catch (err) {
       console.error(err);
@@ -257,7 +207,7 @@ export default function CheckoutModal({ courses = [], onClose, onPaymentSuccess,
     return `${mins}:${rs < 10 ? '0' : ''}${rs}`;
   };
 
-  if (courses.length === 0) return null;
+  if (cartDocs.length === 0 && !activeDoc) return null;
 
   return (
     <div className="checkout-fullscreen-overlay" style={{
@@ -279,11 +229,11 @@ export default function CheckoutModal({ courses = [], onClose, onPaymentSuccess,
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <div style={{
             width: '38px', height: '38px', borderRadius: '8px',
-            background: '#7C3AED', color: '#fff', fontSize: '18px', fontWeight: '900',
+            background: '#ef4444', color: '#fff', fontSize: '18px', fontWeight: '900',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             border: '2.5px solid #000000', boxShadow: '2px 2px 0px #000000'
           }}>
-            E
+            D
           </div>
           <div>
             <h1 style={{ fontSize: '18px', fontWeight: '950', color: '#000000', margin: 0 }}>EduPath AI</h1>
@@ -329,82 +279,76 @@ export default function CheckoutModal({ courses = [], onClose, onPaymentSuccess,
         {step === 1 && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '40px', alignItems: 'start' }}>
             
-            {/* Cột trái: Danh sách khóa học */}
+            {/* Cột trái: Danh sách sản phẩm (tài liệu) */}
             <div style={{ flex: '1 1 650px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
               <div style={{
                 background: '#fff', border: '3px solid #000', borderRadius: '16px',
                 padding: '28px', boxShadow: '5px 5px 0px #000'
               }}>
                 <h2 style={{ fontSize: '22px', fontWeight: '950', color: '#000', margin: '0 0 20px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span>🛒</span> Giỏ hàng của em ({courses.length} sản phẩm)
+                  <span>🛒</span> Giỏ hàng của em ({cartDocs.length} sản phẩm)
                 </h2>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                  {courses.map((c) => {
-                    const price = parsePrice(c.priceSale ?? c.price ?? c.priceOriginal, c);
-                    return (
-                      <div 
-                        key={c.id} 
-                        style={{
-                          background: '#FFFDF9',
-                          border: '2px solid #000',
-                          borderRadius: '12px',
-                          padding: '16px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '16px',
-                          position: 'relative',
-                          boxShadow: '2px 2px 0px #000'
-                        }}
-                      >
-                        <div style={{
-                          width: '48px', height: '48px', borderRadius: '8px',
-                          background: (c.type === 'DOCUMENT' || c.driveUrl) ? '#ef4444' : 'linear-gradient(135deg, #7C3AED, #4F46E5)',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          color: '#fff', fontSize: '18px', fontWeight: 'bold', border: '2px solid #000', flexShrink: 0
-                        }}>
-                          {c.subject?.slice(0, 1) || '📚'}
-                        </div>
-                        <div style={{ flex: 1 }}>
-                          <h4 style={{ margin: '0 0 4px 0', fontSize: '15px', fontWeight: '900', color: '#000' }}>
-                            {c.title}
-                          </h4>
-                          <p style={{ margin: 0, fontSize: '12px', color: '#555', fontWeight: '700' }}>
-                            {(c.type === 'DOCUMENT' || c.driveUrl) 
-                              ? `Môn: ${c.subject} • Tài liệu học tập`
-                              : `Môn: ${c.subject} • Giáo viên: ${c.teacherName || c.instructor?.name || 'Cố vấn EduPath'}`
-                            }
-                          </p>
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                          <span style={{ fontSize: '16px', fontWeight: '950', color: '#000' }}>
-                            {price.toLocaleString('vi-VN')}đ
-                          </span>
-                          <button
-                            onClick={() => onRemoveCourse(c.id)}
-                            style={{
-                              border: '2px solid #000',
-                              background: '#FFEAA7',
-                              borderRadius: '8px',
-                              width: '32px',
-                              height: '32px',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              cursor: 'pointer',
-                              boxShadow: '1.5px 1.5px 0px #000',
-                              transition: 'all 0.1s'
-                            }}
-                            title="Xóa khỏi giỏ hàng"
-                            onMouseEnter={(e) => { e.currentTarget.style.background = '#ff7675'; }}
-                            onMouseLeave={(e) => { e.currentTarget.style.background = '#FFEAA7'; }}
-                          >
-                            <HiTrash style={{ fontSize: '16px', color: '#000' }} />
-                          </button>
-                        </div>
+                  {cartDocs.map((item) => (
+                    <div 
+                      key={item.id} 
+                      style={{
+                        background: '#FFFDF9',
+                        border: '2px solid #000',
+                        borderRadius: '12px',
+                        padding: '16px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '16px',
+                        position: 'relative',
+                        boxShadow: '2px 2px 0px #000'
+                      }}
+                    >
+                      <div style={{
+                        width: '48px', height: '48px', borderRadius: '8px',
+                        background: '#ef4444',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        color: '#fff', fontSize: '18px', fontWeight: 'bold', border: '2px solid #000', flexShrink: 0
+                      }}>
+                        {item.subject?.slice(0, 1) || '📚'}
                       </div>
-                    );
-                  })}
+                      <div style={{ flex: 1 }}>
+                        <h4 style={{ margin: '0 0 4px 0', fontSize: '15px', fontWeight: '900', color: '#000' }}>
+                          {item.title}
+                        </h4>
+                        <p style={{ margin: 0, fontSize: '12px', color: '#555', fontWeight: '700' }}>
+                          Môn: {item.subject} • Cố vấn EduPath
+                        </p>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                        <span style={{ fontSize: '16px', fontWeight: '950', color: '#000' }}>
+                          {item.price.toLocaleString('vi-VN')}đ
+                        </span>
+                        <button
+                          onClick={() => onRemoveDoc(item.id)}
+                          style={{
+                            border: '2px solid #000',
+                            background: '#FFEAA7',
+                            borderRadius: '8px',
+                            width: '32px',
+                            height: '32px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: 'pointer',
+                            boxShadow: '1.5px 1.5px 0px #000',
+                            transition: 'all 0.1s'
+                          }}
+                          title="Xóa khỏi giỏ hàng"
+                          onMouseEnter={(e) => { e.currentTarget.style.background = '#ff7675'; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.background = '#FFEAA7'; }}
+                        >
+                          <HiTrash style={{ fontSize: '16px', color: '#000' }} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
@@ -442,12 +386,12 @@ export default function CheckoutModal({ courses = [], onClose, onPaymentSuccess,
                   </button>
                 </div>
                 {promoStatus === 'success' && (
-                  <p style={{ margin: '8px 0 0 0', fontSize: '12px', color: 'var(--accent-green)', fontWeight: 'bold' }}>
+                  <p style={{ margin: '8px 0 0 0', fontSize: '12px', color: '#10b981', fontWeight: 'bold' }}>
                     ✓ Áp dụng thành công! Đã giảm {discountVal.toLocaleString('vi-VN')}đ vào tổng đơn hàng.
                   </p>
                 )}
                 {promoStatus === 'invalid' && (
-                  <p style={{ margin: '8px 0 0 0', fontSize: '12px', color: 'var(--accent-red)', fontWeight: 'bold' }}>
+                  <p style={{ margin: '8px 0 0 0', fontSize: '12px', color: '#ef4444', fontWeight: 'bold' }}>
                     ✗ {promoError || 'Mã giảm giá không đúng hoặc hết hạn.'}
                   </p>
                 )}
@@ -468,7 +412,7 @@ export default function CheckoutModal({ courses = [], onClose, onPaymentSuccess,
                     <span>{originalAmount.toLocaleString('vi-VN')}đ</span>
                   </div>
                   {discountAmount > 0 && (
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', color: 'var(--accent-red)', fontWeight: 'bold' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', color: '#ef4444', fontWeight: 'bold' }}>
                       <span>Giảm giá:</span>
                       <span>-{discountAmount.toLocaleString('vi-VN')}đ</span>
                     </div>
@@ -499,7 +443,21 @@ export default function CheckoutModal({ courses = [], onClose, onPaymentSuccess,
                     e.currentTarget.style.boxShadow = '4px 4px 0px #000';
                   }}
                 >
-                  {finalAmount === 0 ? 'NHẬN KHÓA HỌC MIỄN PHÍ ➔' : 'TIẾN HÀNH THANH TOÁN ➔'}
+                  {finalAmount === 0 ? 'NHẬN TÀI LIỆU MIỄN PHÍ ➔' : 'TIẾN HÀNH THANH TOÁN ➔'}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleSimulatePayment}
+                  style={{
+                    width: '100%', padding: '10px', background: '#fff',
+                    color: '#7C3AED', border: '2.5px solid #7C3AED', borderRadius: '10px',
+                    fontSize: '13px', fontWeight: '900', cursor: 'pointer',
+                    boxShadow: '3px 3px 0px #7C3AED', transition: 'all 0.15s',
+                    textAlign: 'center', marginTop: '12px'
+                  }}
+                >
+                  MÔ PHỎNG THANH TOÁN (DEMO MODE) ➔
                 </button>
               </div>
 
@@ -508,7 +466,7 @@ export default function CheckoutModal({ courses = [], onClose, onPaymentSuccess,
         )}
 
         {/* STEP 2: Bank Transfer & VietQR */}
-        {step === 2 && (
+        {step === 2 && activeDoc && (
           <div style={{
             background: '#fff', border: '3px solid #000', borderRadius: '16px',
             padding: '40px', boxShadow: '6px 6px 0px #000', display: 'flex', flexWrap: 'wrap', gap: '40px'
@@ -539,7 +497,7 @@ export default function CheckoutModal({ courses = [], onClose, onPaymentSuccess,
                     🏦 ACB BANK
                   </span>
                   <span style={{ fontSize: '9px', fontWeight: 'bold', background: 'rgba(255,255,255,0.2)', padding: '4px 10px', borderRadius: '6px' }}>
-                    PREMIUM MEMBER
+                    DOCUMENT UNLOCK
                   </span>
                 </div>
 
@@ -600,7 +558,7 @@ export default function CheckoutModal({ courses = [], onClose, onPaymentSuccess,
                 }}>
                   <div>
                     <span style={{ fontSize: '11px', color: '#555', fontWeight: 'bold', display: 'block', textTransform: 'uppercase' }}>Nội dung chuyển khoản (Bắt buộc):</span>
-                    <strong style={{ fontSize: '17px', color: 'var(--accent-red)', letterSpacing: '1px' }}>{transferCode}</strong>
+                    <strong style={{ fontSize: '17px', color: '#ef4444', letterSpacing: '1px' }}>{transferCode}</strong>
                   </div>
                   <button
                     onClick={() => handleCopy(transferCode, 'code')}
@@ -637,14 +595,20 @@ export default function CheckoutModal({ courses = [], onClose, onPaymentSuccess,
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', maxWidth: '340px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <span className="pulse-green"></span>
-                  <span style={{ fontSize: '13px', color: 'var(--accent-green)', fontWeight: 'bold' }}>
+                  <span style={{ fontSize: '13px', color: '#10b981', fontWeight: 'bold' }}>
                     Đang quét sao kê ngân hàng...
                   </span>
                 </div>
                 <div style={{ fontSize: '12.5px', color: '#555', fontWeight: 'bold' }}>
-                  Đếm ngược: <span style={{ color: 'var(--accent-red)' }}>{formatTime(seconds)}</span>
+                  Đếm ngược: <span style={{ color: '#ef4444' }}>{formatTime(seconds)}</span>
                 </div>
               </div>
+
+              {pollingError && (
+                <div style={{ color: '#ef4444', fontSize: '12.5px', fontWeight: 'bold', width: '100%', maxWidth: '340px', textAlign: 'center' }}>
+                  {pollingError}
+                </div>
+              )}
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', width: '100%', maxWidth: '340px' }}>
                 <button 
@@ -668,7 +632,7 @@ export default function CheckoutModal({ courses = [], onClose, onPaymentSuccess,
                     boxShadow: '3px 3px 0px #000', cursor: 'pointer'
                   }}
                 >
-                  Quay lại chỉnh sửa Giỏ hàng
+                  Quay lại chọn phương thức
                 </button>
               </div>
             </div>
@@ -694,70 +658,50 @@ export default function CheckoutModal({ courses = [], onClose, onPaymentSuccess,
               ĐANG ĐỐI SOÁT GIAO DỊCH TỪ SEPAY...
             </h3>
             <p style={{ fontSize: '13.5px', color: '#555', lineHeight: '1.6', margin: 0, fontWeight: '700' }}>
-              Hệ thống đang kiểm tra tự động sao kê tài khoản ngân hàng liên kết. Vui lòng giữ kết nối trong vài giây, EduPath AI sẽ mở khóa vật phẩm ngay sau khi nhận được tiền.
+              Hệ thống đang kiểm tra tự động sao kê tài khoản ngân hàng liên kết. Vui lòng giữ kết nối trong vài giây, EduPath AI sẽ mở khóa tài liệu học tập ngay lập tức.
             </p>
           </div>
         )}
 
         {/* STEP 4: Success unlock screen */}
-        {step === 4 && (() => {
-          const isDoc = courses.length > 0 && (courses[0].type === 'DOCUMENT' || courses[0].driveUrl);
-          return (
-            <div style={{
-              background: '#fff', border: '3px solid #000', borderRadius: '16px',
-              padding: '50px 30px', boxShadow: '6px 6px 0px #000', textAlign: 'center',
-              maxWidth: '650px', margin: '40px auto'
-            }}>
-              <div style={{ fontSize: '80px', color: 'var(--accent-green)', marginBottom: '20px', display: 'flex', justifyContent: 'center' }}>
-                <HiCheckCircle />
-              </div>
-              <h3 style={{ fontSize: '24px', fontWeight: '950', marginBottom: '12px', color: '#000' }}>
-                MỞ KHÓA THÀNH CÔNG! 🎉
-              </h3>
-              <div style={{
-                background: '#F0FDF4', border: '2px solid #22c55e', borderRadius: '12px',
-                padding: '16px', marginBottom: '24px', textAlign: 'left', display: 'flex', flexDirection: 'column', gap: '8px'
-              }}>
-                <strong style={{ fontSize: '14px', color: '#15803d' }}>
-                  {isDoc ? '📂 Danh sách các tài liệu học tập đã mở khóa:' : '📚 Danh sách các khóa học đã mở khóa:'}
-                </strong>
-                <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '13px', color: '#15803d', fontWeight: 'bold' }}>
-                  {courses.map(c => (
-                    <li key={c.id}>{c.title}</li>
-                  ))}
-                </ul>
-              </div>
-              <p style={{ fontSize: '14px', color: '#555', marginBottom: '28px', lineHeight: '1.6', fontWeight: '700' }}>
-                {isDoc 
-                  ? 'Cảm ơn em đã sử dụng tài liệu học tập cùng EduPath AI! Hệ thống đã ghi nhận quyền sở hữu của em đối với các tài liệu trên.' 
-                  : 'Cảm ơn em đã tham gia học tập cùng EduPath AI! Hệ thống đã ghi nhận quyền sở hữu của em đối với các khóa học trên. Bắt đầu lộ trình học tập cá nhân hóa ngay nào!'
-                }
-              </p>
-              <div style={{ display: 'flex', justifyContent: 'center' }}>
-                <button 
-                  onClick={onClose}
-                  style={{
-                    padding: '14px 36px', background: '#7C3AED', color: '#fff',
-                    border: '3px solid #000', borderRadius: '12px', fontSize: '15px', fontWeight: '950',
-                    boxShadow: '4px 4px 0px #000', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px',
-                    transition: 'all 0.1s'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = 'translate(-2px, -2px)';
-                    e.currentTarget.style.boxShadow = '6px 6px 0px #000';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = 'none';
-                    e.currentTarget.style.boxShadow = '4px 4px 0px #000';
-                  }}
-                >
-                  <HiLockOpen style={{ fontSize: '18px' }} /> 
-                  {isDoc ? 'Quay lại xem tài liệu ngay!' : 'Vào học ngay thôi!'}
-                </button>
-              </div>
+        {step === 4 && activeDoc && (
+          <div style={{
+            background: '#fff', border: '3px solid #000', borderRadius: '16px',
+            padding: '50px 30px', boxShadow: '6px 6px 0px #000', textAlign: 'center',
+            maxWidth: '650px', margin: '40px auto'
+          }}>
+            <div style={{ fontSize: '80px', color: '#10b981', marginBottom: '20px', display: 'flex', justifyContent: 'center' }}>
+              <HiCheckCircle />
             </div>
-          );
-        })()}
+            <h3 style={{ fontSize: '24px', fontWeight: '950', marginBottom: '12px', color: '#000' }}>
+              MỞ KHÓA TÀI LIỆU THÀNH CÔNG! 🎉
+            </h3>
+            <div style={{
+              background: '#F0FDF4', border: '2px solid #22c55e', borderRadius: '12px',
+              padding: '16px', marginBottom: '24px', textAlign: 'center'
+            }}>
+              <strong style={{ fontSize: '15px', color: '#15803d' }}>
+                📖 Đã mở khóa quyền sở hữu tài liệu: "{activeDoc.title}"
+              </strong>
+            </div>
+            <p style={{ fontSize: '14px', color: '#555', marginBottom: '28px', lineHeight: '1.6', fontWeight: '700' }}>
+              Cảm ơn em đã sử dụng tài liệu học tập của EduPath AI! Hệ thống đã kích hoạt vĩnh viễn quyền truy cập trực tuyến và tải xuống cho tài liệu học tập này.
+            </p>
+            <div style={{ display: 'flex', justifyContent: 'center' }}>
+              <button 
+                onClick={onClose}
+                style={{
+                  padding: '14px 36px', background: '#ef4444', color: '#fff',
+                  border: '3px solid #000', borderRadius: '12px', fontSize: '15px', fontWeight: '950',
+                  boxShadow: '4px 4px 0px #000', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px',
+                  transition: 'all 0.1s'
+                }}
+              >
+                <HiLockOpen style={{ fontSize: '18px' }} /> Đọc tài liệu ngay!
+              </button>
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );
