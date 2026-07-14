@@ -101,9 +101,9 @@ import {
 import { uploadValidation } from './middleware/upload.js';
 import {
   getCategories, createCategory, deleteCategory,
-  getPosts, getPostById, createPost, deletePost, togglePinPost, reactPost,
+  getPosts, getPostById, createPost, deletePost, togglePinPost, reactPost, updatePost,
   getComments, createComment, acceptCommentSolution, reactComment,
-  getStudyGroups, createStudyGroup, joinStudyGroup, leaveStudyGroup,
+  getStudyGroups, createStudyGroup, joinStudyGroup, leaveStudyGroup, deleteStudyGroup,
   getGroupAnnouncements, createGroupAnnouncement,
   getLeaderboard as getForumLeaderboard, getUserGamificationProfile,
   downloadResource, createReport, getReports, resolveReport, toggleSavePost
@@ -428,6 +428,7 @@ app.delete('/forum/categories/:id', authenticateJWT, requireRole(['ADMIN']), del
 app.get('/forum/posts', optionalAuthenticateJWT, getPosts);
 app.get('/forum/posts/:id', optionalAuthenticateJWT, getPostById);
 app.post('/forum/posts', authenticateJWT, createPost);
+app.put('/forum/posts/:id', authenticateJWT, updatePost);
 app.delete('/forum/posts/:id', authenticateJWT, deletePost);
 app.put('/forum/posts/:id/pin', authenticateJWT, requireRole(['TEACHER', 'ADMIN']), togglePinPost);
 app.post('/forum/posts/:id/react', authenticateJWT, reactPost);
@@ -442,6 +443,7 @@ app.get('/forum/study-groups', authenticateJWT, getStudyGroups);
 app.post('/forum/study-groups', authenticateJWT, createStudyGroup);
 app.post('/forum/study-groups/:id/join', authenticateJWT, joinStudyGroup);
 app.post('/forum/study-groups/:id/leave', authenticateJWT, leaveStudyGroup);
+app.delete('/forum/study-groups/:id', authenticateJWT, deleteStudyGroup);
 app.get('/forum/study-groups/:id/announcements', authenticateJWT, getGroupAnnouncements);
 app.post('/forum/study-groups/:id/announcements', authenticateJWT, createGroupAnnouncement);
 

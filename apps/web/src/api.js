@@ -287,6 +287,9 @@ export const api = {
   deleteForumPost: (id) =>
     request(`/forum/posts/${id}`, { method: 'DELETE' }),
 
+  updateForumPost: (id, postData) =>
+    request(`/forum/posts/${id}`, { method: 'PUT', body: postData }),
+
   togglePinForumPost: (id) =>
     request(`/forum/posts/${id}/pin`, { method: 'PUT' }),
 
@@ -319,6 +322,9 @@ export const api = {
 
   leaveStudyGroup: (id) =>
     request(`/forum/study-groups/${id}/leave`, { method: 'POST' }),
+
+  deleteStudyGroup: (id) =>
+    request(`/forum/study-groups/${id}`, { method: 'DELETE' }),
 
   getForumLeaderboard: () =>
     request('/forum/leaderboard', { method: 'GET' }),

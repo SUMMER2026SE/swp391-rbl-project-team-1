@@ -287,8 +287,8 @@ export default function LeaderboardTab({ currentUser }) {
     return () => { active = false; };
   }, [grade, subject, province, search, page, sortBy]);
 
-  const top3 = rankings.slice(0, 3);
-  const rest = rankings.slice(3);
+  const top3 = page === 1 ? rankings.slice(0, 3) : [];
+  const rest = page === 1 ? rankings.slice(3) : rankings;
 
   const getStreakDisplay = (student) => {
     if (subject) {
