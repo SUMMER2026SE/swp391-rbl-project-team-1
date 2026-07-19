@@ -40,4 +40,5 @@ dist-ssr
 apps/**/.env
 apps/**/.env.*
 
-
+# Uploads
+apps/api/uploads
