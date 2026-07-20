@@ -106,7 +106,8 @@ export async function shareMindmap(req: AuthRequest, res: Response) {
       authorName: mindmap.user?.fullName || 'Người dùng EduPath',
       authorAvatar: mindmap.user?.avatarUrl || null,
       likes: existingIdx !== -1 ? list[existingIdx].likes : 0,
-      likedBy: existingIdx !== -1 ? list[existingIdx].likedBy : [],
+      likedBy: existingIdx !== -1 ? (list[existingIdx].likedBy || []) : [],
+      clonedBy: existingIdx !== -1 ? (list[existingIdx].clonedBy || []) : [],
       downloads: existingIdx !== -1 ? list[existingIdx].downloads : 0,
       createdAt: existingIdx !== -1 ? list[existingIdx].createdAt : new Date().toISOString()
     };
@@ -181,12 +182,34 @@ export async function cloneSharedMindmap(req: AuthRequest, res: Response) {
     }
 
     const item = list[idx];
+    if (!item.clonedBy) {
+      item.clonedBy = [];
+    }
+
+    // Check if this user has already cloned or possesses this mindmap
+    const titleToSearch = `${item.title} (Nhập từ Diễn đàn)`;
+    const existingInDb = await prisma.mindmap.findFirst({
+      where: {
+        userId,
+        OR: [
+          { title: titleToSearch },
+          { title: item.title }
+        ]
+      }
+    });
+
+    if (item.clonedBy.includes(userId) || existingInDb) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Sơ đồ tư duy này đã có trong thư viện của bạn! Để tránh trùng lặp, mỗi sơ đồ chỉ được nhập 1 lần.' 
+      });
+    }
 
     // Save as a new personal mindmap for this user
     const mindmap = await prisma.mindmap.create({
       data: {
         userId,
-        title: `${item.title} (Nhập từ Diễn đàn)`,
+        title: titleToSearch,
         content: item.content
       }
     });
@@ -219,7 +242,10 @@ export async function cloneSharedMindmap(req: AuthRequest, res: Response) {
       });
     }
 
-    // Increment downloads
+    // Increment downloads and track user
+    if (!item.clonedBy.includes(userId)) {
+      item.clonedBy.push(userId);
+    }
     item.downloads = (item.downloads || 0) + 1;
     list[idx] = item;
     writeSharedMindmaps(list);
