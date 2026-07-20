@@ -1636,14 +1636,16 @@ async function callOpenRouterVision(prompt: string, base64Image: string, mimeTyp
   const userOpenRouterKey = customApiKey;
   const userOpenRouterModel = customModel;
 
-  const rawKeys = process.env.OPENROUTER_API_KEYS || process.env.OPENROUTER_API_KEY || '';
+  const rawKeys = process.env.OPENROUTER_API_KEYS || process.env.OPENROUTER_API_KEY || process.env.GEMINI_API_KEY || '';
   const apiKeys = userOpenRouterKey ? [userOpenRouterKey] : rawKeys.split(',').map(k => k.trim()).filter(Boolean);
-  const apiKey = apiKeys[0];
+  const apiKey = apiKeys[0] || process.env.GEMINI_API_KEY;
   // Default to a vision model (google/gemini-2.5-flash is extremely fast, cheap, and has vision capabilities!)
-  const model = userOpenRouterKey ? (userOpenRouterModel || 'google/gemini-2.5-flash') : (process.env.OPENROUTER_MODEL || 'google/gemini-2.5-flash');
+  const model = userOpenRouterKey 
+    ? (userOpenRouterModel || 'google/gemini-2.5-flash') 
+    : (process.env.OPENROUTER_MODEL || process.env.GEMINI_MODEL || 'google/gemini-2.5-flash');
 
   if (!apiKey) {
-    throw new Error('API Key OpenRouter chưa được cấu hình.');
+    throw new Error('API Key chưa được cấu hình (thiếu cả OpenRouter và Gemini API Key).');
   }
 
   if (isGeminiKey(apiKey)) {
@@ -1700,13 +1702,15 @@ async function callOpenRouter(prompt: string, maxTokens = 1500, temp = 0.5, cust
   const userOpenRouterKey = customApiKey;
   const userOpenRouterModel = customModel;
 
-  const rawKeys = process.env.OPENROUTER_API_KEYS || process.env.OPENROUTER_API_KEY || '';
+  const rawKeys = process.env.OPENROUTER_API_KEYS || process.env.OPENROUTER_API_KEY || process.env.GEMINI_API_KEY || '';
   const apiKeys = userOpenRouterKey ? [userOpenRouterKey] : rawKeys.split(',').map(k => k.trim()).filter(Boolean);
-  const apiKey = apiKeys[0];
-  const model = userOpenRouterKey ? (userOpenRouterModel || 'google/gemini-2.5-pro') : (process.env.OPENROUTER_MODEL || 'openrouter/free');
+  const apiKey = apiKeys[0] || process.env.GEMINI_API_KEY;
+  const model = userOpenRouterKey 
+    ? (userOpenRouterModel || 'google/gemini-2.5-pro') 
+    : (process.env.OPENROUTER_MODEL || process.env.GEMINI_MODEL || 'google/gemini-2.5-flash');
 
   if (!apiKey) {
-    throw new Error('API Key OpenRouter chưa được cấu hình.');
+    throw new Error('API Key chưa được cấu hình (thiếu cả OpenRouter và Gemini API Key).');
   }
 
   if (isGeminiKey(apiKey)) {
