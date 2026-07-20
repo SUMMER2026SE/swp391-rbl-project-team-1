@@ -24,7 +24,7 @@ export async function seedAllCourses() {
       fullName: 'Thầy Nguyễn Thế Anh',
       role: 'TEACHER',
       avatarUrl: 'TA',
-      teacher: { create: { isApproved: true, bio: 'Giảng viên chuyên ôn Toán THPTQG với 12 năm kinh nghiệm.' } }
+      teacher: { create: { isApproved: true, status: 'APPROVED', visibility: 'VISIBLE', bio: 'Giảng viên chuyên ôn Toán THPTQG với 12 năm kinh nghiệm.' } }
     }
   });
 
@@ -37,7 +37,7 @@ export async function seedAllCourses() {
       fullName: 'Cô Lê Thu Hương',
       role: 'TEACHER',
       avatarUrl: 'LH',
-      teacher: { create: { isApproved: true, bio: 'Tốt nghiệp Đại học Sư Phạm Hà Nội, ôn luyện Vật lý THPTQG.' } }
+      teacher: { create: { isApproved: true, status: 'APPROVED', visibility: 'VISIBLE', bio: 'Tốt nghiệp Đại học Sư Phạm Hà Nội, ôn luyện Vật lý THPTQG.' } }
     }
   });
 
@@ -50,7 +50,7 @@ export async function seedAllCourses() {
       fullName: 'Cô Triệu Mai Anh',
       role: 'TEACHER',
       avatarUrl: 'MA',
-      teacher: { create: { isApproved: true, bio: 'Thạc sĩ Ngôn ngữ Anh, cựu giáo viên Chuyên Ngoại Ngữ.' } }
+      teacher: { create: { isApproved: true, status: 'APPROVED', visibility: 'VISIBLE', bio: 'Thạc sĩ Ngôn ngữ Anh, cựu giáo viên Chuyên Ngoại Ngữ.' } }
     }
   });
 
@@ -63,7 +63,7 @@ export async function seedAllCourses() {
       fullName: 'Thầy Nguyễn Quốc Bảo',
       role: 'TEACHER',
       avatarUrl: 'QB',
-      teacher: { create: { isApproved: true, bio: 'Tốt nghiệp ĐH Sư Phạm, tác giả nhiều đầu sách ôn thi Văn THPTQG.' } }
+      teacher: { create: { isApproved: true, status: 'APPROVED', visibility: 'VISIBLE', bio: 'Tốt nghiệp ĐH Sư Phạm, tác giả nhiều đầu sách ôn thi Văn THPTQG.' } }
     }
   });
 
@@ -76,7 +76,7 @@ export async function seedAllCourses() {
       fullName: 'Thầy Hoàng Minh Trí',
       role: 'TEACHER',
       avatarUrl: 'MT',
-      teacher: { create: { isApproved: true, bio: 'Chuyên gia ôn luyện Lịch sử & Địa lý THPTQG ôn thi trường chuyên.' } }
+      teacher: { create: { isApproved: true, status: 'APPROVED', visibility: 'VISIBLE', bio: 'Chuyên gia ôn luyện Lịch sử & Địa lý THPTQG ôn thi trường chuyên.' } }
     }
   });
 
@@ -91,7 +91,7 @@ export async function seedAllCourses() {
       price: 499000.0,
       discount: 30,
       isPublished: true,
-      isApproved: true,
+      isApproved: true, status: 'APPROVED', visibility: 'VISIBLE',
       teacherId: teacherA.id,
       lessons: {
         create: [
@@ -113,7 +113,7 @@ export async function seedAllCourses() {
       price: 599000.0,
       discount: 40,
       isPublished: true,
-      isApproved: true,
+      isApproved: true, status: 'APPROVED', visibility: 'VISIBLE',
       teacherId: teacherA.id,
       lessons: {
         create: [
@@ -135,7 +135,7 @@ export async function seedAllCourses() {
       price: 399000.0,
       discount: 50,
       isPublished: true,
-      isApproved: true,
+      isApproved: true, status: 'APPROVED', visibility: 'VISIBLE',
       teacherId: teacherB.id,
       lessons: {
         create: [
@@ -157,7 +157,7 @@ export async function seedAllCourses() {
       price: 0.0,
       discount: 0,
       isPublished: true,
-      isApproved: true,
+      isApproved: true, status: 'APPROVED', visibility: 'VISIBLE',
       teacherId: teacherC.id,
       lessons: {
         create: [
@@ -179,7 +179,7 @@ export async function seedAllCourses() {
       price: 0.0,
       discount: 0,
       isPublished: true,
-      isApproved: true,
+      isApproved: true, status: 'APPROVED', visibility: 'VISIBLE',
       teacherId: teacherD.id,
       lessons: {
         create: [
@@ -201,7 +201,7 @@ export async function seedAllCourses() {
       price: 199000.0,
       discount: 20,
       isPublished: true,
-      isApproved: true,
+      isApproved: true, status: 'APPROVED', visibility: 'VISIBLE',
       teacherId: teacherE.id,
       lessons: {
         create: [
@@ -223,7 +223,7 @@ export async function seedAllCourses() {
       price: 299000.0,
       discount: 15,
       isPublished: true,
-      isApproved: true,
+      isApproved: true, status: 'APPROVED', visibility: 'VISIBLE',
       teacherId: teacherA.id,
       lessons: {
         create: [
@@ -245,7 +245,7 @@ export async function seedAllCourses() {
       price: 0.0,
       discount: 0,
       isPublished: true,
-      isApproved: true,
+      isApproved: true, status: 'APPROVED', visibility: 'VISIBLE',
       teacherId: teacherE.id,
       lessons: {
         create: [
@@ -267,7 +267,7 @@ export async function seedAllCourses() {
       price: 699000.0,
       discount: 45,
       isPublished: true,
-      isApproved: true,
+      isApproved: true, status: 'APPROVED', visibility: 'VISIBLE',
       teacherId: teacherA.id,
       lessons: {
         create: [
@@ -289,7 +289,7 @@ export async function seedAllCourses() {
       price: 299000.0,
       discount: 10,
       isPublished: true,
-      isApproved: true,
+      isApproved: true, status: 'APPROVED', visibility: 'VISIBLE',
       teacherId: teacherC.id,
       lessons: {
         create: [
@@ -311,7 +311,7 @@ export async function seedAllCourses() {
       price: 350000.0,
       discount: 25,
       isPublished: true,
-      isApproved: true,
+      isApproved: true, status: 'APPROVED', visibility: 'VISIBLE',
       teacherId: teacherA.id,
       lessons: {
         create: [
@@ -333,7 +333,7 @@ export async function seedAllCourses() {
       price: 0.0,
       discount: 0,
       isPublished: true,
-      isApproved: true,
+      isApproved: true, status: 'APPROVED', visibility: 'VISIBLE',
       teacherId: teacherA.id,
       lessons: {
         create: [
@@ -355,7 +355,7 @@ export async function seedAllCourses() {
       price: 450000.0,
       discount: 35,
       isPublished: true,
-      isApproved: true,
+      isApproved: true, status: 'APPROVED', visibility: 'VISIBLE',
       teacherId: teacherB.id,
       lessons: {
         create: [
@@ -377,7 +377,7 @@ export async function seedAllCourses() {
       price: 0.0,
       discount: 0,
       isPublished: true,
-      isApproved: true,
+      isApproved: true, status: 'APPROVED', visibility: 'VISIBLE',
       teacherId: teacherB.id,
       lessons: {
         create: [
@@ -399,7 +399,7 @@ export async function seedAllCourses() {
       price: 380000.0,
       discount: 50,
       isPublished: true,
-      isApproved: true,
+      isApproved: true, status: 'APPROVED', visibility: 'VISIBLE',
       teacherId: teacherA.id,
       lessons: {
         create: [
@@ -421,7 +421,7 @@ export async function seedAllCourses() {
       price: 0.0,
       discount: 0,
       isPublished: true,
-      isApproved: true,
+      isApproved: true, status: 'APPROVED', visibility: 'VISIBLE',
       teacherId: teacherA.id,
       lessons: {
         create: [
@@ -443,7 +443,7 @@ export async function seedAllCourses() {
       price: 180000.0,
       discount: 15,
       isPublished: true,
-      isApproved: true,
+      isApproved: true, status: 'APPROVED', visibility: 'VISIBLE',
       teacherId: teacherA.id,
       lessons: {
         create: [
@@ -465,7 +465,7 @@ export async function seedAllCourses() {
       price: 420000.0,
       discount: 30,
       isPublished: true,
-      isApproved: true,
+      isApproved: true, status: 'APPROVED', visibility: 'VISIBLE',
       teacherId: teacherD.id,
       lessons: {
         create: [
@@ -487,7 +487,7 @@ export async function seedAllCourses() {
       price: 250000.0,
       discount: 20,
       isPublished: true,
-      isApproved: true,
+      isApproved: true, status: 'APPROVED', visibility: 'VISIBLE',
       teacherId: teacherD.id,
       lessons: {
         create: [
@@ -509,7 +509,7 @@ export async function seedAllCourses() {
       price: 199000.0,
       discount: 10,
       isPublished: true,
-      isApproved: true,
+      isApproved: true, status: 'APPROVED', visibility: 'VISIBLE',
       teacherId: teacherC.id,
       lessons: {
         create: [
@@ -531,7 +531,7 @@ export async function seedAllCourses() {
       price: 0.0,
       discount: 0,
       isPublished: true,
-      isApproved: true,
+      isApproved: true, status: 'APPROVED', visibility: 'VISIBLE',
       teacherId: teacherE.id,
       lessons: {
         create: [
@@ -553,7 +553,7 @@ export async function seedAllCourses() {
       price: 220000.0,
       discount: 40,
       isPublished: true,
-      isApproved: true,
+      isApproved: true, status: 'APPROVED', visibility: 'VISIBLE',
       teacherId: teacherE.id,
       lessons: {
         create: [
@@ -575,7 +575,7 @@ export async function seedAllCourses() {
       price: 210000.0,
       discount: 15,
       isPublished: true,
-      isApproved: true,
+      isApproved: true, status: 'APPROVED', visibility: 'VISIBLE',
       teacherId: teacherE.id,
       lessons: {
         create: [
@@ -597,7 +597,7 @@ export async function seedAllCourses() {
       price: 0.0,
       discount: 0,
       isPublished: true,
-      isApproved: true,
+      isApproved: true, status: 'APPROVED', visibility: 'VISIBLE',
       teacherId: teacherE.id,
       lessons: {
         create: [
@@ -619,7 +619,7 @@ export async function seedAllCourses() {
       price: 599000.0,
       discount: 30,
       isPublished: true,
-      isApproved: true,
+      isApproved: true, status: 'APPROVED', visibility: 'VISIBLE',
       teacherId: teacherA.id,
       lessons: {
         create: [
@@ -674,7 +674,7 @@ export async function seedAllCourses() {
         price,
         discount,
         isPublished: true,
-        isApproved: true,
+        isApproved: true, status: 'APPROVED', visibility: 'VISIBLE',
         teacherId: teacher.id,
         lessons: {
           create: [

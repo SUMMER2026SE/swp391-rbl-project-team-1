@@ -1,4 +1,5 @@
 import './env.js';
+import './utils/patchFetch.js';
 import express from 'express';
 import { createServer } from 'http';
 import cors from 'cors';

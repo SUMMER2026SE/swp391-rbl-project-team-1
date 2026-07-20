@@ -4533,6 +4533,7 @@ export default function App() {
 
       {/* Global premium wave loader overlay */}
       {globalLoading && <LoadingOverlay message={globalLoadingMessage} />}
+      <ChatbotWidget currentPath={currentPath} currentUser={currentUser} />
 
     </div>
   );
