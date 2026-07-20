@@ -3,6 +3,7 @@ import type { AuthRequest } from '../middleware/auth.js';
 import { prisma } from '../lib/prisma.js';
 import { incrementBothStats } from '../lib/monthlyStats.js';
 import { logSystemEvent } from '../utils/logger.js';
+import { isGeminiKey, streamGeminiDirect, callGeminiDirect } from '../utils/geminiClient.js';
 import { SystemSettingService } from '../services/systemSetting.service.js';
 import { getRAGContext, generateLocalRAGAnswer, getCachedDocumentText, getMultiDocRAGContext, generateLocalFlashcards, extractTextFromFile } from '../utils/rag.js';
 import fs from 'fs';
@@ -290,6 +291,22 @@ Hãy ưu tiên trích dẫn và sử dụng các thông tin chính xác từ tà
       console.log(`[AI Tutor] Attempting API key #${i + 1}/${apiKeys.length}`);
       
       try {
+        if (isGeminiKey(currentKey)) {
+          await streamGeminiDirect(
+            currentKey,
+            model,
+            [
+              systemPrompt,
+              ...formattedHistory,
+              { role: 'user', content: userMessageContent }
+            ],
+            res,
+            abortController.signal
+          );
+          success = true;
+          break;
+        }
+
         response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
           method: 'POST',
           headers: {
@@ -352,6 +369,18 @@ Hãy ưu tiên trích dẫn và sử dụng các thông tin chính xác từ tà
         console.error(`[AI Tutor] Exception with API key #${i + 1}:`, keyErr.message);
         lastErrorMsg = keyErr.message;
       }
+    }
+
+    if (success && response === null) {
+      res.write('data: [DONE]\n\n');
+      try {
+        const now = new Date();
+        await incrementBothStats('totalAiQuestions', now);
+      } catch (statErr) {
+        console.error('[MonthlyStats] Lỗi cập nhật totalAiQuestions:', statErr);
+      }
+      res.end();
+      return;
     }
 
     if (!response || !response.ok) {
@@ -1610,6 +1639,17 @@ async function callOpenRouterVision(prompt: string, base64Image: string, mimeTyp
     throw new Error('API Key OpenRouter chưa được cấu hình.');
   }
 
+  if (isGeminiKey(apiKey)) {
+    const formattedMessages = [{
+      role: 'user',
+      content: [
+        { type: 'text', text: prompt },
+        { type: 'image_url', image_url: { url: `data:${mimeType};base64,${base64Image}` } }
+      ]
+    }];
+    return await callGeminiDirect(apiKey, model, formattedMessages);
+  }
+
   const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -1660,6 +1700,11 @@ async function callOpenRouter(prompt: string, maxTokens = 1500, temp = 0.5, cust
 
   if (!apiKey) {
     throw new Error('API Key OpenRouter chưa được cấu hình.');
+  }
+
+  if (isGeminiKey(apiKey)) {
+    const formattedMessages = [{ role: 'user', content: prompt }];
+    return await callGeminiDirect(apiKey, model, formattedMessages);
   }
 
   const candidateModels = [
