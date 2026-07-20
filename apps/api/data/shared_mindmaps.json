@@ -1,0 +1,252 @@
+[
+  {
+    "id": "shared-1784559885154",
+    "mindmapId": 24,
+    "title": "Ôn thi THPT QG",
+    "description": "Tổng hợp kiến thức trắc nghiệm Toán THPT Quốc Gia",
+    "content": {
+      "id": "0",
+      "name": "Ôn thi THPT QG",
+      "children": [
+        {
+          "id": "0-0",
+          "name": "Đại số",
+          "children": [
+            {
+              "id": "0-0-0",
+              "name": "Cấp số cộng",
+              "children": [],
+              "description": "u2 = u1 + d, ví dụ u1=5, d=-1 thì u2=4"
+            },
+            {
+              "id": "0-0-1",
+              "name": "Cấp số nhân",
+              "children": [],
+              "description": "u_n = u1 * q^(n-1), ví dụ u4 = u1 * q^3"
+            },
+            {
+              "id": "0-0-2",
+              "name": "Xác suất",
+              "children": [],
+              "description": "A, B độc lập: P(AB)=P(A)P(B)=0,2"
+            }
+          ],
+          "description": "Cấp số, xác suất và thống kê cơ bản"
+        },
+        {
+          "id": "0-1",
+          "name": "Giải tích",
+          "children": [
+            {
+              "id": "0-1-0",
+              "name": "Đạo hàm",
+              "children": [],
+              "description": "(f+g)' = f' + g', ví dụ y' = 2x + 1"
+            },
+            {
+              "id": "0-1-1",
+              "name": "Nguyên hàm",
+              "children": [],
+              "description": "F' = f, ví dụ F(x)=4x^3 thì f=12x^2"
+            },
+            {
+              "id": "0-1-2",
+              "name": "Tiệm cận",
+              "children": [],
+              "description": "y->-2 khi x->vô cực, tiệm cận ngang y=-2"
+            }
+          ],
+          "description": "Đạo hàm, nguyên hàm và khảo sát hàm"
+        },
+        {
+          "id": "0-2",
+          "name": "Hình học",
+          "children": [
+            {
+              "id": "0-2-0",
+              "name": "Vectơ",
+              "children": [],
+              "description": "AB = B - A, ví dụ (2;-2;0)"
+            },
+            {
+              "id": "0-2-1",
+              "name": "Khoảng cách",
+              "children": [],
+              "description": "Từ P đến mặt phẳng MED là 7,35"
+            },
+            {
+              "id": "0-2-2",
+              "name": "Đường thẳng",
+              "children": [],
+              "description": "MN có VTPT (3;-4;0), qua M(5;10;4)"
+            }
+          ],
+          "description": "Tọa độ vectơ và khoảng cách trong không gian"
+        },
+        {
+          "id": "0-3",
+          "name": "Thống kê",
+          "children": [
+            {
+              "id": "0-3-0",
+              "name": "Trung vị",
+              "children": [],
+              "description": "n=42, vị trí 21,22 thuộc nhóm [30;40)"
+            },
+            {
+              "id": "0-3-1",
+              "name": "Tần số",
+              "children": [],
+              "description": "Bảng cảnh báo: P(W')=0,9, P(D'|W')=0,98"
+            },
+            {
+              "id": "0-3-2",
+              "name": "Xếp nhóm",
+              "children": [],
+              "description": "H=34560, H/30=1152 theo số dư mod 5"
+            }
+          ],
+          "description": "Tần số, trung vị và bảng dữ liệu"
+        }
+      ],
+      "description": "Tổng hợp kiến thức trắc nghiệm Toán THPT Quốc Gia"
+    },
+    "subject": "Toán",
+    "authorId": 269,
+    "authorName": "Ngọc Hoàng Lê",
+    "authorAvatar": "https://lh3.googleusercontent.com/a/ACg8ocLDuwKKYU7itwKuaFCikC_4YGb7oBtr81c1iymvvWOuBNoMAfhA=s96-c",
+    "likes": 1,
+    "likedBy": [
+      277
+    ],
+    "downloads": 4,
+    "createdAt": "2026-07-20T15:04:45.154Z"
+  },
+  {
+    "id": "shared-1784559953521",
+    "mindmapId": 22,
+    "title": "Dòng từ phasal",
+    "description": "Dòng từ phasal là cụm từ gồm động từ + từ cụm, có nghĩa đặc biệt",
+    "content": {
+      "id": "0",
+      "name": "Dòng từ phasal",
+      "children": [
+        {
+          "id": "0-0",
+          "name": "Dòng di chuyển",
+          "children": [
+            {
+              "id": "0-0-0",
+              "name": "Come",
+              "children": [
+                {
+                  "id": "0-0-0-0",
+                  "name": "Come across",
+                  "description": "Tìm thấy tình cờ (ví dụ: tìm được ảnh)"
+                },
+                {
+                  "id": "0-0-0-1",
+                  "name": "Come around",
+                  "description": "Thay đổi quan điểm (ví dụ: đồng ý với ý khác)"
+                }
+              ],
+              "description": "Tìm thấy tình cờ, thay đổi quan điểm, ra đời"
+            },
+            {
+              "id": "0-0-1",
+              "name": "Go",
+              "children": [
+                {
+                  "id": "0-0-1-0",
+                  "name": "Go for",
+                  "description": "Cố gắng đạt được (ví dụ: giành giải vàng)"
+                },
+                {
+                  "id": "0-0-1-1",
+                  "name": "Go up",
+                  "description": "Tăng (ví dụ: giá petrol tăng)"
+                }
+              ],
+              "description": "Hướng đến, di chuyển, tăng giảm"
+            }
+          ],
+          "description": "Dòng từ gợi ý di chuyển, đến hoặc chuyển đổi"
+        },
+        {
+          "id": "0-1",
+          "name": "Dòng hành động",
+          "children": [
+            {
+              "id": "0-1-0",
+              "name": "Get",
+              "children": [
+                {
+                  "id": "0-1-0-0",
+                  "name": "Get by",
+                  "description": "Xoay xở sống (ví dụ: sống với ngân sách chặt chẽ)"
+                },
+                {
+                  "id": "0-1-0-1",
+                  "name": "Get over",
+                  "description": "Lên khơi (ví dụ: phục hồi từ sự mất mát)"
+                }
+              ],
+              "description": "Làm được, ngã bệnh, khép kín"
+            },
+            {
+              "id": "0-1-1",
+              "name": "Make",
+              "children": [
+                {
+                  "id": "0-1-1-0",
+                  "name": "Make up",
+                  "description": "Bịa chuyện (ví dụ: tạo ra lỗi mắng)"
+                },
+                {
+                  "id": "0-1-1-1",
+                  "name": "Make for",
+                  "description": "Hướng về (ví dụ: chạy về ra đường)"
+                }
+              ],
+              "description": "Tạo ra, làm, tạo nên"
+            }
+          ],
+          "description": "Dòng từ liên quan đến hành động, trạng thái hoặc kết quả"
+        },
+        {
+          "id": "0-2",
+          "name": "Dòng cảm nhận",
+          "children": [
+            {
+              "id": "0-2-0",
+              "name": "Look",
+              "children": [
+                {
+                  "id": "0-2-0-0",
+                  "name": "Look for",
+                  "description": "Tìm kiếm (ví dụ: tìm việc làm)"
+                },
+                {
+                  "id": "0-2-0-1",
+                  "name": "Look up to",
+                  "description": "Tôn trọng (ví dụ: mến mộ người khác)"
+                }
+              ],
+              "description": "Tìm kiếm, xem qua, tôn trọng"
+            }
+          ],
+          "description": "Dòng từ liên quan đến nhìn, cảm nhận hoặc tìm kiếm"
+        }
+      ],
+      "description": "Dòng từ phasal là cụm từ gồm động từ + từ cụm, có nghĩa đặc biệt"
+    },
+    "subject": "Toán",
+    "authorId": 269,
+    "authorName": "Ngọc Hoàng Lê",
+    "authorAvatar": "https://lh3.googleusercontent.com/a/ACg8ocLDuwKKYU7itwKuaFCikC_4YGb7oBtr81c1iymvvWOuBNoMAfhA=s96-c",
+    "likes": 0,
+    "likedBy": [],
+    "downloads": 0,
+    "createdAt": "2026-07-20T15:05:53.521Z"
+  }
+]

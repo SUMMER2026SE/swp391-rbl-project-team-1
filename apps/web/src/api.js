@@ -424,6 +424,21 @@ export const api = {
   getPublicMindmapById: (id) =>
     request(`/mindmaps/public/${id}`, { method: 'GET' }),
 
+  getSharedMindmaps: (search = '', subject = 'All') =>
+    request(`/shared-mindmaps?search=${encodeURIComponent(search)}&subject=${encodeURIComponent(subject)}`),
+
+  shareMindmap: (mindmapId, subject, description = '') =>
+    request('/shared-mindmaps', {
+      method: 'POST',
+      body: { mindmapId, subject, description }
+    }),
+
+  likeSharedMindmap: (id) =>
+    request(`/shared-mindmaps/${id}/like`, { method: 'POST' }),
+
+  cloneSharedMindmap: (id) =>
+    request(`/shared-mindmaps/${id}/clone`, { method: 'POST' }),
+
   getAdminStats: (params = {}) => {
     const query = new URLSearchParams();
     Object.entries(params).forEach(([k, v]) => {
