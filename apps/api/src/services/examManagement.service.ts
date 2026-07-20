@@ -274,7 +274,7 @@ export class ExamManagementService {
         const decision = decisions?.find(d => d.importQuestionId === q.id);
         const action = decision ? decision.action : 'CREATE_NEW';
 
-        if (action === 'REUSE' && q.duplicateOfId) {
+        if (action === 'REUSE' && (q as any).duplicateOfId) {
           // Skip creation, link existing question ID if creating exam later
           continue;
         } else {
@@ -287,7 +287,7 @@ export class ExamManagementService {
               explanation: q.explanation,
               subject: session.fileName.toLowerCase().includes('ly') ? 'Vật lý' : 'Toán học',
               topic: 'Chương 1',
-              difficulty: q.difficulty,
+              difficulty: q.difficulty as any,
               createdBy: userId,
               type: q.type,
               section: q.section,

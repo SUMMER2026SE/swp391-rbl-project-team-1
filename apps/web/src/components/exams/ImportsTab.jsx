@@ -1,1040 +1,680 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
-  HiUpload, 
   HiCheckCircle, 
   HiExclamationCircle, 
-  HiChevronRight, 
-  HiChevronUp, 
-  HiChevronDown, 
-  HiTrash, 
-  HiPlusCircle, 
-  HiSave,
-  HiEye
+  HiPlus, 
+  HiTrash,
+  HiChevronUp,
+  HiChevronDown,
+  HiDocumentDuplicate,
+  HiScissors,
+  HiPencilAlt,
+  HiSparkles,
+  HiRefresh
 } from 'react-icons/hi';
-import { api, API_BASE } from '../../api';
-import * as WMF from 'wmf';
+import QuestionCard from '../mock-exams/QuestionCard';
 
-export function WmfPreview({ url }) {
-  const canvasRef = useRef(null);
-
-  useEffect(() => {
-    if (!url) return;
-    
-    fetch(url)
-      .then(res => res.arrayBuffer())
-      .then(buf => {
-        const canvas = canvasRef.current;
-        if (canvas) {
-          try {
-            // Strip placeable header (22 bytes) if signature matches 0x9AC6CDD7
-            let wmfData = buf;
-            const view = new DataView(buf);
-            if (view.byteLength > 4 && view.getUint32(0, true) === 0x9AC6CDD7) {
-              wmfData = buf.slice(22);
-            }
-
-            const size = WMF.image_size(wmfData);
-            if (size && size[0] && size[1]) {
-              const w = size[0];
-              const h = size[1];
-              canvas.width = w;
-              canvas.height = h;
-              
-              // Scale visually to a standard height (e.g. 36px) preserving aspect ratio
-              const displayHeight = 36;
-              const displayWidth = (w / h) * displayHeight;
-              canvas.style.width = `${displayWidth}px`;
-              canvas.style.height = `${displayHeight}px`;
-            } else {
-              canvas.width = 180;
-              canvas.height = 45;
-              canvas.style.width = '180px';
-              canvas.style.height = '45px';
-            }
-            
-            WMF.draw_canvas(wmfData, canvas);
-          } catch (err) {
-            console.error('Error drawing WMF to canvas:', err);
-          }
-        }
-      })
-      .catch(err => {
-        console.error('Failed to render WMF:', err);
-      });
-  }, [url]);
-
-  return <canvas ref={canvasRef} style={{ border: '1px solid #cbd5e1', borderRadius: '8px', backgroundColor: '#ffffff', padding: '4px' }} />;
-}
+const API_BASE = import.meta.env.VITE_API_URL || 
+  (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    ? 'http://localhost:4000'
+    : '');
 
 export function ImportsTab({
-  sessions,
+  sessions = [],
   activeSession,
-  decisions,
-  setDecisions,
   onUpload,
   onConfirm,
   onUpdateQuestion,
   onDeleteSession,
   onViewDetail,
-  onCloseDetail
+  onCloseDetail,
+  loading = false
 }) {
-  const [activeQuestionIdx, setActiveQuestionIdx] = useState(0);
-  const [duplicatedQuestion, setDuplicatedQuestion] = useState(null);
-  const [saving, setSaving] = useState(false);
-  const [uploadingMedia, setUploadingMedia] = useState(false);
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [activeQuestionId, setActiveQuestionId] = useState(null);
 
-  const activeQuestion = activeSession?.questions?.[activeQuestionIdx];
+  const getFullUrl = (url) => {
+    if (!url) return '';
+    if (url.startsWith('http')) return url;
+    return `${API_BASE}${url.startsWith('/') ? '' : '/'}${url}`;
+  };
 
-  // Fetch duplicated question details when active question has duplicateOfId
+  // Auto-refresh sessions when processing
   useEffect(() => {
-    if (activeQuestion && activeQuestion.duplicateOfId) {
-      api.getQuestionById(activeQuestion.duplicateOfId)
-        .then(res => {
-          setDuplicatedQuestion(res);
-        })
-        .catch(err => {
-          console.error('Failed to fetch duplicated question details:', err);
-          setDuplicatedQuestion(null);
-        });
-    } else {
-      setDuplicatedQuestion(null);
+    let timer;
+    const hasProcessing = sessions.some((s) => s.status === 'PROCESSING');
+    if (hasProcessing) {
+      timer = setInterval(() => {
+        const refreshEvent = new CustomEvent('refresh-import-sessions');
+        window.dispatchEvent(refreshEvent);
+        
+        if (activeSession && activeSession.status === 'PROCESSING') {
+          onViewDetail(activeSession.id);
+        }
+      }, 3000);
+    }
+    return () => clearInterval(timer);
+  }, [sessions, activeSession]);
+
+  const questions = activeSession?.questions || [];
+  const activeQuestion = questions.find(q => q.id === activeQuestionId) || questions[0];
+
+  useEffect(() => {
+    if (activeQuestion) {
+      setActiveQuestionId(activeQuestion.id);
     }
   }, [activeQuestion]);
 
-  // MathJax Formula typesetting hook
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (window.MathJax && window.MathJax.typesetPromise) {
-        window.MathJax.typesetPromise().catch((err) => console.log('MathJax error:', err));
-      }
-    }, 150);
-    return () => clearTimeout(timer);
-  }, [activeSession, activeQuestionIdx, activeQuestion, duplicatedQuestion]);
-
-  const handleFileChange = (e) => {
-    const file = e.target.files?.[0];
-    if (file) onUpload(file);
-  };
-
-  const handleDecisionChange = (qId, action) => {
-    setDecisions({ ...decisions, [qId]: action });
-  };
-
-  // Local Field Editing
-  const handleFieldChange = (field, value) => {
-    if (!activeSession || !activeQuestion) return;
-    const updatedQuestion = { ...activeQuestion, [field]: value };
-    // Optimistic local state update
-    activeSession.questions[activeQuestionIdx] = updatedQuestion;
-    // Trigger render update
-    setDecisions({ ...decisions });
-  };
-
-  const handleOptionChange = (idx, value) => {
-    if (!activeSession || !activeQuestion) return;
-    const updatedOptions = [...activeQuestion.options];
-    updatedOptions[idx] = { ...updatedOptions[idx], text: value };
-    handleFieldChange('options', updatedOptions);
-  };
-
-  // Save changes to backend
-  const handleSaveQuestion = async () => {
-    if (!activeQuestion) return;
-    try {
-      setSaving(true);
-      const payload = {
-        content: activeQuestion.content,
-        options: activeQuestion.options,
-        correctAnswer: activeQuestion.correctAnswer,
-        explanation: activeQuestion.explanation,
-        difficulty: activeQuestion.difficulty,
-        media: activeQuestion.media
-      };
-      await onUpdateQuestion(activeQuestion.id, payload);
-      alert('Đã lưu thay đổi của câu hỏi thành công!');
-    } catch (err) {
-      alert('Không thể lưu câu hỏi: ' + err.message);
-    } finally {
-      setSaving(false);
+  const onFileChange = (e) => {
+    if (e.target.files && e.target.files[0]) {
+      setSelectedFile(e.target.files[0]);
     }
   };
 
-  // Media Management
-  const handleAddMedia = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file || !activeQuestion) return;
+  const handleStartUpload = async () => {
+    if (!selectedFile) return;
+    await onUpload(selectedFile);
+    setSelectedFile(null);
+  };
 
-    try {
-      setUploadingMedia(true);
-      const res = await api.uploadFile(file);
-      const newUrl = res.url || res;
-      
-      const currentMedia = Array.isArray(activeQuestion.media) ? activeQuestion.media : [];
-      const newMedia = [
-        ...currentMedia,
-        {
-          type: 'IMAGE',
-          url: newUrl,
-          order: currentMedia.length
-        }
-      ];
-      handleFieldChange('media', newMedia);
-      alert('Tải ảnh lên thành công!');
-    } catch (err) {
-      alert('Tải ảnh thất bại: ' + err.message);
-    } finally {
-      setUploadingMedia(false);
+  // Validation Warnings Check
+  const getQuestionWarnings = (q) => {
+    const warnings = [];
+    if (!q.content?.trim()) {
+      warnings.push('Nội dung câu hỏi đang để trống.');
     }
-  };
-
-  const handleReplaceMedia = async (mediaIdx, e) => {
-    const file = e.target.files?.[0];
-    if (!file || !activeQuestion) return;
-
-    try {
-      setUploadingMedia(true);
-      const res = await api.uploadFile(file);
-      const newUrl = res.url || res;
-
-      const currentMedia = [...activeQuestion.media];
-      currentMedia[mediaIdx] = {
-        ...currentMedia[mediaIdx],
-        url: newUrl
-      };
-      handleFieldChange('media', currentMedia);
-      alert('Thay thế ảnh thành công!');
-    } catch (err) {
-      alert('Thay thế ảnh thất bại: ' + err.message);
-    } finally {
-      setUploadingMedia(false);
+    if (!q.correctAnswer?.trim()) warnings.push('Chưa chọn đáp án đúng.');
+    if (q.type === 'MULTIPLE_CHOICE') {
+      if (!q.options || q.options.length < 2) warnings.push('Số lượng phương án tối thiểu là 2.');
+      if (q.options?.some((o) => !o.text?.trim())) warnings.push('Nội dung phương án không được để trống.');
     }
+    return warnings;
   };
 
-  const handleDeleteMedia = (mediaIdx) => {
-    if (!activeQuestion) return;
-    const currentMedia = activeQuestion.media.filter((_, idx) => idx !== mediaIdx);
-    // Reorder
-    const updatedMedia = currentMedia.map((m, idx) => ({ ...m, order: idx }));
-    handleFieldChange('media', updatedMedia);
-  };
+  const allWarnings = questions.reduce((acc, q) => {
+    const w = getQuestionWarnings(q);
+    if (w.length > 0) acc[q.id] = w;
+    return acc;
+  }, {});
 
-  const handleMediaTypeChange = (mediaIdx, type) => {
-    if (!activeQuestion) return;
-    const currentMedia = [...activeQuestion.media];
-    currentMedia[mediaIdx] = { ...currentMedia[mediaIdx], type };
-    handleFieldChange('media', currentMedia);
-  };
+  const totalWarningsCount = Object.values(allWarnings).reduce((sum, list) => sum + (list ? list.length : 0), 0);
+  const isValidToPublish = totalWarningsCount === 0;
 
-  const handleMoveMedia = (mediaIdx, direction) => {
-    if (!activeQuestion) return;
-    const currentMedia = [...activeQuestion.media];
-    const targetIdx = direction === 'up' ? mediaIdx - 1 : mediaIdx + 1;
-    
-    if (targetIdx < 0 || targetIdx >= currentMedia.length) return;
+  const sections = Array.from(new Set(questions.map((q) => q.section || 'PHẦN I')));
 
-    // Swap elements
-    const temp = currentMedia[mediaIdx];
-    currentMedia[mediaIdx] = currentMedia[targetIdx];
-    currentMedia[targetIdx] = temp;
+  // Adapt activeQuestion into Student QuestionCard format
+  const mappedStudentQuestion = activeQuestion ? {
+    id: String(activeQuestion.id),
+    question_number: activeQuestion.questionOrder,
+    question_text: activeQuestion.content,
+    question_image_url: getFullUrl(activeQuestion.imageUrl || activeQuestion.media?.imageUrl),
+    question_type: activeQuestion.type === 'ESSAY' ? 'essay' : 'multiple_choice_single',
+    difficulty: activeQuestion.difficulty === 'EASY' ? 'Dễ' : activeQuestion.difficulty === 'HARD' ? 'Khó' : 'Trung bình',
+    explanation: activeQuestion.explanation || '',
+    topic: activeQuestion.regions?.topic || 'Kiến thức cốt lõi'
+  } : null;
 
-    // Recalculate order values
-    const updatedMedia = currentMedia.map((m, idx) => ({ ...m, order: idx }));
-    handleFieldChange('media', updatedMedia);
-  };
+  const mappedStudentOptions = (activeQuestion?.options || []).map((opt) => ({
+    id: `opt-${activeQuestion?.id}-${opt.label}`,
+    question_id: String(activeQuestion?.id),
+    option_label: opt.label,
+    option_text: opt.text,
+    is_correct: opt.label === activeQuestion?.correctAnswer
+  }));
+
+  const aiConfidence = activeQuestion?.media?.confidence || activeQuestion?.regions?.confidence || 0.95;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-      {!activeSession ? (
-        <>
-          {/* Uploader */}
-          <div 
-            className="saas-dropzone-container"
-            onClick={() => document.getElementById('file-upload-input').click()}
-            style={{ cursor: 'pointer', transition: 'all 0.2s ease' }}
-          >
-            <HiUpload style={{ fontSize: '48px', color: '#6366f1' }} />
-            <h4 style={{ margin: '12px 0 6px 0', fontWeight: 800, fontSize: '16px' }}>Tải lên đề thi của bạn (Word/PDF)</h4>
-            <p style={{ margin: 0, fontSize: '13px', color: '#64748b', maxWidth: '400px', lineHeight: 1.5 }}>
-              Hệ thống tự động nhận diện bố cục đề thi, bóc tách công thức Toán học và phân loại các ảnh nhúng (đồ thị, hình học, bảng biến thiên).
-            </p>
-            <input 
-              id="file-upload-input" 
-              type="file" 
-              style={{ display: 'none' }} 
-              accept=".pdf,.docx"
-              onChange={handleFileChange}
-            />
+    <div className="review-studio-container">
+      <style>{`
+        .review-studio-container {
+          display: flex;
+          flex-direction: column;
+          min-height: calc(100vh - 140px);
+          font-family: 'Outfit', 'Inter', sans-serif;
+          color: #0f172a;
+          background: #f8fafc;
+        }
+        .studio-topbar {
+          height: 64px;
+          background: #ffffff;
+          border-bottom: 1px solid #e2e8f0;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 0 24px;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+          z-index: 10;
+        }
+        .studio-main-3col {
+          flex: 1;
+          display: grid;
+          grid-template-columns: 280px 1fr 440px;
+          overflow: hidden;
+          background: #f8fafc;
+        }
+        .studio-sidebar {
+          border-right: 1px solid #e2e8f0;
+          background: #ffffff;
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
+        }
+        .studio-preview-area {
+          background: #f1f5f9;
+          display: flex;
+          flex-direction: column;
+          overflow-y: auto;
+          padding: 24px;
+        }
+        .studio-editor-area {
+          border-left: 1px solid #e2e8f0;
+          background: #ffffff;
+          display: flex;
+          flex-direction: column;
+          overflow-y: auto;
+          padding: 20px;
+          gap: 16px;
+        }
+        .section-header {
+          padding: 8px 14px;
+          background: #f8fafc;
+          font-size: 11px;
+          font-weight: 800;
+          color: #475569;
+          text-transform: uppercase;
+          border-bottom: 1px solid #e2e8f0;
+          letter-spacing: 0.5px;
+        }
+        .q-item-clean {
+          padding: 12px 14px;
+          border-bottom: 1px solid #f1f5f9;
+          display: flex;
+          align-items: flex-start;
+          gap: 10px;
+          cursor: pointer;
+          transition: all 0.15s ease;
+          background: #ffffff;
+        }
+        .q-item-clean:hover {
+          background: #f8fafc;
+        }
+        .q-item-clean.active {
+          background: #eef2ff;
+          border-left: 4px solid #6366f1;
+        }
+        .studio-btn {
+          padding: 8px 16px;
+          border-radius: 8px;
+          font-size: 13px;
+          font-weight: 700;
+          cursor: pointer;
+          border: none;
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .studio-btn-primary {
+          background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+          color: #ffffff;
+          box-shadow: 0 4px 12px rgba(99, 102, 241, 0.25);
+        }
+        .studio-btn-primary:hover:not(:disabled) {
+          transform: translateY(-1px);
+        }
+        .studio-btn-secondary {
+          background: #ffffff;
+          color: #475569;
+          border: 1px solid #cbd5e1;
+        }
+        .studio-btn-secondary:hover {
+          background: #f8fafc;
+          border-color: #94a3b8;
+          color: #0f172a;
+        }
+        .studio-btn-danger {
+          background: #fef2f2;
+          color: #dc2626;
+          border: 1px solid #fecaca;
+        }
+        .minimal-card {
+          background: #ffffff;
+          border: 1px solid #e2e8f0;
+          border-radius: 12px;
+          padding: 16px;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+        }
+      `}</style>
+
+      {activeSession ? (
+        /* ==================== 3-COLUMN DATALAB + GEMINI 2.5 FLASH REVIEW STUDIO ==================== */
+        <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
+          {/* Top Header */}
+          <div className="studio-topbar">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <button 
+                onClick={onCloseDetail} 
+                className="studio-btn studio-btn-secondary"
+                style={{ padding: '6px 14px', fontSize: '13px' }}
+              >
+                ← Danh sách đề
+              </button>
+              <div>
+                <h2 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: '#0f172a' }}>
+                  Review Studio: {activeSession.fileName}
+                </h2>
+                <span style={{ fontSize: '12px', color: '#64748b', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <HiSparkles style={{ color: '#6366f1' }} /> Datalab API + Gemini 2.5 Flash đã trích xuất {questions.length} câu hỏi.
+                </span>
+              </div>
+            </div>
+
+            {/* Confirmation & Publish Action */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px' }}>
+                {totalWarningsCount > 0 ? (
+                  <span style={{ color: '#dc2626', fontWeight: 700, background: '#fef2f2', padding: '4px 12px', borderRadius: '20px', border: '1px solid #fecaca' }}>
+                    ⚠️ {totalWarningsCount} cảnh báo cần xử lý
+                  </span>
+                ) : (
+                  <span style={{ color: '#166534', fontWeight: 700, background: '#f0fdf4', padding: '4px 12px', borderRadius: '20px', border: '1px solid #bbf7d0' }}>
+                    ✨ Bản nháp hợp lệ 100%
+                  </span>
+                )}
+              </div>
+
+              <button
+                disabled={!isValidToPublish || loading}
+                onClick={() => onConfirm(activeSession.id)}
+                className="studio-btn studio-btn-primary"
+                style={{ padding: '10px 24px', fontSize: '14px' }}
+              >
+                ✓ Xuất bản vào Ngân hàng Đề
+              </button>
+            </div>
           </div>
 
-          {/* Session List */}
-          <div className="premium-card" style={{ padding: '24px' }}>
-            <h4 style={{ margin: '0 0 16px 0', fontSize: '15px', fontWeight: 800, color: '#1e293b' }}>
-              Lịch sử các phiên nhập đề thi THPT
-            </h4>
-            {sessions.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '30px 0', color: '#64748b', fontSize: '13.5px' }}>
-                Chưa có tệp đề thi nào được tải lên hệ thống.
-              </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                {sessions.map(s => (
+          {/* 3-Column Main Workspace */}
+          <div className="studio-main-3col">
+            
+            {/* 1. LEFT PANEL: Exam Outline & Question Navigator & Warnings */}
+            <div className="studio-sidebar">
+              <div style={{ padding: '14px 16px', borderBottom: '1px solid #e2e8f0', background: '#f8fafc' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                  <span style={{ fontSize: '12px', fontWeight: 800, color: '#334155' }}>
+                    CẤU TRÚC ĐỀ THI ({questions.length})
+                  </span>
+                  <span style={{ fontSize: '10px', fontWeight: 700, color: '#4f46e5', background: '#e0e7ff', padding: '2px 8px', borderRadius: '10px' }}>
+                    Gemini 2.5 Flash
+                  </span>
+                </div>
+                <div style={{ background: '#e2e8f0', borderRadius: '4px', height: '5px', overflow: 'hidden' }}>
                   <div 
-                    key={s.id} 
                     style={{ 
-                      display: 'flex', 
-                      justifyContent: 'space-between', 
-                      alignItems: 'center', 
-                      padding: '16px', 
-                      border: '1px solid #f1f5f9', 
-                      borderRadius: '12px',
-                      backgroundColor: '#f8fafc' 
-                    }}
-                  >
-                    <div>
-                      <span style={{ fontSize: '14.5px', fontWeight: 700, color: '#334155', display: 'block', marginBottom: '4px' }}>
-                        {s.fileName}
-                      </span>
-                      <span style={{ fontSize: '12px', color: '#64748b' }}>
-                        Dung lượng: {Math.round(s.fileSize / 1024)} KB &bull; Ngày tải: {new Date(s.createdAt).toLocaleString('vi-VN')}
-                      </span>
-                    </div>
+                      background: '#6366f1', 
+                      width: `${Math.round(((questions.length - Object.keys(allWarnings).length) / Math.max(1, questions.length)) * 100)}%`, 
+                      height: '100%'
+                    }} 
+                  />
+                </div>
+              </div>
 
-                    <div style={{ display: 'flex', gap: '14px', alignItems: 'center' }}>
-                      <span className={`saas-badge ${s.status === 'REVIEWING' ? 'pending' : s.status === 'COMPLETED' ? 'published' : 'draft'}`} style={{ fontSize: '11.5px', padding: '4px 10px' }}>
-                        {s.status === 'PROCESSING' ? 'AI Đang phân tích' : s.status === 'REVIEWING' ? 'Chờ hậu kiểm' : s.status === 'COMPLETED' ? 'Hoàn thành' : 'Thất bại'}
-                      </span>
-                      {s.status === 'REVIEWING' && (
-                        <button 
-                          className="saas-btn-primary" 
-                          style={{ height: '36px', padding: '0 16px', borderRadius: '10px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}
-                          onClick={() => onViewDetail(s.id)}
-                        >
-                          Rà soát ngay <HiChevronRight />
-                        </button>
-                      )}
-                      {(s.status === 'FAILED' || s.status === 'COMPLETED') && (
-                        <button 
-                          className="saas-select-filter" 
-                          style={{ height: '36px', width: '36px', padding: 0, borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ef4444', border: '1px solid #fecaca' }}
-                          title="Xóa phiên nhập đề này"
-                          onClick={() => {
-                            if (window.confirm('Bạn có chắc chắn muốn xóa phiên nhập đề này cùng toàn bộ các tệp liên quan khỏi hệ thống?')) {
-                              onDeleteSession(s.id);
-                            }
-                          }}
-                        >
-                          <HiTrash />
-                        </button>
-                      )}
-                    </div>
+              <div style={{ flex: 1, overflowY: 'auto' }}>
+                {sections.map(secName => (
+                  <div key={secName}>
+                    <div className="section-header">{secName}</div>
+                    {questions
+                      .filter((q) => (q.section || 'PHẦN I') === secName)
+                      .map((q) => {
+                        const isActive = q.id === activeQuestionId;
+                        const warnings = allWarnings[q.id] || [];
+                        return (
+                          <div 
+                            key={q.id}
+                            className={`q-item-clean ${isActive ? 'active' : ''}`}
+                            onClick={() => setActiveQuestionId(q.id)}
+                          >
+                            <div style={{ 
+                              width: '24px', 
+                              height: '24px', 
+                              borderRadius: '6px', 
+                              background: isActive ? '#6366f1' : '#f1f5f9',
+                              color: isActive ? '#ffffff' : '#475569',
+                              display: 'flex', 
+                              alignItems: 'center', 
+                              justifyContent: 'center', 
+                              fontSize: '11px', 
+                              fontWeight: 800 
+                            }}>
+                              {q.questionOrder}
+                            </div>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ 
+                                fontSize: '12px', 
+                                fontWeight: isActive ? 700 : 500, 
+                                color: '#0f172a',
+                                whiteSpace: 'nowrap',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis'
+                              }}>
+                                {q.content ? q.content.replace(/<[^>]*>/g, '') : `Câu ${q.questionOrder}`}
+                              </div>
+                              <div style={{ fontSize: '10.5px', color: '#64748b', marginTop: '2px', display: 'flex', gap: '6px', alignItems: 'center' }}>
+                                <span>{q.type === 'MULTIPLE_CHOICE' ? 'Trắc nghiệm' : q.type === 'TRUE_FALSE' ? 'Đúng/Sai' : 'Tự luận'}</span>
+                                {warnings.length > 0 ? (
+                                  <span style={{ color: '#dc2626', fontWeight: 700 }}>⚠️ {warnings.length} lỗi</span>
+                                ) : (
+                                  <span style={{ color: '#16a34a', fontWeight: 700 }}>✓ Chuẩn</span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
                   </div>
                 ))}
               </div>
-            )}
-          </div>
-        </>
-      ) : (
-        /* Side-by-side Review Panel */
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0', paddingBottom: '14px' }}>
-            <div>
-              <h3 style={{ margin: 0, fontSize: '17px', fontWeight: 800, color: '#1e293b' }}>
-                Hậu kiểm đề: {activeSession.fileName}
-              </h3>
-              <span style={{ fontSize: '12px', color: '#64748b' }}>
-                Kiểm tra văn bản, chỉnh sửa ảnh (hình học, bảng biến thiên) và phê duyệt trước khi đẩy vào Ngân hàng.
-              </span>
             </div>
-            <button className="saas-select-filter" style={{ borderRadius: '10px', padding: '8px 16px' }} onClick={onCloseDetail}>
-              Quay lại danh sách
+
+            {/* 2. CENTER PANEL: Student Preview (Identical to Real Student Exam) */}
+            <div className="studio-preview-area">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                <span style={{ fontSize: '12.5px', fontWeight: 800, color: '#475569', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span>👁️ CHẾ ĐỘ XEM TRƯỚC CỦA HỌC SINH (STUDENT PREVIEW)</span>
+                </span>
+                <span style={{ fontSize: '11px', background: '#dcfce7', color: '#166534', padding: '3px 10px', borderRadius: '12px', fontWeight: 700 }}>
+                  Hiển thị khớp 100% phòng thi học sinh
+                </span>
+              </div>
+
+              {mappedStudentQuestion ? (
+                <div style={{ maxWidth: '850px', margin: '0 auto', width: '100%' }}>
+                  <QuestionCard 
+                    question={mappedStudentQuestion}
+                    options={mappedStudentOptions}
+                    selectedOptionLabel={activeQuestion?.correctAnswer}
+                    onSelectOption={() => {}}
+                    isBookmarked={false}
+                    onBookmarkToggle={() => {}}
+                    essayAnswer=""
+                    onChangeEssayAnswer={() => {}}
+                  />
+                </div>
+              ) : (
+                <div style={{ textAlign: 'center', padding: '64px', color: '#94a3b8' }}>
+                  Chọn một câu hỏi từ danh sách bên trái để xem trước.
+                </div>
+              )}
+            </div>
+
+            {/* 3. RIGHT PANEL: Question Editor & Operations */}
+            <div className="studio-editor-area">
+              {activeQuestion ? (
+                <>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0', paddingBottom: '12px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '14px', fontWeight: 800, color: '#0f172a' }}>
+                        Biên soạn Câu {activeQuestion.questionOrder}
+                      </span>
+                      <span style={{ background: '#e0e7ff', color: '#4338ca', fontSize: '11px', fontWeight: 700, padding: '2px 8px', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <HiSparkles /> AI Confidence: {Math.round(aiConfidence * 100)}%
+                      </span>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '6px' }}>
+                      <select 
+                        value={activeQuestion.difficulty || 'MEDIUM'}
+                        onChange={(e) => onUpdateQuestion(activeQuestion.id, { difficulty: e.target.value })}
+                        style={{ padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '11.5px', fontWeight: 600 }}
+                      >
+                        <option value="EASY">Dễ</option>
+                        <option value="MEDIUM">Trung bình</option>
+                        <option value="HARD">Khó</option>
+                      </select>
+
+                      <select 
+                        value={activeQuestion.type || 'MULTIPLE_CHOICE'}
+                        onChange={(e) => onUpdateQuestion(activeQuestion.id, { type: e.target.value })}
+                        style={{ padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '11.5px', fontWeight: 600 }}
+                      >
+                        <option value="MULTIPLE_CHOICE">Trắc nghiệm</option>
+                        <option value="TRUE_FALSE">Đúng / Sai</option>
+                        <option value="ESSAY">Tự luận</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* QUESTION CONTENT EDITOR */}
+                  <div className="minimal-card">
+                    <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 800, color: '#334155', marginBottom: '8px' }}>
+                      NỘI DUNG CÂU HỎI
+                    </label>
+                    <textarea 
+                      value={activeQuestion.content || ''}
+                      onChange={(e) => onUpdateQuestion(activeQuestion.id, { content: e.target.value })}
+                      rows={4}
+                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }}
+                    />
+                  </div>
+
+                  {/* OPTIONS EDITOR CARD */}
+                  {activeQuestion.type === 'MULTIPLE_CHOICE' && (
+                    <div className="minimal-card">
+                      <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 800, color: '#334155', marginBottom: '10px' }}>
+                        CÁC PHƯƠNG ÁN LỰA CHỌN (Tích chọn đáp án đúng)
+                      </label>
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        {(activeQuestion.options || []).map((opt, idx) => {
+                          const isCorrect = (activeQuestion.correctAnswer || '').toUpperCase() === (opt.label || '').toUpperCase();
+                          return (
+                            <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <input 
+                                type="radio" 
+                                name={`correct_${activeQuestion.id}`}
+                                checked={isCorrect}
+                                onChange={() => onUpdateQuestion(activeQuestion.id, { correctAnswer: opt.label })}
+                                style={{ accentColor: '#22c55e' }}
+                              />
+                              <span style={{ fontWeight: 800, fontSize: '12.5px', width: '20px' }}>{opt.label}.</span>
+                              <input 
+                                type="text"
+                                value={opt.text || ''}
+                                onChange={(e) => {
+                                  const newOpts = [...(activeQuestion.options || [])];
+                                  newOpts[idx] = { ...opt, text: e.target.value };
+                                  onUpdateQuestion(activeQuestion.id, { options: newOpts });
+                                }}
+                                style={{ flex: 1, padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '12.5px' }}
+                              />
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* EXPLANATION & METADATA CARD */}
+                  <div className="minimal-card">
+                    <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 800, color: '#334155', marginBottom: '6px' }}>
+                      LỜI GIẢI CHI TIẾT
+                    </label>
+                    <textarea 
+                      value={activeQuestion.explanation || ''} 
+                      onChange={(e) => onUpdateQuestion(activeQuestion.id, { explanation: e.target.value })} 
+                      rows={3}
+                      placeholder="Lời giải hoặc hướng dẫn giải chi tiết..."
+                      style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '12px', outline: 'none', boxSizing: 'border-box' }}
+                    />
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '12px' }}>
+                      <div>
+                        <label style={{ fontSize: '11px', fontWeight: 700, color: '#64748b' }}>Chủ đề (Topic):</label>
+                        <input 
+                          type="text" 
+                          value={activeQuestion.regions?.topic || 'Kiến thức cốt lõi'} 
+                          onChange={(e) => onUpdateQuestion(activeQuestion.id, { regions: { ...activeQuestion.regions, topic: e.target.value } })}
+                          style={{ width: '100%', padding: '6px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '12px', boxSizing: 'border-box' }}
+                        />
+                      </div>
+                      <div>
+                        <label style={{ fontSize: '11px', fontWeight: 700, color: '#64748b' }}>Mạch kiến thức:</label>
+                        <input 
+                          type="text" 
+                          value={activeQuestion.regions?.knowledge || ''} 
+                          onChange={(e) => onUpdateQuestion(activeQuestion.id, { regions: { ...activeQuestion.regions, knowledge: e.target.value } })}
+                          style={{ width: '100%', padding: '6px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '12px', boxSizing: 'border-box' }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                </>
+              ) : (
+                <div style={{ color: '#94a3b8', fontSize: '13px', textAlign: 'center', marginTop: '40px' }}>
+                  Chọn một câu hỏi để chỉnh sửa.
+                </div>
+              )}
+            </div>
+
+          </div>
+        </div>
+      ) : (
+        /* ==================== DATALAB + GEMINI 2.5 FLASH UPLOAD DASHBOARD ==================== */
+        <div style={{ padding: '32px 24px', maxWidth: '1000px', margin: '0 auto', width: '100%' }}>
+          <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '24px', padding: '40px', display: 'flex', flexDirection: 'column', gap: '24px', boxShadow: '0 10px 30px -5px rgba(0,0,0,0.04)' }}>
+            <div style={{ textAlign: 'center', maxWidth: '600px', margin: '0 auto' }}>
+              <span style={{ background: 'linear-gradient(135deg, rgba(99,102,241,0.1) 0%, rgba(79,70,229,0.1) 100%)', color: '#6366f1', fontWeight: 800, fontSize: '12px', padding: '6px 16px', borderRadius: '20px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                <HiSparkles /> DATALAB API + GEMINI 2.5 FLASH ARCHITECTURE
+              </span>
+              <h2 style={{ fontSize: '24px', fontWeight: '800', color: '#0f172a', margin: '12px 0 8px 0' }}>
+                Tải đề thi PDF / DOC / DOCX qua Datalab & Gemini AI
+              </h2>
+              <p style={{ fontSize: '13.5px', color: '#64748b', margin: 0, lineHeight: '1.6' }}>
+                Hệ thống gửi tài liệu tới Datalab API để phân tích cấu trúc chuẩn, sau đó dùng AI Gemini 2.5 Flash chuyển đổi thành Bản nháp Đề thi hoàn chỉnh.
+              </p>
+            </div>
+
+            <div style={{ border: '2px dashed #c7d2fe', borderRadius: '20px', padding: '36px 20px', textAlign: 'center', background: '#f8fafc', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+              <div style={{ width: '64px', height: '64px', borderRadius: '16px', background: '#eef2ff', color: '#6366f1', display: 'flex', alignItems: 'center', justifyCenter: 'center', fontSize: '32px' }}>
+                📑
+              </div>
+
+              <div>
+                <input 
+                  type="file" 
+                  id="v2-file-input" 
+                  onChange={onFileChange} 
+                  accept=".pdf,.docx,.doc" 
+                  style={{ display: 'none' }} 
+                />
+                <label 
+                  htmlFor="v2-file-input" 
+                  className="studio-btn studio-btn-secondary" 
+                  style={{ padding: '10px 28px', cursor: 'pointer', borderRadius: '12px' }}
+                >
+                  {selectedFile ? '📁 Chọn tệp tài liệu khác' : '☁️ Chọn tệp đề thi từ máy tính (.pdf, .docx, .doc)'}
+                </label>
+              </div>
+
+              {selectedFile ? (
+                <div style={{ background: '#e0e7ff', color: '#3730a3', padding: '8px 20px', borderRadius: '20px', fontSize: '13.5px', fontWeight: '700' }}>
+                  {selectedFile.name} ({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)
+                </div>
+              ) : (
+                <span style={{ fontSize: '12.5px', color: '#94a3b8' }}>Hỗ trợ tệp định dạng .PDF, .DOCX hoặc .DOC</span>
+              )}
+            </div>
+
+            <button 
+              onClick={handleStartUpload} 
+              disabled={!selectedFile || loading} 
+              className="studio-btn studio-btn-primary" 
+              style={{ alignSelf: 'center', padding: '12px 40px', borderRadius: '30px', fontSize: '14.5px' }}
+            >
+              🚀 {loading ? 'Đang phân tích bởi Datalab & Gemini...' : 'Bắt đầu Phân Tách Bằng Datalab & Gemini AI'}
             </button>
           </div>
 
-          <div className="saas-split-panel" style={{ height: 'calc(100vh - 280px)', minHeight: '600px' }}>
-            {/* Left Nav List */}
-            <div className="saas-sidebar-list" style={{ width: '220px', borderRight: '1px solid #e2e8f0', overflowY: 'auto' }}>
-              {activeSession.questions?.map((q, idx) => (
-                <div 
-                  key={q.id} 
-                  className={`saas-sidebar-item ${activeQuestionIdx === idx ? 'active' : ''}`}
-                  onClick={() => {
-                    setActiveQuestionIdx(idx);
-                  }}
-                  style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 14px' }}
-                >
-                  <span style={{ fontSize: '13.5px', fontWeight: 600 }}>Câu {idx + 1}</span>
-                  {q.status === 'OK' && <HiCheckCircle className="saas-sidebar-status-icon ok" style={{ fontSize: '18px' }} />}
-                  {q.status === 'WARNING' && <HiExclamationCircle className="saas-sidebar-status-icon warning" style={{ fontSize: '18px' }} />}
-                  {q.status === 'ERROR' && <HiExclamationCircle className="saas-sidebar-status-icon error" style={{ fontSize: '18px' }} />}
-                </div>
-              ))}
-            </div>
-
-            {/* Right Editor Panel */}
-            {activeQuestion ? (
-              <div style={{ flex: 1, overflowY: 'auto', padding: '6px 20px 20px 20px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                
-                {/* 1. Duplicate Comparison Section (Side by side comparison if Warning) */}
-                {activeQuestion.status === 'WARNING' && (
-                  <div style={{ backgroundColor: '#fffbeb', border: '1px solid #fef3c7', borderRadius: '14px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: '13.5px', fontWeight: 800, color: '#b45309', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <HiExclamationCircle style={{ fontSize: '18px' }} /> Trùng lặp cao ({activeQuestion.similarityScore}%) với câu hỏi ID #{activeQuestion.duplicateOfId}
-                      </span>
-                      <div style={{ display: 'flex', gap: '10px' }}>
-                        <button 
-                          className="saas-btn-primary" 
-                          style={{ height: '32px', padding: '0 14px', borderRadius: '16px', fontSize: '12px', backgroundColor: decisions[activeQuestion.id] === 'REUSE' ? '#10b981' : '#94a3b8', border: 'none' }}
-                          onClick={() => handleDecisionChange(activeQuestion.id, 'REUSE')}
-                        >
-                          Sử dụng lại câu gốc
-                        </button>
-                        <button 
-                          className="saas-btn-primary" 
-                          style={{ height: '32px', padding: '0 14px', borderRadius: '16px', fontSize: '12px', backgroundColor: decisions[activeQuestion.id] === 'CREATE_NEW' ? '#6366f1' : '#94a3b8', border: 'none' }}
-                          onClick={() => handleDecisionChange(activeQuestion.id, 'CREATE_NEW')}
-                        >
-                          Tạo câu mới hoàn toàn
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Side-by-Side Comparison Container */}
-                    {duplicatedQuestion && (
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginTop: '10px' }}>
-                        {/* Current Parsed */}
-                        <div style={{ backgroundColor: '#ffffff', borderRadius: '10px', padding: '12px', border: '1px solid #fdecac' }}>
-                          <span style={{ fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: '8px' }}>Bản phân tích (Đang rà soát)</span>
-                          <div style={{ fontSize: '13.5px', color: '#1e293b', marginBottom: '10px', lineHeight: 1.6 }}>{activeQuestion.content}</div>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                            {activeQuestion.options?.map((opt, oIdx) => (
-                              <div key={oIdx} style={{ fontSize: '12.5px', color: '#475569' }}>
-                                <strong>{opt.label}.</strong> {opt.text}
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-
-                        {/* Existing Original */}
-                        <div style={{ backgroundColor: '#f8fafc', borderRadius: '10px', padding: '12px', border: '1px solid #e2e8f0' }}>
-                          <span style={{ fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: '8px' }}>Bản gốc (Trong ngân hàng đề)</span>
-                          <div style={{ fontSize: '13.5px', color: '#475569', marginBottom: '10px', lineHeight: 1.6 }}>{duplicatedQuestion.content}</div>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                            {duplicatedQuestion.options?.map((opt, oIdx) => (
-                              <div key={oIdx} style={{ fontSize: '12.5px', color: '#475569' }}>
-                                <strong>{opt.optionLabel}.</strong> {opt.optionText}
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* 2. Text Editor Section */}
-                <div className="premium-card" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#475569', marginBottom: '6px' }}>Nội dung câu hỏi (hỗ trợ công thức LaTeX $...$)</label>
-                    <textarea 
-                      rows="3"
-                      className="saas-search-input"
-                      style={{ paddingLeft: '16px', height: 'auto', borderRadius: '10px', fontFamily: 'inherit', fontSize: '14px', lineHeight: 1.5 }}
-                      value={activeQuestion.content}
-                      onChange={(e) => handleFieldChange('content', e.target.value)}
-                    />
-                  </div>
-
-                  {/* Dynamic Question Type Editor */}
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-                    <div>
-                      <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#475569', marginBottom: '6px' }}>Loại câu hỏi</label>
-                      <select 
-                        className="saas-select-filter" 
-                        style={{ width: '100%', borderRadius: '10px', height: '40px' }}
-                        value={activeQuestion.type || 'MULTIPLE_CHOICE'}
-                        onChange={(e) => {
-                          const newType = e.target.value;
-                          let newOptions = activeQuestion.options;
-                          let newCorrectAnswer = activeQuestion.correctAnswer;
-                          if (newType === 'MULTIPLE_CHOICE') {
-                            newOptions = Array.isArray(activeQuestion.options) ? activeQuestion.options.map((o, i) => ({ label: ['A','B','C','D'][i] || '', text: o.text || '' })) : [
-                              { label: 'A', text: '...' }, { label: 'B', text: '...' }, { label: 'C', text: '...' }, { label: 'D', text: '...' }
-                            ];
-                            newCorrectAnswer = 'A';
-                          } else if (newType === 'TRUE_FALSE') {
-                            newOptions = Array.isArray(activeQuestion.options) ? activeQuestion.options.map((o, i) => ({ label: ['a','b','c','d'][i] || '', text: o.text || '', isCorrect: o.isCorrect !== undefined ? o.isCorrect : true })) : [
-                              { label: 'a', text: '...', isCorrect: true }, { label: 'b', text: '...', isCorrect: false },
-                              { label: 'c', text: '...', isCorrect: true }, { label: 'd', text: '...', isCorrect: false }
-                            ];
-                            newCorrectAnswer = '';
-                          } else if (newType === 'SHORT_ANSWER') {
-                            newOptions = { tolerance: 0.0, format: 'NUMBER' };
-                            newCorrectAnswer = '0';
-                          }
-                          
-                          if (activeSession) {
-                            activeSession.questions[activeQuestionIdx] = {
-                              ...activeQuestion,
-                              type: newType,
-                              options: newOptions,
-                              correctAnswer: newCorrectAnswer
-                            };
-                            setDecisions({ ...decisions });
-                          }
-                        }}
-                      >
-                        <option value="MULTIPLE_CHOICE">Trắc nghiệm ABCD (Một đáp án đúng)</option>
-                        <option value="TRUE_FALSE">Trắc nghiệm Đúng/Sai (Nhiều phát biểu)</option>
-                        <option value="SHORT_ANSWER">Trắc nghiệm trả lời ngắn (Điền số/chữ)</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#475569', marginBottom: '6px' }}>Mức độ nhận thức</label>
-                      <select 
-                        className="saas-select-filter" 
-                        style={{ width: '100%', borderRadius: '10px', height: '40px' }}
-                        value={activeQuestion.difficulty}
-                        onChange={(e) => handleFieldChange('difficulty', e.target.value)}
-                      >
-                        <option value="EASY">Nhận biết (Dễ)</option>
-                        <option value="MEDIUM">Thông hiểu (Trung bình)</option>
-                        <option value="HARD">Vận dụng (Khó)</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  {/* MCQ Options Editor */}
-                  {(activeQuestion.type === 'MULTIPLE_CHOICE' || !activeQuestion.type) && (
-                    <>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                        <label style={{ fontSize: '12.5px', fontWeight: 700, color: '#475569', margin: 0 }}>4 Phương án lựa chọn</label>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                          {Array.isArray(activeQuestion.options) && activeQuestion.options.map((opt, idx) => (
-                            <div key={idx} style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                              <span style={{ fontWeight: 800, color: '#6366f1', minWidth: '16px' }}>{opt.label}.</span>
-                              <input 
-                                type="text" 
-                                className="saas-search-input" 
-                                style={{ paddingLeft: '12px', height: '38px', borderRadius: '10px' }}
-                                value={opt.text}
-                                onChange={(e) => handleOptionChange(idx, e.target.value)}
-                              />
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div>
-                        <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#475569', marginBottom: '6px' }}>Đáp án chính xác</label>
-                        <select 
-                          className="saas-select-filter" 
-                          style={{ width: '100%', borderRadius: '10px', height: '40px' }}
-                          value={activeQuestion.correctAnswer}
-                          onChange={(e) => handleFieldChange('correctAnswer', e.target.value)}
-                        >
-                          <option value="A">A</option>
-                          <option value="B">B</option>
-                          <option value="C">C</option>
-                          <option value="D">D</option>
-                        </select>
-                      </div>
-                    </>
-                  )}
-
-                  {/* True / False Options Editor */}
-                  {activeQuestion.type === 'TRUE_FALSE' && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                      <label style={{ fontSize: '12.5px', fontWeight: 700, color: '#475569', margin: 0 }}>Danh sách phát biểu và Đáp án Đúng/Sai</label>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                        {Array.isArray(activeQuestion.options) && activeQuestion.options.map((opt, idx) => (
-                          <div key={idx} style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                            <span style={{ fontWeight: 800, color: '#6366f1', minWidth: '16px' }}>{opt.label}.</span>
-                            <input 
-                              type="text" 
-                              className="saas-search-input" 
-                              style={{ paddingLeft: '12px', height: '38px', borderRadius: '10px', flex: 1 }}
-                              value={opt.text}
-                              onChange={(e) => {
-                                const updatedOptions = [...activeQuestion.options];
-                                updatedOptions[idx] = { ...updatedOptions[idx], text: e.target.value };
-                                handleFieldChange('options', updatedOptions);
-                              }}
-                            />
-                            <div style={{ display: 'flex', gap: '4px', border: '1px solid #cbd5e1', borderRadius: '8px', overflow: 'hidden', height: '38px', flexShrink: 0 }}>
-                              <button
-                                type="button"
-                                style={{
-                                  border: 'none',
-                                  padding: '0 12px',
-                                  fontSize: '12px',
-                                  fontWeight: 700,
-                                  backgroundColor: opt.isCorrect ? '#10b981' : '#f1f5f9',
-                                  color: opt.isCorrect ? '#ffffff' : '#64748b',
-                                  cursor: 'pointer',
-                                  transition: 'all 0.15s ease'
-                                }}
-                                onClick={() => {
-                                  const updatedOptions = [...activeQuestion.options];
-                                  updatedOptions[idx] = { ...updatedOptions[idx], isCorrect: true };
-                                  handleFieldChange('options', updatedOptions);
-                                }}
-                              >
-                                Đúng
-                              </button>
-                              <button
-                                type="button"
-                                style={{
-                                  border: 'none',
-                                  padding: '0 12px',
-                                  fontSize: '12px',
-                                  fontWeight: 700,
-                                  backgroundColor: !opt.isCorrect ? '#ef4444' : '#f1f5f9',
-                                  color: !opt.isCorrect ? '#ffffff' : '#64748b',
-                                  cursor: 'pointer',
-                                  transition: 'all 0.15s ease'
-                                }}
-                                onClick={() => {
-                                  const updatedOptions = [...activeQuestion.options];
-                                  updatedOptions[idx] = { ...updatedOptions[idx], isCorrect: false };
-                                  handleFieldChange('options', updatedOptions);
-                                }}
-                              >
-                                Sai
-                              </button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Short Answer Editor */}
-                  {activeQuestion.type === 'SHORT_ANSWER' && (
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-                      <div>
-                        <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#475569', marginBottom: '6px' }}>Đáp án ngắn</label>
-                        <input 
-                          type="text" 
-                          className="saas-search-input" 
-                          style={{ paddingLeft: '12px', height: '40px', borderRadius: '10px' }}
-                          value={activeQuestion.correctAnswer}
-                          onChange={(e) => handleFieldChange('correctAnswer', e.target.value)}
-                          placeholder="Nhập giá trị số hoặc biểu thức LaTeX..."
-                        />
-                      </div>
-                      <div>
-                        <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#475569', marginBottom: '6px' }}>Định dạng dữ liệu</label>
-                        <select 
-                          className="saas-select-filter" 
-                          style={{ width: '100%', borderRadius: '10px', height: '40px' }}
-                          value={activeQuestion.options?.format || 'NUMBER'}
-                          onChange={(e) => {
-                            const updatedOptions = { ...activeQuestion.options, format: e.target.value };
-                            handleFieldChange('options', updatedOptions);
-                          }}
-                        >
-                          <option value="NUMBER">Số học (Number)</option>
-                          <option value="TEXT">Văn bản / Ký tự (Text)</option>
-                        </select>
-                      </div>
-                    </div>
-                  )}
-
-                  <div>
-                    <label style={{ display: 'block', fontSize: '12.5px', fontWeight: 700, color: '#475569', marginBottom: '6px' }}>Hướng dẫn giải chi tiết</label>
-                    <textarea 
-                      rows="3"
-                      className="saas-search-input"
-                      style={{ paddingLeft: '16px', height: 'auto', borderRadius: '10px', fontFamily: 'inherit', fontSize: '14px', lineHeight: 1.5 }}
-                      value={activeQuestion.explanation || ''}
-                      onChange={(e) => handleFieldChange('explanation', e.target.value)}
-                    />
-                  </div>
-                </div>
-
-                {/* 3. Media Manager Section */}
-                <div className="premium-card" style={{ padding: '20px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                    <div>
-                      <label style={{ display: 'block', fontSize: '14px', fontWeight: 800, color: '#1e293b' }}>
-                        Quản lý hình ảnh & tài nguyên của câu hỏi ({activeQuestion.media?.length || 0})
-                      </label>
-                      <span style={{ fontSize: '11.5px', color: '#64748b' }}>
-                        Bạn có thể tải thêm ảnh, phân loại kiểu ảnh, sắp xếp thứ tự hiển thị bằng nút di chuyển.
-                      </span>
-                    </div>
-
-                    <button 
-                      className="saas-select-filter" 
-                      style={{ borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '6px', color: '#6366f1', border: '1px solid #6366f1', padding: '6px 12px' }}
-                      onClick={() => document.getElementById('add-media-input').click()}
-                      disabled={uploadingMedia}
-                    >
-                      <HiPlusCircle /> {uploadingMedia ? 'Đang tải lên...' : 'Thêm ảnh mới'}
-                    </button>
-                    <input 
-                      id="add-media-input" 
-                      type="file" 
-                      style={{ display: 'none' }} 
-                      accept="image/*"
-                      onChange={handleAddMedia}
-                    />
-                  </div>
-
-                  {(!activeQuestion.media || activeQuestion.media.length === 0) ? (
-                    <div style={{ textAlign: 'center', padding: '20px 0', border: '1px dashed #e2e8f0', borderRadius: '12px', color: '#94a3b8', fontSize: '13px' }}>
-                      Câu hỏi này hiện không đính kèm hình ảnh nào.
-                    </div>
+          <div style={{ marginTop: '36px' }}>
+            <h3 style={{ fontSize: '15px', fontWeight: '800', color: '#0f172a', marginBottom: '14px' }}>
+              Lịch sử nhập đề thi
+            </h3>
+            
+            <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '20px', overflow: 'hidden' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13.5px' }}>
+                <thead>
+                  <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', textAlign: 'left' }}>
+                    <th style={{ padding: '14px 20px', fontWeight: '700' }}>Tên tệp</th>
+                    <th style={{ padding: '14px 20px', fontWeight: '700' }}>Trạng thái</th>
+                    <th style={{ padding: '14px 20px', fontWeight: '700' }}>Thời gian</th>
+                    <th style={{ padding: '14px 20px', fontWeight: '700', textAlign: 'right' }}>Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sessions.length === 0 ? (
+                    <tr>
+                      <td colSpan={4} style={{ padding: '48px', textAlign: 'center', color: '#94a3b8' }}>
+                        Chưa có đề thi nào trong lịch sử. Hãy tải tệp đề thi đầu tiên ở trên!
+                      </td>
+                    </tr>
                   ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                      {activeQuestion.media.map((med, medIdx) => (
-                        <div 
-                          key={medIdx} 
-                          style={{ 
-                            display: 'flex', 
-                            gap: '16px', 
-                            alignItems: 'center', 
-                            padding: '12px', 
-                            border: '1px solid #e2e8f0', 
-                            borderRadius: '12px',
-                            backgroundColor: '#f8fafc' 
-                          }}
-                        >
-                          {/* Image Thumbnail */}
-                          <div style={{ width: '80px', height: '80px', borderRadius: '8px', border: '1px solid #cbd5e1', overflow: 'hidden', backgroundColor: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            {med.url && med.url.toLowerCase().endsWith('.wmf') ? (
-                              <WmfPreview url={`${API_BASE}${med.url}`} />
-                            ) : (
-                              <img 
-                                src={`${API_BASE}${med.url}`} 
-                                alt={`media-${medIdx}`} 
-                                style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
-                              />
-                            )}
-                          </div>
-
-                          {/* Controls */}
-                          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                              <span style={{ fontSize: '12px', fontWeight: 800, color: '#475569' }}>Phân loại:</span>
-                              <select 
-                                className="saas-select-filter" 
-                                style={{ height: '30px', padding: '0 8px', fontSize: '12px', borderRadius: '8px' }}
-                                value={med.type}
-                                onChange={(e) => handleMediaTypeChange(medIdx, e.target.value)}
-                              >
-                                <option value="IMAGE">Ảnh thường (Image)</option>
-                                <option value="VARIATION_TABLE">Bảng biến thiên (Variation Table)</option>
-                                <option value="GRAPH">Đồ thị hàm số (Graph)</option>
-                                <option value="GEOMETRY">Hình vẽ hình học (Geometry)</option>
-                                <option value="TABLE">Bảng số liệu (Table)</option>
-                                <option value="MAP">Bản đồ (Map)</option>
-                                <option value="DIAGRAM">Sơ đồ/Biểu đồ (Diagram)</option>
-                                <option value="CHEMICAL_STRUCTURE">Cấu trúc hóa học (Chemical Structure)</option>
-                                <option value="OTHER">Khác (Other)</option>
-                              </select>
-                            </div>
-                            <span style={{ fontSize: '11px', color: '#94a3b8', wordBreak: 'break-all' }}>Link: {med.url}</span>
-                          </div>
-
-                          {/* Reordering and Actions */}
-                          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                            <button 
-                              className="saas-select-filter" 
-                              style={{ width: '32px', height: '32px', padding: 0, borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                              disabled={medIdx === 0}
-                              onClick={() => handleMoveMedia(medIdx, 'up')}
-                            >
-                              <HiChevronUp />
-                            </button>
-                            <button 
-                              className="saas-select-filter" 
-                              style={{ width: '32px', height: '32px', padding: 0, borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                              disabled={medIdx === activeQuestion.media.length - 1}
-                              onClick={() => handleMoveMedia(medIdx, 'down')}
-                            >
-                              <HiChevronDown />
-                            </button>
-                            <button 
-                              className="saas-select-filter" 
-                              style={{ width: '32px', height: '32px', padding: 0, borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ef4444' }}
-                              onClick={() => {
-                                document.getElementById(`replace-media-${medIdx}`).click();
-                              }}
-                            >
-                              Thay
-                            </button>
-                            <input 
-                              id={`replace-media-${medIdx}`} 
-                              type="file" 
-                              style={{ display: 'none' }} 
-                              accept="image/*"
-                              onChange={(e) => handleReplaceMedia(medIdx, e)}
-                            />
-                            <button 
-                              className="saas-select-filter" 
-                              style={{ width: '32px', height: '32px', padding: 0, borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ef4444' }}
-                              onClick={() => handleDeleteMedia(medIdx)}
-                            >
-                              <HiTrash />
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* 4. Live Render Preview Section */}
-                <div className="premium-card" style={{ padding: '24px', borderLeft: '4px solid #6366f1' }}>
-                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 800, color: '#6366f1', textTransform: 'uppercase', marginBottom: '14px', letterSpacing: '0.5px' }}>
-                    Xem trước hiển thị thực tế của Học sinh
-                  </label>
-
-                  {/* WMF Formula Warning */}
-                  {activeQuestion.media && activeQuestion.media.some(m => m.type === 'FORMULA') && (
-                    <div style={{
-                      display: 'flex', gap: '10px', alignItems: 'flex-start',
-                      backgroundColor: '#fffbeb', border: '1px solid #fde68a',
-                      borderRadius: '10px', padding: '12px 16px', marginBottom: '16px'
-                    }}>
-                      <span style={{ fontSize: '18px' }}>⚠️</span>
-                      <div style={{ fontSize: '12.5px', color: '#92400e', lineHeight: 1.6 }}>
-                        <strong>Câu hỏi chứa {activeQuestion.media.filter(m => m.type === 'FORMULA').length} công thức toán (MathType/WMF)</strong> không thể hiển thị trực tiếp trên trình duyệt.
-                        <br />Vui lòng gõ lại công thức theo cú pháp <code style={{ backgroundColor: '#fef3c7', padding: '1px 4px', borderRadius: '4px' }}>$...$</code> vào ô nội dung câu hỏi và phương án.
-                      </div>
-                    </div>
-                  )}
-
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                    {/* Rendered content — use HTML from parser if available */}
-                    <div
-                      style={{ fontSize: '15px', color: '#0f172a', fontWeight: 500, lineHeight: 1.7 }}
-                      className="mathjax-render question-html-preview"
-                      dangerouslySetInnerHTML={{
-                        __html: activeQuestion.content
-                          ? activeQuestion.content
-                              .replace(/<img([^>]+)src=(["'])([^"']+\.wmf)\2/gi,
-                                '<span class="wmf-placeholder" title="Công thức MathType (WMF — không hiển thị được trên trình duyệt)">📐</span><img$1src=$2$3$2')
-                          : '<em style="color:#94a3b8">Chưa có nội dung</em>'
-                      }}
-                    />
-
-                    {/* Regular images (non-formula) */}
-                    {activeQuestion.media && activeQuestion.media.filter(m => m.type !== 'FORMULA').length > 0 && (
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', margin: '8px 0' }}>
-                        {activeQuestion.media.filter(m => m.type !== 'FORMULA').map((med, idx) => (
-                          <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center' }}>
-                            <div style={{ border: '1px solid #e2e8f0', borderRadius: '10px', padding: '10px', backgroundColor: '#ffffff', maxWidth: '380px' }}>
-                              {med.url && med.url.toLowerCase().endsWith('.wmf') ? (
-                                <WmfPreview url={`${API_BASE}${med.url}`} />
-                              ) : (
-                                <img
-                                  src={`${API_BASE}${med.url}`}
-                                  alt={`render-${idx}`}
-                                  style={{ maxWidth: '100%', maxHeight: '250px', objectFit: 'contain' }}
-                                  onError={(e) => { e.target.style.display='none'; }}
-                                />
-                              )}
-                            </div>
-                            <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 700 }}>
-                              {med.type === 'VARIATION_TABLE' ? 'Bảng biến thiên'
-                                : med.type === 'GRAPH' ? 'Đồ thị'
-                                : med.type === 'GEOMETRY' ? 'Hình học'
-                                : med.type === 'TABLE' ? 'Bảng số liệu'
-                                : med.type === 'MAP' ? 'Bản đồ'
-                                : med.type === 'DIAGRAM' ? 'Sơ đồ'
-                                : med.type === 'CHEMICAL_STRUCTURE' ? 'Cấu trúc hóa học'
-                                : med.type === 'OTHER' ? 'Tài nguyên khác'
-                                : `Hình ${idx + 1}`}
+                    sessions.map((session) => (
+                      <tr key={session.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                        <td style={{ padding: '14px 20px', fontWeight: '700', color: '#0f172a' }}>{session.fileName}</td>
+                        <td style={{ padding: '14px 20px' }}>
+                          {session.status === 'PROCESSING' && (
+                            <span style={{ background: '#fef3c7', color: '#92400e', padding: '4px 12px', borderRadius: '12px', fontWeight: '700', fontSize: '12px' }}>
+                              ⏳ Datalab & Gemini đang xử lý...
                             </span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* WMF Formula Previews for Teacher review */}
-                    {activeQuestion.media && activeQuestion.media.filter(m => m.type === 'FORMULA').length > 0 && (
-                      <div style={{ margin: '12px 0', padding: '14px', border: '1px dashed #6366f1', borderRadius: '10px', backgroundColor: '#f5f3ff' }}>
-                        <span style={{ fontSize: '12.5px', fontWeight: 800, color: '#4f46e5', display: 'block', marginBottom: '8px' }}>
-                          📐 Ảnh công thức gốc trong Word (Dùng để rà soát):
-                        </span>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
-                          {activeQuestion.media.filter(m => m.type === 'FORMULA').map((med, idx) => (
-                            <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center' }}>
-                              <WmfPreview url={`${API_BASE}${med.url}`} />
-                              <span style={{ fontSize: '11px', color: '#6366f1', fontWeight: 700 }}>
-                                Công thức {idx + 1}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Dynamic Options preview list */}
-                    {(activeQuestion.type === 'MULTIPLE_CHOICE' || !activeQuestion.type) && (
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '10px' }}>
-                        {Array.isArray(activeQuestion.options) && activeQuestion.options.map((opt, idx) => (
-                          <div
-                            key={idx}
-                            style={{
-                              padding: '12px 16px',
-                              borderRadius: '10px',
-                              border: opt.label === activeQuestion.correctAnswer ? '1.5px solid #10b981' : '1px solid #e2e8f0',
-                              backgroundColor: opt.label === activeQuestion.correctAnswer ? '#f0fdf4' : '#ffffff',
-                              fontSize: '13.5px',
-                              fontWeight: 600,
-                              color: opt.label === activeQuestion.correctAnswer ? '#15803d' : '#334155',
-                              display: 'flex',
-                              gap: '6px',
-                              alignItems: 'flex-start'
-                            }}
-                          >
-                            <span style={{ color: opt.label === activeQuestion.correctAnswer ? '#10b981' : '#6366f1', fontWeight: 800, flexShrink: 0 }}>{opt.label}.</span>
-                            <span
-                              className="mathjax-render"
-                              dangerouslySetInnerHTML={{
-                                __html: opt.text && opt.text !== '...'
-                                  ? opt.text
-                                      .replace(/<img([^>]+)src=(["'])([^"']+\.wmf)\2/gi,
-                                        '<span class="wmf-placeholder" title="Công thức WMF">📐</span>')
-                                  : '<em style="color:#94a3b8">Chưa có nội dung</em>'
-                              }}
-                            />
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    {activeQuestion.type === 'TRUE_FALSE' && (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '10px' }}>
-                        {Array.isArray(activeQuestion.options) && activeQuestion.options.map((opt, idx) => (
-                          <div
-                            key={idx}
-                            style={{
-                              padding: '12px 16px',
-                              borderRadius: '10px',
-                              border: '1px solid #e2e8f0',
-                              backgroundColor: '#ffffff',
-                              fontSize: '13.5px',
-                              fontWeight: 600,
-                              color: '#334155',
-                              display: 'flex',
-                              justifyContent: 'space-between',
-                              alignItems: 'center',
-                              gap: '12px'
-                            }}
-                          >
-                            <div style={{ display: 'flex', gap: '6px', alignItems: 'flex-start' }}>
-                              <span style={{ color: '#6366f1', fontWeight: 800, flexShrink: 0 }}>{opt.label}.</span>
-                              <span
-                                className="mathjax-render"
-                                dangerouslySetInnerHTML={{
-                                  __html: opt.text && opt.text !== '...'
-                                    ? opt.text
-                                        .replace(/<img([^>]+)src=(["'])([^"']+\.wmf)\2/gi,
-                                          '<span class="wmf-placeholder" title="Công thức WMF">📐</span>')
-                                    : '<em style="color:#94a3b8">Chưa có nội dung</em>'
-                                }}
-                              />
-                            </div>
-                            <span
-                              style={{
-                                fontSize: '12px',
-                                fontWeight: 700,
-                                padding: '4px 10px',
-                                borderRadius: '6px',
-                                backgroundColor: opt.isCorrect ? '#d1fae5' : '#fee2e2',
-                                color: opt.isCorrect ? '#065f46' : '#991b1b',
-                                flexShrink: 0
-                              }}
-                            >
-                              {opt.isCorrect ? 'Đúng' : 'Sai'}
+                          )}
+                          {session.status === 'REVIEWING' && (
+                            <span style={{ background: '#e0e7ff', color: '#3730a3', padding: '4px 12px', borderRadius: '12px', fontWeight: '700', fontSize: '12px' }}>
+                              ✨ Chờ kiểm duyệt
                             </span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    {activeQuestion.type === 'SHORT_ANSWER' && (
-                      <div style={{ padding: '16px', borderRadius: '10px', border: '1.5px dashed #6366f1', backgroundColor: '#f5f3ff', display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '10px' }}>
-                        <span style={{ fontSize: '12.5px', fontWeight: 800, color: '#4f46e5' }}>Đáp án điền khuyết của học sinh:</span>
-                        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                          <input 
-                            type="text" 
-                            className="saas-search-input" 
-                            disabled 
-                            style={{ height: '38px', borderRadius: '8px', paddingLeft: '12px', backgroundColor: '#e2e8f0', color: '#64748b', flex: 1 }}
-                            value={activeQuestion.correctAnswer}
-                          />
-                          <span style={{ fontSize: '13px', fontWeight: 700, color: '#10b981', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                            ✓ Đúng (Định dạng: {activeQuestion.options?.format === 'NUMBER' ? 'Số học' : 'Chữ'})
-                          </span>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Explanation */}
-                    {activeQuestion.explanation && (
-                      <div style={{ marginTop: '16px', padding: '14px', backgroundColor: '#f8fafc', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
-                        <span style={{ fontSize: '12px', fontWeight: 800, color: '#475569', display: 'block', marginBottom: '6px' }}>Hướng dẫn giải:</span>
-                        <p
-                          style={{ margin: 0, fontSize: '13.5px', color: '#475569', lineHeight: 1.6 }}
-                          className="mathjax-render"
-                          dangerouslySetInnerHTML={{ __html: activeQuestion.explanation || '' }}
-                        />
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Save and Submit Action Panel */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px', borderTop: '1px solid #e2e8f0', paddingTop: '16px' }}>
-                  <button 
-                    className="saas-select-filter" 
-                    style={{ borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 18px' }}
-                    onClick={handleSaveQuestion}
-                    disabled={saving}
-                  >
-                    <HiSave /> {saving ? 'Đang lưu...' : 'Lưu thay đổi câu này'}
-                  </button>
-
-                  <div style={{ display: 'flex', gap: '12px' }}>
-                    <button 
-                      className="saas-select-filter" 
-                      style={{ borderRadius: '10px', padding: '10px 20px', color: '#ef4444', border: '1px solid #fecaca', display: 'flex', alignItems: 'center', gap: '6px' }}
-                      onClick={() => {
-                        if (window.confirm('Bạn có chắc chắn muốn từ chối phiên import này? Toàn bộ câu hỏi đã phân tích và các tệp tin đính kèm sẽ bị xóa hoàn toàn khỏi hệ thống!')) {
-                          onDeleteSession(activeSession.id);
-                        }
-                      }}
-                    >
-                      Từ chối & Xóa đề
-                    </button>
-
-                    <button 
-                      className="saas-btn-primary" 
-                      style={{ borderRadius: '10px', padding: '10px 24px', display: 'flex', alignItems: 'center', gap: '6px' }}
-                      onClick={() => {
-                        // Trigger main confirm action
-                        onConfirm(activeSession.id);
-                      }}
-                    >
-                      Xác nhận nhập Ngân hàng đề <HiChevronRight />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#ffffff', color: '#64748b', fontSize: '14px', fontWeight: 600 }}>
-                Chọn một câu hỏi từ danh sách bên trái để bắt đầu rà soát hậu kiểm.
-              </div>
-            )}
+                          )}
+                          {session.status === 'COMPLETED' && (
+                            <span style={{ background: '#dcfce7', color: '#15803d', padding: '4px 12px', borderRadius: '12px', fontWeight: '700', fontSize: '12px' }}>
+                              ✓ Đã xuất bản
+                            </span>
+                          )}
+                          {session.status === 'FAILED' && (
+                            <span style={{ background: '#fee2e2', color: '#b91c1c', padding: '4px 12px', borderRadius: '12px', fontWeight: '700', fontSize: '12px' }}>
+                              ❌ Thất bại
+                            </span>
+                          )}
+                        </td>
+                        <td style={{ padding: '14px 20px', color: '#64748b' }}>{new Date(session.createdAt).toLocaleString('vi-VN')}</td>
+                        <td style={{ padding: '14px 20px', textAlign: 'right' }}>
+                          {(session.status === 'REVIEWING' || session.status === 'COMPLETED') && (
+                            <button
+                              onClick={() => onViewDetail(session.id)}
+                              className="studio-btn studio-btn-primary"
+                              style={{ marginRight: '8px', padding: '6px 14px', fontSize: '12px' }}
+                            >
+                              {session.status === 'COMPLETED' ? '🔍 Xem đề' : '✏️ Review Studio'}
+                            </button>
+                          )}
+                          <button
+                            onClick={() => onDeleteSession(session.id)}
+                            className="studio-btn studio-btn-danger"
+                            style={{ padding: '6px 12px', fontSize: '12px' }}
+                          >
+                            Xóa
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}
     </div>
   );
 }
+
+export default ImportsTab;

@@ -3,7 +3,7 @@ import type { AuthRequest } from '../middleware/auth.js';
 import { prisma } from '../lib/prisma.js';
 import { incrementBothStats } from '../lib/monthlyStats.js';
 import { logSystemEvent } from '../utils/logger.js';
-import { isGeminiKey, streamGeminiDirect, callGeminiDirect } from '../utils/geminiClient.js';
+import { isGeminiKey, streamGeminiDirect } from '../utils/geminiClient.js';
 import { SystemSettingService } from '../services/systemSetting.service.js';
 import { getRAGContext, generateLocalRAGAnswer, getCachedDocumentText, getMultiDocRAGContext, generateLocalFlashcards, extractTextFromFile } from '../utils/rag.js';
 import fs from 'fs';
@@ -1198,7 +1198,7 @@ Yêu cầu định dạng và nội dung:
     }
 
     if (!content) {
-      content = await callOpenRouter(prompt, 2500, 0.3);
+      content = (await callOpenRouter(prompt, 2500, 0.3)) || '';
     }
 
     console.log("[AI Mindmap Raw Output]:", content);
@@ -1513,7 +1513,7 @@ Yêu cầu chi tiết:
 
   let content = '';
   try {
-    content = await callOpenRouter(prompt, 1000, 0.4, customApiKey, customModel);
+    content = (await callOpenRouter(prompt, 1000, 0.4, customApiKey, customModel)) || '';
   } catch (err: any) {
     console.error(`[AI Flashcard] callOpenRouter failed:`, err.message);
   }
@@ -1635,7 +1635,7 @@ Yêu cầu:
 - Chỉ trả về duy nhất nội dung mẹo ghi nhớ, không kèm theo bất cứ giải thích, lời chào hay tiêu đề nào khác.`;
 
     const content = await callOpenRouter(prompt, 100, 0.7, userApiKey, userModel);
-    const cleaned = cleanAIResponseContent(content).replace(/^(mẹo ghi nhớ|mẹo|mnemonic)[:\s-]*/i, '').trim();
+    const cleaned = cleanAIResponseContent(content || '').replace(/^(mẹo ghi nhớ|mẹo|mnemonic)[:\s-]*/i, '').trim();
     return res.status(200).json({ success: true, mnemonic: cleaned || generateLocalMnemonic(front, back) });
   } catch (err: any) {
     console.warn('[Mnemonic AI Error] Falling back to local generator:', err.message);
@@ -1822,7 +1822,7 @@ async function callOpenRouterVision(prompt: string, base64Image: string, mimeTyp
         { type: 'image_url', image_url: { url: `data:${mimeType};base64,${base64Image}` } }
       ]
     }];
-    return await callGeminiDirect(apiKey, model, formattedMessages);
+    return await callGeminiDirect(prompt, 2000, 0.2);
   }
 
   const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
@@ -1883,7 +1883,7 @@ async function callGeminiDirect(prompt: string, maxTokens = 2500, temp = 0.4) {
           }
         })
       });
-      const data = await res.json();
+      const data = (await res.json()) as any;
       const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
       if (text && text.trim()) {
         console.log(`[Gemini API Direct] Success with ${model}`);
@@ -1923,7 +1923,7 @@ async function callOpenRouter(prompt: string, maxTokens = 1500, temp = 0.5, cust
 
   if (isGeminiKey(apiKey)) {
     const formattedMessages = [{ role: 'user', content: prompt }];
-    return await callGeminiDirect(apiKey, model, formattedMessages);
+    return await callGeminiDirect(prompt, maxTokens, temp);
   }
 
   const candidateModels = [
@@ -2100,7 +2100,7 @@ TUYỆT ĐỐI không bao gồm bất kỳ lời dẫn, giải thích hay thẻ 
       let parsedResponse: any[] = [];
       
       const jsonRegex = /\[[\s\S]*\]/;
-      const match = aiResponse.match(jsonRegex);
+      const match = (aiResponse || '').match(jsonRegex);
       if (match) {
         try {
           const cleaned = cleanJsonString(match[0]);
@@ -2430,7 +2430,7 @@ Chỉ trả về chuỗi JSON thô duy nhất. Không đính kèm bất cứ câ
     }
 
     if (!aiResponse) {
-      aiResponse = await callOpenRouter(prompt, 2000, 0.4);
+      aiResponse = (await callOpenRouter(prompt, 2000, 0.4)) || '';
     }
 
     const parsedMindmap = parseFlexibleMindmapJson(aiResponse, "Sơ đồ Khắc phục Lỗ hổng Kiến thức");
@@ -2623,7 +2623,7 @@ TUYỆT ĐỐI chỉ trả về JSON thô duy nhất. Không kèm theo bất c�
     }
 
     if (!aiResponse) {
-      aiResponse = await callOpenRouter(prompt, 2500, 0.3);
+      aiResponse = (await callOpenRouter(prompt, 2000, 0.4)) || '';
     }
 
     const parsedMindmap = parseFlexibleMindmapJson(aiResponse, title || "Sơ đồ Phân tích Đề thi THPTQG");
