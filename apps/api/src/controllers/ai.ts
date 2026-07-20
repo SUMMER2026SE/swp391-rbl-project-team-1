@@ -167,9 +167,11 @@ export async function streamAIChat(req: AuthRequest, res: Response) {
   const userOpenRouterKey = req.headers['x-user-openrouter-key'] as string | undefined;
   const userOpenRouterModel = req.headers['x-user-openrouter-model'] as string | undefined;
 
-  const rawKeys = process.env.OPENROUTER_API_KEYS || process.env.OPENROUTER_API_KEY || '';
+  const rawKeys = process.env.OPENROUTER_API_KEYS || process.env.OPENROUTER_API_KEY || process.env.GEMINI_API_KEY || '';
   const apiKeys = userOpenRouterKey ? [userOpenRouterKey] : rawKeys.split(',').map(k => k.trim()).filter(Boolean);
-  const model = userOpenRouterKey ? (userOpenRouterModel || 'google/gemini-2.5-pro') : (process.env.OPENROUTER_MODEL || 'openrouter/free');
+  const model = userOpenRouterKey 
+    ? (userOpenRouterModel || 'google/gemini-2.5-pro') 
+    : (process.env.OPENROUTER_MODEL || process.env.GEMINI_MODEL || 'google/gemini-2.5-flash');
 
   // Check free AI question limits for non-PRO student
   let isFreeLimitReached = false;
@@ -216,7 +218,12 @@ export async function streamAIChat(req: AuthRequest, res: Response) {
   const systemPrompt = {
     role: 'system',
     content: `Bạn là Gia sư AI EduPath, một chuyên gia giáo dục bậc thầy và là gia sư luyện thi đại học hàng đầu Việt Nam. 
-Hãy đóng vai một người Thầy dạy giỏi đầy tâm huyết, trả lời câu hỏi của học sinh một cách cực kỳ chuyên nghiệp, sâu sắc, phân tích rõ bản chất kiến thức học tập liên quan trực tiếp đến khóa học: "${courseTitle}" và bài học: "${lessonTitle}".
+Hãy đóng vai một người Thầy dạy giỏi đầy tâm huyết, chỉ trả lời câu hỏi của học sinh TRONG PHẠM VI LIÊN QUAN TRỰC TIẾP đến bài học: "${lessonTitle}" (thuộc khóa học: "${courseTitle}").
+
+Yêu Cầu Về Phạm Vi Trả Lời:
+- TUYỆT ĐỐI chỉ trả lời các câu hỏi liên quan đến kiến thức, lý thuyết, bài tập hoặc các khía cạnh bổ trợ liên quan trực tiếp đến nội dung/đề tài của bài học: "${lessonTitle}".
+- Bạn được phép khai thác toàn bộ kiến thức chuyên sâu liên quan đến đề tài/bài học "${lessonTitle}" trên Internet (ví dụ: tác giả, tác phẩm, hoàn cảnh sáng tác, phân tích chi tiết văn học, công thức toán lý hóa chuyên sâu liên quan...).
+- Nếu câu hỏi của học sinh nằm ngoài phạm vi bài học "${lessonTitle}", hãy từ chối trả lời một cách lịch sự, giải thích rằng bạn chỉ hỗ trợ trong phạm vi bài học này, và hướng dẫn học sinh chuyển sang trang Hỏi đáp AI ngoài Trang chủ để trao đổi các chủ đề khác.
 
 Yêu cầu về cấu trúc câu trả lời:
 - Luôn trình bày câu trả lời theo cấu trúc 3 phần rõ ràng sau bằng các tiêu đề đẹp mắt:
