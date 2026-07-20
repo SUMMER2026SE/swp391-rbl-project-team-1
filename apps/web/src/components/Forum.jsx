@@ -730,7 +730,18 @@ export default function Forum({ currentUser }) {
     await handleReactPost(postId, 'UPVOTE');
   };
 
-  const handleReactPost = async (postId, type) => {
+  const handleReactPost = async (eOrPostId, postIdOrType, typeParam) => {
+    let postId, type;
+    if (eOrPostId && eOrPostId.stopPropagation) {
+      eOrPostId.stopPropagation();
+      postId = postIdOrType;
+      type = typeParam || 'UPVOTE';
+    } else {
+      postId = eOrPostId;
+      type = postIdOrType || 'UPVOTE';
+    }
+
+    if (!postId) return;
     if (!currentUser) {
       toast('Vui lòng đăng nhập để bày tỏ cảm xúc!', 'warning');
       return;
@@ -805,30 +816,45 @@ export default function Forum({ currentUser }) {
     }
   };
 
-  const handleToggleSavePost = async (e, post) => {
-    e.stopPropagation();
+  const handleToggleSavePost = async (eOrPost, postOrId) => {
+    let targetPostId = null;
+    if (eOrPost && eOrPost.stopPropagation) {
+      eOrPost.stopPropagation();
+      if (typeof postOrId === 'object' && postOrId !== null) {
+        targetPostId = postOrId.id;
+      } else {
+        targetPostId = postOrId;
+      }
+    } else if (typeof eOrPost === 'object' && eOrPost !== null) {
+      targetPostId = eOrPost.id;
+    } else {
+      targetPostId = eOrPost;
+    }
+
+    if (!targetPostId) return;
+
     if (!currentUser) {
       toast('Vui lòng đăng nhập để lưu bài viết!', 'warning');
       return;
     }
     try {
-      const res = await api.toggleSaveForumPost(post.id);
+      const res = await api.toggleSaveForumPost(targetPostId);
       
       setPosts(prev => prev.map(p => {
-        if (p.id === post.id) {
+        if (p.id === targetPostId) {
           return { ...p, isSaved: res.isSaved };
         }
         return p;
       }));
 
-      if (selectedPost && selectedPost.id === post.id) {
+      if (selectedPost && selectedPost.id === targetPostId) {
         setSelectedPost(prev => ({ ...prev, isSaved: res.isSaved }));
       }
       
       toast(res.message, 'success');
       
       if (activeTab === 'saved' && !res.isSaved) {
-        setPosts(prev => prev.filter(p => p.id !== post.id));
+        setPosts(prev => prev.filter(p => p.id !== targetPostId));
       }
     } catch (err) {
       toast(err.message || 'Lỗi lưu bài viết!', 'error');
@@ -980,7 +1006,7 @@ export default function Forum({ currentUser }) {
       <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: '32px', width: '100%', margin: 0, padding: '24px 16px', minHeight: '100vh', boxSizing: 'border-box' }}>
         
         {/* ================= LEFT SIDEBAR (Threads Style) ================= */}
-        <aside style={{ position: 'sticky', top: '80px', display: 'flex', flexDirection: 'column', gap: '32px', borderRight: '1px solid var(--border)', paddingRight: '24px', boxSizing: 'border-box', height: 'fit-content' }}>
+        <aside style={{ position: 'sticky', top: '80px', maxHeight: 'calc(100vh - 100px)', overflowY: 'auto', alignSelf: 'start', display: 'flex', flexDirection: 'column', gap: '32px', borderRight: '1px solid var(--border)', paddingRight: '24px', boxSizing: 'border-box' }}>
           <div>
             {/* Header/Logo */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '32px', cursor: 'pointer' }} onClick={() => { setActiveTab('feed'); setSelectedGroup(null); }}>
@@ -1000,7 +1026,6 @@ export default function Forum({ currentUser }) {
                 { id: 'search', label: 'Tìm kiếm', icon: <HiSearch style={{ fontSize: '20px' }} /> },
                 { id: 'profile', label: 'Trang cá nhân', icon: <HiUser style={{ fontSize: '20px' }} /> },
                 { id: 'groups', label: 'Nhóm học tập', icon: <HiUserGroup style={{ fontSize: '20px' }} /> },
-                { id: 'leaderboard', label: 'Bảng xếp hạng', icon: <HiTrophy style={{ fontSize: '20px' }} /> },
               ].map((item) => {
                 const isSelected = activeTab === item.id;
                 return (
@@ -1126,19 +1151,6 @@ export default function Forum({ currentUser }) {
 
               {/* Tag selectors & Categories scroll */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '16px', padding: '16px', boxShadow: 'var(--shadow-sm)' }}>
-                {/* Search query input */}
-                <div style={{ position: 'relative' }}>
-                  <HiSearch style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)', fontSize: '18px' }} />
-                  <input
-                    type="text"
-                    className="form-control"
-                    placeholder="Tìm kiếm bài viết, tài liệu học liệu..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    style={{ paddingLeft: '38px', width: '100%', height: '42px', fontSize: '13.5px', borderRadius: '10px' }}
-                  />
-                </div>
-
                 {/* Categories badges */}
                 <div className="no-scrollbar" style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '4px' }}>
                   <button
@@ -2144,42 +2156,20 @@ export default function Forum({ currentUser }) {
         </main>
       </div>
 
-      {/* Floating Action Button (FAB) at bottom-right for creating a post */}
-      <button 
-        onClick={() => setShowCreateModal(true)}
-        style={{
-          position: 'fixed',
-          bottom: '32px',
-          right: '32px',
-          width: '56px',
-          height: '56px',
-          borderRadius: '50%',
-          background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%)',
-          color: '#FFFFFF',
-          border: 'none',
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          boxShadow: '0 4px 16px rgba(108, 92, 231, 0.4)',
-          zIndex: 999,
-          transition: 'transform 0.2s ease'
-        }}
-        onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.08)'}
-        onMouseLeave={e => e.currentTarget.style.transform = 'none'}
-        title="Tạo bài thảo luận mới"
-      >
-        <HiPlus style={{ fontSize: '24px' }} />
-      </button>
-
-      {/* Floating Action Button (FAB) at bottom-left for creating a group (Only when in groups list tab) */}
-      {activeTab === 'groups' && !selectedGroup && (
+      {/* Floating Action Button (FAB) at bottom-right */}
+      {createPortal(
         <button 
-          onClick={() => setShowGroupModal(true)}
+          onClick={() => {
+            if (activeTab === 'groups' && !selectedGroup) {
+              setShowGroupModal(true);
+            } else {
+              setShowCreateModal(true);
+            }
+          }}
           style={{
             position: 'fixed',
             bottom: '32px',
-            left: '32px',
+            right: '32px',
             width: '56px',
             height: '56px',
             borderRadius: '50%',
@@ -2191,15 +2181,16 @@ export default function Forum({ currentUser }) {
             alignItems: 'center',
             justifyContent: 'center',
             boxShadow: '0 4px 16px rgba(108, 92, 231, 0.4)',
-            zIndex: 999,
+            zIndex: 9999,
             transition: 'transform 0.2s ease'
           }}
           onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.08)'}
           onMouseLeave={e => e.currentTarget.style.transform = 'none'}
-          title="Tạo nhóm học tập mới"
+          title={activeTab === 'groups' && !selectedGroup ? "Tạo nhóm học tập mới" : "Tạo bài thảo luận mới"}
         >
           <HiPlus style={{ fontSize: '24px' }} />
-        </button>
+        </button>,
+        document.body
       )}
 
       {/* ================= MODALS & POPUPS ================= */}

@@ -328,6 +328,18 @@ export default function AITutorPage({ currentUser, navigateTo, addLog, hideHeade
       toast('Vui lòng đăng nhập để tải sơ đồ này về thư viện!', 'warning');
       return;
     }
+
+    const targetItem = sharedMindmaps.find(m => m.id === id);
+    const isAlreadyCloned = targetItem && (
+      targetItem.clonedBy?.includes(currentUser.id) ||
+      savedMindmaps.some(m => m.title === `${targetItem.title} (Nhập từ Diễn đàn)` || (m.title === targetItem.title && m.userId === currentUser.id))
+    );
+
+    if (isAlreadyCloned) {
+      toast('Sơ đồ tư duy này đã có trong thư viện của bạn! Mỗi sơ đồ chỉ được nhập 1 lần.', 'warning');
+      return;
+    }
+
     try {
       setIsLoading(true);
       setLoadingStep('Đang nhập sơ đồ tư duy về thư viện...');
@@ -341,6 +353,13 @@ export default function AITutorPage({ currentUser, navigateTo, addLog, hideHeade
         setPreviewingSharedId(null);
         setSelectedNode(null);
         
+        // Update local state to reflect cloned status immediately
+        setSharedMindmaps(prev => prev.map(m => m.id === id ? { 
+          ...m, 
+          downloads: (m.downloads || 0) + 1,
+          clonedBy: [...(m.clonedBy || []), currentUser.id] 
+        } : m));
+
         // Auto expand root + level 1
         const newExpanded = new Set();
         newExpanded.add(structured.id);
@@ -2449,6 +2468,8 @@ export default function AITutorPage({ currentUser, navigateTo, addLog, hideHeade
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', overflowY: 'auto', maxHeight: 'calc(100vh - 290px)' }}>
                   {sharedMindmaps.map((item) => {
                     const isLiked = item.likedBy?.includes(currentUser?.id);
+                    const isCloned = (currentUser && item.clonedBy?.includes(currentUser.id)) || 
+                      savedMindmaps.some(m => m.title === `${item.title} (Nhập từ Diễn đàn)` || (m.title === item.title && m.userId === currentUser?.id));
                     return (
                       <div 
                         key={item.id}
@@ -2539,23 +2560,30 @@ export default function AITutorPage({ currentUser, navigateTo, addLog, hideHeade
                           </div>
 
                           <button
-                            onClick={(e) => handleCloneShared(e, item.id)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (isCloned) {
+                                toast('Sơ đồ tư duy này đã có trong thư viện cá nhân của bạn!', 'warning');
+                              } else {
+                                handleCloneShared(e, item.id);
+                              }
+                            }}
                             style={{
-                              background: '#FFD234',
-                              color: '#1e293b',
-                              border: 'none',
+                              background: isCloned ? 'rgba(255,255,255,0.08)' : '#FFD234',
+                              color: isCloned ? '#94a3b8' : '#1e293b',
+                              border: isCloned ? '1px solid rgba(255,255,255,0.15)' : 'none',
                               borderRadius: '4px',
                               padding: '2px 8px',
                               fontSize: '11px',
                               fontWeight: 'bold',
-                              cursor: 'pointer',
+                              cursor: isCloned ? 'default' : 'pointer',
                               display: 'flex',
                               alignItems: 'center',
                               gap: '2px'
                             }}
-                            title="Tải bản sao về thư viện cá nhân"
+                            title={isCloned ? "Sơ đồ đã có trong thư viện của bạn" : "Tải bản sao về thư viện cá nhân"}
                           >
-                            Nhập về
+                            {isCloned ? '✓ Đã nhập' : 'Nhập về'}
                           </button>
                         </div>
                       </div>
@@ -2709,14 +2737,33 @@ export default function AITutorPage({ currentUser, navigateTo, addLog, hideHeade
                       )}
                     </>
                   ) : (
-                    <button 
-                      className="canvas-action-pill" 
-                      onClick={(e) => handleCloneShared(e, previewingSharedId)} 
-                      title="Nhập bản sao về thư viện cá nhân để chỉnh sửa"
-                      style={{ background: '#FFD234', color: '#1e293b', border: 'none', fontWeight: 'bold' }}
-                    >
-                      📥 Nhập về thư viện
-                    </button>
+                    (() => {
+                      const pItem = sharedMindmaps.find(m => m.id === previewingSharedId);
+                      const isPreviewCloned = (currentUser && pItem?.clonedBy?.includes(currentUser.id)) || 
+                        savedMindmaps.some(m => pItem && (m.title === `${pItem.title} (Nhập từ Diễn đàn)` || (m.title === pItem.title && m.userId === currentUser?.id)));
+                      return (
+                        <button 
+                          className="canvas-action-pill" 
+                          onClick={(e) => {
+                            if (isPreviewCloned) {
+                              toast('Sơ đồ tư duy này đã có trong thư viện cá nhân của bạn!', 'warning');
+                            } else {
+                              handleCloneShared(e, previewingSharedId);
+                            }
+                          }} 
+                          title={isPreviewCloned ? "Sơ đồ đã có trong thư viện của bạn" : "Nhập bản sao về thư viện cá nhân để chỉnh sửa"}
+                          style={{
+                            background: isPreviewCloned ? 'rgba(255,255,255,0.15)' : '#FFD234',
+                            color: isPreviewCloned ? '#cbd5e1' : '#1e293b',
+                            border: isPreviewCloned ? '1px solid rgba(255,255,255,0.2)' : 'none',
+                            fontWeight: 'bold',
+                            cursor: isPreviewCloned ? 'default' : 'pointer'
+                          }}
+                        >
+                          {isPreviewCloned ? '✓ Đã trong thư viện' : '📥 Nhập về thư viện'}
+                        </button>
+                      );
+                    })()
                   )}
                   <div className="canvas-export-dropdown">
                     <button className="canvas-action-pill">
@@ -2758,45 +2805,61 @@ export default function AITutorPage({ currentUser, navigateTo, addLog, hideHeade
             </div>
           </div>
 
-          {previewingSharedId && (
-            <div style={{
-              background: 'linear-gradient(90deg, #1e293b, #3b82f6)',
-              borderBottom: '1.5px solid #FFD234',
-              color: '#ffffff',
-              padding: '10px 16px',
-              fontSize: '13px',
-              fontWeight: '600',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-              zIndex: 5
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '16px' }}>📢</span>
-                <span>Bạn đang xem thử sơ đồ tư duy của tác giả khác (Chế độ chỉ đọc). Nhập bản sao về thư viện cá nhân để chỉnh sửa tự do!</span>
+          {previewingSharedId && (() => {
+            const pItem = sharedMindmaps.find(m => m.id === previewingSharedId);
+            const isPreviewCloned = (currentUser && pItem?.clonedBy?.includes(currentUser.id)) || 
+              savedMindmaps.some(m => pItem && (m.title === `${pItem.title} (Nhập từ Diễn đàn)` || (m.title === pItem.title && m.userId === currentUser?.id)));
+            return (
+              <div style={{
+                background: 'linear-gradient(90deg, #1e293b, #3b82f6)',
+                borderBottom: '1.5px solid #FFD234',
+                color: '#ffffff',
+                padding: '10px 16px',
+                fontSize: '13px',
+                fontWeight: '600',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                zIndex: 5
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '16px' }}>📢</span>
+                  <span>
+                    {isPreviewCloned 
+                      ? "Bạn đang xem thử sơ đồ tư duy này (Đã có trong thư viện cá nhân của bạn)."
+                      : "Bạn đang xem thử sơ đồ tư duy của tác giả khác (Chế độ chỉ đọc). Nhập bản sao về thư viện cá nhân để chỉnh sửa tự do!"
+                    }
+                  </span>
+                </div>
+                <button
+                  onClick={(e) => {
+                    if (isPreviewCloned) {
+                      toast('Sơ đồ tư duy này đã có trong thư viện cá nhân của bạn!', 'warning');
+                    } else {
+                      handleCloneShared(e, previewingSharedId);
+                    }
+                  }}
+                  style={{
+                    background: isPreviewCloned ? 'rgba(255,255,255,0.2)' : '#FFD234',
+                    color: isPreviewCloned ? '#ffffff' : '#1e293b',
+                    border: 'none',
+                    borderRadius: '6px',
+                    padding: '6px 14px',
+                    fontSize: '12px',
+                    fontWeight: 'bold',
+                    cursor: isPreviewCloned ? 'default' : 'pointer',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px'
+                  }}
+                >
+                  {isPreviewCloned ? '✓ Đã trong thư viện' : '📥 Nhập về thư viện'}
+                </button>
               </div>
-              <button
-                onClick={(e) => handleCloneShared(e, previewingSharedId)}
-                style={{
-                  background: '#FFD234',
-                  color: '#1e293b',
-                  border: 'none',
-                  borderRadius: '6px',
-                  padding: '6px 14px',
-                  fontSize: '12px',
-                  fontWeight: 'bold',
-                  cursor: 'pointer',
-                  boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px'
-                }}
-              >
-                📥 Nhập về thư viện
-              </button>
-            </div>
-          )}
+            );
+          })()}
 
           {/* Interactive SVG Canvas & Outline views with smooth transition */}
           <div style={{ position: 'relative', flex: 1, width: '100%', height: '100%', overflow: 'hidden' }}>
