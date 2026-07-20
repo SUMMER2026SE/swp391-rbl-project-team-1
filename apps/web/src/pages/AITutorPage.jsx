@@ -2,7 +2,8 @@ import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { 
   HiSparkles, HiPlus, HiMinus, HiTrash, HiSave, HiDownload, 
   HiDocumentText, HiRefresh, HiUpload, HiX, HiSearch, HiFolder,
-  HiChat, HiChevronRight, HiChevronLeft, HiPlay
+  HiChat, HiChevronRight, HiChevronLeft, HiPlay,
+  HiUserGroup, HiHeart, HiShare, HiLockClosed
 } from 'react-icons/hi';
 import Tesseract from 'tesseract.js';
 import { api, API_BASE } from '../api';
@@ -69,7 +70,7 @@ const WELCOME_MINDMAP = {
 
 export default function AITutorPage({ currentUser, navigateTo, addLog, hideHeader }) {
   // Tabs & Views states
-  const [activeTab, setActiveTab] = useState('create'); // 'create' | 'history'
+  const [activeTab, setActiveTab] = useState('history'); // 'create' | 'history' - Default to 'history' (Thư viện của tôi)
   const [mindmapData, setMindmapData] = useState(null);
   
   // Interactive Mindmap View Mode & Search States
@@ -78,7 +79,13 @@ export default function AITutorPage({ currentUser, navigateTo, addLog, hideHeade
   const [searchResults, setSearchResults] = useState([]);
   const [searchIndex, setSearchIndex] = useState(-1);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [showHelpModal, setShowHelpModal] = useState(false);
+  const [showBlankModal, setShowBlankModal] = useState(false);
+  const [blankModalTitle, setBlankModalTitle] = useState('Sơ đồ tư duy của tôi');
+  const [blankModalDesc, setBlankModalDesc] = useState('');
+  const [blankModalSubject, setBlankModalSubject] = useState('Toán');
+  const [deleteTargetId, setDeleteTargetId] = useState(null);
   
   // Input states
   const [inputText, setInputText] = useState('');
@@ -197,6 +204,16 @@ export default function AITutorPage({ currentUser, navigateTo, addLog, hideHeade
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
   const [activeMindmapDbId, setActiveMindmapDbId] = useState(null);
 
+  // Shared Mindmap Forum States
+  const [sharedMindmaps, setSharedMindmaps] = useState([]);
+  const [sharedSearchQuery, setSharedSearchQuery] = useState('');
+  const [sharedSubjectFilter, setSharedSubjectFilter] = useState('All');
+  const [isSharedLoading, setIsSharedLoading] = useState(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [shareSubject, setShareSubject] = useState('Toán');
+  const [shareDesc, setShareDesc] = useState('');
+  const [previewingSharedId, setPreviewingSharedId] = useState(null);
+
   // Refs
   const fileInputRef = useRef(null);
   const svgRef = useRef(null);
@@ -225,8 +242,6 @@ export default function AITutorPage({ currentUser, navigateTo, addLog, hideHeade
       // Reset coordinates
       setZoom(0.9);
       setPan({ x: 50, y: 150 });
-      
-      toast(`Đã tải sơ đồ tư duy được chia sẻ: ${data.title}`, 'success');
     } catch (err) {
       console.error(err);
       toast('Không thể tải sơ đồ tư duy được chia sẻ hoặc link đã hết hạn.', 'error');
@@ -234,6 +249,138 @@ export default function AITutorPage({ currentUser, navigateTo, addLog, hideHeade
       setIsLoading(false);
       setLoadingStep('');
     }
+  };
+
+  const fetchSharedMindmaps = async (silent = false) => {
+    if (!silent) setIsSharedLoading(true);
+    try {
+      const res = await api.getSharedMindmaps(sharedSearchQuery, sharedSubjectFilter);
+      setSharedMindmaps(res || []);
+    } catch (err) {
+      console.error(err);
+      toast('Không thể tải danh sách sơ đồ từ diễn đàn.', 'error');
+    } finally {
+      if (!silent) setIsSharedLoading(false);
+    }
+  };
+
+  const handleOpenShareModal = () => {
+    if (!activeMindmapDbId) {
+      toast('Vui lòng lưu sơ đồ tư duy trước khi chia sẻ lên diễn đàn!', 'warning');
+      return;
+    }
+    setShareSubject('Toán');
+    setShareDesc(mindmapData?.description || '');
+    setIsShareModalOpen(true);
+  };
+
+  const handleConfirmShare = async (e) => {
+    e.preventDefault();
+    if (!activeMindmapDbId) return;
+    try {
+      setIsLoading(true);
+      setLoadingStep('Đang đăng tải sơ đồ tư duy lên diễn đàn...');
+      await api.shareMindmap(activeMindmapDbId, shareSubject, shareDesc);
+      setIsShareModalOpen(false);
+      toast('Đã chia sẻ sơ đồ tư duy lên diễn đàn thành công!', 'success');
+      if (activeTab === 'shared') {
+        fetchSharedMindmaps();
+      }
+    } catch (err) {
+      console.error(err);
+      toast(err.message || 'Lỗi khi chia sẻ sơ đồ tư duy.', 'error');
+    } finally {
+      setIsLoading(false);
+      setLoadingStep('');
+    }
+  };
+
+  const handleLikeShared = async (e, id) => {
+    e.stopPropagation();
+    if (!currentUser) {
+      toast('Vui lòng đăng nhập để thích sơ đồ này!', 'warning');
+      return;
+    }
+    try {
+      const res = await api.likeSharedMindmap(id);
+      if (res && res.success) {
+        setSharedMindmaps(prev => prev.map(m => {
+          if (m.id === id) {
+            return {
+              ...m,
+              likes: res.likes,
+              likedBy: res.isLiked ? [...(m.likedBy || []), currentUser.id] : (m.likedBy || []).filter(uid => uid !== currentUser.id)
+            };
+          }
+          return m;
+        }));
+        toast(res.isLiked ? 'Đã thích sơ đồ này!' : 'Đã bỏ thích sơ đồ.', 'success');
+      }
+    } catch (err) {
+      console.error(err);
+      toast('Lỗi khi tương tác lượt thích.', 'error');
+    }
+  };
+
+  const handleCloneShared = async (e, id) => {
+    e.stopPropagation();
+    if (!currentUser) {
+      toast('Vui lòng đăng nhập để tải sơ đồ này về thư viện!', 'warning');
+      return;
+    }
+    try {
+      setIsLoading(true);
+      setLoadingStep('Đang nhập sơ đồ tư duy về thư viện...');
+      const res = await api.cloneSharedMindmap(id);
+      if (res && res.success) {
+        const cloned = res.data;
+        const parsed = typeof cloned.content === 'string' ? JSON.parse(cloned.content) : cloned.content;
+        const structured = assignIds(parsed);
+        setMindmapData(structured);
+        setActiveMindmapDbId(cloned.id);
+        setPreviewingSharedId(null);
+        setSelectedNode(null);
+        
+        // Auto expand root + level 1
+        const newExpanded = new Set();
+        newExpanded.add(structured.id);
+        structured.children?.forEach(ch => {
+          newExpanded.add(ch.id);
+        });
+        setExpandedNodes(newExpanded);
+
+        // Fetch history
+        fetchHistory(true);
+        toast('Đã sao chép sơ đồ tư duy này thành công vào thư viện của bạn!', 'success');
+      }
+    } catch (err) {
+      console.error(err);
+      toast(err.message || 'Lỗi khi tải sơ đồ tư duy.', 'error');
+    } finally {
+      setIsLoading(false);
+      setLoadingStep('');
+    }
+  };
+
+  const handlePreviewShared = (sharedMap) => {
+    if (!sharedMap || !sharedMap.content) return;
+    const parsed = typeof sharedMap.content === 'string' ? JSON.parse(sharedMap.content) : sharedMap.content;
+    const structured = assignIds(parsed);
+    setMindmapData(structured);
+    setPreviewingSharedId(sharedMap.id);
+    setSelectedNode(null);
+
+    // Auto expand root + level 1
+    const newExpanded = new Set();
+    newExpanded.add(structured.id);
+    structured.children?.forEach(ch => {
+      newExpanded.add(ch.id);
+    });
+    setExpandedNodes(newExpanded);
+
+    setZoom(0.9);
+    setPan({ x: 50, y: 150 });
+    toast(`Đang xem thử sơ đồ: "${sharedMap.title}" (Chỉ đọc)`, 'info');
   };
 
   // Initial load
@@ -260,6 +407,13 @@ export default function AITutorPage({ currentUser, navigateTo, addLog, hideHeade
     // Fetch saved list on mount or when auth state changes
     fetchHistory(true);
   }, [currentUser]);
+
+  // Fetch shared mindmaps when tab is active or search/filters change
+  useEffect(() => {
+    if (activeTab === 'shared') {
+      fetchSharedMindmaps();
+    }
+  }, [activeTab, sharedSearchQuery, sharedSubjectFilter]);
 
   // Adjust scroll when new messages arrive in drawer
   useEffect(() => {
@@ -397,9 +551,15 @@ export default function AITutorPage({ currentUser, navigateTo, addLog, hideHeade
 
   // Helper to assign sequential unique ID paths to mindmap nodes
   const assignIds = (node, path = '0') => {
+    if (!node || typeof node !== 'object') return null;
     const newNode = { ...node, id: path };
-    if (node.children && node.children.length > 0) {
-      newNode.children = node.children.map((child, idx) => assignIds(child, `${path}-${idx}`));
+    if (Array.isArray(node.children) && node.children.length > 0) {
+      newNode.children = node.children
+        .filter(Boolean)
+        .map((child, idx) => assignIds(child, `${path}-${idx}`))
+        .filter(Boolean);
+    } else {
+      newNode.children = [];
     }
     return newNode;
   };
@@ -558,9 +718,17 @@ export default function AITutorPage({ currentUser, navigateTo, addLog, hideHeade
     }
 
     try {
-      const result = await api.generateMindmap(content);
-      
-      const structured = assignIds(result);
+      const resData = await api.generateMindmap(content);
+      const mindmapObj = resData?.data || resData;
+      if (!mindmapObj || !mindmapObj.name) {
+        throw new Error('Dữ liệu sơ đồ tư duy phản hồi từ AI không hợp lệ. Vui lòng thử lại!');
+      }
+
+      const structured = assignIds(mindmapObj);
+      if (!structured) {
+        throw new Error('Không thể khởi tạo cấu trúc nút sơ đồ tư duy.');
+      }
+
       setMindmapData(structured);
       setActiveMindmapDbId(null); // unsaved new mindmap
 
@@ -568,7 +736,7 @@ export default function AITutorPage({ currentUser, navigateTo, addLog, hideHeade
       const newExpanded = new Set();
       newExpanded.add(structured.id);
       structured.children?.forEach(ch => {
-        newExpanded.add(ch.id);
+        if (ch && ch.id) newExpanded.add(ch.id);
       });
       setExpandedNodes(newExpanded);
 
@@ -684,104 +852,143 @@ export default function AITutorPage({ currentUser, navigateTo, addLog, hideHeade
     }
   };
 
-  // Client-side html-to-image PNG Exporter
-  const handleExportPng = async () => {
-    if (!svgRef.current) return;
-    setIsLoading(true);
-    setLoadingStep('Đang chuẩn bị công cụ xuất ảnh PNG...');
-    try {
-      // Dynamically load html-to-image library from jsDelivr CDN
-      const htmlToImage = await new Promise((resolve, reject) => {
-        if (window.htmlToImage) {
-          resolve(window.htmlToImage);
-          return;
-        }
-        const script = document.createElement('script');
-        script.src = 'https://cdn.jsdelivr.net/npm/html-to-image@1.11.13/dist/html-to-image.min.js';
-        script.onload = () => resolve(window.htmlToImage);
-        script.onerror = (err) => reject(new Error('Không thể tải thư viện xuất ảnh PNG.'));
-        document.body.appendChild(script);
-      });
-
-      setLoadingStep('Đang chuyển đổi sơ đồ thành ảnh PNG...');
-      const svgElement = svgRef.current;
-      const contentGroup = svgElement.querySelector('g');
-      if (!contentGroup) {
-        throw new Error('Không tìm thấy nội dung sơ đồ để xuất.');
+  // Helper to generate crisp PNG Data URL from SVG
+  const generateMindmapPngDataUrl = async () => {
+    if (!svgRef.current) return null;
+    const htmlToImage = await new Promise((resolve, reject) => {
+      if (window.htmlToImage) {
+        resolve(window.htmlToImage);
+        return;
       }
+      const script = document.createElement('script');
+      script.src = 'https://cdn.jsdelivr.net/npm/html-to-image@1.11.13/dist/html-to-image.min.js';
+      script.onload = () => resolve(window.htmlToImage);
+      script.onerror = (err) => reject(new Error('Không thể tải thư viện xuất ảnh.'));
+      document.body.appendChild(script);
+    });
 
-      // Temporarily remove transform of <g> to measure local bounding box
-      const originalTransform = contentGroup.getAttribute('transform');
-      contentGroup.setAttribute('transform', 'translate(0,0) scale(1)');
-      const bbox = svgElement.getBBox ? svgElement.getBBox() : { x: 0, y: 0, width: 1200, height: 800 };
+    const svgElement = svgRef.current;
+    const contentGroup = svgElement.querySelector('g');
+    if (!contentGroup) throw new Error('Không tìm thấy nội dung sơ đồ để xuất.');
+
+    const originalTransform = contentGroup.getAttribute('transform');
+    contentGroup.setAttribute('transform', 'translate(0,0) scale(1)');
+    const bbox = svgElement.getBBox ? svgElement.getBBox() : { x: 0, y: 0, width: 1200, height: 800 };
+    contentGroup.setAttribute('transform', originalTransform);
+
+    const clonedSvg = svgElement.cloneNode(true);
+    const clonedContentGroup = clonedSvg.querySelector('g');
+    const padding = 80;
+    const width = bbox.width + padding * 2;
+    const height = bbox.height + padding * 2;
+
+    clonedSvg.setAttribute('width', width);
+    clonedSvg.setAttribute('height', height);
+    clonedSvg.setAttribute('style', `background-color: #141410; width: ${width}px; height: ${height}px;`);
+
+    const tx = padding - bbox.x;
+    const ty = padding - bbox.y;
+    clonedContentGroup.setAttribute('transform', `translate(${tx}, ${ty}) scale(1)`);
+
+    clonedSvg.style.position = 'absolute';
+    clonedSvg.style.top = '-9999px';
+    clonedSvg.style.left = '-9999px';
+    document.body.appendChild(clonedSvg);
+
+    const styleEl = document.createElement('style');
+    styleEl.innerHTML = `
+      svg { background-color: #141410 !important; font-family: 'Inter', system-ui, sans-serif !important; }
+      .canvas-node-card { border-radius: 14px !important; text-align: center !important; display: flex !important; align-items: center !important; justify-content: center !important; box-sizing: border-box !important; color: #FFFFFF !important; }
+      .canvas-node-card-root { background: linear-gradient(135deg, #2563EB, #1D4ED8) !important; color: #FFFFFF !important; }
+      .canvas-node-card-level1 { background: linear-gradient(135deg, #7C3AED, #6D28D9) !important; color: #FFFFFF !important; }
+      .canvas-node-card-level2 { background: linear-gradient(135deg, #059669, #047857) !important; color: #FFFFFF !important; }
+      .node-status--learning { background: linear-gradient(135deg, #D97706, #F59E0B) !important; border: 2px solid #FBBF24 !important; color: #FFFFFF !important; }
+      .node-status--learned { background: linear-gradient(135deg, #059669, #10B981) !important; border: 2px solid #34D399 !important; color: #FFFFFF !important; }
+      .node-status--review { background: linear-gradient(135deg, #DC2626, #EF4444) !important; border: 2px solid #FCA5A5 !important; color: #FFFFFF !important; }
+      .node-status--important { background: linear-gradient(135deg, #9333EA, #C084FC) !important; border: 2px solid #E879F9 !important; color: #FFFFFF !important; }
+      .node-status-badge { position: absolute; top: 4px; right: 6px; font-size: 9px; font-weight: 800; color: #FFFFFF !important; }
       
-      // Restore original transform
-      contentGroup.setAttribute('transform', originalTransform);
+      /* Vibrant Sky Blue line stroke for high-contrast visibility against dark background */
+      path, .canvas-connection-path { stroke: #60A5FA !important; stroke-width: 3.5px !important; stroke-opacity: 1 !important; fill: none !important; opacity: 1 !important; }
+      .canvas-connection-path--active { stroke: #F59E0B !important; stroke-width: 4.5px !important; opacity: 1 !important; }
 
-      // Clone SVG and set its dimensions to encapsulate the whole mindmap
-      const clonedSvg = svgElement.cloneNode(true);
-      const clonedContentGroup = clonedSvg.querySelector('g');
-      
-      const padding = 80;
-      const width = bbox.width + padding * 2;
-      const height = bbox.height + padding * 2;
+      /* Force 100% pure bold white text on all nodes */
+      text, span, p, div, label, h1, h2, h3, h4, foreignObject, foreignObject * { fill: #FFFFFF !important; color: #FFFFFF !important; font-weight: 800 !important; opacity: 1 !important; text-shadow: 0px 1px 3px rgba(0,0,0,0.5) !important; }
+    `;
+    clonedSvg.appendChild(styleEl);
 
-      clonedSvg.setAttribute('width', width);
-      clonedSvg.setAttribute('height', height);
-      clonedSvg.setAttribute('style', `background-color: #141410; width: ${width}px; height: ${height}px;`);
+    const dataUrl = await htmlToImage.toPng(clonedSvg, {
+      width: width,
+      height: height,
+      style: { transform: 'none', left: '0', top: '0', position: 'static' }
+    });
 
-      // Translate group in the clone so the whole mindmap is visible inside cloned bounds
-      const tx = padding - bbox.x;
-      const ty = padding - bbox.y;
-      clonedContentGroup.setAttribute('transform', `translate(${tx}, ${ty}) scale(1)`);
+    document.body.removeChild(clonedSvg);
+    return dataUrl;
+  };
 
-      // Append clone to body off-screen to allow proper stylesheet styles inheritance
-      clonedSvg.style.position = 'absolute';
-      clonedSvg.style.top = '-9999px';
-      clonedSvg.style.left = '-9999px';
-      document.body.appendChild(clonedSvg);
-
-      // Inline mindmap styles into the clone
-      const styleEl = document.createElement('style');
-      styleEl.innerHTML = `
-        svg { background-color: #141410; font-family: 'Inter', system-ui, sans-serif; }
-        .canvas-node-card { border-radius: 14px; text-align: center; display: flex; align-items: center; justify-content: center; box-sizing: border-box; }
-        .canvas-node-card-root { background: linear-gradient(135deg, #3B82F6, #1D4ED8) !important; color: #FFFFFF !important; }
-        .canvas-node-card-level1 { background: linear-gradient(135deg, #8B5CF6, #6D28D9) !important; color: #FFFFFF !important; }
-        .canvas-node-card-level2 { background: linear-gradient(135deg, #10B981, #047857) !important; color: #FFFFFF !important; }
-        .node-status--learning { border-left: 6px solid #F59E0B !important; background: linear-gradient(135deg, rgba(245, 158, 11, 0.12), rgba(245, 158, 11, 0.04)) !important; border: 1.5px solid #F59E0B !important; color: #F59E0B !important; }
-        .node-status--learned { border-left: 6px solid #10B981 !important; background: linear-gradient(135deg, rgba(16, 185, 129, 0.12), rgba(16, 185, 129, 0.04)) !important; border: 1.5px solid #10B981 !important; color: #10B981 !important; }
-        .node-status--review { border-left: 6px solid #EF4444 !important; background: linear-gradient(135deg, rgba(239, 68, 68, 0.12), rgba(239, 68, 68, 0.04)) !important; border: 1.5px solid #EF4444 !important; color: #EF4444 !important; }
-        .node-status--important { border-left: 6px solid #D946EF !important; background: linear-gradient(135deg, rgba(217, 70, 239, 0.15), rgba(217, 70, 239, 0.04)) !important; border: 1.5px solid #D946EF !important; color: #E879F9 !important; }
-        .node-status-badge { position: absolute; top: 4px; right: 6px; font-size: 9px; font-weight: 800; }
-        text { fill: #F3F4F6; }
-      `;
-      clonedSvg.appendChild(styleEl);
-
-      const dataUrl = await htmlToImage.toPng(clonedSvg, {
-        width: width,
-        height: height,
-        style: {
-          transform: 'none',
-          left: '0',
-          top: '0',
-          position: 'static'
-        }
-      });
-
-      document.body.removeChild(clonedSvg);
-
+  const handleExportPng = async () => {
+    setIsLoading(true);
+    setLoadingStep('Đang chuyển đổi sơ đồ thành file ảnh PNG...');
+    try {
+      const dataUrl = await generateMindmapPngDataUrl();
+      if (!dataUrl) throw new Error('Không thể tạo dữ liệu ảnh.');
       const downloadLink = document.createElement("a");
       downloadLink.href = dataUrl;
-      downloadLink.download = `${mindmapData?.name || 'mindmap'}.png`;
+      downloadLink.download = `${mindmapData?.name || 'sodo_tuduy'}.png`;
       document.body.appendChild(downloadLink);
       downloadLink.click();
       document.body.removeChild(downloadLink);
-      
-      toast('Đã xuất file PNG thành công!', 'success');
+      toast('Đã xuất file ảnh PNG thành công!', 'success');
     } catch (err) {
       console.error(err);
-      toast('Lỗi khi xuất ảnh PNG! Thử phóng to/thu nhỏ sơ đồ trước khi xuất.', 'error');
+      toast('Không thể xuất file PNG!', 'error');
+    } finally {
+      setIsLoading(false);
+      setLoadingStep('');
+    }
+  };
+
+  const handleExportPdf = async () => {
+    setIsLoading(true);
+    setLoadingStep('Đang chuyển đổi sơ đồ thành tệp PDF chất lượng cao...');
+    try {
+      const dataUrl = await generateMindmapPngDataUrl();
+      if (!dataUrl) throw new Error('Không thể tạo dữ liệu ảnh.');
+
+      // Dynamically load jsPDF library
+      const jsPDF = await new Promise((resolve, reject) => {
+        if (window.jspdf?.jsPDF) {
+          resolve(window.jspdf.jsPDF);
+          return;
+        }
+        const script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+        script.onload = () => resolve(window.jspdf.jsPDF);
+        script.onerror = () => reject(new Error('Không thể tải thư viện PDF.'));
+        document.body.appendChild(script);
+      });
+
+      const img = new Image();
+      img.src = dataUrl;
+      await new Promise((resolve) => { img.onload = resolve; });
+
+      const imgWidth = img.width;
+      const imgHeight = img.height;
+
+      const pdf = new jsPDF({
+        orientation: imgWidth >= imgHeight ? 'landscape' : 'portrait',
+        unit: 'px',
+        format: [imgWidth, imgHeight]
+      });
+
+      pdf.addImage(dataUrl, 'PNG', 0, 0, imgWidth, imgHeight);
+      pdf.save(`${mindmapData?.name || 'sodo_tuduy'}.pdf`);
+
+      toast('Đã xuất và tải xuống file PDF thành công!', 'success');
+    } catch (err) {
+      console.error(err);
+      toast('Không thể xuất file PDF!', 'error');
     } finally {
       setIsLoading(false);
       setLoadingStep('');
@@ -1500,7 +1707,6 @@ export default function AITutorPage({ currentUser, navigateTo, addLog, hideHeade
     };
     traverse(mindmapData);
     setExpandedNodes(newExpanded);
-    toast('Đã mở rộng toàn bộ các cấp độ dàn ý!', 'success');
   };
 
   const handleCollapseAllOutline = () => {
@@ -1508,18 +1714,35 @@ export default function AITutorPage({ currentUser, navigateTo, addLog, hideHeade
     const newExpanded = new Set();
     newExpanded.add(mindmapData.id);
     setExpandedNodes(newExpanded);
-    toast('Đã thu gọn toàn bộ các nhánh con!', 'success');
   };
 
   const handleCreateBlankMindmap = () => {
-    const name = prompt('Nhập tiêu đề cho sơ đồ tư duy mới của bạn:', 'Sơ đồ tư duy của tôi');
-    if (name === null) return;
-    const finalName = name.trim() || 'Sơ đồ tư duy của tôi';
+    setBlankModalTitle('Sơ đồ tư duy mới của tôi');
+    setBlankModalDesc('Các nội dung trọng tâm cần học...');
+    setBlankModalSubject('Toán');
+    setShowBlankModal(true);
+  };
+
+  const handleConfirmCreateBlank = (e) => {
+    if (e) e.preventDefault();
+    const finalTitle = blankModalTitle.trim() || 'Sơ đồ tư duy của tôi';
+    const finalDesc = blankModalDesc.trim() || `Sơ đồ tư duy môn ${blankModalSubject}`;
 
     const newRoot = {
-      name: finalName,
-      description: 'Chủ đề gốc. Chọn nút này và sử dụng bảng bên phải để thêm nút con hoặc chỉnh sửa nội dung.',
-      children: []
+      name: finalTitle,
+      description: finalDesc,
+      children: [
+        {
+          name: 'Nhánh 1: Khái niệm & Định nghĩa',
+          description: 'Chỉnh sửa nội dung chi tiết cho nhánh 1 tại đây.',
+          children: []
+        },
+        {
+          name: 'Nhánh 2: Công thức & Vận dụng',
+          description: 'Chỉnh sửa các công thức hoặc ví dụ minh họa.',
+          children: []
+        }
+      ]
     };
 
     const structured = assignIds(newRoot);
@@ -1536,6 +1759,8 @@ export default function AITutorPage({ currentUser, navigateTo, addLog, hideHeade
     // Center layout
     setZoom(1.0);
     setPan({ x: 150, y: 200 });
+    setShowBlankModal(false);
+    setActiveTab('create');
 
     toast('Đã khởi tạo sơ đồ tư duy trống mới! Bấm chọn nút và sử dụng bảng bên phải để bắt đầu thiết kế.', 'success');
   };
@@ -1705,10 +1930,16 @@ export default function AITutorPage({ currentUser, navigateTo, addLog, hideHeade
     }
   };
 
-  // Delete saved mindmap
-  const handleDeleteMindmap = async (e, id) => {
+  // Delete saved mindmap confirmation trigger
+  const handleRequestDeleteMindmap = (e, id) => {
     e.stopPropagation(); // stop click from loading
-    if (!confirm('Bạn có chắc chắn muốn xóa sơ đồ tư duy này?')) return;
+    setDeleteTargetId(id);
+  };
+
+  const confirmDeleteMindmap = async () => {
+    if (!deleteTargetId) return;
+    const id = deleteTargetId;
+    setDeleteTargetId(null);
 
     if (!currentUser || String(id).startsWith('local-')) {
       // Local delete
@@ -1811,9 +2042,6 @@ export default function AITutorPage({ currentUser, navigateTo, addLog, hideHeade
       addLog(`Hỏi AI về nút [${selectedNode.name}]: "${text.substring(0, 30)}..."`, 'sys');
     }
 
-    // Embed contextual node info to instruct AI
-    const contextualPrompt = `Trong sơ đồ tư duy tên "${mindmapData.name}", tôi đang quan sát mục "${selectedNode.name}" có phần nội dung tóm tắt là: "${selectedNode.description}". Hãy giải đáp chi tiết câu hỏi này của tôi liên quan đến khái niệm này: "${text}"`;
-
     // Bot message template
     const botMsgId = Date.now();
     const initialBotMsg = { id: botMsgId, sender: 'bot', text: '', time: 'Hệ thống' };
@@ -1830,7 +2058,12 @@ export default function AITutorPage({ currentUser, navigateTo, addLog, hideHeade
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('access_token') || ''}`
         },
-        body: JSON.stringify({ message: contextualPrompt })
+        body: JSON.stringify({ 
+          message: text,
+          nodeName: selectedNode.name,
+          nodeDesc: selectedNode.description,
+          mindmapName: mindmapData.name
+        })
       });
 
       if (!response.ok) {
@@ -1914,12 +2147,13 @@ export default function AITutorPage({ currentUser, navigateTo, addLog, hideHeade
       <div 
         className={`aitutor-workspace ${isFullscreen ? 'aitutor-workspace--fullscreen' : ''}`}
         style={{
-          gridTemplateColumns: `${sidebarWidth}px 6px 1fr`,
+          gridTemplateColumns: isSidebarCollapsed ? '1fr' : `${sidebarWidth}px 6px 1fr`,
           gap: '0px'
         }}
       >
         {/* Left sidebar: Control & history */}
-        <aside className="aitutor-sidebar">
+        {!isSidebarCollapsed && (
+          <aside className="aitutor-sidebar">
           <div 
             onClick={() => navigateTo('/')}
             style={{ 
@@ -1957,7 +2191,7 @@ export default function AITutorPage({ currentUser, navigateTo, addLog, hideHeade
               className={`aitutor-tab-btn ${activeTab === 'create' ? 'aitutor-tab-btn--active' : ''}`}
               onClick={() => setActiveTab('create')}
             >
-              <HiSparkles /> Tạo sơ đồ mới
+              <HiSparkles /> Tạo mới
             </button>
             <button 
               className={`aitutor-tab-btn ${activeTab === 'history' ? 'aitutor-tab-btn--active' : ''}`}
@@ -1966,7 +2200,16 @@ export default function AITutorPage({ currentUser, navigateTo, addLog, hideHeade
                 fetchHistory();
               }}
             >
-              <HiFolder /> Thư viện của tôi
+              <HiFolder /> Thư viện
+            </button>
+            <button 
+              className={`aitutor-tab-btn ${activeTab === 'shared' ? 'aitutor-tab-btn--active' : ''}`}
+              onClick={() => {
+                setActiveTab('shared');
+                fetchSharedMindmaps();
+              }}
+            >
+              <HiUserGroup /> Diễn đàn
             </button>
           </div>
 
@@ -2081,8 +2324,27 @@ export default function AITutorPage({ currentUser, navigateTo, addLog, hideHeade
                 </div>
               )}
               {isHistoryLoading ? (
-                <div className="aitutor-history-loading">
-                  <span className="unique-loader" /> Đang tải danh sách...
+                <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '60px 20px',
+                  background: 'rgba(255, 255, 255, 0.03)',
+                  borderRadius: '16px',
+                  border: '1px solid var(--mm-border-dark)',
+                  margin: '20px 0'
+                }}>
+                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <span className="unique-loader" style={{ width: '48px', height: '48px' }} />
+                    <img src={sunLogoImg} alt="EduPath" style={{ width: '28px', height: '28px', position: 'absolute' }} />
+                  </div>
+                  <p style={{ marginTop: '16px', color: '#F8FAFC', fontSize: '13.5px', fontWeight: '800' }}>
+                    Đang tải dữ liệu sơ đồ tư duy EduPath AI...
+                  </p>
+                  <span style={{ fontSize: '11.5px', color: '#94A3B8', marginTop: '4px' }}>
+                    Vui lòng chờ trong giây lát
+                  </span>
                 </div>
               ) : savedMindmaps.length === 0 ? (
                 <div className="aitutor-history-empty">
@@ -2107,7 +2369,7 @@ export default function AITutorPage({ currentUser, navigateTo, addLog, hideHeade
                       </div>
                       <button 
                         className="aitutor-history-item-delete"
-                        onClick={(e) => handleDeleteMindmap(e, item.id)}
+                        onClick={(e) => handleRequestDeleteMindmap(e, item.id)}
                         title="Xóa sơ đồ tư duy"
                       >
                         <HiTrash />
@@ -2118,12 +2380,227 @@ export default function AITutorPage({ currentUser, navigateTo, addLog, hideHeade
               )}
             </div>
           )}
-        </aside>
 
-        <div className="aitutor-sidebar-resizer" onMouseDown={handleSidebarMouseDown} />
+          {/* Shared Mindmap Forum Tab Content */}
+          {activeTab === 'shared' && (
+            <div className="aitutor-panel-content">
+              <h3 style={{ margin: '0 0 12px 0', fontSize: '15px', color: '#fff', display: 'flex', alignItems: 'center', gap: '6px', fontFamily: "'Outfit', sans-serif" }}>
+                <HiUserGroup /> Diễn đàn sơ đồ
+              </h3>
+              
+              <div style={{ display: 'flex', gap: '6px', marginBottom: '8px' }}>
+                <input 
+                  type="text" 
+                  placeholder="Tìm sơ đồ..." 
+                  value={sharedSearchQuery}
+                  onChange={(e) => setSharedSearchQuery(e.target.value)}
+                  style={{
+                    width: '100%',
+                    background: 'rgba(0,0,0,0.3)',
+                    border: '1px solid rgba(255,255,255,0.1)',
+                    borderRadius: '6px',
+                    padding: '8px 10px',
+                    color: '#fff',
+                    fontSize: '12.5px',
+                    boxSizing: 'border-box'
+                  }}
+                />
+              </div>
+
+              <div style={{ marginBottom: '14px' }}>
+                <select
+                  value={sharedSubjectFilter}
+                  onChange={(e) => setSharedSubjectFilter(e.target.value)}
+                  style={{
+                    width: '100%',
+                    background: 'rgba(0,0,0,0.3)',
+                    border: '1px solid rgba(255,255,255,0.1)',
+                    borderRadius: '6px',
+                    padding: '8px 10px',
+                    color: '#fff',
+                    fontSize: '12.5px',
+                    cursor: 'pointer',
+                    boxSizing: 'border-box'
+                  }}
+                >
+                  <option value="All" style={{ background: '#294B7C' }}>Tất cả môn học</option>
+                  <option value="Toán" style={{ background: '#294B7C' }}>Toán học</option>
+                  <option value="Vật lý" style={{ background: '#294B7C' }}>Vật lý</option>
+                  <option value="Hóa học" style={{ background: '#294B7C' }}>Hóa học</option>
+                  <option value="Sinh học" style={{ background: '#294B7C' }}>Sinh học</option>
+                  <option value="Tiếng Anh" style={{ background: '#294B7C' }}>Tiếng Anh</option>
+                  <option value="Ngữ văn" style={{ background: '#294B7C' }}>Ngữ văn</option>
+                  <option value="Lịch sử" style={{ background: '#294B7C' }}>Lịch sử</option>
+                  <option value="Địa lý" style={{ background: '#294B7C' }}>Địa lý</option>
+                  <option value="GDCD" style={{ background: '#294B7C' }}>GDCD</option>
+                </select>
+              </div>
+
+              {isSharedLoading ? (
+                <div style={{ textAlign: 'center', padding: '30px 0', color: '#cbd5e1', fontSize: '13px' }}>
+                  <span className="unique-loader" style={{ width: '24px', height: '24px', display: 'inline-block', marginBottom: '8px' }} />
+                  <p>Đang tải sơ đồ chia sẻ...</p>
+                </div>
+              ) : sharedMindmaps.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '30px 0', color: '#94a3b8', fontSize: '13px', background: 'rgba(0,0,0,0.15)', borderRadius: '8px' }}>
+                  Chưa có sơ đồ nào được chia sẻ.
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', overflowY: 'auto', maxHeight: 'calc(100vh - 290px)' }}>
+                  {sharedMindmaps.map((item) => {
+                    const isLiked = item.likedBy?.includes(currentUser?.id);
+                    return (
+                      <div 
+                        key={item.id}
+                        onClick={() => handlePreviewShared(item)}
+                        style={{
+                          background: previewingSharedId === item.id ? 'rgba(255,210,52,0.12)' : 'rgba(0,0,0,0.15)',
+                          border: previewingSharedId === item.id ? '1px solid #FFD234' : '1px solid rgba(255,255,255,0.06)',
+                          borderRadius: '8px',
+                          padding: '12px',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s ease',
+                          position: 'relative'
+                        }}
+                        className="shared-mindmap-card"
+                      >
+                        {/* Subject badge */}
+                        <span style={{
+                          position: 'absolute',
+                          top: '10px',
+                          right: '10px',
+                          fontSize: '10px',
+                          fontWeight: 700,
+                          padding: '2px 6px',
+                          borderRadius: '4px',
+                          background: item.subject === 'Tiếng Anh' ? 'linear-gradient(135deg, #3B82F6, #1D4ED8)' : 'linear-gradient(135deg, #10B981, #047857)',
+                          color: '#fff'
+                        }}>
+                          {item.subject}
+                        </span>
+
+                        {/* Author */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
+                          <div style={{
+                            width: '20px',
+                            height: '20px',
+                            borderRadius: '50%',
+                            background: '#FFD234',
+                            color: '#1e293b',
+                            fontSize: '10px',
+                            fontWeight: 'bold',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            overflow: 'hidden'
+                          }}>
+                            {item.authorAvatar ? (
+                              <img src={item.authorAvatar} alt={item.authorName} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            ) : (
+                              item.authorName.charAt(0).toUpperCase()
+                            )}
+                          </div>
+                          <span style={{ fontSize: '11px', color: '#cbd5e1', fontWeight: 500 }}>{item.authorName}</span>
+                        </div>
+
+                        {/* Title */}
+                        <h4 style={{ fontSize: '13px', fontWeight: 'bold', color: '#fff', margin: '0 0 4px 0', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', width: '80%' }}>
+                          {item.title}
+                        </h4>
+
+                        {/* Description */}
+                        <p style={{ fontSize: '11.5px', color: '#94a3b8', margin: '0 0 10px 0', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', lineHeight: '1.4' }}>
+                          {item.description}
+                        </p>
+
+                        {/* Interactions */}
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '8px' }}>
+                          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                            <button 
+                              onClick={(e) => handleLikeShared(e, item.id)}
+                              style={{
+                                background: 'transparent',
+                                border: 'none',
+                                color: isLiked ? '#ef4444' : '#94a3b8',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '3px',
+                                fontSize: '11.5px',
+                                cursor: 'pointer',
+                                padding: 0
+                              }}
+                            >
+                              <HiHeart size={14} /> {item.likes || 0}
+                            </button>
+
+                            <span style={{ fontSize: '11px', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                              📥 {item.downloads || 0}
+                            </span>
+                          </div>
+
+                          <button
+                            onClick={(e) => handleCloneShared(e, item.id)}
+                            style={{
+                              background: '#FFD234',
+                              color: '#1e293b',
+                              border: 'none',
+                              borderRadius: '4px',
+                              padding: '2px 8px',
+                              fontSize: '11px',
+                              fontWeight: 'bold',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '2px'
+                            }}
+                            title="Tải bản sao về thư viện cá nhân"
+                          >
+                            Nhập về
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+        </aside>
+        )}
+
+        {!isSidebarCollapsed && (
+          <div className="aitutor-sidebar-resizer" onMouseDown={handleSidebarMouseDown} />
+        )}
 
         {/* Center Canvas Workspace */}
-        <main className="aitutor-chat-panel">
+        <main className="aitutor-chat-panel" style={{ position: 'relative' }}>
+          {/* Collapse/Expand Sidebar Trigger Button */}
+          <button
+            onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+            style={{
+              position: 'absolute',
+              left: '12px',
+              top: '12px',
+              zIndex: 100,
+              width: '32px',
+              height: '32px',
+              borderRadius: '8px',
+              background: '#1E293B',
+              border: '1.5px solid #475569',
+              color: '#FFFFFF',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              boxShadow: '0 4px 10px rgba(0,0,0,0.3)',
+              transition: 'all 0.2s ease',
+            }}
+            title={isSidebarCollapsed ? "Mở rộng thanh công cụ" : "Thu gọn thanh công cụ"}
+            className="sidebar-toggle-btn"
+          >
+            {isSidebarCollapsed ? <HiChevronRight size={18} /> : <HiChevronLeft size={18} />}
+          </button>
+
           {/* Header Actions */}
           <div className="aitutor-chat-header">
             <div className="aitutor-chat-header-left">
@@ -2186,14 +2663,7 @@ export default function AITutorPage({ currentUser, navigateTo, addLog, hideHeade
                     {viewMode === 'canvas' ? '📋 Dàn ý' : '🧠 Sơ đồ'}
                   </button>
 
-                  {/* Fullscreen Toggle */}
-                  <button 
-                    className="canvas-action-pill" 
-                    onClick={() => setIsFullscreen(!isFullscreen)}
-                    title={isFullscreen ? "Hiện Sidebar" : "Chế độ tập trung (Ẩn Sidebar)"}
-                  >
-                    {isFullscreen ? '🔍 Hiện Sidebar' : '🧘 Tập trung'}
-                  </button>
+
 
 
 
@@ -2217,21 +2687,35 @@ export default function AITutorPage({ currentUser, navigateTo, addLog, hideHeade
                     </span>
                   )}
 
-                  <button 
-                    className="canvas-action-pill" 
-                    onClick={handleSaveMindmap} 
-                    title="Lưu sơ đồ tư duy vào thư viện"
-                  >
-                    <HiSave /> Lưu
-                  </button>
-                  {activeMindmapDbId && (
+                  {!previewingSharedId ? (
+                    <>
+                      <button 
+                        className="canvas-action-pill" 
+                        onClick={handleSaveMindmap} 
+                        title="Lưu sơ đồ tư duy vào thư viện"
+                      >
+                        <HiSave /> Lưu
+                      </button>
+
+                      {activeMindmapDbId && (
+                        <button 
+                          className="canvas-action-pill" 
+                          onClick={handleOpenShareModal} 
+                          title="Chia sẻ sơ đồ tư duy lên diễn đàn cộng đồng"
+                          style={{ background: 'rgba(59, 130, 246, 0.15)', color: '#60a5fa', border: '1px solid rgba(59, 130, 246, 0.25)' }}
+                        >
+                          <HiShare /> Chia sẻ
+                        </button>
+                      )}
+                    </>
+                  ) : (
                     <button 
                       className="canvas-action-pill" 
-                      onClick={handleShareMindmap} 
-                      title="Sao chép liên kết chia sẻ công khai"
-                      style={{ background: 'rgba(255, 226, 89, 0.1)', color: 'var(--fc-gold)', border: '1px solid rgba(255, 226, 89, 0.2)' }}
+                      onClick={(e) => handleCloneShared(e, previewingSharedId)} 
+                      title="Nhập bản sao về thư viện cá nhân để chỉnh sửa"
+                      style={{ background: '#FFD234', color: '#1e293b', border: 'none', fontWeight: 'bold' }}
                     >
-                      🔗 Chia sẻ
+                      📥 Nhập về thư viện
                     </button>
                   )}
                   <div className="canvas-export-dropdown">
@@ -2239,9 +2723,8 @@ export default function AITutorPage({ currentUser, navigateTo, addLog, hideHeade
                       <HiDownload /> Xuất sơ đồ
                     </button>
                     <div className="canvas-export-menu">
-                      <button onClick={handleExportSvg}>Xuất file SVG ảnh</button>
-                      <button onClick={handleExportPng}>Xuất file PNG ảnh</button>
-                      <button onClick={handleExportJson}>Xuất file JSON</button>
+                      <button onClick={handleExportPng}>🖼️ Xuất file ảnh (PNG)</button>
+                      <button onClick={handleExportPdf}>📄 Xuất file PDF</button>
                     </div>
                   </div>
                 </>
@@ -2275,90 +2758,131 @@ export default function AITutorPage({ currentUser, navigateTo, addLog, hideHeade
             </div>
           </div>
 
-          {/* Interactive SVG Canvas or Outline view */}
-          {viewMode === 'outline' ? (
-            <div className="aitutor-outline-view animate-in">
-              <div className="outline-card">
-                <div style={{ fontSize: '15px', fontWeight: 'bold', marginBottom: '16px', color: 'var(--mm-gold)', borderBottom: '1px solid var(--mm-border-dark)', paddingBottom: '10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    📋 DÀN Ý KIẾN THỨC HỆ THỐNG HÓA
+          {previewingSharedId && (
+            <div style={{
+              background: 'linear-gradient(90deg, #1e293b, #3b82f6)',
+              borderBottom: '1.5px solid #FFD234',
+              color: '#ffffff',
+              padding: '10px 16px',
+              fontSize: '13px',
+              fontWeight: '600',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+              zIndex: 5
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '16px' }}>📢</span>
+                <span>Bạn đang xem thử sơ đồ tư duy của tác giả khác (Chế độ chỉ đọc). Nhập bản sao về thư viện cá nhân để chỉnh sửa tự do!</span>
+              </div>
+              <button
+                onClick={(e) => handleCloneShared(e, previewingSharedId)}
+                style={{
+                  background: '#FFD234',
+                  color: '#1e293b',
+                  border: 'none',
+                  borderRadius: '6px',
+                  padding: '6px 14px',
+                  fontSize: '12px',
+                  fontWeight: 'bold',
+                  cursor: 'pointer',
+                  boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}
+              >
+                📥 Nhập về thư viện
+              </button>
+            </div>
+          )}
+
+          {/* Interactive SVG Canvas & Outline views with smooth transition */}
+          <div style={{ position: 'relative', flex: 1, width: '100%', height: '100%', overflow: 'hidden' }}>
+            <div className={`aitutor-view-wrapper ${viewMode === 'outline' ? 'aitutor-view-wrapper--visible' : 'aitutor-view-wrapper--hidden'}`}>
+              <div className="aitutor-outline-view">
+                <div className="outline-card">
+                  <div style={{ fontSize: '15px', fontWeight: 'bold', marginBottom: '16px', color: 'var(--mm-gold)', borderBottom: '1px solid var(--mm-border-dark)', paddingBottom: '10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      📋 DÀN Ý KIẾN THỨC HỆ THỐNG HÓA
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button 
+                        onClick={handleExpandAllOutline}
+                        style={{ background: 'rgba(255, 210, 52, 0.12)', border: '1px solid rgba(255, 210, 52, 0.3)', color: 'var(--mm-gold)', borderRadius: '6px', padding: '4px 10px', fontSize: '11px', cursor: 'pointer', fontWeight: '700', transition: 'all 0.2s' }}
+                        title="Mở rộng toàn bộ các cấp độ dàn ý"
+                      >
+                        👐 Mở rộng hết
+                      </button>
+                      <button 
+                        onClick={handleCollapseAllOutline}
+                        style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', color: '#475569', borderRadius: '6px', padding: '4px 10px', fontSize: '11px', cursor: 'pointer', fontWeight: '700', transition: 'all 0.2s' }}
+                        title="Thu gọn các cấp độ nhánh con"
+                      >
+                        📁 Thu gọn hết
+                      </button>
+                    </div>
                   </div>
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <button 
-                      onClick={handleExpandAllOutline}
-                      style={{ background: 'rgba(255, 210, 52, 0.12)', border: '1px solid rgba(255, 210, 52, 0.3)', color: 'var(--mm-gold)', borderRadius: '6px', padding: '4px 10px', fontSize: '11px', cursor: 'pointer', fontWeight: '700', transition: 'all 0.2s' }}
-                      title="Mở rộng toàn bộ các cấp độ dàn ý"
-                    >
-                      👐 Mở rộng hết
-                    </button>
-                    <button 
-                      onClick={handleCollapseAllOutline}
-                      style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', color: '#475569', borderRadius: '6px', padding: '4px 10px', fontSize: '11px', cursor: 'pointer', fontWeight: '700', transition: 'all 0.2s' }}
-                      title="Thu gọn các cấp độ nhánh con"
-                    >
-                      📁 Thu gọn hết
-                    </button>
-                  </div>
+                  {mindmapData ? renderOutlineNode(mindmapData) : (
+                    <div style={{ textAlign: 'center', color: 'var(--mm-text-secondary)', fontSize: '13px', padding: '20px' }}>
+                      Nhập tài liệu ở cột trái để bắt đầu lập sơ đồ
+                    </div>
+                  )}
                 </div>
-                {mindmapData ? renderOutlineNode(mindmapData) : (
-                  <div style={{ textAlign: 'center', color: 'var(--mm-text-secondary)', fontSize: '13px', padding: '20px' }}>
-                    Nhập tài liệu ở cột trái để bắt đầu lập sơ đồ
+              </div>
+            </div>
+
+            <div className={`aitutor-view-wrapper ${viewMode === 'canvas' ? 'aitutor-view-wrapper--visible' : 'aitutor-view-wrapper--hidden'}`}>
+              <div 
+                className="aitutor-canvas-container"
+                onMouseDown={handleCanvasMouseDown}
+                onMouseMove={handleCanvasMouseMove}
+                onMouseUp={handleCanvasMouseUp}
+                onMouseLeave={handleCanvasMouseUp}
+                style={{ cursor: isDraggingCanvas ? 'grabbing' : 'grab', width: '100%', height: '100%' }}
+              >
+                {mindmapData ? (
+                  <svg 
+                    ref={svgRef}
+                    className="aitutor-svg"
+                    width="100%"
+                    height="100%"
+                  >
+                    <defs>
+                      <pattern id="grid" width="30" height="30" patternUnits="userSpaceOnUse">
+                        <path d="M 30 0 L 0 0 0 30" fill="none" stroke="#ffffff" strokeWidth="0.5" opacity="0.12" />
+                      </pattern>
+                    </defs>
+                    <rect width="100%" height="100%" fill="url(#grid)" data-canvas-bg="true" />
+
+                    <g transform={`translate(${pan.x}, ${pan.y}) scale(${zoom})`}>
+                      {renderedLinks}
+                      {renderedNodes}
+                    </g>
+                  </svg>
+                ) : (
+                  <div className="aitutor-canvas-empty">
+                    <p>Nhập tài liệu ở cột trái để bắt đầu lập sơ đồ tư duy</p>
+                  </div>
+                )}
+
+                {mindmapData && (
+                  <div className="aitutor-canvas-controls">
+                    <button className="control-btn" onClick={zoomIn} title="Phóng to (Scroll Up)">
+                      <HiPlus />
+                    </button>
+                    <button className="control-btn" onClick={zoomOut} title="Thu nhỏ (Scroll Down)">
+                      <HiMinus />
+                    </button>
+                    <button className="control-btn" onClick={resetZoom} title="Mặc định / Căn giữa">
+                      <HiRefresh /> Căn giữa
+                    </button>
                   </div>
                 )}
               </div>
             </div>
-          ) : (
-            <div 
-              className="aitutor-canvas-container"
-              onMouseDown={handleCanvasMouseDown}
-              onMouseMove={handleCanvasMouseMove}
-              onMouseUp={handleCanvasMouseUp}
-              onMouseLeave={handleCanvasMouseUp}
-              style={{ cursor: isDraggingCanvas ? 'grabbing' : 'grab' }}
-            >
-              {mindmapData ? (
-                <svg 
-                  ref={svgRef}
-                  className="aitutor-svg"
-                  width="100%"
-                  height="100%"
-                >
-                  {/* Background grid representation */}
-                  <defs>
-                    <pattern id="grid" width="30" height="30" patternUnits="userSpaceOnUse">
-                      <path d="M 30 0 L 0 0 0 30" fill="none" stroke="#ffffff" strokeWidth="0.5" opacity="0.12" />
-                    </pattern>
-                  </defs>
-                  <rect width="100%" height="100%" fill="url(#grid)" data-canvas-bg="true" />
-
-                  {/* Transform group with zoom/pan vector */}
-                  <g transform={`translate(${pan.x}, ${pan.y}) scale(${zoom})`}>
-                    {renderedLinks}
-                    {renderedNodes}
-                  </g>
-                </svg>
-              ) : (
-                <div className="aitutor-canvas-empty">
-                  <p>Nhập tài liệu ở cột trái để bắt đầu lập sơ đồ tư duy</p>
-                </div>
-              )}
-
-              {/* Floating Zoom & Tool Controls bar */}
-              {mindmapData && (
-                <div className="aitutor-canvas-controls">
-                  <button className="control-btn" onClick={zoomIn} title="Phóng to (Scroll Up)">
-                    <HiPlus />
-                  </button>
-                  <button className="control-btn" onClick={zoomOut} title="Thu nhỏ (Scroll Down)">
-                    <HiMinus />
-                  </button>
-                  <button className="control-btn" onClick={resetZoom} title="Mặc định / Căn giữa">
-                    <HiRefresh /> Căn giữa
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
+          </div>
         </main>
 
         {/* Right slide-in drawer details & AI mini-chat */}
@@ -2403,25 +2927,27 @@ export default function AITutorPage({ currentUser, navigateTo, addLog, hideHeade
                     }}>
                       {selectedNode.description || "Nút kiến thức này chưa có mô tả chi tiết."}
                     </div>
-                    <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
-                      <button 
-                        className="flashcard-header-btn" 
-                        onClick={() => setIsEditingNode(true)}
-                        style={{ background: 'rgba(255,255,255,0.1)', color: '#ffffff', border: '1px solid rgba(255,255,255,0.15)', padding: '6px 12px', fontSize: '11.5px', cursor: 'pointer', borderRadius: '8px', flex: 1, fontWeight: '700' }}
-                      >
-                        ✏️ Chỉnh sửa
-                      </button>
-                      {selectedNode.id !== '0' && (
+                    {!previewingSharedId && (
+                      <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
                         <button 
                           className="flashcard-header-btn" 
-                          onClick={handleDeleteNode}
-                          style={{ background: 'rgba(239,68,68,0.1)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.2)', padding: '6px 12px', fontSize: '11.5px', cursor: 'pointer', borderRadius: '8px', fontWeight: '700' }}
-                          title="Xóa nút này"
+                          onClick={() => setIsEditingNode(true)}
+                          style={{ background: 'rgba(255,255,255,0.1)', color: '#ffffff', border: '1px solid rgba(255,255,255,0.15)', padding: '6px 12px', fontSize: '11.5px', cursor: 'pointer', borderRadius: '8px', flex: 1, fontWeight: '700' }}
                         >
-                          🗑️ Xóa
+                          ✏️ Chỉnh sửa
                         </button>
-                      )}
-                    </div>
+                        {selectedNode.id !== '0' && (
+                          <button 
+                            className="flashcard-header-btn" 
+                            onClick={handleDeleteNode}
+                            style={{ background: 'rgba(239,68,68,0.1)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.2)', padding: '6px 12px', fontSize: '11.5px', cursor: 'pointer', borderRadius: '8px', fontWeight: '700' }}
+                            title="Xóa nút này"
+                          >
+                            🗑️ Xóa
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </div>
                 ) : (
                   // EDIT MODE
@@ -2540,34 +3066,36 @@ export default function AITutorPage({ currentUser, navigateTo, addLog, hideHeade
 
 
               {/* Add Child Node Form */}
-              <div className="drawer-section" style={{ borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '16px', marginBottom: '16px' }}>
-                <h4 className="drawer-chat-title" style={{ marginBottom: '10px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  ➕ Thêm ý con nhanh
-                </h4>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <input 
-                    type="text"
-                    className="flashcard-modal-input"
-                    style={{ flex: 1, background: '#141410', fontSize: '12.5px', padding: '8px 12px', height: '38px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.1)', boxSizing: 'border-box', color: '#ffffff' }}
-                    placeholder="Thêm ý con nhanh..."
-                    value={newChildName}
-                    onChange={(e) => setNewChildName(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && newChildName.trim()) {
-                        handleAddChildNode();
-                      }
-                    }}
-                  />
-                  <button 
-                    className="aitutor-action-btn"
-                    style={{ width: '38px', height: '38px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '10px', background: 'var(--mm-gold)', border: 'none', cursor: 'pointer' }}
-                    onClick={handleAddChildNode}
-                    disabled={!newChildName.trim()}
-                  >
-                    <HiPlus style={{ fontSize: '18px', color: '#12120e' }} />
-                  </button>
+              {!previewingSharedId && (
+                <div className="drawer-section" style={{ borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '16px', marginBottom: '16px' }}>
+                  <h4 className="drawer-chat-title" style={{ marginBottom: '10px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    ➕ Thêm ý con nhanh
+                  </h4>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <input 
+                      type="text"
+                      className="flashcard-modal-input"
+                      style={{ flex: 1, background: '#141410', fontSize: '12.5px', padding: '8px 12px', height: '38px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.1)', boxSizing: 'border-box', color: '#ffffff' }}
+                      placeholder="Thêm ý con nhanh..."
+                      value={newChildName}
+                      onChange={(e) => setNewChildName(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && newChildName.trim()) {
+                          handleAddChildNode();
+                        }
+                      }}
+                    />
+                    <button 
+                      className="aitutor-action-btn"
+                      style={{ width: '38px', height: '38px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '10px', background: 'var(--mm-gold)', border: 'none', cursor: 'pointer' }}
+                      onClick={handleAddChildNode}
+                      disabled={!newChildName.trim()}
+                    >
+                      <HiPlus style={{ fontSize: '18px', color: '#12120e' }} />
+                    </button>
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Contextual Q&A Section */}
               <div className="drawer-section drawer-chat-container">
@@ -2986,43 +3514,357 @@ export default function AITutorPage({ currentUser, navigateTo, addLog, hideHeade
       {/* Usage Instruction Help Modal */}
       {showHelpModal && (
         <div className="aitutor-modal-overlay" onClick={() => setShowHelpModal(false)}>
-          <div className="aitutor-modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="aitutor-modal-header">
-              <h3>💡 Hướng dẫn sử dụng Sơ đồ Tư duy AI</h3>
-              <button className="aitutor-modal-close" onClick={() => setShowHelpModal(false)}>×</button>
+          <div className="aitutor-modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '520px', background: '#FFFFFF', borderRadius: '18px', overflow: 'hidden' }}>
+            <div className="aitutor-modal-header" style={{ padding: '16px 20px', background: 'linear-gradient(135deg, #2563EB, #4F46E5)', color: '#FFFFFF' }}>
+              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '8px', color: '#FFFFFF' }}>
+                <span>💡</span> HƯỚNG DẪN SỬ DỤNG SƠ ĐỒ TƯ DUY AI
+              </h3>
+              <button className="aitutor-modal-close" onClick={() => setShowHelpModal(false)} style={{ color: '#FFFFFF', fontSize: '24px', background: 'none', border: 'none', cursor: 'pointer' }}>×</button>
             </div>
-            <div className="aitutor-modal-body">
-              <div className="help-section">
-                <h4>🚀 Khởi tạo Sơ đồ</h4>
-                <ul>
-                  <li>✍️ **Tạo bằng AI**: Nhập chủ đề hoặc đề tài vào ô trống ở cột trái và nhấn **Tạo sơ đồ**.</li>
-                  <li>📄 **Tạo từ Tài liệu**: Tải lên tập tin PDF hoặc hình ảnh đề bài để AI tự động phân tích và lập sơ đồ.</li>
-                  <li>🆕 **Tạo thủ công**: Nhấn **Tạo sơ đồ trống mới** để tự tay thiết kế sơ đồ của riêng bạn.</li>
-                </ul>
+            <div className="aitutor-modal-body" style={{ padding: '20px 24px', color: '#1E293B', fontSize: '13.5px', lineHeight: '1.6' }}>
+              <div style={{ marginBottom: '14px' }}>
+                <h4 style={{ margin: '0 0 6px 0', color: '#2563EB', fontSize: '14px', fontWeight: '800' }}>🚀 1. Tạo sơ đồ tư duy</h4>
+                <p style={{ margin: 0, color: '#334155' }}>
+                  • <b>Tạo bằng AI:</b> Nhập tên chủ đề hoặc dán văn bản bài học ở cột trái rồi bấm <i>"Tạo sơ đồ"</i>.<br/>
+                  • <b>Tạo từ tài liệu:</b> Kéo thả file PDF/Ảnh ở cột trái để AI tự động trích xuất.<br/>
+                  • <b>Tạo thủ công:</b> Bấm <i>"Tạo sơ đồ trống mới"</i> để tự vẽ theo ý muốn.
+                </p>
               </div>
 
-              <div className="help-section">
-                <h4>🖱️ Thao tác trên Bản đồ</h4>
-                <ul>
-                  <li>👈 **Chọn nút**: Click chuột trái vào nút bất kỳ để xem chi tiết hoặc chỉnh sửa ở cột phải.</li>
-                  <li>➕ **Thêm nhanh**: Di chuột vào nút và click nút **(+)** để tạo ngay nút con mới.</li>
-                  <li>🔄 **Di chuyển Canvas**: Nhấp giữ chuột vào khoảng trống và kéo để di chuyển vùng làm việc.</li>
-                  <li>🔍 **Phóng to/Thu nhỏ**: Sử dụng con lăn chuột hoặc bộ điều khiển góc dưới để zoom sơ đồ.</li>
-                </ul>
+              <div style={{ marginBottom: '14px' }}>
+                <h4 style={{ margin: '0 0 6px 0', color: '#2563EB', fontSize: '14px', fontWeight: '800' }}>🖱️ 2. Thao tác trên sơ đồ</h4>
+                <p style={{ margin: 0, color: '#334155' }}>
+                  • <b>Click chọn nút:</b> Xem chi tiết, sửa nội dung hoặc hỏi AI ở cột bên phải.<br/>
+                  • <b>Kéo rê canvas:</b> Nhấp giữ chuột vào khoảng trống để di chuyển sơ đồ.<br/>
+                  • <b>Phóng to/Thu nhỏ:</b> Dùng con lăn chuột hoặc nút zoom góc dưới.
+                </p>
               </div>
 
-              <div className="help-section">
-                <h4>💾 Lưu trữ & Chia sẻ</h4>
-                <ul>
-                  <li>📁 **Tự động lưu**: Tất cả thay đổi được tự động sao lưu vào **Thư viện của tôi**.</li>
-                  <li>📤 **Xuất file**: Bạn có thể xuất sơ đồ sang định dạng ảnh PNG, SVG hoặc JSON chất lượng cao.</li>
-                  <li>📋 **Chế độ Dàn ý**: Nhấp **📋 Dàn ý** ở trên thanh công cụ để xem dưới dạng danh sách bài học văn bản gọn gàng.</li>
-                </ul>
+              <div>
+                <h4 style={{ margin: '0 0 6px 0', color: '#2563EB', fontSize: '14px', fontWeight: '800' }}>📥 3. Lưu trữ & Xuất file</h4>
+                <p style={{ margin: 0, color: '#334155' }}>
+                  • <b>Lưu tự động:</b> Sơ đồ được lưu vào tab <i>"Thư viện của tôi"</i>.<br/>
+                  • <b>Xuất file:</b> Nhấp nút <i>"Xuất sơ đồ"</i> góc phải để tải file <b>PNG (Ảnh)</b> hoặc <b>PDF</b>.
+                </p>
               </div>
             </div>
-            <div className="aitutor-modal-footer">
-              <button className="aitutor-modal-btn-confirm" onClick={() => setShowHelpModal(false)}>Đã hiểu!</button>
+            <div className="aitutor-modal-footer" style={{ borderTop: '1px solid #E2E8F0', padding: '14px 24px', display: 'flex', justifyContent: 'flex-end' }}>
+              <button
+                className="aitutor-modal-btn-confirm"
+                onClick={() => setShowHelpModal(false)}
+                style={{ padding: '8px 24px', borderRadius: '8px', background: '#2563EB', color: '#FFFFFF', border: 'none', cursor: 'pointer', fontWeight: '800', fontSize: '13.5px' }}
+              >
+                Đã hiểu!
+              </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Create Blank Mindmap Modal Popup */}
+      {showBlankModal && (
+        <div className="aitutor-modal-overlay" onClick={() => setShowBlankModal(false)}>
+          <div className="aitutor-modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '540px', background: '#FFFFFF', borderRadius: '18px', overflow: 'hidden' }}>
+            <div className="aitutor-modal-header" style={{ padding: '16px 20px', background: 'linear-gradient(135deg, #E28743, #D97706)', color: '#FFFFFF' }}>
+              <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#FFFFFF', fontSize: '17px', fontWeight: '800', margin: 0 }}>
+                <span>✨</span> TẠO SƠ ĐỒ TƯ DUY TRỐNG MỚI
+              </h3>
+              <button className="aitutor-modal-close" onClick={() => setShowBlankModal(false)} style={{ color: '#FFFFFF', fontSize: '24px', background: 'none', border: 'none', cursor: 'pointer' }}>×</button>
+            </div>
+            
+            <form onSubmit={handleConfirmCreateBlank} style={{ padding: '20px 24px' }}>
+              <div className="aitutor-modal-body" style={{ padding: 0 }}>
+                <div style={{ marginBottom: '18px' }}>
+                  <label style={{ display: 'block', fontSize: '13.5px', fontWeight: '800', color: '#000000', marginBottom: '6px' }}>
+                    Tên chủ đề / Tên sơ đồ tư duy: <span style={{ color: '#DC2626' }}>*</span>
+                  </label>
+                  <input
+                    type="text"
+                    className="aitutor-input"
+                    value={blankModalTitle}
+                    onChange={(e) => setBlankModalTitle(e.target.value)}
+                    placeholder="Ví dụ: Ôn tập Đại số THPTQG, Từ vựng Tiếng Anh..."
+                    required
+                    style={{
+                      width: '100%',
+                      padding: '12px 14px',
+                      borderRadius: '10px',
+                      background: '#F8FAFC',
+                      border: '2px solid #CBD5E1',
+                      color: '#000000',
+                      fontSize: '14px',
+                      fontWeight: '700',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
+
+                <div style={{ marginBottom: '18px' }}>
+                  <label style={{ display: 'block', fontSize: '13.5px', fontWeight: '800', color: '#000000', marginBottom: '6px' }}>
+                    Môn học:
+                  </label>
+                  <select
+                    className="aitutor-input"
+                    value={blankModalSubject}
+                    onChange={(e) => setBlankModalSubject(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '12px 14px',
+                      borderRadius: '10px',
+                      background: '#F8FAFC',
+                      border: '2px solid #CBD5E1',
+                      color: '#000000',
+                      fontSize: '14px',
+                      fontWeight: '700',
+                      boxSizing: 'border-box'
+                    }}
+                  >
+                    <option value="Toán">Toán Học</option>
+                    <option value="Vật lý">Vật Lý</option>
+                    <option value="Hóa học">Hóa Học</option>
+                    <option value="Sinh học">Sinh Học</option>
+                    <option value="Tiếng Anh">Tiếng Anh</option>
+                    <option value="Ngữ văn">Ngữ Văn</option>
+                    <option value="Lịch sử">Lịch Sử</option>
+                    <option value="Địa lý">Địa Lý</option>
+                    <option value="Khác">Khác</option>
+                  </select>
+                </div>
+
+                <div style={{ marginBottom: '14px' }}>
+                  <label style={{ display: 'block', fontSize: '13.5px', fontWeight: '800', color: '#000000', marginBottom: '6px' }}>
+                    Mô tả / Yêu cầu ghi chú (Tùy chọn):
+                  </label>
+                  <textarea
+                    rows={3}
+                    className="aitutor-input"
+                    value={blankModalDesc}
+                    onChange={(e) => setBlankModalDesc(e.target.value)}
+                    placeholder="Ghi chú mục tiêu học tập hoặc danh sách bài học..."
+                    style={{
+                      width: '100%',
+                      padding: '12px 14px',
+                      borderRadius: '10px',
+                      background: '#F8FAFC',
+                      border: '2px solid #CBD5E1',
+                      color: '#000000',
+                      fontSize: '13.5px',
+                      fontWeight: '600',
+                      resize: 'vertical',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div className="aitutor-modal-footer" style={{ borderTop: '1px solid #E2E8F0', paddingTop: '16px', marginTop: '16px', display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowBlankModal(false)}
+                  style={{
+                    padding: '10px 22px',
+                    borderRadius: '10px',
+                    background: '#E2E8F0',
+                    color: '#000000',
+                    border: '1.5px solid #CBD5E1',
+                    cursor: 'pointer',
+                    fontWeight: '800',
+                    fontSize: '14px'
+                  }}
+                >
+                  Hủy
+                </button>
+                <button
+                  type="submit"
+                  className="aitutor-modal-btn-confirm"
+                  style={{
+                    padding: '10px 24px',
+                    borderRadius: '10px',
+                    background: 'linear-gradient(135deg, #2563EB, #4F46E5)',
+                    color: '#FFFFFF',
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontWeight: '800',
+                    fontSize: '14px',
+                    boxShadow: '0 4px 14px rgba(37,99,235,0.35)'
+                  }}
+                >
+                  🚀 Bắt đầu thiết kế sơ đồ
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Mindmap Confirmation Modal Popup */}
+      {deleteTargetId !== null && (
+        <div className="aitutor-modal-overlay" onClick={() => setDeleteTargetId(null)}>
+          <div className="aitutor-modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '440px', background: '#FFFFFF', borderRadius: '18px', overflow: 'hidden' }}>
+            <div className="aitutor-modal-header" style={{ padding: '16px 20px', background: 'linear-gradient(135deg, #DC2626, #EF4444)', color: '#FFFFFF' }}>
+              <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#FFFFFF', fontSize: '16.5px', fontWeight: '800', margin: 0 }}>
+                <span>🗑️</span> XÁC NHẬN XÓA SƠ ĐỒ
+              </h3>
+              <button className="aitutor-modal-close" onClick={() => setDeleteTargetId(null)} style={{ color: '#FFFFFF', fontSize: '24px', background: 'none', border: 'none', cursor: 'pointer' }}>×</button>
+            </div>
+            
+            <div className="aitutor-modal-body" style={{ padding: '24px 20px', textAlign: 'center' }}>
+              <div style={{ fontSize: '42px', marginBottom: '12px' }}>⚠️</div>
+              <p style={{ margin: '0 0 8px 0', fontSize: '15px', fontWeight: '800', color: '#0F172A' }}>
+                Bạn có chắc chắn muốn xóa sơ đồ tư duy này?
+              </p>
+              <p style={{ margin: 0, fontSize: '13px', color: '#64748B', lineHeight: '1.5' }}>
+                Hành động này sẽ xóa vĩnh viễn sơ đồ tư duy khỏi Thư viện của bạn và không thể phục hồi.
+              </p>
+            </div>
+
+            <div className="aitutor-modal-footer" style={{ borderTop: '1px solid #E2E8F0', padding: '14px 20px', display: 'flex', gap: '12px', justifyContent: 'flex-end', background: '#F8FAFC' }}>
+              <button
+                type="button"
+                onClick={() => setDeleteTargetId(null)}
+                style={{
+                  padding: '9px 20px',
+                  borderRadius: '10px',
+                  background: '#E2E8F0',
+                  color: '#0F172A',
+                  border: '1.5px solid #CBD5E1',
+                  cursor: 'pointer',
+                  fontWeight: '800',
+                  fontSize: '13.5px'
+                }}
+              >
+                Hủy bỏ
+              </button>
+              <button
+                type="button"
+                onClick={confirmDeleteMindmap}
+                style={{
+                  padding: '9px 22px',
+                  borderRadius: '10px',
+                  background: 'linear-gradient(135deg, #DC2626, #B91C1C)',
+                  color: '#FFFFFF',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontWeight: '800',
+                  fontSize: '13.5px',
+                  boxShadow: '0 4px 14px rgba(220,38,38,0.35)'
+                }}
+              >
+                🗑️ Đồng ý xóa
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Share Mindmap Modal Popup */}
+      {isShareModalOpen && (
+        <div className="aitutor-modal-overlay" onClick={() => setIsShareModalOpen(false)}>
+          <div className="aitutor-modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '480px', background: '#FFFFFF', borderRadius: '18px', overflow: 'hidden' }}>
+            <div className="aitutor-modal-header" style={{ padding: '16px 20px', background: 'linear-gradient(135deg, #3B82F6, #1D4ED8)', color: '#FFFFFF' }}>
+              <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#FFFFFF', fontSize: '17px', fontWeight: '800', margin: 0 }}>
+                <span>🌐</span> CHIA SẺ SƠ ĐỒ LÊN DIỄN ĐÀN
+              </h3>
+              <button className="aitutor-modal-close" onClick={() => setIsShareModalOpen(false)} style={{ color: '#FFFFFF', fontSize: '24px', background: 'none', border: 'none', cursor: 'pointer' }}>×</button>
+            </div>
+            
+            <form onSubmit={handleConfirmShare} style={{ padding: '20px 24px' }}>
+              <div className="aitutor-modal-body" style={{ padding: 0 }}>
+                <div style={{ marginBottom: '18px' }}>
+                  <label style={{ display: 'block', fontSize: '13.5px', fontWeight: '800', color: '#000000', marginBottom: '6px' }}>
+                    Môn học phân loại: <span style={{ color: '#DC2626' }}>*</span>
+                  </label>
+                  <select
+                    className="aitutor-input"
+                    value={shareSubject}
+                    onChange={(e) => setShareSubject(e.target.value)}
+                    required
+                    style={{
+                      width: '100%',
+                      padding: '12px 14px',
+                      borderRadius: '10px',
+                      background: '#F8FAFC',
+                      border: '2px solid #CBD5E1',
+                      color: '#000000',
+                      fontSize: '14px',
+                      fontWeight: '700',
+                      boxSizing: 'border-box',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <option value="Toán">Toán học</option>
+                    <option value="Vật lý">Vật lý</option>
+                    <option value="Hóa học">Hóa học</option>
+                    <option value="Sinh học">Sinh học</option>
+                    <option value="Tiếng Anh">Tiếng Anh</option>
+                    <option value="Ngữ văn">Ngữ văn</option>
+                    <option value="Lịch sử">Lịch sử</option>
+                    <option value="Địa lý">Địa lý</option>
+                    <option value="GDCD">GDCD</option>
+                  </select>
+                </div>
+
+                <div style={{ marginBottom: '18px' }}>
+                  <label style={{ display: 'block', fontSize: '13.5px', fontWeight: '800', color: '#000000', marginBottom: '6px' }}>
+                    Lời nhắn / Mô tả sơ đồ (để giới thiệu cho mọi người):
+                  </label>
+                  <textarea
+                    className="aitutor-input"
+                    value={shareDesc}
+                    onChange={(e) => setShareDesc(e.target.value)}
+                    placeholder="Ví dụ: Tổng hợp toàn bộ công thức Hàm số lớp 12 dễ nhớ nhất, tài liệu tự ôn tập..."
+                    rows={4}
+                    style={{
+                      width: '100%',
+                      padding: '12px 14px',
+                      borderRadius: '10px',
+                      background: '#F8FAFC',
+                      border: '2px solid #CBD5E1',
+                      color: '#000000',
+                      fontSize: '13.5px',
+                      fontWeight: '600',
+                      resize: 'vertical',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div className="aitutor-modal-footer" style={{ borderTop: '1px solid #E2E8F0', paddingTop: '16px', marginTop: '16px', display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+                <button
+                  type="button"
+                  onClick={() => setIsShareModalOpen(false)}
+                  style={{
+                    padding: '10px 22px',
+                    borderRadius: '10px',
+                    background: '#E2E8F0',
+                    color: '#000000',
+                    border: '1.5px solid #CBD5E1',
+                    cursor: 'pointer',
+                    fontWeight: '800',
+                    fontSize: '14px'
+                  }}
+                >
+                  Hủy
+                </button>
+                <button
+                  type="submit"
+                  style={{
+                    padding: '10px 24px',
+                    borderRadius: '10px',
+                    background: 'linear-gradient(135deg, #3B82F6, #1D4ED8)',
+                    color: '#FFFFFF',
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontWeight: '800',
+                    fontSize: '14px',
+                    boxShadow: '0 4px 14px rgba(59,130,246,0.35)'
+                  }}
+                >
+                  🌐 Chia sẻ ngay
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

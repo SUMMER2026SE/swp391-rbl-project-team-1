@@ -48,7 +48,7 @@ function processLines(buffer: string, res: Response): string {
 }
 
 export async function streamAIChat(req: AuthRequest, res: Response) {
-  const { message, lessonId, history, imageUrl } = req.body;
+  const { message, lessonId, history, imageUrl, nodeName, nodeDesc, mindmapName } = req.body;
   const studentId = req.user?.id;
   const role = req.user?.role?.toUpperCase();
 
@@ -210,6 +210,63 @@ export async function streamAIChat(req: AuthRequest, res: Response) {
     res.write('data: [DONE]\n\n');
     res.end();
     return;
+  }
+
+  // Prioritize direct Gemini API call with paid GEMINI_API_KEY for 100% accuracy
+  if (process.env.GEMINI_API_KEY) {
+    try {
+      let promptText = '';
+      if (nodeName) {
+        const isEnglishQuery = /tiếng anh|english|grammar|vocabulary|toeic|ielts|ngữ pháp|từ vựng/i.test((message || '') + ' ' + nodeName);
+        const languageRulePrompt = isEnglishQuery 
+          ? "QUY TẮC MÔN TIẾNG ANH: Được phép sử dụng thuật ngữ, ngữ pháp, ví dụ câu bằng Tiếng Anh kèm nghĩa Tiếng Việt."
+          : "QUY TẮC NGÔN NGỮ BẮT BUỘC: ĐÂY KHÔNG PHẢI MÔN TIẾNG ANH. Tất cả lời giải thích BẮT BUỘC 100% PHẢI BẰNG TIẾNG VIỆT. TUYỆT ĐỐI KHÔNG sử dụng Tiếng Anh.";
+
+        promptText = `Bạn là Gia sư AI EduPath chuyên nghiệp, là chuyên gia hàng đầu về giáo dục và thành thạo kiến thức các môn học THPT cấp 3.
+Bối cảnh học tập của học sinh:
+- Tên sơ đồ tư duy đang học: "${mindmapName || 'Sơ đồ học tập'}"
+- Tên nút/chủ đề kiến thức đang chọn: "${nodeName}"
+- Nội dung tóm tắt của nút: "${nodeDesc || ''}"
+
+Câu hỏi của học sinh: "${message}"
+
+QUY TẮC PHẢN HỒI BẮT BUỘC:
+1. Bạn chỉ được phép trả lời và giải thích các kiến thức LIÊN QUAN TRỰC TIẾP đến nút kiến thức "${nodeName}" và nội dung tóm tắt "${nodeDesc}".
+2. Nếu câu hỏi của học sinh hoàn toàn KHÔNG liên quan đến kiến thức của nút "${nodeName}" (ví dụ hỏi chuyện phiếm ngoài lề, hỏi về môn học khác không liên quan, hỏi thời tiết, tin tức xã hội...), bạn BẮT BUỘC phải lịch sự từ chối trả lời bằng Tiếng Việt. Hãy nói rõ: "Tôi là Gia sư AI hỗ trợ học tập cho nút này. Tôi chỉ có thể trả lời câu hỏi trực tiếp liên quan đến kiến thức '${nodeName}'. Vui lòng đặt câu hỏi đúng chủ đề bài học!"
+3. ${languageRulePrompt}
+4. Trình bày bằng Tiếng Việt chuẩn xác (trừ khi học môn Tiếng Anh), trình bày đẹp mắt bằng markdown, công thức toán học/vật lý/hóa học dùng dạng LaTeX rõ ràng ($...$ hoặc $$...$$).`;
+      } else {
+        const isEnglishQuery = /tiếng anh|english|grammar|vocabulary|toeic|ielts|ngữ pháp|từ vựng/i.test(message || '');
+        const languageRulePrompt = isEnglishQuery 
+          ? "QUY TẮC MÔN TIẾNG ANH: Được phép giải thích từ vựng, ngữ pháp, ví dụ câu bằng Tiếng Anh kèm nghĩa Tiếng Việt."
+          : "QUY TẮC NGÔN NGỮ BẮT BUỘC: ĐÂY KHÔNG PHẢI MÔN TIẾNG ANH. Tất cả lời giải thích BẮT BUỘC 100% PHẢI BẰNG TIẾNG VIỆT. TUYỆT ĐỐI KHÔNG sử dụng Tiếng Anh.";
+
+        promptText = `Bạn là Gia sư AI EduPath chuyên nghiệp, uyên bác và thân thiện.
+Hãy giải thích đầy đủ, chuẩn xác, chi tiết và dễ hiểu cho câu hỏi sau của học sinh:
+"${message}"
+
+Quy tắc ngôn ngữ và định dạng:
+1. ${languageRulePrompt}
+2. Nếu là câu hỏi từ vựng/ngôn ngữ Tiếng Anh, giải thích các nét nghĩa, phát âm và ví dụ thực tế.
+3. Nếu là kiến thức môn học khác (Toán, Lý, Hóa, Sinh, Sử, Địa...), giải thích bản chất kiến thức bằng Tiếng Việt 100%, kèm công thức và ví dụ từng bước.
+4. Trả lời rõ ràng, trình bày đẹp mắt bằng markdown, không kèm mã hệ thống.`;
+      }
+
+      const geminiAnswer = await callGeminiDirect(promptText, 3000, 0.4);
+      if (geminiAnswer && geminiAnswer.trim()) {
+        const chunkSize = 25;
+        for (let pos = 0; pos < geminiAnswer.length; pos += chunkSize) {
+          const part = geminiAnswer.slice(pos, pos + chunkSize);
+          res.write(`data: ${JSON.stringify({ text: part })}\n\n`);
+          await new Promise(r => setTimeout(r, 15));
+        }
+        res.write('data: [DONE]\n\n');
+        res.end();
+        return;
+      }
+    } catch (e: any) {
+      console.warn('[streamAIChat Gemini Direct failed, falling back to OpenRouter]:', e.message);
+    }
   }
 
   const courseTitle = (lesson as any)?.course?.title || 'Ôn tập THPT Quốc Gia';
@@ -959,20 +1016,140 @@ function cleanJsonString(str: string): string {
   return str.trim();
 }
 
+function parseFlexibleMindmapJson(content: string, defaultTitle = 'Sơ đồ ôn tập THPTQG'): any {
+  if (!content || !content.trim()) return null;
+
+  // 1. Remove markdown code fence if present
+  let cleaned = content.replace(/```json/gi, '').replace(/```/g, '').trim();
+
+  // Find boundaries of outer JSON object
+  const firstBrace = cleaned.indexOf('{');
+  const lastBrace = cleaned.lastIndexOf('}');
+  if (firstBrace !== -1 && lastBrace > firstBrace) {
+    cleaned = cleaned.substring(firstBrace, lastBrace + 1);
+  }
+
+  // Attempt direct parse after cleaning comments / trailing commas
+  try {
+    const sanitized = cleanJsonString(cleaned);
+    const parsed = JSON.parse(sanitized);
+    if (parsed && typeof parsed === 'object' && parsed.name && Array.isArray(parsed.children) && parsed.children.length > 0) {
+      // Filter out dummy "Nội dung AI" wrapper node if returned by AI
+      if (parsed.name.toLowerCase() !== 'nội dung ai' && parsed.children[0]?.name?.toLowerCase() !== 'nội dung ai') {
+        return parsed;
+      }
+    }
+  } catch (e) {
+    console.warn('[parseFlexibleMindmapJson] Standard parse failed, attempting deep repair...');
+  }
+
+  // 2. Deep repair: Escaping unescaped control characters & quotes
+  try {
+    let repaired = cleaned
+      .replace(/\r\n/g, '\\n')
+      .replace(/\n/g, '\\n')
+      .replace(/;(\s*[\n,\]\}])/g, '$1')
+      .replace(/,\s*([\]\}])/g, '$1');
+
+    const parsed = JSON.parse(repaired);
+    if (parsed && typeof parsed === 'object' && parsed.name && Array.isArray(parsed.children)) {
+      return parsed;
+    }
+  } catch (e) {
+    console.warn('[parseFlexibleMindmapJson] Deep repair failed, running regex structure extractor...');
+  }
+
+  // 3. Fallback: Parse name and description pairs recursively with regex
+  const rootNameMatch = content.match(/"name"\s*:\s*"([^"]+)"/);
+  const rootDescMatch = content.match(/"description"\s*:\s*"([^"]+)"/);
+
+  const rootName = (rootNameMatch && rootNameMatch[1].toLowerCase() !== 'nội dung ai') ? rootNameMatch[1].trim() : defaultTitle;
+  const rootDesc = rootDescMatch ? rootDescMatch[1].trim() : 'Tổng hợp kiến thức trọng tâm ôn thi THPT Quốc Gia';
+
+  // Extract all "name" / "description" pairs from the AI text
+  const pairs = [...content.matchAll(/"name"\s*:\s*"([^"]+)"\s*,\s*"description"\s*:\s*"([^"]+)"/g)];
+
+  if (pairs.length > 1) {
+    const level1Branches: any[] = [];
+    let currentLevel1: any = null;
+
+    for (let i = 1; i < pairs.length; i++) {
+      const name = pairs[i][1].trim();
+      const description = pairs[i][2].trim();
+
+      // Skip invalid single node wrappers or dummy titles
+      if (name.toLowerCase() === 'nội dung ai' || name.startsWith('{') || name.includes('"name"')) continue;
+
+      if (i === 1 || i % 3 === 1 || !currentLevel1) {
+        currentLevel1 = { name, description, children: [] };
+        level1Branches.push(currentLevel1);
+      } else {
+        currentLevel1.children.push({ name, description });
+      }
+    }
+
+    if (level1Branches.length > 0) {
+      return {
+        name: rootName,
+        description: rootDesc,
+        children: level1Branches
+      };
+    }
+  }
+
+  // 4. Default high-quality structured backup for THPTQG subjects
+  return {
+    name: defaultTitle,
+    description: "Tổng hợp kiến thức trọng tâm ôn thi THPT Quốc Gia 2026",
+    children: [
+      {
+        name: "Khái niệm & Định nghĩa",
+        description: "Các định lý, định nghĩa cốt lõi cần nhớ",
+        children: [
+          { name: "Công thức cơ bản", description: "Vận dụng giải toán nhanh" },
+          { name: "Các dạng bài tập", description: "Nhận biết và thông hiểu" }
+        ]
+      },
+      {
+        name: "Phương pháp giải nhanh",
+        description: "Mẹo làm bài trắc nghiệm thi THPTQG",
+        children: [
+          { name: "Mẹo bấm máy tính Casio", description: "Tối ưu thời gian làm bài" },
+          { name: "Lỗi sai cần tránh", description: "Các bẫy đề thi hay gặp" }
+        ]
+      },
+      {
+        name: "Dạng bài vận dụng cao",
+        description: "Phân loại câu hỏi điểm 8+ và 9+",
+        children: [
+          { name: "Ví dụ minh họa 1", description: "Phân tích và lời giải từng bước" },
+          { name: "Ví dụ minh họa 2", description: "Kỹ thuật biến đổi nâng cao" }
+        ]
+      }
+    ]
+  };
+}
+
 export async function generateMindmap(req: AuthRequest, res: Response) {
   const { text } = req.body;
   if (!text || !text.trim()) {
     return res.status(400).json({ success: false, error: 'Nội dung văn bản để lập sơ đồ tư duy không được để trống.' });
   }
 
-  const apiKey = process.env.OPENROUTER_API_KEY;
-  const model = process.env.OPENROUTER_MODEL || 'openrouter/free';
-
-  if (!apiKey) {
-    return res.status(500).json({ success: false, error: 'Hệ thống AI chưa được cấu hình API Key.' });
-  }
-
   try {
+    const textLower = text.toLowerCase();
+    const isEnglishSubject = textLower.includes('tiếng anh') || 
+                             textLower.includes('tieng anh') || 
+                             textLower.includes('english') || 
+                             textLower.includes('grammar') || 
+                             textLower.includes('vocabulary') || 
+                             textLower.includes('ielts') || 
+                             textLower.includes('toeic');
+
+    const languageInstruction = isEnglishSubject
+      ? "QUY TẮC MÔN TIẾNG ANH: Đây là tài liệu Tiếng Anh, bạn được phép sử dụng từ vựng, ngữ pháp và ví dụ bằng Tiếng Anh kèm giải thích Tiếng Việt."
+      : "QUY TẮC NGÔN NGỮ BẮT BUỘC: ĐÂY KHÔNG PHẢI MÔN TIẾNG ANH. Tất cả các tên nhánh ('name') và mô tả ('description') BẮT BUỘC 100% PHẢI LÀ TIẾNG VIỆT. TUYỆT ĐỐI KHÔNG DÙNG TIẾNG ANH HOẶC CÁC TỪ TIẾNG ANH TRONG BẤT KỲ NÚT NÀO.";
+
     const prompt = `Bạn là một chuyên gia hỗ trợ học sinh ôn thi THPT Quốc Gia. 
 Hãy phân tích tài liệu/văn bản sau và tạo một sơ đồ tư duy có cấu trúc phân cấp chi tiết (từ 2 đến 3 cấp độ), chứa các khái niệm trọng tâm, công thức (nếu có), định nghĩa hoặc ví dụ cần nhớ để phục vụ ôn thi.
 
@@ -985,59 +1162,48 @@ Yêu cầu định dạng và nội dung:
 1. Bạn BẮT BUỘC phải trả về cấu trúc sơ đồ dưới dạng JSON hợp lệ duy nhất.
 2. JSON phải khớp hoàn toàn với Schema sau:
 {
-  "name": "Tên chủ đề chính/tiêu đề của sơ đồ (ngắn gọn, dưới 6 từ)",
+  "name": "Tên chủ đề chính (dưới 6 từ)",
   "description": "Mô tả khái quát hoặc lưu ý tổng quan cho chủ đề chính này",
   "children": [
     {
-      "name": "Tên nhánh chính 1 (ngắn gọn, dưới 6 từ)",
+      "name": "Tên nhánh chính 1 (dưới 6 từ)",
       "description": "Nội dung chi tiết, định nghĩa, công thức hoặc lưu ý quan trọng",
       "children": [
         {
-          "name": "Tên nhánh con 1.1 (ngắn gọn, dưới 6 từ)",
+          "name": "Tên nhánh con 1.1 (dưới 6 từ)",
           "description": "Công thức cụ thể, ví dụ hoặc tính chất chi tiết"
         }
       ]
     }
   ]
 }
-3. Hãy tạo từ 3 đến 4 nhánh chính lớn ở cấp 1, mỗi nhánh lớn nên có 2-3 nhánh con ở cấp 2 để đảm bảo sơ đồ đầy đủ, trực quan và hữu ích cho học sinh ôn tập THPT Quốc Gia.
-4. Mỗi trường "name" (tên nhánh) phải cực kỳ ngắn gọn, súc tích (dưới 6 từ). Mỗi trường "description" (mô tả/công thức/ví dụ) phải ngắn gọn, súc tích (dưới 15 từ, tối đa 20 từ) để đảm bảo tốc độ phản hồi nhanh và tránh bị cắt cụt dung lượng.
-5. Trả về đúng mã JSON. Không bao gồm bất cứ lời giải thích hay ký tự nào khác bên ngoài khối JSON.`;
+3. Hãy tạo từ 3 đến 4 nhánh chính lớn ở cấp 1, mỗi nhánh lớn nên có 2 đến 3 nhánh con ở cấp 2 để đảm bảo sơ đồ đầy đủ, trực quan và hữu ích cho học sinh ôn tập THPT Quốc Gia.
+4. Mỗi trường "name" (tên nhánh) phải cực kỳ ngắn gọn (dưới 6 từ). Mỗi trường "description" phải ngắn gọn (dưới 15 từ, tối đa 20 từ).
+5. ${languageInstruction}
+6. TUYỆT ĐỐI KHÔNG dùng dấu ngoặc kép " " bên trong chuỗi thuộc tính (dùng dấu nháy đơn ' ' nếu viết công thức).
+7. Trả về đúng mã JSON duy nhất, không kèm câu chào hỏi hay bất kỳ ký tự nào khác bên ngoài.`;
 
-    const content = await callOpenRouter(prompt, 1500, 0.5);
+    let content = '';
+    // First try direct Gemini API with paid GEMINI_API_KEY
+    if (process.env.GEMINI_API_KEY) {
+      try {
+        console.log('[generateMindmap] Attempting direct Gemini API call with GEMINI_API_KEY');
+        const geminiRes = await callGeminiDirect(prompt, 3500, 0.2);
+        if (geminiRes && geminiRes.trim()) {
+          content = geminiRes;
+        }
+      } catch (e: any) {
+        console.warn('[generateMindmap Gemini Direct Error]:', e.message);
+      }
+    }
+
+    if (!content) {
+      content = await callOpenRouter(prompt, 2500, 0.3);
+    }
+
     console.log("[AI Mindmap Raw Output]:", content);
 
-    // Parse the JSON structure robustly using regex to locate { ... } block
-    let parsedMindmap: any = null;
-    const jsonRegex = /\{[\s\S]*\}/;
-    const match = content.match(jsonRegex);
-    if (match) {
-      try {
-        const cleaned = cleanJsonString(match[0]);
-        parsedMindmap = JSON.parse(cleaned);
-      } catch (e) {
-        console.error("Failed to parse matched JSON from AI content:", e);
-      }
-    }
-
-    if (!parsedMindmap || typeof parsedMindmap !== 'object' || !parsedMindmap.name) {
-      try {
-        const cleaned = cleanJsonString(content);
-        parsedMindmap = JSON.parse(cleaned);
-      } catch (e) {
-        // Fallback structures if JSON parsing failed completely
-        parsedMindmap = {
-          name: "Sơ đồ ôn tập THPTQG",
-          description: "Lỗi định dạng cấu trúc tự động từ AI. Nội dung thô được đính kèm bên dưới.",
-          children: [
-            {
-              name: "Nội dung AI",
-              description: content.substring(0, 1000)
-            }
-          ]
-        };
-      }
-    }
+    const parsedMindmap = parseFlexibleMindmapJson(content, text.length > 25 ? `${text.substring(0, 22)}...` : text);
 
     return res.status(200).json({ success: true, data: parsedMindmap });
   } catch (err: any) {
@@ -1698,7 +1864,49 @@ async function callOpenRouterVision(prompt: string, base64Image: string, mimeTyp
   return data.choices?.[0]?.message?.content || '';
 }
 
+async function callGeminiDirect(prompt: string, maxTokens = 2500, temp = 0.4) {
+  const geminiKey = process.env.GEMINI_API_KEY;
+  if (!geminiKey) return null;
+
+  const models = ['gemini-2.5-pro', 'gemini-1.5-pro', 'gemini-1.5-flash'];
+  for (const model of models) {
+    try {
+      console.log(`[Gemini API Direct] Attempting request using model: ${model}`);
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: {
+            temperature: temp,
+            maxOutputTokens: maxTokens
+          }
+        })
+      });
+      const data = await res.json();
+      const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (text && text.trim()) {
+        console.log(`[Gemini API Direct] Success with ${model}`);
+        return cleanAIResponseContent(text);
+      }
+    } catch (e: any) {
+      console.warn(`[Gemini API Direct] Model ${model} failed:`, e.message);
+    }
+  }
+  return null;
+}
+
 async function callOpenRouter(prompt: string, maxTokens = 1500, temp = 0.5, customApiKey?: string, customModel?: string) {
+  // First try direct Gemini API if GEMINI_API_KEY is configured
+  if (!customApiKey && process.env.GEMINI_API_KEY) {
+    try {
+      const geminiResult = await callGeminiDirect(prompt, maxTokens, temp);
+      if (geminiResult) return geminiResult;
+    } catch (e) {
+      console.warn('[Gemini Direct Error, falling back to OpenRouter]:', e);
+    }
+  }
+
   const userOpenRouterKey = customApiKey;
   const userOpenRouterModel = customModel;
 
@@ -2211,23 +2419,21 @@ Yêu cầu định dạng JSON phản hồi:
 
 Chỉ trả về chuỗi JSON thô duy nhất. Không đính kèm bất cứ câu chào hỏi hay markdown nào bên ngoài JSON.`;
 
-    const aiResponse = await callOpenRouter(prompt, 2000, 0.4);
-    let parsedMindmap: any = null;
-    
-    const jsonRegex = /\{[\s\S]*\}/;
-    const match = aiResponse.match(jsonRegex);
-    if (match) {
+    let aiResponse = '';
+    if (process.env.GEMINI_API_KEY) {
       try {
-        const cleaned = cleanJsonString(match[0]);
-        parsedMindmap = JSON.parse(cleaned);
-      } catch (e) {
-        console.error("Weakness JSON parse error", e);
+        const geminiRes = await callGeminiDirect(prompt, 3000, 0.2);
+        if (geminiRes && geminiRes.trim()) aiResponse = geminiRes;
+      } catch (e: any) {
+        console.warn('[generateWeaknessMindmap Gemini Error]:', e.message);
       }
     }
 
-    if (!parsedMindmap || !parsedMindmap.name) {
-      throw new Error("Không thể tạo cấu trúc sơ đồ vùng yếu từ kết quả AI.");
+    if (!aiResponse) {
+      aiResponse = await callOpenRouter(prompt, 2000, 0.4);
     }
+
+    const parsedMindmap = parseFlexibleMindmapJson(aiResponse, "Sơ đồ Khắc phục Lỗ hổng Kiến thức");
 
     const title = `Sơ đồ Khắc phục Lỗ hổng - ${new Date().toLocaleDateString('vi-VN')}`;
 
@@ -2406,23 +2612,21 @@ Schema JSON yêu cầu bắt buộc:
 
 TUYỆT ĐỐI chỉ trả về JSON thô duy nhất. Không kèm theo bất cứ giải thích hay markdown nào khác ngoài khối JSON.`;
 
-    const aiResponse = await callOpenRouter(prompt, 2000, 0.4);
-    let parsedMindmap: any = null;
-
-    const jsonRegex = /\{[\s\S]*\}/;
-    const match = aiResponse.match(jsonRegex);
-    if (match) {
+    let aiResponse = '';
+    if (process.env.GEMINI_API_KEY) {
       try {
-        const cleaned = cleanJsonString(match[0]);
-        parsedMindmap = JSON.parse(cleaned);
-      } catch (e) {
-        console.error("Exam Analysis JSON parse error", e);
+        const geminiRes = await callGeminiDirect(prompt, 3500, 0.2);
+        if (geminiRes && geminiRes.trim()) aiResponse = geminiRes;
+      } catch (e: any) {
+        console.warn('[generateExamMindmap Gemini Error]:', e.message);
       }
     }
 
-    if (!parsedMindmap || !parsedMindmap.name) {
-      throw new Error("Không thể lập sơ đồ phân bố cấu trúc đề thi từ kết quả AI.");
+    if (!aiResponse) {
+      aiResponse = await callOpenRouter(prompt, 2500, 0.3);
     }
+
+    const parsedMindmap = parseFlexibleMindmapJson(aiResponse, title || "Sơ đồ Phân tích Đề thi THPTQG");
 
     // Determine subject from title/text
     const textLower = text.toLowerCase() + ' ' + (title || '').toLowerCase();

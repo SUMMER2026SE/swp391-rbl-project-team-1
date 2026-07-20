@@ -14,6 +14,7 @@ import { login, logout, sendOtp, resendOtp, verifyOtpRegister, googleAuth, googl
 import { getCourses, getCourseById, createCourse, getCourseStats, updateCourse, deleteCourse, updateLesson, deleteLesson, createLesson, createCourseReview, aiSearchCourses } from './controllers/course.js';
 import { getExams, getExamById, startAttempt, saveAnswer, submitAttempt, getAttempts, getExamQuestionsPublic, getAttemptById, getAttemptResult, getExamHistory, recordViolation, recordExamEvent, getExamEvents, recordViolationDetail, generateAiCoach, createSmartRetake, importExam, generateSimilarQuestion, updateExamStatus, getWrongQuestions } from './controllers/exam.js';
 import { streamAIChat, refreshRoadmap, generateAIQuestions, generateMindmap, saveMindmap, getMindmaps, getMindmapById, deleteMindmap, generateFlashcards, generateFlashcardMnemonic, generateFlashcardsOCR, getPublicMindmapById, generateNodeQuiz, submitNodeQuiz, getNodeProgress, generateWeaknessMindmap, uploadExamFile, generateExamMindmap } from './controllers/ai.js';
+import { getSharedMindmaps, shareMindmap, likeSharedMindmap, cloneSharedMindmap } from './controllers/sharedMindmaps.js';
 
 import { chatbotConsult } from './controllers/chatbot.js';
 import { getDocumentResources, getDocumentComments, addDocumentComment, getUserDocuments, createUserDocument, deleteUserDocument } from './controllers/document.js';
@@ -418,6 +419,12 @@ app.get('/mindmaps', authenticateJWT, getMindmaps);
 app.get('/mindmaps/:id', authenticateJWT, getMindmapById);
 app.get('/mindmaps/public/:id', getPublicMindmapById);
 app.delete('/mindmaps/:id', authenticateJWT, deleteMindmap);
+
+// Shared Mindmaps Forum Endpoints
+app.get('/shared-mindmaps', optionalAuthenticateJWT, getSharedMindmaps);
+app.post('/shared-mindmaps', authenticateJWT, shareMindmap);
+app.post('/shared-mindmaps/:id/like', authenticateJWT, likeSharedMindmap);
+app.post('/shared-mindmaps/:id/clone', authenticateJWT, cloneSharedMindmap);
 
 app.post('/ai/mindmap/quiz', authenticateJWT, generateNodeQuiz);
 app.post('/ai/mindmap/quiz/submit', authenticateJWT, submitNodeQuiz);

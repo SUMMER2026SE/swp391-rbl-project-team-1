@@ -144,7 +144,7 @@ button, input, select, textarea {
 
 .aitutor-sidebar-tabs {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr;
   border-bottom: 1px solid var(--mm-border-dark);
   background: rgba(0,0,0,0.2);
   padding: 6px;
@@ -1619,28 +1619,89 @@ button, input, select, textarea {
   text-transform: uppercase;
 }
 .node-status--learned {
+  border: 2px solid #10B981 !important;
   border-left: 6px solid #10B981 !important;
-  border-right: 2px solid #10B981 !important;
-  border-top: 2px solid #10B981 !important;
-  border-bottom: 2px solid #10B981 !important;
+  background: linear-gradient(135deg, #059669 0%, #10B981 100%) !important;
+  color: #FFFFFF !important;
+  box-shadow: 0 4px 16px rgba(16, 185, 129, 0.4) !important;
 }
+.node-status--learned span, .node-status--learned text {
+  color: #FFFFFF !important;
+  fill: #FFFFFF !important;
+}
+
 .node-status--learning {
+  border: 2px solid #F59E0B !important;
   border-left: 6px solid #F59E0B !important;
-  border-right: 2px solid #F59E0B !important;
-  border-top: 2px solid #F59E0B !important;
-  border-bottom: 2px solid #F59E0B !important;
+  background: linear-gradient(135deg, #D97706 0%, #F59E0B 100%) !important;
+  color: #FFFFFF !important;
+  box-shadow: 0 4px 16px rgba(245, 158, 11, 0.4) !important;
 }
+.node-status--learning span, .node-status--learning text {
+  color: #FFFFFF !important;
+  fill: #FFFFFF !important;
+}
+
 .node-status--review {
+  border: 2px solid #EF4444 !important;
   border-left: 6px solid #EF4444 !important;
-  border-right: 2px solid #EF4444 !important;
-  border-top: 2px solid #EF4444 !important;
-  border-bottom: 2px solid #EF4444 !important;
+  background: linear-gradient(135deg, #DC2626 0%, #EF4444 100%) !important;
+  color: #FFFFFF !important;
+  box-shadow: 0 4px 16px rgba(239, 68, 68, 0.4) !important;
 }
+.node-status--review span, .node-status--review text {
+  color: #FFFFFF !important;
+  fill: #FFFFFF !important;
+}
+
 .node-status--important {
+  border: 2px solid #D946EF !important;
   border-left: 6px solid #D946EF !important;
-  border-right: 2px solid #D946EF !important;
-  border-top: 2px solid #D946EF !important;
-  border-bottom: 2px solid #D946EF !important;
+  background: linear-gradient(135deg, #9333EA 0%, #C084FC 100%) !important;
+  color: #FFFFFF !important;
+  box-shadow: 0 4px 16px rgba(217, 70, 239, 0.4) !important;
+}
+.node-status--important span, .node-status--important text {
+  color: #FFFFFF !important;
+  fill: #FFFFFF !important;
+}
+
+/* Button smooth click & slide-in animations */
+@keyframes buttonSlideIn {
+  0% {
+    opacity: 0;
+    transform: translateY(6px) scale(0.98);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.aitutor-tab-btn,
+.canvas-action-pill,
+.status-tag-pill,
+.canvas-export-menu button,
+.aitutor-root button {
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.2s ease, box-shadow 0.2s ease !important;
+  animation: buttonSlideIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) ease-out;
+}
+
+.aitutor-tab-btn:hover,
+.canvas-action-pill:hover,
+.status-tag-pill:hover,
+.canvas-export-menu button:hover,
+.aitutor-root button:hover {
+  transform: translateY(-2px) scale(1.02);
+}
+
+.aitutor-tab-btn:active,
+.canvas-action-pill:active,
+.status-tag-pill:active,
+.canvas-export-menu button:active,
+.aitutor-root button:active {
+  transform: translateY(1px) scale(0.95) !important;
+  transition: transform 0.05s ease !important;
 }
 
 /* Right drawer annotation tag button group */
@@ -1718,6 +1779,36 @@ button, input, select, textarea {
     height: auto !important;
     overflow-y: auto !important;
   }
+}
+
+/* Smooth view switching transitions */
+.aitutor-view-wrapper {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  transition: opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1), transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+
+.aitutor-view-wrapper--hidden {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(6px) scale(0.995);
+  visibility: hidden;
+  z-index: 1;
+}
+
+.aitutor-view-wrapper--visible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  visibility: visible;
+  z-index: 2;
 }
 
 /* Outline tree view panel */
@@ -1866,17 +1957,18 @@ button, input, select, textarea {
 /* Glowing Connections and Animated Links */
 .canvas-connection-path {
   fill: none;
-  stroke: rgba(255, 255, 255, 0.15);
-  stroke-width: 2.5px;
+  stroke: #60A5FA !important;
+  stroke-width: 3px !important;
+  stroke-opacity: 0.9 !important;
   transition: stroke 0.3s, stroke-width 0.3s, stroke-dasharray 0.3s;
 }
 
 .canvas-connection-path--active {
-  stroke: var(--mm-gold) !important;
-  stroke-width: 3.5px !important;
+  stroke: #F59E0B !important;
+  stroke-width: 4px !important;
   stroke-dasharray: 6 4;
   animation: connection-flow 25s linear infinite;
-  filter: drop-shadow(0px 0px 4px var(--mm-gold));
+  filter: drop-shadow(0px 0px 6px #F59E0B);
 }
 
 @keyframes connection-flow {
