@@ -49,13 +49,18 @@ router.post('/questions', authenticateJWT, requireRole(['TEACHER']), validateCre
 router.put('/questions/:id', authenticateJWT, requireRole(['TEACHER']), validateCreateQuestion, updateQuestion);
 router.post('/questions/:id/report', authenticateJWT, requireRole(['TEACHER']), reportQuestion);
 
-// AI Document Import routes
-router.post('/import/upload', authenticateJWT, requireRole(['TEACHER']), uploadValidation, uploadDocument);
-router.get('/import/sessions', authenticateJWT, requireRole(['TEACHER']), getImportSessions);
-router.get('/import/sessions/:id', authenticateJWT, requireRole(['TEACHER']), getImportSessionById);
-router.put('/import/questions/:id', authenticateJWT, requireRole(['TEACHER']), updateImportQuestion);
-router.post('/import/sessions/:id/confirm', authenticateJWT, requireRole(['TEACHER']), confirmImport);
-router.delete('/import/sessions/:id', authenticateJWT, requireRole(['TEACHER']), deleteImportSession);
+import { ImportV2Controller } from '../modules/importV2/importV2.controller.js';
+
+// AI Document Import routes (Rebuilt Datalab + Gemini 2.5 Flash)
+router.post('/import/upload', authenticateJWT, requireRole(['TEACHER']), uploadValidation, ImportV2Controller.uploadDocument);
+router.get('/import/sessions', authenticateJWT, requireRole(['TEACHER']), ImportV2Controller.getSessions);
+router.get('/import/sessions/:id', authenticateJWT, requireRole(['TEACHER']), ImportV2Controller.getSessionById);
+router.put('/import/questions/:id', authenticateJWT, requireRole(['TEACHER']), ImportV2Controller.updateQuestion);
+router.post('/import/sessions/:id/confirm', authenticateJWT, requireRole(['TEACHER']), ImportV2Controller.confirmImport);
+router.delete('/import/sessions/:id', authenticateJWT, requireRole(['TEACHER']), ImportV2Controller.deleteSession);
+router.post('/import/sessions/:id/merge', authenticateJWT, requireRole(['TEACHER']), ImportV2Controller.mergeQuestions);
+router.post('/import/sessions/:id/split', authenticateJWT, requireRole(['TEACHER']), ImportV2Controller.splitQuestion);
+router.post('/import/sessions/:id/duplicate', authenticateJWT, requireRole(['TEACHER']), ImportV2Controller.duplicateQuestion);
 
 // Reports moderation routes
 router.get('/reports/my-questions', authenticateJWT, requireRole(['TEACHER']), getReports);

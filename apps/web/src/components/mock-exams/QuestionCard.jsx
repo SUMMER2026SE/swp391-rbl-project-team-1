@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { HiBookmark } from 'react-icons/hi';
 
 export default function QuestionCard({ 
@@ -14,9 +14,16 @@ export default function QuestionCard({
   const [bookmarkNote, setBookmarkNote] = useState('');
   const [showNoteInput, setShowNoteInput] = useState(false);
 
+  // Trigger MathJax typesetting whenever question content or options change
+  useEffect(() => {
+    if (window.MathJax && typeof window.MathJax.typesetPromise === 'function') {
+      window.MathJax.typesetPromise().catch((err) => console.warn('MathJax error:', err));
+    }
+  }, [question, options]);
+
   const handleBookmarkClick = () => {
     if (isBookmarked) {
-      onBookmarkToggle(question.id, null); // Unbookmark
+      onBookmarkToggle(question?.id, null); // Unbookmark
       setShowNoteInput(false);
     } else {
       setShowNoteInput(true);
@@ -24,18 +31,39 @@ export default function QuestionCard({
   };
 
   const handleSaveBookmark = () => {
-    onBookmarkToggle(question.id, bookmarkNote);
+    onBookmarkToggle(question?.id, bookmarkNote);
     setShowNoteInput(false);
   };
+
+  const formatText = (txt) => {
+    if (!txt) return '';
+    let cleaned = txt;
+    // Replace Datalab Markdown image tags ![Alt](image.jpg) with formatted images
+    cleaned = cleaned.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (match, alt, src) => {
+      return `<div style="text-align:center;margin:8px 0;"><img src="${src}" alt="${alt}" style="max-width:100%;max-height:280px;border-radius:8px;border:1px solid #cbd5e1;" /></div>`;
+    });
+    // Remove leaked raw English image alt descriptions wrapped in $...$
+    cleaned = cleaned.replace(/\$(The [x-z]-axis is along[^\$]+)\$/gi, '');
+    return cleaned;
+  };
+
+  const cleanOptText = (txt) => {
+    if (!txt) return '';
+    let cleaned = txt.replace(/\$?The [x-z]-axis is along[^\$]*\$?/gi, '').trim();
+    cleaned = cleaned.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '').trim();
+    return cleaned || txt;
+  };
+
+  const formattedQuestionText = formatText(question?.question_text || '');
 
   return (
     <div className="taking-question-card animate-in">
       <div className="taking-question-header">
-        <span className="taking-question-number">Câu {question.question_number}</span>
+        <span className="taking-question-number">Câu {question?.question_number}</span>
         
         <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
           <span className="badge-pill" style={{ background: 'var(--bg-main)', color: 'var(--text-secondary)', fontSize: '11px' }}>
-            {question.difficulty}
+            {question?.difficulty}
           </span>
           <button 
             className={`bookmark-btn ${isBookmarked ? 'active' : ''}`}
@@ -68,11 +96,14 @@ export default function QuestionCard({
       )}
 
       <div className="taking-question-text">
-        {/* Render LaTeX equations or text */}
-        <p style={{ margin: 0, whiteSpace: 'pre-line' }}>{question.question_text}</p>
+        {/* Render LaTeX equations cleanly and handle Markdown images */}
+        <div 
+          style={{ margin: 0, whiteSpace: 'pre-line', fontSize: '14.5px', lineHeight: '1.7' }}
+          dangerouslySetInnerHTML={{ __html: formattedQuestionText }}
+        />
       </div>
 
-      {question.audio_url && (
+      {question?.audio_url && (
         <div 
           style={{ 
             margin: '16px 0', 
@@ -96,7 +127,7 @@ export default function QuestionCard({
         </div>
       )}
 
-      {question.question_image_url && (
+      {question?.question_image_url && (
         <div style={{ margin: '16px 0', textAlign: 'center' }}>
           <img 
             src={question.question_image_url} 
@@ -107,7 +138,7 @@ export default function QuestionCard({
       )}
 
       {/* Render based on Question Type */}
-      {question.question_type === 'essay' ? (
+      {question?.question_type === 'essay' ? (
         <div style={{ marginTop: '16px' }}>
           <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', marginBottom: '8px', color: 'var(--text-primary)' }}>
             Nhập bài làm tự luận của bạn:
@@ -125,16 +156,13 @@ export default function QuestionCard({
         <div className="taking-options-list">
           {options.map((opt) => {
             const isSelected = selectedOptionLabel === opt.option_label;
-            const rawText = opt.option_text || '';
-            const hasLatex = /\\|\^|_|\{|\}/.test(rawText);
-            const isWrapped = rawText.trim().startsWith('$') && rawText.trim().endsWith('$');
-            const displayText = (hasLatex && !isWrapped) ? `$${rawText}$` : rawText;
+            const displayText = cleanOptText(opt.option_text || '');
 
             return (
               <div 
                 key={opt.id}
                 className={`taking-option-item ${isSelected ? 'selected' : ''}`}
-                onClick={() => onSelectOption(question.id, opt.option_label)}
+                onClick={() => onSelectOption(question?.id, opt.option_label)}
               >
                 <div className="taking-option-label">{opt.option_label}</div>
                 <div style={{ fontSize: '13.5px', color: 'var(--text-primary)' }}>{displayText}</div>

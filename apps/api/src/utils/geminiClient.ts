@@ -60,11 +60,15 @@ export function convertMessagesToGemini(messages: any[]) {
 
 // Map general model name to direct Gemini model API name
 export function mapModelToGemini(modelName: string): string {
+  if (!modelName) return 'gemini-flash-latest';
   const modelLower = modelName.toLowerCase();
   if (modelLower.includes('pro')) {
-    return 'gemini-2.5-pro';
+    return 'gemini-pro-latest';
   }
-  return 'gemini-2.5-flash';
+  if (modelLower.includes('2.0')) {
+    return 'gemini-2.0-flash';
+  }
+  return 'gemini-flash-latest';
 }
 
 // Call Gemini API directly (non-streaming)
