@@ -4,6 +4,13 @@ import chatbotIcon from '../assets/chatbot.png';
 import { api } from '../api';
 
 export default function ChatbotWidget({ currentPath, currentUser }) {
+  const pathLower = (currentPath || '').toLowerCase();
+  const isHome = pathLower === '/' || pathLower === '/landing' || pathLower === '/dashboard/home';
+
+  if (!isHome || pathLower.includes('/learn/') || pathLower.includes('/mock-exams/')) {
+    return null;
+  }
+
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
