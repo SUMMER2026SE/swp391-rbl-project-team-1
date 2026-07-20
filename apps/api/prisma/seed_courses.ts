@@ -703,21 +703,20 @@ export async function seedAllCourses() {
 
   // Post-process lessons to add videoUrls
   console.log('[Seed Courses] Adding default embeddable videos to all lessons...');
-  const allLessons = await prisma.lesson.findMany({
-    where: { videoUrl: null }
-  });
+  const allLessons = await prisma.lesson.findMany();
   
   const YOUTUBE_IDS = [
-    'V1y3_Tz1Gf4',
-    '3Q90uJdSpXo',
-    '537bNfX-i64',
-    'F91V6c_yO50',
-    'bM7SZ5SBzyY',
-    'HGeUpeCjSbg',
-    '01GzX1S6_sM',
-    'W6NZfCO5SIk',
-    '5_b7s1kGEXQ',
-    '7Qn6Xf5nF7M'
+    'Mr3ywRC7oF8',
+    '_9BxEU6sd8g',
+    '1ONec36-_T4',
+    'oe6dDM-EH98',
+    'prlysAfn4EI',
+    'vIIQ_EHV5iQ',
+    'Xw4HfsclylM',
+    'h9quwIKme0w',
+    'HkSb88-_R80',
+    'jbbfnOnDvKs',
+    'ezMlkkOr784'
   ];
 
   for (let i = 0; i < allLessons.length; i++) {
