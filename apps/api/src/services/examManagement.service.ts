@@ -1,5 +1,5 @@
 import { ExamManagementRepository } from '../repositories/examManagement.repository.js';
-import { ImportEngine } from '../utils/importEngine.js';
+
 import { prisma } from '../lib/prisma.js';
 import fs from 'fs';
 import path from 'path';
@@ -202,135 +202,7 @@ export class ExamManagementService {
     });
   }
 
-  // --- IMPORT WORKFLOW ---
-  static async createImportSession(userId: number, fileName: string, fileSize: number, filePath: string) {
-    const session = await ExamManagementRepository.createImportSession(userId, fileName, fileSize, filePath);
-    
-    // Run AI parse in background (async)
-    this.runBackgroundParser(session.id, filePath, fileName);
 
-    return session;
-  }
-
-  static async getImportSessions(userId: number) {
-    return ExamManagementRepository.getImportSessions(userId);
-  }
-
-  static async getImportSessionById(id: number, userId: number) {
-    const session = await ExamManagementRepository.getImportSessionById(id);
-    if (!session) throw new Error('NOT_FOUND: Phiên import không tồn tại');
-    if (session.userId !== userId) throw new Error('FORBIDDEN: Bạn không có quyền truy cập phiên import này');
-    return session;
-  }
-
-  static async runBackgroundParser(sessionId: number, filePath: string, originalName: string) {
-    try {
-      // Simulate brief processing delay for nice UI flow
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      const parsedQuestions = await ImportEngine.parseFile(filePath, originalName, sessionId);
-      await ExamManagementRepository.createImportQuestions(sessionId, parsedQuestions);
-      await ExamManagementRepository.updateImportSession(sessionId, { status: 'REVIEWING' });
-    } catch (err) {
-      console.error('[AI Parse Error]', err);
-      await ExamManagementRepository.updateImportSession(sessionId, { status: 'FAILED' });
-    }
-  }
-
-  static async updateImportQuestion(id: number, userId: number, data: any) {
-    const question = await prisma.importQuestion.findUnique({
-      where: { id },
-      include: { session: true }
-    });
-    if (!question) throw new Error('NOT_FOUND: Câu hỏi import không tồn tại');
-    if (question.session.userId !== userId) {
-      throw new Error('FORBIDDEN: Bạn không có quyền sửa câu hỏi của phiên import này');
-    }
-
-    const { content, options, correctAnswer, explanation, difficulty, media, type, section, questionOrder } = data;
-
-    return prisma.importQuestion.update({
-      where: { id },
-      data: {
-        content,
-        options: options !== undefined ? (options as any) : undefined,
-        correctAnswer,
-        explanation,
-        difficulty,
-        media: media !== undefined ? (media as any) : undefined,
-        type: type !== undefined ? type : undefined,
-        section: section !== undefined ? section : undefined,
-        questionOrder: questionOrder !== undefined ? Number(questionOrder) : undefined
-      }
-    });
-  }
-
-  static async confirmImport(sessionId: number, userId: number, decisions: Array<{ importQuestionId: number; action: string }>) {
-    const session = await ExamManagementRepository.getImportSessionById(sessionId);
-    if (!session) throw new Error('NOT_FOUND: Phiên import không tồn tại');
-    if (session.userId !== userId) throw new Error('FORBIDDEN: Bạn không có quyền duyệt phiên import này');
-
-    await prisma.$transaction(async (tx) => {
-      for (const q of session.questions) {
-        const decision = decisions?.find(d => d.importQuestionId === q.id);
-        const action = decision ? decision.action : 'CREATE_NEW';
-
-        if (action === 'REUSE' && (q as any).duplicateOfId) {
-          // Skip creation, link existing question ID if creating exam later
-          continue;
-        } else {
-          // Create new question
-          const newQ = await tx.question.create({
-            data: {
-              content: q.content,
-              options: q.options as any,
-              correctAnswer: q.correctAnswer,
-              explanation: q.explanation,
-              subject: session.fileName.toLowerCase().includes('ly') ? 'Vật lý' : 'Toán học',
-              topic: 'Chương 1',
-              difficulty: q.difficulty as any,
-              createdBy: userId,
-              type: q.type,
-              section: q.section,
-              questionOrder: q.questionOrder
-            }
-          });
-
-          // Add choices relational if enabled
-          const optionsArray = Array.isArray(q.options) ? q.options : [];
-          if (optionsArray.length > 0) {
-            await tx.questionOption.createMany({
-              data: optionsArray.map((opt: any) => ({
-                questionId: newQ.id,
-                optionLabel: opt.label,
-                optionText: opt.text,
-                isCorrect: q.type === 'TRUE_FALSE' ? !!opt.isCorrect : (opt.label === q.correctAnswer)
-              }))
-            });
-          }
-
-          // Add media relational if exists
-          const mediaArray = Array.isArray(q.media) ? q.media : [];
-          if (mediaArray.length > 0) {
-            await tx.questionMedia.createMany({
-              data: mediaArray.map((med: any, idx: number) => ({
-                questionId: newQ.id,
-                url: med.url,
-                mediaType: med.type || 'IMAGE',
-                order: med.order !== undefined ? med.order : idx
-              }))
-            });
-          }
-        }
-      }
-
-      await tx.importSession.update({
-        where: { id: sessionId },
-        data: { status: 'COMPLETED' }
-      });
-    });
-
-    return { success: true };
-  }
 
   // --- REPORT MODERATION ---
   static async getReportsForOwner(userId: number) {
@@ -383,37 +255,6 @@ export class ExamManagementService {
     };
   }
 
-  static async deleteImportSession(sessionId: number, userId: number) {
-    const session = await ExamManagementRepository.getImportSessionById(sessionId);
-    if (!session) throw new Error('NOT_FOUND: Phiên import không tồn tại');
-    if (session.userId !== userId) throw new Error('FORBIDDEN: Bạn không có quyền xóa phiên import này');
 
-    // 1. Delete the uploaded docx/pdf file
-    if (session.filePath) {
-      try {
-        if (fs.existsSync(session.filePath)) {
-          fs.unlinkSync(session.filePath);
-        }
-      } catch (err) {
-        console.error(`Failed to delete session file ${session.filePath}:`, err);
-      }
-    }
-
-    // 2. Delete session-specific uploads directory (contains all extracted media for this session)
-    const sessionDir = path.resolve(__dirname, '../../uploads/questions', sessionId.toString());
-    try {
-      if (fs.existsSync(sessionDir)) {
-        fs.rmSync(sessionDir, { recursive: true, force: true });
-        console.log(`Deleted session-specific media directory: ${sessionDir}`);
-      }
-    } catch (err) {
-      console.error(`Failed to delete session media directory ${sessionDir}:`, err);
-    }
-
-    // 3. Delete from DB (cascade delete will delete questions automatically)
-    return prisma.importSession.delete({
-      where: { id: sessionId }
-    });
-  }
 }
 

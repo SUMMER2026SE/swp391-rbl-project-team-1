@@ -42,3 +42,20 @@ apps/**/.env.*
 
 # Uploads
 apps/api/uploads
+
+# Python virtual environments & temporary output directories
+mineru-env
+mineru-env/
+mineru_env
+venv
+.venv
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+
+# Scratch & MinerU Temporary Output
+scratch/
+tools/mineru/extracted_images/
+tools/mineru/output/
+tools/mineru/temp/

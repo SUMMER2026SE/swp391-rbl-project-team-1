@@ -18,16 +18,12 @@ import {
   createQuestion,
   updateQuestion,
   reportQuestion,
-  uploadDocument,
-  getImportSessions,
-  getImportSessionById,
-  updateImportQuestion,
-  confirmImport,
-  deleteImportSession,
   getReports,
   resolveReport,
   getStats
 } from '../controllers/examManagement.controller.js';
+import { ImportV2Controller } from '../modules/importV2/importV2.controller.js';
+import { ImportV3Controller } from '../modules/importV3/importV3.controller.js';
 
 const router = Router();
 
@@ -49,21 +45,25 @@ router.post('/questions', authenticateJWT, requireRole(['TEACHER']), validateCre
 router.put('/questions/:id', authenticateJWT, requireRole(['TEACHER']), validateCreateQuestion, updateQuestion);
 router.post('/questions/:id/report', authenticateJWT, requireRole(['TEACHER']), reportQuestion);
 
-import { ImportV2Controller } from '../modules/importV2/importV2.controller.js';
-
-// AI Document Import routes (Rebuilt Datalab + Gemini 2.5 Flash)
+// AI Document Import V2 routes (MinerU Standalone API + Gemini Block Mapping)
 router.post('/import/upload', authenticateJWT, requireRole(['TEACHER']), uploadValidation, ImportV2Controller.uploadDocument);
 router.get('/import/sessions', authenticateJWT, requireRole(['TEACHER']), ImportV2Controller.getSessions);
 router.get('/import/sessions/:id', authenticateJWT, requireRole(['TEACHER']), ImportV2Controller.getSessionById);
 router.put('/import/questions/:id', authenticateJWT, requireRole(['TEACHER']), ImportV2Controller.updateQuestion);
+router.put('/import/sessions/:id/auto-save', authenticateJWT, requireRole(['TEACHER']), ImportV2Controller.autoSaveDraft);
+router.post('/import/sessions/:id/rerun-stage', authenticateJWT, requireRole(['TEACHER']), ImportV2Controller.rerunStage);
 router.post('/import/sessions/:id/confirm', authenticateJWT, requireRole(['TEACHER']), ImportV2Controller.confirmImport);
 router.delete('/import/sessions/:id', authenticateJWT, requireRole(['TEACHER']), ImportV2Controller.deleteSession);
-router.post('/import/sessions/:id/merge', authenticateJWT, requireRole(['TEACHER']), ImportV2Controller.mergeQuestions);
-router.post('/import/sessions/:id/split', authenticateJWT, requireRole(['TEACHER']), ImportV2Controller.splitQuestion);
-router.post('/import/sessions/:id/duplicate', authenticateJWT, requireRole(['TEACHER']), ImportV2Controller.duplicateQuestion);
 
-// Reports moderation routes
-router.get('/reports/my-questions', authenticateJWT, requireRole(['TEACHER']), getReports);
-router.patch('/reports/:id/status', authenticateJWT, requireRole(['TEACHER']), resolveReport);
+// NEW: AI Document Import V3 routes (Image First Pipeline: MinerU Page PNG -> Boundary -> Crop -> Gemini Vision)
+router.post('/import-v3/upload', authenticateJWT, requireRole(['TEACHER']), uploadValidation, ImportV3Controller.uploadDocumentV3);
+router.get('/import-v3/session/:id', authenticateJWT, requireRole(['TEACHER']), ImportV3Controller.getSessionV3);
+router.post('/import-v3/session/:id/recrop/:questionIndex', authenticateJWT, requireRole(['TEACHER']), ImportV3Controller.recropQuestionV3);
+router.post('/import-v3/session/:id/explanation-image/:questionIndex', authenticateJWT, requireRole(['TEACHER']), uploadValidation, ImportV3Controller.uploadExplanationImageV3);
+router.get('/import-v3/metadata/subjects-topics', authenticateJWT, requireRole(['TEACHER']), ImportV3Controller.getSubjectsAndTopics);
+
+// Question Reports routes
+router.get('/reports', authenticateJWT, requireRole(['TEACHER', 'ADMIN']), getReports);
+router.put('/reports/:id/resolve', authenticateJWT, requireRole(['ADMIN']), resolveReport);
 
 export default router;

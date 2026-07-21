@@ -83,24 +83,29 @@ export function useExamManagement() {
     }
   };
 
-  const fetchImportSessions = async () => {
+  const fetchImportSessions = async (showLoading = true) => {
     try {
-      setLoading(true);
+      if (showLoading) setLoading(true);
       const res = await api.getImportSessions();
       setImportSessions(res || []);
     } catch (err) {
       setError(err.message);
     } finally {
-      setLoading(false);
+      if (showLoading) setLoading(false);
     }
   };
 
-  const fetchImportSessionDetail = async (id) => {
+  const fetchImportSessionDetail = async (id, showLoading = true) => {
     try {
-      setLoading(true);
-      const res = await api.getImportSessionById(id);
+      if (showLoading) setLoading(true);
+      let res;
+      try {
+        res = await api.getImportSessionByIdV3(id);
+      } catch (e) {
+        res = await api.getImportSessionById(id);
+      }
       setActiveImportSession(res);
-      // Initialize default decisions
+
       const initialDecisions = {};
       res.questions?.forEach(q => {
         initialDecisions[q.id] = q.status === 'WARNING' ? 'REUSE' : 'CREATE_NEW';
@@ -109,7 +114,7 @@ export function useExamManagement() {
     } catch (err) {
       setError(err.message);
     } finally {
-      setLoading(false);
+      if (showLoading) setLoading(false);
     }
   };
 
@@ -218,7 +223,6 @@ export function useExamManagement() {
     try {
       setLoading(true);
       await api.updateImportQuestion(id, updatedQuestion);
-      // Update local state
       if (activeImportSession) {
         const updatedQuestions = activeImportSession.questions.map(q => 
           q.id === id ? { ...q, ...updatedQuestion } : q
@@ -236,7 +240,6 @@ export function useExamManagement() {
     try {
       setLoading(true);
       await api.deleteImportSession(sessionId);
-      // Clear active session and refresh list
       setActiveImportSession(null);
       await fetchImportSessions();
     } catch (err) {
@@ -271,6 +274,16 @@ export function useExamManagement() {
     });
     setWizardStep(1);
   };
+
+  // Listen for refresh import sessions event
+  useEffect(() => {
+    const handleRefresh = (e) => {
+      const showLoading = e?.detail?.showLoading ?? false;
+      fetchImportSessions(showLoading);
+    };
+    window.addEventListener('refresh-import-sessions', handleRefresh);
+    return () => window.removeEventListener('refresh-import-sessions', handleRefresh);
+  }, []);
 
   // Sync tab data triggers
   useEffect(() => {

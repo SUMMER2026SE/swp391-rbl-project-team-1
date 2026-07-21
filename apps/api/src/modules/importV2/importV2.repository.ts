@@ -118,8 +118,8 @@ export class ImportV2Repository {
           options: questionData.options ? (questionData.options as any) : [],
           correctAnswer: questionData.correctAnswer || '',
           explanation: questionData.explanation || '',
-          subject: sessionName.toLowerCase().includes('ly') ? 'Vật lý' : 'Toán học',
-          topic: questionData.regions?.topic || 'Chương 1',
+          subject: (questionData.media as any)?.subject || (sessionName.toLowerCase().includes('ly') ? 'Vật lý' : 'Toán học'),
+          topic: (questionData.media as any)?.topic || questionData.regions?.topic || 'Chương 1',
           difficulty: questionData.difficulty === 'EASY' ? 'EASY' : questionData.difficulty === 'HARD' ? 'HARD' : 'MEDIUM',
           createdBy: userId,
           type: questionData.type || 'MULTIPLE_CHOICE',
@@ -136,8 +136,17 @@ export class ImportV2Repository {
           data: optionsArray.map((opt: any) => ({
             questionId: newQuestion.id,
             optionLabel: opt.label,
-            optionText: opt.text,
-            isCorrect: questionData.type === 'TRUE_FALSE' ? !!opt.isCorrect : (opt.label === questionData.correctAnswer)
+            optionText: opt.content || opt.text || '',
+            isCorrect: (() => {
+              if (questionData.type === 'TRUE_FALSE') {
+                const currentAnswers = (questionData.correctAnswer || '').split(',');
+                const labelIdx = optionsArray.findIndex((o: any) => o.label === opt.label);
+                const val = currentAnswers[labelIdx === -1 ? 0 : labelIdx] || 'Đ';
+                return val === 'Đ';
+              }
+              const correctList = (questionData.correctAnswer || '').split(',').map((s: string) => s.trim());
+              return correctList.includes(opt.label);
+            })()
           }))
         });
       }

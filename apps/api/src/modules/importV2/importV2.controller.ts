@@ -27,7 +27,7 @@ export class ImportV2Controller {
       const session = await ImportV2Service.createSession(userId, file.originalname, file.size, file.path);
       return res.status(202).json({
         success: true,
-        message: 'Tệp đang được phân tích bởi Datalab API & Gemini 2.5 Flash...',
+        message: 'Tệp đang được phân tích bởi MinerU Service & Gemini 2.5 Flash...',
         data: session
       });
     } catch (err) {
@@ -74,6 +74,42 @@ export class ImportV2Controller {
 
       const updated = await ImportV2Service.updateQuestion(question.sessionId, Number(id), req.body);
       return res.status(200).json({ success: true, message: 'Cập nhật câu hỏi thành công!', data: updated });
+    } catch (err) {
+      return handleError(res, err);
+    }
+  }
+
+  static async autoSaveDraft(req: AuthRequest, res: Response) {
+    const userId = req.user?.id;
+    const { id } = req.params;
+    const { questions } = req.body;
+    if (!userId) return res.status(401).json({ success: false, error: 'Chưa xác thực!' });
+
+    try {
+      const session = await ImportV2Service.getSessionById(Number(id), userId);
+      if (Array.isArray(questions)) {
+        for (const q of questions) {
+          if (q.id) {
+            await ImportV2Service.updateQuestion(Number(id), Number(q.id), q);
+          }
+        }
+      }
+      return res.status(200).json({ success: true, message: 'Đã lưu nháp tự động thành công!' });
+    } catch (err) {
+      return handleError(res, err);
+    }
+  }
+
+  static async rerunStage(req: AuthRequest, res: Response) {
+    const userId = req.user?.id;
+    const { id } = req.params;
+    const { stageName } = req.body;
+    if (!userId) return res.status(401).json({ success: false, error: 'Chưa xác thực!' });
+    if (!stageName) return res.status(400).json({ success: false, error: 'Thiếu tên giai đoạn cần chạy lại (normalizer, segmenter, gemini)!' });
+
+    try {
+      const updatedSession = await ImportV2Service.rerunStage(Number(id), stageName);
+      return res.status(200).json({ success: true, message: `Đã chạy lại giai đoạn ${stageName} thành công!`, data: updatedSession });
     } catch (err) {
       return handleError(res, err);
     }
@@ -138,7 +174,7 @@ export class ImportV2Controller {
 
   static async duplicateQuestion(req: AuthRequest, res: Response) {
     const userId = req.user?.id;
-    const { id } = req.params; // session ID
+    const { id } = req.params;
     const { questionId } = req.body;
     if (!userId) return res.status(401).json({ success: false, error: 'Chưa xác thực!' });
 

@@ -1,6 +1,5 @@
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcrypt';
-import { seedRealExamData } from '../src/utils/examImporter.js';
 import { seedAllCourses } from './seed_courses.js';
 
 const prisma = new PrismaClient();

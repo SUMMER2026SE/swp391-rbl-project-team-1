@@ -116,7 +116,6 @@ import {
   downloadResource, createReport, getReports, resolveReport, toggleSavePost
 } from './controllers/forum.js';
 import { initCronJobs } from './cron/index.js';
-// Environment variables are loaded at the top of the file via import './env.js'
 
 const app = express();
 const server = createServer(app);
@@ -128,14 +127,18 @@ initSocket(server);
 app.use(cors({ origin: '*' }));
 app.use(express.json());
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const resolvedUploadsDir = path.resolve(__dirname, '../uploads');
-console.log(`[API] Static uploads serving from: ${resolvedUploadsDir}`);
-if (!fs.existsSync(resolvedUploadsDir)) {
-  fs.mkdirSync(resolvedUploadsDir, { recursive: true });
-}
+const workspaceRoot = path.resolve(process.cwd(), '..', '..');
+const resolvedUploadsDir = path.join(workspaceRoot, 'apps', 'api', 'uploads');
+const mineruImagesDir = path.join(workspaceRoot, 'tools', 'mineru', 'output', 'extracted_images');
+const scratchDir = path.join(workspaceRoot, 'scratch');
+
+if (!fs.existsSync(resolvedUploadsDir)) fs.mkdirSync(resolvedUploadsDir, { recursive: true });
+if (!fs.existsSync(mineruImagesDir)) fs.mkdirSync(mineruImagesDir, { recursive: true });
+if (!fs.existsSync(scratchDir)) fs.mkdirSync(scratchDir, { recursive: true });
+
 app.use('/uploads', express.static(resolvedUploadsDir));
+app.use('/extracted_images', express.static(mineruImagesDir));
+app.use('/scratch', express.static(scratchDir));
 
 // Strip /api prefix for Vercel routing
 app.use((req, res, next) => {
@@ -645,9 +648,12 @@ async function seedDefaultCategories() {
 }
 
 // Auto-seed on startup
+import { ImportV2Service } from './modules/importV2/importV2.service.js';
+
 seedDefaultCategories();
 NotificationTemplateService.seedDefaultTemplates();
 VoucherService.seedDefaultVouchers();
+ImportV2Service.cleanupOrphanImportFiles().catch(err => console.warn('[Startup] Orphan cleanup warning:', err.message));
 
 // Global Error Handler Middleware to catch exceptions and log them
 app.use((err: any, req: any, res: any, next: any) => {
@@ -672,4 +678,3 @@ app.use((err: any, req: any, res: any, next: any) => {
 });
 
 export default app;
-

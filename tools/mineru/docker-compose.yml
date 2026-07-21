@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  mineru:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: edupath_mineru
+    restart: always
+    ports:
+      - "8001:8001"
+    environment:
+      - PORT=8001
+      - HOST=0.0.0.0
+    volumes:
+      - ./extracted_images:/app/extracted_images

@@ -775,9 +775,28 @@ export const api = {
     return request('/import/upload', { method: 'POST', body: formData });
   },
 
+  uploadImportDocumentV3: (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return request('/import-v3/upload', { method: 'POST', body: formData });
+  },
+
   getImportSessions: () => request('/import/sessions'),
 
   getImportSessionById: (id) => request(`/import/sessions/${id}`),
+
+  getImportSessionByIdV3: (id) => request(`/import-v3/session/${id}`),
+
+  recropImportQuestionV3: (id, questionIndex, payload) => 
+    request(`/import-v3/session/${id}/recrop/${questionIndex}`, { method: 'POST', body: payload }),
+
+  uploadExplanationImageV3: (id, questionIndex, file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return request(`/import-v3/session/${id}/explanation-image/${questionIndex}`, { method: 'POST', body: formData });
+  },
+
+  getSubjectsAndTopics: () => request('/import-v3/metadata/subjects-topics'),
 
   updateImportQuestion: (id, payload) => request(`/import/questions/${id}`, { method: 'PUT', body: payload }),
 
@@ -789,6 +808,3 @@ export const api = {
 
   resolveTeacherReport: (id, status) => request(`/reports/${id}/status`, { method: 'PATCH', body: { status } })
 };
-
-
-

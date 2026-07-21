@@ -183,77 +183,6 @@ export async function reportQuestion(req: AuthRequest, res: Response) {
   }
 }
 
-// --- IMPORT CONTROLLERS ---
-export async function uploadDocument(req: AuthRequest, res: Response) {
-  const userId = req.user?.id;
-  if (!userId) return res.status(401).json({ success: false, error: 'Chưa xác thực!' });
-
-  const file = req.file;
-  if (!file) return res.status(400).json({ success: false, error: 'Vui lòng đính kèm tệp tài liệu để upload!' });
-
-  try {
-    const session = await ExamManagementService.createImportSession(userId, file.originalname, file.size, file.path);
-    return res.status(202).json({
-      success: true,
-      message: 'File đang được phân tích bởi AI',
-      data: session
-    });
-  } catch (err: any) {
-    return handleError(res, err);
-  }
-}
-
-export async function updateImportQuestion(req: AuthRequest, res: Response) {
-  const userId = req.user?.id;
-  const { id } = req.params;
-  if (!userId) return res.status(401).json({ success: false, error: 'Chưa xác thực!' });
-
-  try {
-    const updated = await ExamManagementService.updateImportQuestion(Number(id), userId, req.body);
-    return res.status(200).json({ success: true, message: 'Cập nhật câu hỏi import thành công', data: updated });
-  } catch (err: any) {
-    return handleError(res, err);
-  }
-}
-
-export async function getImportSessions(req: AuthRequest, res: Response) {
-  const userId = req.user?.id;
-  if (!userId) return res.status(401).json({ success: false, error: 'Chưa xác thực!' });
-
-  try {
-    const sessions = await ExamManagementService.getImportSessions(userId);
-    return res.status(200).json({ success: true, data: sessions });
-  } catch (err: any) {
-    return handleError(res, err);
-  }
-}
-
-export async function getImportSessionById(req: AuthRequest, res: Response) {
-  const userId = req.user?.id;
-  const { id } = req.params;
-  if (!userId) return res.status(401).json({ success: false, error: 'Chưa xác thực!' });
-
-  try {
-    const session = await ExamManagementService.getImportSessionById(Number(id), userId);
-    return res.status(200).json({ success: true, data: session });
-  } catch (err: any) {
-    return handleError(res, err);
-  }
-}
-
-export async function confirmImport(req: AuthRequest, res: Response) {
-  const userId = req.user?.id;
-  const { id } = req.params;
-  const { decisions } = req.body;
-  if (!userId) return res.status(401).json({ success: false, error: 'Chưa xác thực!' });
-
-  try {
-    const result = await ExamManagementService.confirmImport(Number(id), userId, decisions);
-    return res.status(200).json(result);
-  } catch (err: any) {
-    return handleError(res, err);
-  }
-}
 
 // --- REPORT MODERATION CONTROLLERS ---
 export async function getReports(req: AuthRequest, res: Response) {
@@ -296,15 +225,4 @@ export async function getStats(req: AuthRequest, res: Response) {
   }
 }
 
-export async function deleteImportSession(req: AuthRequest, res: Response) {
-  const userId = req.user?.id;
-  const { id } = req.params;
-  if (!userId) return res.status(401).json({ success: false, error: 'Chưa xác thực!' });
 
-  try {
-    await ExamManagementService.deleteImportSession(Number(id), userId);
-    return res.status(200).json({ success: true, message: 'Đã từ chối và xóa phiên nhập đề cùng toàn bộ tệp liên quan thành công!' });
-  } catch (err: any) {
-    return handleError(res, err);
-  }
-}
