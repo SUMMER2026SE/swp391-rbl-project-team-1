@@ -62,11 +62,16 @@ export class MineruService {
     formData.append('file', blob, fileName);
 
     const endpoint = `${this.baseUrl}/parse`;
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      body: formData,
-      signal: AbortSignal.timeout(180000)
-    });
+    let response;
+    try {
+      response = await fetch(endpoint, {
+        method: 'POST',
+        body: formData,
+        signal: AbortSignal.timeout(180000)
+      });
+    } catch (err: any) {
+      throw new Error(`Lỗi kết nối MinerU Service tại http://localhost:8001! Vui lòng nhấp đúp tệp 'tools/mineru/start.bat' trên máy để khởi động dịch vụ bóc tách. Chi tiết: ${err.message}`);
+    }
 
     if (!response.ok) {
       const errText = await response.text().catch(() => '');
