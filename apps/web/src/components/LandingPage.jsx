@@ -3485,25 +3485,7 @@ export default function LandingPage({
 
         {/* ================= 6. FORUM DEDICATED PAGE ================= */}
         {activeLandingView === 'forum' && (
-          <div style={{ maxWidth: '95%', margin: '0 auto', padding: '40px 28px 80px' }}>
-            <button
-              onClick={() => { if (navigateTo) { navigateTo('/'); } else { setActiveLandingView('home'); } }}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: 'var(--primary, #6c5ce7)',
-                fontWeight: 'bold',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                fontSize: '14.5px',
-                marginBottom: '28px',
-                padding: 0
-              }}
-            >
-              ← Quay lại trang chủ
-            </button>
+          <div style={{ maxWidth: '95%', margin: '0 auto', padding: '20px 28px 80px' }}>
 
             {!currentUser && (
               <div style={{

@@ -244,8 +244,10 @@
     "authorId": 269,
     "authorName": "Ngọc Hoàng Lê",
     "authorAvatar": "https://lh3.googleusercontent.com/a/ACg8ocLDuwKKYU7itwKuaFCikC_4YGb7oBtr81c1iymvvWOuBNoMAfhA=s96-c",
-    "likes": 0,
-    "likedBy": [],
+    "likes": 1,
+    "likedBy": [
+      269
+    ],
     "downloads": 0,
     "createdAt": "2026-07-20T15:05:53.521Z"
   }

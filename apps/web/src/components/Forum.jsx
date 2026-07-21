@@ -46,6 +46,12 @@ function renderSanitizedContent(content) {
   return <div dangerouslySetInnerHTML={{ __html: sanitized }} />;
 }
 
+function extractFirstImageUrl(content) {
+  if (!content) return null;
+  const match = content.match(/!\[.*?\]\((.*?)\)/);
+  return match ? match[1] : null;
+}
+
 export default function Forum({ currentUser }) {
   // Global View Controls
   const [activeTab, setActiveTab] = useState(() => {
@@ -73,10 +79,33 @@ export default function Forum({ currentUser }) {
   const [comments, setComments] = useState([]);
   const [studyGroups, setStudyGroups] = useState([]);
   const [leaderboard, setLeaderboard] = useState([]);
-  const [gamifyProfile, setGamifyProfile] = useState(null);
+  const [gamifyProfile, setGamifyProfile] = useState({ level: 1, xp: 50, streakDays: 1, progress: 50, nextLevelXP: 100, badges: [] });
   const [groupAnnouncements, setGroupAnnouncements] = useState([]);
   const [groupPosts, setGroupPosts] = useState([]);
   const [groupChatMessages, setGroupChatMessages] = useState([]);
+  const [sidebarOverlapOffset, setSidebarOverlapOffset] = useState(0);
+  const [profileSubTab, setProfileSubTab] = useState('my_posts'); // my_posts, saved_posts
+
+  // Calculate Footer Overlap dynamically to prevent sidebar clashing with footer
+  useEffect(() => {
+    const handleScroll = () => {
+      const footer = document.querySelector('footer') || document.querySelector('.lp-footer') || document.querySelector('.fts-footer');
+      if (footer) {
+        const rect = footer.getBoundingClientRect();
+        const viewportHeight = window.innerHeight;
+        if (rect.top < viewportHeight) {
+          const overlap = viewportHeight - rect.top;
+          setSidebarOverlapOffset(Math.max(0, overlap + 20));
+        } else {
+          setSidebarOverlapOffset(0);
+        }
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll();
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
   
   // Loading & Filtering controls
   const [loading, setLoading] = useState(false);
@@ -427,12 +456,17 @@ export default function Forum({ currentUser }) {
   };
 
   const fetchGamifyProfile = async () => {
-    if (!currentUser) return;
     try {
       const data = await api.getUserGamificationProfile();
-      setGamifyProfile(data);
+      const profileData = data?.data || data;
+      if (profileData && profileData.level) {
+        setGamifyProfile(profileData);
+      } else {
+        setGamifyProfile(prev => prev || { level: 1, xp: 50, streakDays: 1, progress: 50, nextLevelXP: 100, badges: [] });
+      }
     } catch (err) {
       console.error('Lỗi tải gamification profile:', err);
+      setGamifyProfile(prev => prev || { level: 1, xp: 50, streakDays: 1, progress: 50, nextLevelXP: 100, badges: [] });
     }
   };
 
@@ -500,6 +534,7 @@ export default function Forum({ currentUser }) {
     setEditPostType(post.postType);
     setEditDifficulty(post.difficulty || 'MEDIUM');
     setEditTitle(post.title);
+    setResourceFile(post.resourceFile || null);
     
     // Parse out markdown images and separate the content
     const imgRegex = /!\[(.*?)\]\((.*?)\)/g;
@@ -536,7 +571,8 @@ export default function Forum({ currentUser }) {
         categoryId: Number(editCategoryId),
         postType: editPostType,
         difficulty: editPostType === 'QA' ? editDifficulty : undefined,
-        tags: parsedTags
+        tags: parsedTags,
+        resourceFile: resourceFile || undefined
       };
 
       const res = await api.updateForumPost(editingPost.id, postPayload);
@@ -690,39 +726,77 @@ export default function Forum({ currentUser }) {
 
   const handleSendComment = async (e) => {
     e.preventDefault();
-    if (!commentText.trim() || submitting) return;
-    setSubmitting(true);
+    if (!commentText.trim() && commentImages.length === 0) return;
+
+    let finalComment = commentText.trim();
+    if (commentImages.length > 0) {
+      finalComment += '\n\n' + commentImages.map(img => `![ảnh](${img})`).join('\n');
+    }
+
+    const tempId = `temp-${Date.now()}`;
+    const targetParentId = replyTargetId;
+    const tempComment = {
+      id: tempId,
+      content: finalComment,
+      authorId: currentUser?.id,
+      author: {
+        fullName: currentUser?.fullName || 'Người dùng EduPath',
+        avatarUrl: currentUser?.avatarUrl
+      },
+      createdAt: new Date().toISOString(),
+      userReaction: null,
+      reactionCounts: {},
+      replies: [],
+      parentId: targetParentId
+    };
+
+    // 1. Optimistic Update (< 0.01s)
+    if (targetParentId) {
+      setComments(prev => prev.map(c => {
+        if (c.id === targetParentId) {
+          return { ...c, replies: [...(c.replies || []), tempComment] };
+        }
+        return c;
+      }));
+    } else {
+      setComments(prev => [...prev, tempComment]);
+    }
+
+    const savedText = commentText;
+    const savedImages = [...commentImages];
+    setCommentText('');
+    setCommentImages([]);
+    setReplyTargetId(null);
+
+    // 2. Async API Call
     try {
-      let finalComment = commentText.trim();
-      if (commentImages.length > 0) {
-        finalComment += '\n\n' + commentImages.map(img => `![ảnh](${img})`).join('\n');
+      const newComment = await api.createForumComment(selectedPost.id, finalComment, targetParentId);
+
+      setComments(prev => {
+        const updateTree = (list) => {
+          return (list || []).map(c => {
+            if (c.id === tempId) return newComment;
+            if (c.id === targetParentId) {
+              const updatedReplies = (c.replies || []).map(r => r.id === tempId ? newComment : r);
+              return { ...c, replies: updatedReplies };
+            }
+            return { ...c, replies: updateTree(c.replies) };
+          });
+        };
+        return updateTree(prev);
+      });
+
+      if (selectedPost) {
+        setPosts(prev => prev.map(p => p.id === selectedPost.id ? { ...p, commentCount: (p.commentCount || 0) + 1 } : p));
+        setSelectedPost(prev => prev ? { ...prev, commentCount: (prev.commentCount || 0) + 1 } : null);
       }
-
-      const newComment = await api.createForumComment(selectedPost.id, finalComment, replyTargetId);
-
-      if (replyTargetId) {
-        setComments(prev => prev.map(c => {
-          if (c.id === replyTargetId) {
-            if (c.replies?.some(r => r.id === newComment.id)) return c;
-            return { ...c, replies: [...(c.replies || []), newComment] };
-          }
-          return c;
-        }));
-      } else {
-        setComments(prev => {
-          if (prev.some(c => c.id === newComment.id)) return prev;
-          return [...prev, newComment];
-        });
-      }
-
-      setCommentText('');
-      setCommentImages([]);
-      setReplyTargetId(null);
       fetchGamifyProfile();
     } catch (err) {
       toast(err.message || 'Không thể gửi bình luận!', 'error');
-    } finally {
-      setSubmitting(false);
+      // Rollback
+      setComments(prev => prev.filter(c => c.id !== tempId));
+      setCommentText(savedText);
+      setCommentImages(savedImages);
     }
   };
 
@@ -746,42 +820,57 @@ export default function Forum({ currentUser }) {
       toast('Vui lòng đăng nhập để bày tỏ cảm xúc!', 'warning');
       return;
     }
+
+    // 1. Optimistic Update (< 0.01s)
+    const prevPosts = [...posts];
+    const prevSelectedPost = selectedPost ? { ...selectedPost } : null;
+
+    const applyOptimisticLike = (postObj) => {
+      if (!postObj) return null;
+      const isLiked = postObj.userReaction === 'UPVOTE' || postObj.likedBy?.includes(currentUser.id);
+      const newReaction = isLiked ? null : 'UPVOTE';
+      const updatedLikedBy = isLiked
+        ? (postObj.likedBy || []).filter(id => id !== currentUser.id)
+        : [...(postObj.likedBy || []), currentUser.id];
+      const delta = isLiked ? -1 : 1;
+      const newLikes = Math.max(0, (postObj.likes || 0) + delta);
+      const newReactionCounts = { ...(postObj.reactionCounts || {}) };
+      newReactionCounts['UPVOTE'] = Math.max(0, (newReactionCounts['UPVOTE'] || 0) + delta);
+
+      return {
+        ...postObj,
+        likes: newLikes,
+        likedBy: updatedLikedBy,
+        userReaction: newReaction,
+        reactionCounts: newReactionCounts
+      };
+    };
+
+    setPosts(prev => prev.map(p => p.id === postId ? applyOptimisticLike(p) : p));
+    if (selectedPost && selectedPost.id === postId) {
+      setSelectedPost(prev => applyOptimisticLike(prev));
+    }
+
+    // 2. Async API Call
     try {
       const result = await api.reactForumPost(postId, type);
-      
-      setPosts(prev => prev.map(p => {
-        if (p.id === postId) {
-          const userReaction = result.userReaction;
-          const likedBy = userReaction 
-            ? (p.likedBy?.includes(currentUser.id) ? p.likedBy : [...(p.likedBy || []), currentUser.id])
-            : p.likedBy?.filter(id => id !== currentUser.id);
-          return {
-            ...p,
-            likes: result.likes,
-            likedBy,
-            reactionCounts: result.reactionCounts,
-            userReaction: result.userReaction
-          };
-        }
-        return p;
-      }));
-
+      setPosts(prev => prev.map(p => p.id === postId ? {
+        ...p,
+        likes: result.likes,
+        userReaction: result.userReaction,
+        reactionCounts: result.reactionCounts
+      } : p));
       if (selectedPost && selectedPost.id === postId) {
-        setSelectedPost(prev => {
-          const userReaction = result.userReaction;
-          const likedBy = userReaction 
-            ? (prev.likedBy?.includes(currentUser.id) ? prev.likedBy : [...(prev.likedBy || []), currentUser.id])
-            : prev.likedBy?.filter(id => id !== currentUser.id);
-          return {
-            ...prev,
-            likes: result.likes,
-            likedBy,
-            reactionCounts: result.reactionCounts,
-            userReaction: result.userReaction
-          };
-        });
+        setSelectedPost(prev => prev ? {
+          ...prev,
+          likes: result.likes,
+          userReaction: result.userReaction,
+          reactionCounts: result.reactionCounts
+        } : null);
       }
     } catch (err) {
+      setPosts(prevPosts);
+      if (prevSelectedPost) setSelectedPost(prevSelectedPost);
       toast(err.message || 'Thao tác bày tỏ cảm xúc thất bại!', 'error');
     }
   };
@@ -837,27 +926,32 @@ export default function Forum({ currentUser }) {
       toast('Vui lòng đăng nhập để lưu bài viết!', 'warning');
       return;
     }
+
+    // 1. Optimistic Update (< 0.01s)
+    const targetPost = posts.find(p => p.id === targetPostId) || selectedPost;
+    const isCurrentlySaved = !!targetPost?.isSaved;
+    const newIsSaved = !isCurrentlySaved;
+
+    setPosts(prev => prev.map(p => p.id === targetPostId ? { ...p, isSaved: newIsSaved } : p));
+    if (selectedPost && selectedPost.id === targetPostId) {
+      setSelectedPost(prev => prev ? { ...prev, isSaved: newIsSaved } : null);
+    }
+
+    // 2. Async API Call
     try {
       const res = await api.toggleSaveForumPost(targetPostId);
-      
-      setPosts(prev => prev.map(p => {
-        if (p.id === targetPostId) {
-          return { ...p, isSaved: res.isSaved };
-        }
-        return p;
-      }));
-
+      setPosts(prev => prev.map(p => p.id === targetPostId ? { ...p, isSaved: res.isSaved } : p));
       if (selectedPost && selectedPost.id === targetPostId) {
-        setSelectedPost(prev => ({ ...prev, isSaved: res.isSaved }));
+        setSelectedPost(prev => prev ? { ...prev, isSaved: res.isSaved } : null);
       }
-      
-      toast(res.message, 'success');
-      
-      if (activeTab === 'saved' && !res.isSaved) {
-        setPosts(prev => prev.filter(p => p.id !== targetPostId));
-      }
+      toast(res.isSaved ? 'Đã lưu bài viết vào bộ sưu tập!' : 'Đã bỏ lưu bài viết!', 'success');
     } catch (err) {
-      toast(err.message || 'Lỗi lưu bài viết!', 'error');
+      // Rollback on error
+      setPosts(prev => prev.map(p => p.id === targetPostId ? { ...p, isSaved: isCurrentlySaved } : p));
+      if (selectedPost && selectedPost.id === targetPostId) {
+        setSelectedPost(prev => prev ? { ...prev, isSaved: isCurrentlySaved } : null);
+      }
+      toast(err.message || 'Thao tác lưu bài viết thất bại!', 'error');
     }
   };
 
@@ -1003,141 +1097,133 @@ export default function Forum({ currentUser }) {
         <LoadingOverlay message={submitting ? "Đang xử lý bình luận..." : (commentsLoading ? "Đang tải bài viết..." : "Đang tải dữ liệu...")} />
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: '32px', width: '100%', margin: 0, padding: '24px 16px', minHeight: '100vh', boxSizing: 'border-box' }}>
+      <div style={{ display: 'flex', gap: '32px', width: '100%', margin: 0, padding: '24px 16px', minHeight: '100vh', boxSizing: 'border-box', position: 'relative' }}>
         
-        {/* ================= LEFT SIDEBAR (Threads Style) ================= */}
-        <aside style={{ position: 'sticky', top: '80px', maxHeight: 'calc(100vh - 100px)', overflowY: 'auto', alignSelf: 'start', display: 'flex', flexDirection: 'column', gap: '32px', borderRight: '1px solid var(--border)', paddingRight: '24px', boxSizing: 'border-box' }}>
-          <div>
-            {/* Header/Logo */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '32px', cursor: 'pointer' }} onClick={() => { setActiveTab('feed'); setSelectedGroup(null); }}>
-              <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '20px', fontWeight: '900', boxShadow: '0 4px 12px rgba(108, 92, 231, 0.2)' }}>
-                EP
-              </div>
-              <div>
-                <span style={{ fontSize: '17px', fontWeight: '900', letterSpacing: '-0.5px', color: 'var(--text-primary)', display: 'block' }}>EduPath AI</span>
-                <span style={{ fontSize: '10.5px', color: 'var(--text-secondary)', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Cộng đồng</span>
-              </div>
+        {/* ================= LEFT SIDEBAR (Portal Fixed to Viewport with Dynamic Footer Avoidance) ================= */}
+        {createPortal(
+          <aside style={{ position: 'fixed', top: '90px', left: '24px', width: '280px', maxHeight: sidebarOverlapOffset > 0 ? `calc(100vh - 110px - ${sidebarOverlapOffset}px)` : 'calc(100vh - 110px)', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '28px', borderRight: '1px solid var(--border)', paddingRight: '20px', boxSizing: 'border-box', zIndex: 99, background: 'transparent', transition: 'max-height 0.05s ease-out' }}>
+            <div>
+              {/* Navigation Items */}
+              <nav style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                {[
+                  { id: 'feed', label: 'Dành cho bạn', icon: <HiHome style={{ fontSize: '20px' }} /> },
+                  { id: 'search', label: 'Tìm kiếm', icon: <HiSearch style={{ fontSize: '20px' }} /> },
+                  { id: 'profile', label: 'Trang cá nhân', icon: <HiUser style={{ fontSize: '20px' }} /> },
+                  { id: 'groups', label: 'Nhóm học tập', icon: <HiUserGroup style={{ fontSize: '20px' }} /> },
+                ].map((item) => {
+                  const isSelected = activeTab === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => {
+                        setActiveTab(item.id);
+                        setSelectedGroup(null);
+                        if (item.id === 'leaderboard') fetchLeaderboard();
+                        if (item.id === 'profile') fetchGamifyProfile();
+                      }}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '12px',
+                        padding: '12px 16px',
+                        borderRadius: '12px',
+                        border: 'none',
+                        background: isSelected ? 'var(--primary-bg)' : 'transparent',
+                        color: isSelected ? 'var(--primary)' : 'var(--text-muted)',
+                        fontWeight: isSelected ? '800' : '600',
+                        fontSize: '14.5px',
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                        transition: 'all 0.2s ease',
+                        width: '100%'
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!isSelected) {
+                          e.currentTarget.style.background = 'var(--bg-card)';
+                          e.currentTarget.style.color = 'var(--text-primary)';
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!isSelected) {
+                          e.currentTarget.style.background = 'transparent';
+                          e.currentTarget.style.color = 'var(--text-muted)';
+                        }
+                      }}
+                    >
+                      {item.icon}
+                      <span>{item.label}</span>
+                    </button>
+                  );
+                })}
+              </nav>
             </div>
 
-            {/* Navigation Items */}
-            <nav style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              {[
-                { id: 'feed', label: 'Dành cho bạn', icon: <HiHome style={{ fontSize: '20px' }} /> },
-                { id: 'search', label: 'Tìm kiếm', icon: <HiSearch style={{ fontSize: '20px' }} /> },
-                { id: 'profile', label: 'Trang cá nhân', icon: <HiUser style={{ fontSize: '20px' }} /> },
-                { id: 'groups', label: 'Nhóm học tập', icon: <HiUserGroup style={{ fontSize: '20px' }} /> },
-              ].map((item) => {
-                const isSelected = activeTab === item.id;
-                return (
-                  <button
-                    key={item.id}
+            {/* Nhóm học tập / Suggestions box */}
+            <div style={{
+              background: 'var(--bg-card)',
+              border: '1.5px dashed var(--border)',
+              borderRadius: '16px',
+              padding: '16px',
+              boxShadow: 'var(--shadow-sm)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '10px'
+            }}>
+              <h4 style={{ margin: 0, fontSize: '12.5px', fontWeight: '900', color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ color: 'var(--primary)' }}>•</span> Nhóm học tập của bạn
+              </h4>
+              
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {studyGroups.filter(g => g.isMember).slice(0, 3).map(group => (
+                  <div 
+                    key={group.id} 
                     onClick={() => {
-                      setActiveTab(item.id);
-                      setSelectedGroup(null);
-                      if (item.id === 'leaderboard') fetchLeaderboard();
-                      if (item.id === 'profile') fetchGamifyProfile();
+                      setSelectedGroup(group);
+                      setActiveTab('groups');
+                      setGroupTab('announcements');
+                      fetchGroupAnnouncements(group.id);
                     }}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '12px',
-                      padding: '12px 16px',
-                      borderRadius: '12px',
-                      border: 'none',
-                      background: isSelected ? 'var(--primary-bg)' : 'transparent',
-                      color: isSelected ? 'var(--primary)' : 'var(--text-muted)',
-                      fontWeight: isSelected ? '800' : '600',
-                      fontSize: '14.5px',
-                      cursor: 'pointer',
-                      textAlign: 'left',
-                      transition: 'all 0.2s ease',
-                      width: '100%'
-                    }}
-                    onMouseEnter={(e) => {
-                      if (!isSelected) {
-                        e.currentTarget.style.background = 'var(--bg-card)';
-                        e.currentTarget.style.color = 'var(--text-primary)';
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!isSelected) {
-                        e.currentTarget.style.background = 'transparent';
-                        e.currentTarget.style.color = 'var(--text-muted)';
-                      }
-                    }}
+                    style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 8px', borderRadius: '8px', transition: 'background 0.2s' }}
+                    onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-main)'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                   >
-                    {item.icon}
-                    <span>{item.label}</span>
-                  </button>
-                );
-              })}
-            </nav>
-          </div>
+                    <span style={{ fontSize: '14px' }}>👥</span>
+                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{group.name}</span>
+                  </div>
+                ))}
+                {studyGroups.filter(g => g.isMember).length === 0 && (
+                  <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontStyle: 'italic', padding: '4px 8px' }}>Bạn chưa tham gia nhóm nào.</span>
+                )}
+              </div>
 
-          {/* Nhóm học tập / Suggestions box */}
-          <div style={{
-            background: 'var(--bg-card)',
-            border: '1.5px dashed var(--border)',
-            borderRadius: '16px',
-            padding: '16px',
-            boxShadow: 'var(--shadow-sm)',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '10px'
-          }}>
-            <h4 style={{ margin: 0, fontSize: '12.5px', fontWeight: '900', color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span style={{ color: 'var(--primary)' }}>•</span> Nhóm học tập của bạn
-            </h4>
-            
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {studyGroups.filter(g => g.isMember).slice(0, 3).map(group => (
-                <div 
-                  key={group.id} 
-                  onClick={() => {
-                    setSelectedGroup(group);
-                    setActiveTab('groups');
-                    setGroupTab('announcements');
-                    fetchGroupAnnouncements(group.id);
-                  }}
-                  style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 8px', borderRadius: '8px', transition: 'background 0.2s' }}
-                  onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-main)'}
-                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                >
-                  <span style={{ fontSize: '14px' }}>👥</span>
-                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{group.name}</span>
-                </div>
-              ))}
-              {studyGroups.filter(g => g.isMember).length === 0 && (
-                <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontStyle: 'italic', padding: '4px 8px' }}>Bạn chưa tham gia nhóm nào.</span>
-              )}
+              <button 
+                onClick={() => { setActiveTab('groups'); setSelectedGroup(null); }}
+                style={{
+                  marginTop: '6px',
+                  padding: '10px 12px',
+                  borderRadius: '10px',
+                  background: 'var(--primary)',
+                  color: '#fff',
+                  fontWeight: '800',
+                  border: 'none',
+                  fontSize: '12px',
+                  cursor: 'pointer',
+                  textAlign: 'center',
+                  boxShadow: '0 4px 12px rgba(108, 92, 231, 0.15)',
+                  transition: 'opacity 0.2s'
+                }}
+                onMouseEnter={e => e.currentTarget.style.opacity = '0.9'}
+                onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+              >
+                Khám phá nhóm học tập
+              </button>
             </div>
-
-            <button 
-              onClick={() => { setActiveTab('groups'); setSelectedGroup(null); }}
-              style={{
-                marginTop: '6px',
-                padding: '10px 12px',
-                borderRadius: '10px',
-                background: 'var(--primary)',
-                color: '#fff',
-                fontWeight: '800',
-                border: 'none',
-                fontSize: '12px',
-                cursor: 'pointer',
-                textAlign: 'center',
-                boxShadow: '0 4px 12px rgba(108, 92, 231, 0.15)',
-                transition: 'opacity 0.2s'
-              }}
-              onMouseEnter={e => e.currentTarget.style.opacity = '0.9'}
-              onMouseLeave={e => e.currentTarget.style.opacity = '1'}
-            >
-              Khám phá nhóm học tập
-            </button>
-          </div>
-        </aside>
+          </aside>,
+          document.body
+        )}
 
         {/* ================= MAIN CONTENT ================= */}
-        <main style={{ flex: 1, minWidth: 0, maxWidth: '920px', margin: '0 auto', width: '100%', boxSizing: 'border-box' }}>
+        <main style={{ flex: 1, minWidth: 0, maxWidth: '920px', marginLeft: '312px', width: 'calc(100% - 312px)', boxSizing: 'border-box' }}>
           
           {/* 1. FEED VIEW */}
           {activeTab === 'feed' && (
@@ -1147,134 +1233,6 @@ export default function Forum({ currentUser }) {
                   <h2 style={{ fontSize: '22px', fontWeight: '900', color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.5px' }}>Dành cho bạn</h2>
                   <p style={{ margin: '4px 0 0 0', fontSize: '13.5px', color: 'var(--text-secondary)' }}>Bảng tin cộng đồng học tập EduPath</p>
                 </div>
-              </div>
-
-              {/* Tag selectors & Categories scroll */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '16px', padding: '16px', boxShadow: 'var(--shadow-sm)' }}>
-                {/* Categories badges */}
-                <div className="no-scrollbar" style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '4px' }}>
-                  <button
-                    onClick={() => setSelectedCategory('All')}
-                    className={`btn ${selectedCategory === 'All' ? 'btn-primary' : 'btn-outline'}`}
-                    style={{ padding: '6px 14px', borderRadius: '20px', fontSize: '12px', whiteSpace: 'nowrap', fontWeight: 'bold' }}
-                  >
-                    Tất cả môn học
-                  </button>
-                  {categories.map((cat) => (
-                    <button
-                      key={cat.id}
-                      onClick={() => setSelectedCategory(cat.name)}
-                      className={`btn ${selectedCategory === cat.name ? 'btn-primary' : 'btn-outline'}`}
-                      style={{ padding: '6px 14px', borderRadius: '20px', fontSize: '12px', whiteSpace: 'nowrap', fontWeight: 'bold' }}
-                    >
-                      {cat.name}
-                    </button>
-                  ))}
-                </div>
-
-                {/* Quick Filters Row */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border)', paddingTop: '12px', marginTop: '4px' }}>
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    {[
-                      { id: 'All', label: 'Tất cả dạng bài' },
-                      { id: 'GENERAL', label: 'Thảo luận' },
-                      { id: 'QA', label: 'Hỏi & Đáp' },
-                      { id: 'RESOURCE', label: 'Tài liệu' }
-                    ].map((t) => (
-                      <button
-                        key={t.id}
-                        onClick={() => setSelectedType(t.id)}
-                        style={{
-                          background: selectedType === t.id ? 'var(--primary-bg)' : 'transparent',
-                          color: selectedType === t.id ? 'var(--primary)' : 'var(--text-secondary)',
-                          border: 'none',
-                          padding: '6px 12px',
-                          borderRadius: '8px',
-                          fontSize: '12px',
-                          fontWeight: 'bold',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        {t.label}
-                      </button>
-                    ))}
-                  </div>
-
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <select
-                      className="form-control"
-                      value={sortType}
-                      onChange={(e) => setSortType(e.target.value)}
-                      style={{ fontSize: '12px', height: '32px', width: '130px', padding: '0 8px' }}
-                    >
-                      <option value="newest">Mới nhất</option>
-                      <option value="popular">Nổi bật (Lượt thích)</option>
-                      <option value="comments">Bình luận nhiều</option>
-                    </select>
-
-                    <button
-                      type="button"
-                      onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-                      style={{
-                        background: showAdvancedFilters ? 'var(--primary-bg)' : 'transparent',
-                        color: showAdvancedFilters ? 'var(--primary)' : 'var(--text-secondary)',
-                        border: '1px solid var(--border)',
-                        padding: '6px 12px',
-                        borderRadius: '8px',
-                        fontSize: '12px',
-                        fontWeight: 'bold',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      Bộ lọc nâng cao
-                    </button>
-                  </div>
-                </div>
-
-                {/* Advanced Filters Panel */}
-                {showAdvancedFilters && (
-                  <div className="animate-in" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', background: 'var(--bg-main)', padding: '12px', borderRadius: '10px', border: '1px solid var(--border)', marginTop: '8px' }}>
-                    <div>
-                      <label style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>Độ khó bài thi/Q&A</label>
-                      <select className="form-control" value={filterDifficulty} onChange={(e) => setFilterDifficulty(e.target.value)} style={{ fontSize: '11.5px', height: '30px' }}>
-                        <option value="All">Tất cả</option>
-                        <option value="EASY">Dễ</option>
-                        <option value="MEDIUM">Trung bình</option>
-                        <option value="HARD">Khó</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>Trạng thái</label>
-                      <select className="form-control" value={filterResolved} onChange={(e) => setFilterResolved(e.target.value)} style={{ fontSize: '11.5px', height: '30px' }}>
-                        <option value="All">Tất cả</option>
-                        <option value="RESOLVED">Đã giải quyết</option>
-                        <option value="UNRESOLVED">Chưa giải quyết</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>Khoảng thời gian</label>
-                      <select className="form-control" value={filterDateRange} onChange={(e) => setFilterDateRange(e.target.value)} style={{ fontSize: '11.5px', height: '30px' }}>
-                        <option value="All">Tất cả</option>
-                        <option value="today">Hôm nay</option>
-                        <option value="week">Trong tuần này</option>
-                        <option value="month">Trong tháng này</option>
-                      </select>
-                    </div>
-
-                    <div style={{ display: 'flex', alignItems: 'center', height: '100%', paddingTop: '16px' }}>
-                      <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer' }}>
-                        <input
-                          type="checkbox"
-                          checked={filterHasAttachment}
-                          onChange={(e) => setFilterHasAttachment(e.target.checked)}
-                        />
-                        Có file đính kèm
-                      </label>
-                    </div>
-                  </div>
-                )}
               </div>
 
               {/* Feed Post Create Quick Box */}
@@ -1365,8 +1323,41 @@ export default function Forum({ currentUser }) {
                       {/* Title & snippet */}
                       <h3 style={{ fontSize: '16.5px', fontWeight: '900', color: 'var(--text-primary)', marginTop: 0, marginBottom: '6px', lineHeight: 1.3 }}>{post.title}</h3>
                       <p style={{ fontSize: '13.5px', color: 'var(--text-secondary)', margin: '0 0 12px 0', lineHeight: 1.5, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical' }}>
-                        {post.content ? post.content.replace(/!\[(.*?)\]\((.*?)\)/g, '[Ảnh]') : ''}
+                        {post.content ? post.content.replace(/!\[(.*?)\]\((.*?)\)/g, '').trim() : ''}
                       </p>
+
+                      {/* Image Thumbnail Preview directly on Card */}
+                      {extractFirstImageUrl(post.content) && (
+                        <div style={{ marginBottom: '12px', borderRadius: '12px', overflow: 'hidden', maxHeight: '280px', border: '1px solid var(--border)' }}>
+                          <img 
+                            src={resolveImageUrl(extractFirstImageUrl(post.content))} 
+                            alt={post.title} 
+                            style={{ width: '100%', maxHeight: '280px', objectFit: 'cover', display: 'block' }} 
+                          />
+                        </div>
+                      )}
+
+                      {/* Resource Attachment Card directly on Feed */}
+                      {post.resourceFile && (
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--primary-bg)', border: '1px solid var(--primary)', borderRadius: '10px', padding: '10px 14px', marginBottom: '12px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <span style={{ fontSize: '20px' }}>📄</span>
+                            <div>
+                              <div style={{ fontSize: '12.5px', fontWeight: 'bold', color: 'var(--primary)' }}>{post.resourceFile.fileName || 'Tài liệu học tập'}</div>
+                              <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{post.resourceFile.fileType || 'PDF'} • {Math.round((post.resourceFile.fileSize || 0) / 1024)} KB</div>
+                            </div>
+                          </div>
+                          <a 
+                            href={resolveImageUrl(post.resourceFile.fileUrl)} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            style={{ fontSize: '11.5px', fontWeight: 'bold', color: 'var(--primary)', textDecoration: 'none', background: 'var(--bg-card)', padding: '4px 10px', borderRadius: '6px', border: '1px solid var(--primary)' }}
+                          >
+                            Tải tài liệu 📥
+                          </a>
+                        </div>
+                      )}
 
                       {/* Tag chips */}
                       {post.tags && post.tags.length > 0 && (
@@ -1473,6 +1464,29 @@ export default function Forum({ currentUser }) {
                   />
                 </div>
 
+                {/* Categories badges filter in Search view */}
+                <div className="no-scrollbar" style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '4px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedCategory('All')}
+                    className={`btn ${selectedCategory === 'All' ? 'btn-primary' : 'btn-outline'}`}
+                    style={{ padding: '5px 12px', borderRadius: '20px', fontSize: '12px', whiteSpace: 'nowrap', fontWeight: 'bold' }}
+                  >
+                    Tất cả môn học
+                  </button>
+                  {categories.map((cat) => (
+                    <button
+                      type="button"
+                      key={cat.id}
+                      onClick={() => setSelectedCategory(cat.name)}
+                      className={`btn ${selectedCategory === cat.name ? 'btn-primary' : 'btn-outline'}`}
+                      style={{ padding: '5px 12px', borderRadius: '20px', fontSize: '12px', whiteSpace: 'nowrap', fontWeight: 'bold' }}
+                    >
+                      {cat.name}
+                    </button>
+                  ))}
+                </div>
+
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
                   <div>
                     <label style={{ fontSize: '12px', fontWeight: 'bold', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>Môn học / Danh mục</label>
@@ -1569,55 +1583,138 @@ export default function Forum({ currentUser }) {
           )}
 
           {/* 3. PROFILE VIEW */}
-          {activeTab === 'profile' && gamifyProfile && (
+          {activeTab === 'profile' && (
             <div className="animate-in" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
               <div>
                 <h2 style={{ fontSize: '22px', fontWeight: '900', color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.5px' }}>Trang cá nhân của bạn</h2>
-                <p style={{ margin: '4px 0 0 0', fontSize: '13.5px', color: 'var(--text-secondary)' }}>Học viên: {currentUser.fullName}</p>
+                <p style={{ margin: '4px 0 0 0', fontSize: '13.5px', color: 'var(--text-secondary)' }}>Học viên: {currentUser?.fullName}</p>
               </div>
 
               {/* Two columns: Posts left, Card right */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: '32px', alignItems: 'start' }}>
-                {/* Left side: My posts list */}
+                {/* Left side: Sub-tabs and Posts list */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                  <h3 style={{ fontSize: '16px', fontWeight: '900', color: 'var(--text-primary)', margin: '0 0 8px 0', borderBottom: '2px solid var(--primary)', paddingBottom: '8px', width: 'fit-content' }}>
-                    Bài đăng của tôi 📝
-                  </h3>
-                  {posts.filter(p => p.authorId === currentUser?.id).map((post) => (
-                    <article
-                      key={post.id}
-                      className="card post-item"
-                      onClick={() => setSelectedPost(post)}
+                  <div style={{ display: 'flex', gap: '8px', borderBottom: '2px solid var(--border)', paddingBottom: '8px' }}>
+                    <button
+                      type="button"
+                      onClick={() => setProfileSubTab('my_posts')}
                       style={{
-                        padding: '16px',
+                        background: profileSubTab === 'my_posts' ? 'var(--primary-bg)' : 'transparent',
+                        color: profileSubTab === 'my_posts' ? 'var(--primary)' : 'var(--text-secondary)',
+                        border: 'none',
+                        padding: '8px 16px',
+                        borderRadius: '10px',
+                        fontWeight: '900',
+                        fontSize: '14.5px',
                         cursor: 'pointer',
-                        borderRadius: '12px',
-                        border: '1px solid var(--border)',
-                        background: 'var(--bg-card)',
-                        boxShadow: 'var(--shadow-sm)',
-                        display: 'flex',
-                        gap: '12px'
+                        transition: 'all 0.2s ease'
                       }}
                     >
-                      <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: '900', flexShrink: 0 }}>
-                        {post.authorName?.substring(0, 2).toUpperCase() || 'EP'}
-                      </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                          <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 'bold' }}>{post.categoryName}</span>
-                          <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{new Date(post.createdAt).toLocaleDateString()}</span>
+                      Bài đăng của tôi 📝 ({posts.filter(p => Number(p.authorId) === Number(currentUser?.id) || p.authorName === currentUser?.fullName).length})
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setProfileSubTab('saved_posts')}
+                      style={{
+                        background: profileSubTab === 'saved_posts' ? 'var(--primary-bg)' : 'transparent',
+                        color: profileSubTab === 'saved_posts' ? 'var(--primary)' : 'var(--text-secondary)',
+                        border: 'none',
+                        padding: '8px 16px',
+                        borderRadius: '10px',
+                        fontWeight: '900',
+                        fontSize: '14.5px',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease'
+                      }}
+                    >
+                      Bài viết đã lưu 🔖 ({posts.filter(p => p.isSaved).length})
+                    </button>
+                  </div>
+
+                  {/* 1. My Posts */}
+                  {profileSubTab === 'my_posts' && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                      {posts.filter(p => Number(p.authorId) === Number(currentUser?.id) || p.authorName === currentUser?.fullName).map((post) => (
+                        <article
+                          key={post.id}
+                          className="card post-item"
+                          onClick={() => setSelectedPost(post)}
+                          style={{
+                            padding: '16px',
+                            cursor: 'pointer',
+                            borderRadius: '12px',
+                            border: '1px solid var(--border)',
+                            background: 'var(--bg-card)',
+                            boxShadow: 'var(--shadow-sm)',
+                            display: 'flex',
+                            gap: '12px'
+                          }}
+                        >
+                          <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: '900', flexShrink: 0 }}>
+                            {post.authorName?.substring(0, 2).toUpperCase() || 'EP'}
+                          </div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                              <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 'bold' }}>{post.categoryName}</span>
+                              <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{new Date(post.createdAt).toLocaleDateString()}</span>
+                            </div>
+                            <h4 style={{ fontSize: '14.5px', fontWeight: '800', color: 'var(--text-primary)', margin: '0 0 4px 0' }}>{post.title}</h4>
+                            <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: 0, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                              {post.content ? post.content.replace(/!\[(.*?)\]\((.*?)\)/g, '[Ảnh]') : ''}
+                            </p>
+                          </div>
+                        </article>
+                      ))}
+                      {posts.filter(p => Number(p.authorId) === Number(currentUser?.id) || p.authorName === currentUser?.fullName).length === 0 && (
+                        <div style={{ padding: '36px', textAlign: 'center', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '12px' }}>
+                          <span style={{ fontSize: '24px', display: 'block', marginBottom: '8px' }}>📝</span>
+                          <span style={{ fontSize: '13px', color: 'var(--text-muted)', fontWeight: 'bold' }}>Bạn chưa đăng tải thảo luận nào trên diễn đàn.</span>
                         </div>
-                        <h4 style={{ fontSize: '14.5px', fontWeight: '800', color: 'var(--text-primary)', margin: '0 0 4px 0' }}>{post.title}</h4>
-                        <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: 0, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
-                          {post.content ? post.content.replace(/!\[(.*?)\]\((.*?)\)/g, '[Ảnh]') : ''}
-                        </p>
-                      </div>
-                    </article>
-                  ))}
-                  {posts.filter(p => p.authorId === currentUser?.id).length === 0 && (
-                    <div style={{ padding: '36px', textAlign: 'center', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '12px' }}>
-                      <span style={{ fontSize: '24px', display: 'block', marginBottom: '8px' }}>📝</span>
-                      <span style={{ fontSize: '13px', color: 'var(--text-muted)', fontWeight: 'bold' }}>Bạn chưa đăng tải thảo luận nào trên diễn đàn.</span>
+                      )}
+                    </div>
+                  )}
+
+                  {/* 2. Saved Posts */}
+                  {profileSubTab === 'saved_posts' && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                      {posts.filter(p => p.isSaved).map((post) => (
+                        <article
+                          key={post.id}
+                          className="card post-item"
+                          onClick={() => setSelectedPost(post)}
+                          style={{
+                            padding: '16px',
+                            cursor: 'pointer',
+                            borderRadius: '12px',
+                            border: '1px solid var(--border)',
+                            background: 'var(--bg-card)',
+                            boxShadow: 'var(--shadow-sm)',
+                            display: 'flex',
+                            gap: '12px'
+                          }}
+                        >
+                          <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'linear-gradient(135deg, #fdcb6e 0%, #e17055 100%)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: '900', flexShrink: 0 }}>
+                            🔖
+                          </div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                              <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 'bold' }}>Tác giả: {post.authorName} • {post.categoryName}</span>
+                              <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{new Date(post.createdAt).toLocaleDateString()}</span>
+                            </div>
+                            <h4 style={{ fontSize: '14.5px', fontWeight: '800', color: 'var(--text-primary)', margin: '0 0 4px 0' }}>{post.title}</h4>
+                            <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: 0, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                              {post.content ? post.content.replace(/!\[(.*?)\]\((.*?)\)/g, '[Ảnh]') : ''}
+                            </p>
+                          </div>
+                        </article>
+                      ))}
+                      {posts.filter(p => p.isSaved).length === 0 && (
+                        <div style={{ padding: '36px', textAlign: 'center', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '12px' }}>
+                          <span style={{ fontSize: '24px', display: 'block', marginBottom: '8px' }}>🔖</span>
+                          <span style={{ fontSize: '13px', color: 'var(--text-muted)', fontWeight: 'bold' }}>Bạn chưa lưu bài viết nào vào thư viện.</span>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -1638,11 +1735,11 @@ export default function Forum({ currentUser }) {
                   {/* Top user header */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
                     <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px', fontWeight: '900', boxShadow: '0 4px 12px rgba(108, 92, 231, 0.3)' }}>
-                      {currentUser.fullName?.substring(0, 2).toUpperCase() || 'EP'}
+                      {currentUser?.fullName?.substring(0, 2).toUpperCase() || 'EP'}
                     </div>
                     <div>
-                      <h4 style={{ margin: 0, fontSize: '16px', fontWeight: '900', color: 'var(--text-primary)' }}>{currentUser.fullName}</h4>
-                      <span style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: '700' }}>Cấp độ hiện tại: <span style={{ color: 'var(--primary)', fontSize: '13px' }}>Cấp {gamifyProfile.level}</span></span>
+                      <h4 style={{ margin: 0, fontSize: '16px', fontWeight: '900', color: 'var(--text-primary)' }}>{currentUser?.fullName}</h4>
+                      <span style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: '700' }}>Cấp độ hiện tại: <span style={{ color: 'var(--primary)', fontSize: '13px' }}>Cấp {gamifyProfile?.level || 1}</span></span>
                     </div>
                   </div>
 
@@ -1660,10 +1757,10 @@ export default function Forum({ currentUser }) {
                           ?
                         </button>
                       </span>
-                      <span>{gamifyProfile.xp} XP / {gamifyProfile.nextLevelXP} XP</span>
+                      <span>{gamifyProfile?.xp || 0} XP / {gamifyProfile?.nextLevelXP || 100} XP</span>
                     </div>
                     <div style={{ width: '100%', height: '8px', background: 'var(--bg-main)', borderRadius: '4px', overflow: 'hidden' }}>
-                      <div style={{ width: `${Math.min(100, (gamifyProfile.xp / gamifyProfile.nextLevelXP) * 100)}%`, height: '100%', background: 'linear-gradient(90deg, var(--primary) 0%, #a55eea 100%)', borderRadius: '4px' }}></div>
+                      <div style={{ width: `${gamifyProfile?.progress || 0}%`, height: '100%', background: 'linear-gradient(90deg, var(--primary) 0%, #a55eea 100%)', borderRadius: '4px' }}></div>
                     </div>
                   </div>
 
@@ -1671,13 +1768,13 @@ export default function Forum({ currentUser }) {
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)', padding: '16px 0' }}>
                     <div style={{ textAlign: 'center', borderRight: '1px solid var(--border)' }}>
                       <span style={{ fontSize: '24px', display: 'block' }}>🔥</span>
-                      <span style={{ fontSize: '16px', fontWeight: '900', color: 'var(--text-primary)', display: 'block', marginTop: '4px' }}>{gamifyProfile.streak} ngày</span>
+                      <span style={{ fontSize: '16px', fontWeight: '900', color: 'var(--text-primary)', display: 'block', marginTop: '4px' }}>{gamifyProfile?.streakDays || 0} ngày</span>
                       <span style={{ fontSize: '10.5px', color: 'var(--text-muted)', fontWeight: 'bold' }}>Chuỗi học tập</span>
                     </div>
                     
                     <div style={{ textAlign: 'center' }}>
                       <span style={{ fontSize: '24px', display: 'block' }}>🏆</span>
-                      <span style={{ fontSize: '16px', fontWeight: '900', color: 'var(--text-primary)', display: 'block', marginTop: '4px' }}>Cấp {gamifyProfile.level}</span>
+                      <span style={{ fontSize: '16px', fontWeight: '900', color: 'var(--text-primary)', display: 'block', marginTop: '4px' }}>Cấp {gamifyProfile?.level || 1}</span>
                       <span style={{ fontSize: '10.5px', color: 'var(--text-muted)', fontWeight: 'bold' }}>Hạng danh vọng</span>
                     </div>
                   </div>
@@ -1686,27 +1783,41 @@ export default function Forum({ currentUser }) {
                   <div>
                     <h5 style={{ margin: '0 0 10px 0', fontSize: '12px', fontWeight: '800', textTransform: 'uppercase', color: 'var(--text-secondary)', letterSpacing: '0.5px' }}>Huy hiệu đạt được</h5>
                     <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                      {gamifyProfile.badges && gamifyProfile.badges.map((badge, idx) => (
-                        <div
-                          key={idx}
-                          style={{
-                            background: 'var(--bg-main)',
-                            border: '1.5px solid var(--primary)',
-                            borderRadius: '12px',
-                            padding: '8px 12px',
-                            fontSize: '12px',
-                            fontWeight: 'bold',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '6px',
-                            boxShadow: 'var(--shadow-sm)'
-                          }}
-                        >
-                          <span>🏅</span>
-                          <span>{badge}</span>
-                        </div>
-                      ))}
-                      {(!gamifyProfile.badges || gamifyProfile.badges.length === 0) && (
+                      {Array.isArray(gamifyProfile?.badges) && gamifyProfile.badges.map((badgeItem, idx) => {
+                        const badgeName = typeof badgeItem === 'string' ? badgeItem : (badgeItem?.badge?.name || badgeItem?.name || 'Huy hiệu EduPath');
+                        const badgeIcon = badgeItem?.badge?.iconUrl || badgeItem?.iconUrl || '🏅';
+                        return (
+                          <div
+                            key={idx}
+                            style={{
+                              background: 'var(--bg-main)',
+                              border: '1.5px solid var(--primary)',
+                              borderRadius: '12px',
+                              padding: '8px 12px',
+                              fontSize: '12px',
+                              fontWeight: 'bold',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              boxShadow: 'var(--shadow-sm)'
+                            }}
+                          >
+                            {typeof badgeIcon === 'string' && (badgeIcon.startsWith('/') || badgeIcon.startsWith('http') || badgeIcon.includes('.')) ? (
+                              <img 
+                                src={badgeIcon} 
+                                alt={badgeName} 
+                                style={{ width: '20px', height: '20px', objectFit: 'contain' }} 
+                                onError={(e) => {
+                                  e.currentTarget.style.display = 'none';
+                                }}
+                              />
+                            ) : null}
+                            <span style={{ fontSize: '15px' }}>🏅</span>
+                            <span>{badgeName}</span>
+                          </div>
+                        );
+                      })}
+                      {(!gamifyProfile?.badges || !Array.isArray(gamifyProfile.badges) || gamifyProfile.badges.length === 0) && (
                         <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontStyle: 'italic' }}>Chưa có huy hiệu nào. Hãy đóng góp tích cực để nhận thưởng!</span>
                       )}
                     </div>
@@ -2288,7 +2399,7 @@ export default function Forum({ currentUser }) {
                   className="btn-primary" 
                   style={{ padding: '8px 16px', borderRadius: '10px', fontSize: '13px', fontWeight: 'bold' }}
                 >
-                  Tải xuống học liệu (Nhận +5 XP)
+                  Tải xuống học liệu
                 </button>
               </div>
             )}
