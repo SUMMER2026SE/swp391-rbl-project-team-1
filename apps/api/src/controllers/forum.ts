@@ -439,14 +439,25 @@ export async function getPosts(req: AuthRequest, res: Response) {
 
       const userReaction = p.reactions.find(r => r.userId === userId)?.type || null;
 
-      const { reactions, savedBy, ...rest } = p;
+      const { reactions, savedBy, resource, author, category, ...rest } = p;
       return {
         ...rest,
+        author,
+        category,
+        authorName: author?.fullName || 'Người dùng EduPath',
+        authorAvatar: author?.avatarUrl || null,
+        categoryName: category?.name || 'Chung',
         likes: upvotes - downvotes,
         likedBy,
         isSaved: isBookmarked,
         reactionCounts,
         userReaction,
+        resourceFile: resource ? {
+          fileUrl: resource.fileUrl,
+          fileType: resource.fileType,
+          fileSize: resource.fileSize,
+          fileName: resource.fileUrl ? resource.fileUrl.split('/').pop() : 'Tài liệu học tập'
+        } : null,
         comments: new Array(p._count.comments).fill(null)
       };
     });
@@ -499,14 +510,25 @@ export async function getPostById(req: AuthRequest, res: Response) {
 
     const userReaction = post.reactions.find(r => r.userId === userId)?.type || null;
 
-    const { reactions, savedBy, ...rest } = post;
+    const { reactions, savedBy, resource, author, category, ...rest } = post;
     const mapped = {
       ...rest,
+      author,
+      category,
+      authorName: author?.fullName || 'Người dùng EduPath',
+      authorAvatar: author?.avatarUrl || null,
+      categoryName: category?.name || 'Chung',
       likes: upvotes - downvotes,
       likedBy,
       isSaved: isBookmarked,
       reactionCounts,
-      userReaction
+      userReaction,
+      resourceFile: resource ? {
+        fileUrl: resource.fileUrl,
+        fileType: resource.fileType,
+        fileSize: resource.fileSize,
+        fileName: resource.fileUrl ? resource.fileUrl.split('/').pop() : 'Tài liệu học tập'
+      } : null
     };
 
     return res.status(200).json({ success: true, data: mapped });
@@ -555,9 +577,10 @@ export async function createPost(req: AuthRequest, res: Response) {
       }
     });
 
-    // If resource type, add resource metadata
-    if (postType === 'RESOURCE' && resourceFile) {
-      await prisma.resourceShare.create({
+    let createdResourceFile = null;
+    // If resource type or resourceFile attached, add resource metadata
+    if (resourceFile) {
+      const createdRes = await prisma.resourceShare.create({
         data: {
           postId: newPost.id,
           fileUrl: resourceFile.fileUrl,
@@ -566,6 +589,12 @@ export async function createPost(req: AuthRequest, res: Response) {
           status: 'APPROVED' // Auto-approve for simplified local flow
         }
       });
+      createdResourceFile = {
+        fileUrl: createdRes.fileUrl,
+        fileType: createdRes.fileType,
+        fileSize: createdRes.fileSize,
+        fileName: createdRes.fileUrl ? createdRes.fileUrl.split('/').pop() : 'Tài liệu học tập'
+      };
     }
 
     // Award XP for contributing a post
@@ -573,7 +602,18 @@ export async function createPost(req: AuthRequest, res: Response) {
 
     ForumCache.clear();
 
-    return res.status(201).json({ success: true, data: newPost });
+    const postResponse = {
+      ...newPost,
+      resourceFile: createdResourceFile,
+      likes: 0,
+      likedBy: [],
+      isSaved: false,
+      reactionCounts: {},
+      userReaction: null,
+      comments: []
+    };
+
+    return res.status(201).json({ success: true, data: postResponse });
   } catch (err: any) {
     return res.status(500).json({ success: false, error: err.message });
   }
@@ -970,7 +1010,7 @@ export async function acceptCommentSolution(req: AuthRequest, res: Response) {
 export async function getStudyGroups(req: AuthRequest, res: Response) {
   const userId = req.user?.id;
   try {
-    const list = await prisma.studyGroup.findMany({
+    let list = await prisma.studyGroup.findMany({
       include: {
         members: {
           include: {
@@ -980,6 +1020,50 @@ export async function getStudyGroups(req: AuthRequest, res: Response) {
         creator: { select: { fullName: true } }
       }
     });
+
+    // Auto-seed 5 default study groups if fewer than 5 exist
+    if (list.length < 5) {
+      const defaultGroups = [
+        { name: 'Chinh Phục 9+ Môn Toán THPT Quốc Gia', description: 'Cùng nhau ôn luyện giải đề vận dụng cao, bấm máy Casio siêu tốc và chinh phục điểm 9+ môn Toán.' },
+        { name: 'Hội Ôn Thi Lý - Hóa Đại Học Top Đầu', description: 'Chia sẻ công thức tính nhanh, giải đáp thắc mắc lý thuyết Vật lý & Hóa học chuyên sâu.' },
+        { name: 'Luyện Thi Tiếng Anh Bứt Phá IELST & THPTQG', description: 'Tổng hợp từ vựng VIP, mẹo làm bài Reading, Listening và sửa bài Writing hàng ngày.' },
+        { name: 'Cùng Học & Phân Tích Văn Học 12', description: 'Phân tích dàn ý chi tiết các tác phẩm trọng tâm, chia sẻ văn mẫu đạt điểm cao.' },
+        { name: 'Biệt Đội Luyện Đề Đánh Giá Năng Lực 2026', description: 'Luyện tư duy logic, xử lý số liệu và giải đề ĐGNL ĐHQG TP.HCM / ĐHQG Hà Nội.' }
+      ];
+
+      for (const dg of defaultGroups) {
+        const exists = list.some(g => g.name.toLowerCase() === dg.name.toLowerCase());
+        if (!exists) {
+          const firstUser = await prisma.user.findFirst();
+          if (firstUser) {
+            await prisma.studyGroup.create({
+              data: {
+                name: dg.name,
+                description: dg.description,
+                creatorId: firstUser.id,
+                members: {
+                  create: {
+                    userId: firstUser.id,
+                    role: 'CREATOR'
+                  }
+                }
+              }
+            });
+          }
+        }
+      }
+
+      list = await prisma.studyGroup.findMany({
+        include: {
+          members: {
+            include: {
+              user: { select: { fullName: true, avatarUrl: true } }
+            }
+          },
+          creator: { select: { fullName: true } }
+        }
+      });
+    }
 
     // Map flag checking if current user is active member
     const mapped = list.map(g => {
@@ -1333,7 +1417,7 @@ export async function createGroupAnnouncement(req: AuthRequest, res: Response) {
 
 export async function updatePost(req: AuthRequest, res: Response) {
   const { id } = req.params;
-  const { title, content, categoryId, postType, difficulty, tags } = req.body;
+  const { title, content, categoryId, postType, difficulty, tags, resourceFile } = req.body;
   const userId = req.user?.id;
 
   try {
@@ -1355,6 +1439,24 @@ export async function updatePost(req: AuthRequest, res: Response) {
       create: { name: t, slug: slugify(t) }
     }));
 
+    if (resourceFile) {
+      await prisma.resourceShare.upsert({
+        where: { postId: Number(id) },
+        create: {
+          postId: Number(id),
+          fileUrl: resourceFile.fileUrl,
+          fileType: resourceFile.fileType || 'PDF',
+          fileSize: resourceFile.fileSize || 1024,
+          status: 'APPROVED'
+        },
+        update: {
+          fileUrl: resourceFile.fileUrl,
+          fileType: resourceFile.fileType || 'PDF',
+          fileSize: resourceFile.fileSize || 1024
+        }
+      });
+    }
+
     const updated = await prisma.forumPost.update({
       where: { id: Number(id) },
       data: {
@@ -1370,12 +1472,24 @@ export async function updatePost(req: AuthRequest, res: Response) {
       },
       include: {
         category: true,
-        author: { select: { fullName: true, avatarUrl: true } }
+        author: { select: { fullName: true, avatarUrl: true } },
+        resource: true
       }
     });
 
     ForumCache.clear();
-    return res.status(200).json({ success: true, data: updated });
+
+    const responseData = {
+      ...updated,
+      resourceFile: updated.resource ? {
+        fileUrl: updated.resource.fileUrl,
+        fileType: updated.resource.fileType,
+        fileSize: updated.resource.fileSize,
+        fileName: updated.resource.fileUrl ? updated.resource.fileUrl.split('/').pop() : 'Tài liệu học tập'
+      } : null
+    };
+
+    return res.status(200).json({ success: true, data: responseData });
   } catch (err: any) {
     return res.status(500).json({ success: false, error: err.message });
   }
