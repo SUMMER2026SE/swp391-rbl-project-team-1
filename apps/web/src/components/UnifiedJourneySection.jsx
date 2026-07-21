@@ -34,11 +34,9 @@ export default function UnifiedJourneySection({
 
     const handleIntersect = (entries) => {
       entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          const targetId = entry.target.getAttribute('data-animate-id');
-          if (targetId) {
-            setVisible(prev => ({ ...prev, [targetId]: true }));
-          }
+        const targetId = entry.target.getAttribute('data-animate-id');
+        if (targetId) {
+          setVisible(prev => ({ ...prev, [targetId]: entry.isIntersecting }));
         }
       });
     };
@@ -145,7 +143,7 @@ export default function UnifiedJourneySection({
           data-animate-id="block1"
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(480px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
             gap: '40px',
             alignItems: 'center',
             marginBottom: '48px'
@@ -213,7 +211,7 @@ export default function UnifiedJourneySection({
                   }}>
                     <CheckIcon />
                   </div>
-                  <span style={{ fontSize: '15px', fontWeight: '700', color: '#334155', lineHeight: '1.5' }}>
+                  <span style={{ flex: 1, fontSize: '15px', fontWeight: '700', color: '#334155', lineHeight: '1.5', wordBreak: 'break-word', overflowWrap: 'break-word' }}>
                     {item}
                   </span>
                 </div>
@@ -228,82 +226,85 @@ export default function UnifiedJourneySection({
             transform: visible.block1 ? 'translateX(0)' : 'translateX(40px)',
             transition: 'all 0.9s cubic-bezier(0.16, 1, 0.3, 1)'
           }}>
-            {/* Device Container */}
-            <div 
-              style={{
-                background: '#0F172A',
-                borderRadius: '24px',
-                border: '6px solid #F59E0B',
-                boxShadow: '0 25px 60px rgba(15, 23, 42, 0.2), 0 0 0 1px rgba(245, 158, 11, 0.3)',
-                overflow: 'hidden',
-                position: 'relative',
-                transition: 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)'
-              }}
-              onMouseEnter={e => {
-                e.currentTarget.style.transform = 'translateY(-6px) scale(1.025)';
-                e.currentTarget.style.boxShadow = '0 30px 70px rgba(245, 158, 11, 0.3)';
-                e.currentTarget.style.borderColor = '#FFC229';
-              }}
-              onMouseLeave={e => {
-                e.currentTarget.style.transform = 'translateY(0) scale(1)';
-                e.currentTarget.style.boxShadow = '0 25px 60px rgba(15, 23, 42, 0.2), 0 0 0 1px rgba(245, 158, 11, 0.3)';
-                e.currentTarget.style.borderColor = '#F59E0B';
-              }}
-            >
-              {/* Browser Window Header */}
-              <div style={{
-                background: '#1E293B',
-                padding: '10px 16px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                borderBottom: '1px solid #334155'
-              }}>
-                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                  <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#EF4444' }} />
-                  <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#F59E0B' }} />
-                  <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#10B981' }} />
-                </div>
-                <div style={{
-                  background: '#0F172A',
-                  color: '#94A3B8',
-                  padding: '4px 16px',
-                  borderRadius: '12px',
-                  fontSize: '11px',
-                  fontWeight: '600',
-                  letterSpacing: '0.3px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px'
-                }}>
-                  <span>🔒</span> edupath.vn/teacher/dashboard
-                </div>
-                <div style={{ width: '40px' }} />
+            {/* Horizontal Scroll Wrapper for Mobile */}
+            <div className="ujs-mockup-scroll-wrapper">
+              <div className="ujs-swipe-hint">
+                <span>👈 Vuốt sang phải để xem đầy đủ màn hình 👉</span>
               </div>
 
-              {/* Display Area (Directly embeds loop video with hidden logo controls overlayed) */}
-              <div style={{
-                position: 'relative',
-                aspectRatio: '16 / 10',
-                background: '#090d16',
-                overflow: 'hidden'
-              }}>
-                {/* Masking Overlays to hide YouTube Branding/Title */}
-                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '54px', background: '#090d16', zIndex: 10, pointerEvents: 'none' }} />
-                <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '48px', background: '#090d16', zIndex: 10, pointerEvents: 'none' }} />
-                
-                <iframe
-                  src="https://www.youtube.com/embed/_9BxEU6sd8g?autoplay=1&mute=1&controls=0&loop=1&playlist=_9BxEU6sd8g&modestbranding=1&rel=0&showinfo=0&iv_load_policy=3&disablekb=1&fs=0"
-                  title="Teacher Dashboard Demo Video"
-                  style={{ 
-                    width: '100%', 
-                    height: 'calc(100% + 102px)', 
-                    border: 'none',
-                    marginTop: '-54px',
-                    pointerEvents: 'none'
-                  }}
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                />
+              {/* Device Container */}
+              <div 
+                className="ujs-mockup-window"
+                style={{
+                  background: '#0F172A',
+                  borderRadius: '24px',
+                  border: '6px solid #F59E0B',
+                  boxShadow: '0 25px 60px rgba(15, 23, 42, 0.2), 0 0 0 1px rgba(245, 158, 11, 0.3)',
+                  overflow: 'hidden',
+                  position: 'relative',
+                  transition: 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)'
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.transform = 'translateY(-6px) scale(1.025)';
+                  e.currentTarget.style.boxShadow = '0 30px 70px rgba(245, 158, 11, 0.3)';
+                  e.currentTarget.style.borderColor = '#FFC229';
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.transform = 'translateY(0) scale(1)';
+                  e.currentTarget.style.boxShadow = '0 25px 60px rgba(15, 23, 42, 0.2), 0 0 0 1px rgba(245, 158, 11, 0.3)';
+                  e.currentTarget.style.borderColor = '#F59E0B';
+                }}
+              >
+                {/* Browser Window Header */}
+                <div style={{
+                  background: '#1E293B',
+                  padding: '10px 16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  borderBottom: '1px solid #334155'
+                }}>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#EF4444' }} />
+                    <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#F59E0B' }} />
+                    <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#10B981' }} />
+                  </div>
+                  <div style={{
+                    background: '#0F172A',
+                    color: '#94A3B8',
+                    padding: '4px 16px',
+                    borderRadius: '12px',
+                    fontSize: '11px',
+                    fontWeight: '600',
+                    letterSpacing: '0.3px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}>
+                    <span>🔒</span> edupath.vn/teacher/dashboard
+                  </div>
+                  <div style={{ width: '40px' }} />
+                </div>
+
+                {/* Display Area (Directly embeds loop video) */}
+                <div style={{
+                  position: 'relative',
+                  aspectRatio: '16 / 9',
+                  background: '#090d16',
+                  overflow: 'hidden'
+                }}>
+                  <iframe
+                    src="https://www.youtube.com/embed/_9BxEU6sd8g?autoplay=1&mute=1&controls=0&loop=1&playlist=_9BxEU6sd8g&modestbranding=1&rel=0&showinfo=0&iv_load_policy=3&disablekb=1&fs=0"
+                    title="Teacher Dashboard Demo Video"
+                    style={{ 
+                      width: '100%', 
+                      height: '100%', 
+                      border: 'none',
+                      pointerEvents: 'none'
+                    }}
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  />
+                </div>
               </div>
             </div>
 
@@ -359,7 +360,7 @@ export default function UnifiedJourneySection({
           data-animate-id="block2"
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(480px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
             gap: '40px',
             alignItems: 'center'
           }}
@@ -411,82 +412,85 @@ export default function UnifiedJourneySection({
               <span>🔥</span> Streak 14 Ngày
             </div>
 
-            {/* Device Container */}
-            <div 
-              style={{
-                background: '#0F172A',
-                borderRadius: '24px',
-                border: '6px solid #F59E0B',
-                boxShadow: '0 25px 60px rgba(15, 23, 42, 0.2), 0 0 0 1px rgba(245, 158, 11, 0.3)',
-                overflow: 'hidden',
-                position: 'relative',
-                transition: 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)'
-              }}
-              onMouseEnter={e => {
-                e.currentTarget.style.transform = 'translateY(-6px) scale(1.025)';
-                e.currentTarget.style.boxShadow = '0 30px 70px rgba(245, 158, 11, 0.3)';
-                e.currentTarget.style.borderColor = '#FFC229';
-              }}
-              onMouseLeave={e => {
-                e.currentTarget.style.transform = 'translateY(0) scale(1)';
-                e.currentTarget.style.boxShadow = '0 25px 60px rgba(15, 23, 42, 0.2), 0 0 0 1px rgba(245, 158, 11, 0.3)';
-                e.currentTarget.style.borderColor = '#F59E0B';
-              }}
-            >
-              {/* Browser Window Header */}
-              <div style={{
-                background: '#1E293B',
-                padding: '10px 16px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                borderBottom: '1px solid #334155'
-              }}>
-                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                  <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#EF4444' }} />
-                  <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#F59E0B' }} />
-                  <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#10B981' }} />
-                </div>
-                <div style={{
-                  background: '#0F172A',
-                  color: '#94A3B8',
-                  padding: '4px 16px',
-                  borderRadius: '12px',
-                  fontSize: '11px',
-                  fontWeight: '600',
-                  letterSpacing: '0.3px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px'
-                }}>
-                  <span>🔒</span> edupath.vn/student/dashboard
-                </div>
-                <div style={{ width: '40px' }} />
+            {/* Horizontal Scroll Wrapper for Mobile */}
+            <div className="ujs-mockup-scroll-wrapper">
+              <div className="ujs-swipe-hint">
+                <span>👈 Vuốt sang phải để xem đầy đủ màn hình 👉</span>
               </div>
 
-              {/* Display Area (Directly embeds loop video with hidden logo controls overlayed) */}
-              <div style={{
-                position: 'relative',
-                aspectRatio: '16 / 10',
-                background: '#090d16',
-                overflow: 'hidden'
-              }}>
-                {/* Masking Overlays to hide YouTube Branding/Title */}
-                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '54px', background: '#090d16', zIndex: 10, pointerEvents: 'none' }} />
-                <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '48px', background: '#090d16', zIndex: 10, pointerEvents: 'none' }} />
+              {/* Device Container */}
+              <div 
+                className="ujs-mockup-window"
+                style={{
+                  background: '#0F172A',
+                  borderRadius: '24px',
+                  border: '6px solid #F59E0B',
+                  boxShadow: '0 25px 60px rgba(15, 23, 42, 0.2), 0 0 0 1px rgba(245, 158, 11, 0.3)',
+                  overflow: 'hidden',
+                  position: 'relative',
+                  transition: 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)'
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.transform = 'translateY(-6px) scale(1.025)';
+                  e.currentTarget.style.boxShadow = '0 30px 70px rgba(245, 158, 11, 0.3)';
+                  e.currentTarget.style.borderColor = '#FFC229';
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.transform = 'translateY(0) scale(1)';
+                  e.currentTarget.style.boxShadow = '0 25px 60px rgba(15, 23, 42, 0.2), 0 0 0 1px rgba(245, 158, 11, 0.3)';
+                  e.currentTarget.style.borderColor = '#F59E0B';
+                }}
+              >
+                {/* Browser Window Header */}
+                <div style={{
+                  background: '#1E293B',
+                  padding: '10px 16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  borderBottom: '1px solid #334155'
+                }}>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#EF4444' }} />
+                    <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#F59E0B' }} />
+                    <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#10B981' }} />
+                  </div>
+                  <div style={{
+                    background: '#0F172A',
+                    color: '#94A3B8',
+                    padding: '4px 16px',
+                    borderRadius: '12px',
+                    fontSize: '11px',
+                    fontWeight: '600',
+                    letterSpacing: '0.3px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}>
+                    <span>🔒</span> edupath.vn/student/dashboard
+                  </div>
+                  <div style={{ width: '40px' }} />
+                </div>
 
-                <iframe
-                  src="https://www.youtube.com/embed/Mr3ywRC7oF8?autoplay=1&mute=1&controls=0&loop=1&playlist=Mr3ywRC7oF8&modestbranding=1&rel=0&showinfo=0&iv_load_policy=3&disablekb=1&fs=0"
-                  title="Student Dashboard Demo Video"
-                  style={{ 
-                    width: '100%', 
-                    height: 'calc(100% + 102px)', 
-                    border: 'none',
-                    marginTop: '-54px',
-                    pointerEvents: 'none'
-                  }}
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                />
+                {/* Display Area (Directly embeds loop video) */}
+                <div style={{
+                  position: 'relative',
+                  aspectRatio: '16 / 9',
+                  background: '#090d16',
+                  overflow: 'hidden'
+                }}>
+                  <iframe
+                    src="https://www.youtube.com/embed/Mr3ywRC7oF8?autoplay=1&mute=1&controls=0&loop=1&playlist=Mr3ywRC7oF8&modestbranding=1&rel=0&showinfo=0&iv_load_policy=3&disablekb=1&fs=0"
+                    title="Student Dashboard Demo Video"
+                    style={{ 
+                      width: '100%', 
+                      height: '100%', 
+                      border: 'none',
+                      pointerEvents: 'none'
+                    }}
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  />
+                </div>
               </div>
             </div>
           </div>
@@ -552,7 +556,7 @@ export default function UnifiedJourneySection({
                     marginTop: '7px',
                     flexShrink: 0
                   }} />
-                  <span style={{ fontSize: '13.5px', fontWeight: '800', color: '#1E293B', lineHeight: '1.45' }}>
+                  <span style={{ flex: 1, fontSize: '13.5px', fontWeight: '800', color: '#1E293B', lineHeight: '1.45', wordBreak: 'break-word', overflowWrap: 'break-word' }}>
                     {item}
                   </span>
                 </div>

@@ -1571,8 +1571,36 @@ export default function LandingPage({
   useEffect(() => {
     const fn = () => setScrolled(window.scrollY > 10);
     window.addEventListener('scroll', fn);
-    return () => window.removeEventListener('scroll', fn);
-  }, []);
+
+    const scrollObserverOptions = {
+      root: null,
+      rootMargin: '0px 0px -5% 0px',
+      threshold: 0.08
+    };
+
+    const handleScrollIntersect = (entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('is-in-view');
+        } else {
+          entry.target.classList.remove('is-in-view');
+        }
+      });
+    };
+
+    const scrollObserver = new IntersectionObserver(handleScrollIntersect, scrollObserverOptions);
+
+    const animateTargets = document.querySelectorAll(
+      '.lp-feature-card-neo, .lp-hero__title-main, .lp-hero__highlight-box, .lp-hero__sub, .lp-hero__btn-white, .lp-hero__btn-explore, .lp-nav__logo, .lp-mobile-scroll-pills, .lp-capsule-item, .lp-fpt-intro-box, .lp-lead-mascot-box, .lp-lead-form-box'
+    );
+
+    animateTargets.forEach(el => scrollObserver.observe(el));
+
+    return () => {
+      window.removeEventListener('scroll', fn);
+      scrollObserver.disconnect();
+    };
+  }, [activeLandingView]);
 
   const scrollToSection = (e, id) => {
     e.preventDefault();
@@ -2371,18 +2399,9 @@ export default function LandingPage({
                       minHeight: '380px',
                       position: 'relative',
                       overflow: 'hidden',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
+                      cursor: 'pointer'
                     }}
                     className="lp-feature-card-neo"
-                    onMouseEnter={e => {
-                      e.currentTarget.style.transform = 'translate(-4px, -4px)';
-                      e.currentTarget.style.boxShadow = '10px 10px 0px #000';
-                    }}
-                    onMouseLeave={e => {
-                      e.currentTarget.style.transform = 'none';
-                      e.currentTarget.style.boxShadow = '6px 6px 0px #000';
-                    }}
                   >
                     <div style={{ width: '42px', height: '42px', background: '#FFF', border: '2.5px solid #000', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '20px' }}>
                       <HiLightningBolt style={{ fontSize: '20px', color: '#000' }} />
@@ -2419,7 +2438,9 @@ export default function LandingPage({
                         </div>
                       </div>
                       {/* Pill badge */}
-                      <div style={{
+                      <div 
+                        className="lp-card-pill-badge"
+                        style={{
                         position: 'absolute',
                         bottom: '12px',
                         background: '#000',
@@ -2457,18 +2478,9 @@ export default function LandingPage({
                       minHeight: '380px',
                       position: 'relative',
                       overflow: 'hidden',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
+                      cursor: 'pointer'
                     }}
                     className="lp-feature-card-neo"
-                    onMouseEnter={e => {
-                      e.currentTarget.style.transform = 'translate(-4px, -4px)';
-                      e.currentTarget.style.boxShadow = '10px 10px 0px #000';
-                    }}
-                    onMouseLeave={e => {
-                      e.currentTarget.style.transform = 'none';
-                      e.currentTarget.style.boxShadow = '6px 6px 0px #000';
-                    }}
                   >
                     <div style={{ width: '42px', height: '42px', background: '#FFF', border: '2.5px solid #000', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '20px' }}>
                       <HiShare style={{ fontSize: '20px', color: '#000' }} />
@@ -2505,7 +2517,9 @@ export default function LandingPage({
                         </div>
                       </div>
                       {/* Pill badge */}
-                      <div style={{
+                      <div 
+                        className="lp-card-pill-badge"
+                        style={{
                         position: 'absolute',
                         bottom: '12px',
                         background: '#000',
@@ -2541,18 +2555,9 @@ export default function LandingPage({
                       minHeight: '380px',
                       position: 'relative',
                       overflow: 'hidden',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
+                      cursor: 'pointer'
                     }}
                     className="lp-feature-card-neo"
-                    onMouseEnter={e => {
-                      e.currentTarget.style.transform = 'translate(-4px, -4px)';
-                      e.currentTarget.style.boxShadow = '10px 10px 0px #000';
-                    }}
-                    onMouseLeave={e => {
-                      e.currentTarget.style.transform = 'none';
-                      e.currentTarget.style.boxShadow = '6px 6px 0px #000';
-                    }}
                   >
                     <div style={{ width: '42px', height: '42px', background: '#FFF', border: '2.5px solid #000', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '20px' }}>
                       <HiBookOpen style={{ fontSize: '20px', color: '#000' }} />
@@ -2589,7 +2594,9 @@ export default function LandingPage({
                         </div>
                       </div>
                       {/* Pill badge */}
-                      <div style={{
+                      <div 
+                        className="lp-card-pill-badge"
+                        style={{
                         position: 'absolute',
                         bottom: '12px',
                         background: '#000',
@@ -2632,18 +2639,9 @@ export default function LandingPage({
                       minHeight: '380px',
                       position: 'relative',
                       overflow: 'hidden',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
+                      cursor: 'pointer'
                     }}
                     className="lp-feature-card-neo"
-                    onMouseEnter={e => {
-                      e.currentTarget.style.transform = 'translate(-4px, -4px)';
-                      e.currentTarget.style.boxShadow = '10px 10px 0px #000';
-                    }}
-                    onMouseLeave={e => {
-                      e.currentTarget.style.transform = 'none';
-                      e.currentTarget.style.boxShadow = '6px 6px 0px #000';
-                    }}
                   >
                     <div style={{ width: '42px', height: '42px', background: '#FFF', border: '2.5px solid #000', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '20px' }}>
                       <HiSparkles style={{ fontSize: '20px', color: '#000' }} />
@@ -2680,7 +2678,9 @@ export default function LandingPage({
                         </div>
                       </div>
                       {/* Pill badge */}
-                      <div style={{
+                      <div 
+                        className="lp-card-pill-badge"
+                        style={{
                         position: 'absolute',
                         bottom: '12px',
                         background: '#000',
@@ -2745,7 +2745,9 @@ export default function LandingPage({
                     margin: '0 auto'
                   }}>
                     {/* Capsule 1: FPT University */}
-                    <div style={{
+                    <div 
+                      className="lp-capsule-item"
+                      style={{
                       background: '#FFFFFF',
                       borderRadius: '100px',
                       padding: '14px 28px',
@@ -2776,7 +2778,9 @@ export default function LandingPage({
                     </div>
 
                     {/* Capsule 2: THPT Prep */}
-                    <div style={{
+                    <div 
+                      className="lp-capsule-item"
+                      style={{
                       background: '#FFFFFF',
                       borderRadius: '100px',
                       padding: '14px 28px',
@@ -2807,7 +2811,9 @@ export default function LandingPage({
                     </div>
 
                     {/* Capsule 3: AI Application */}
-                    <div style={{
+                    <div 
+                      className="lp-capsule-item"
+                      style={{
                       background: '#FFFFFF',
                       borderRadius: '100px',
                       padding: '14px 28px',
@@ -2838,7 +2844,9 @@ export default function LandingPage({
                     </div>
 
                     {/* Capsule 4: Outstanding Features */}
-                    <div style={{
+                    <div 
+                      className="lp-capsule-item"
+                      style={{
                       background: '#FFFFFF',
                       borderRadius: '100px',
                       padding: '14px 28px',
@@ -2869,7 +2877,9 @@ export default function LandingPage({
                     </div>
 
                     {/* Capsule 5: Bottom Wide Target Statement */}
-                    <div style={{
+                    <div 
+                      className="lp-capsule-item"
+                      style={{
                       gridColumn: '1 / -1',
                       background: '#FFFFFF',
                       borderRadius: '100px',
@@ -2929,7 +2939,9 @@ export default function LandingPage({
                 </div>
 
                 {/* Intro description Row below the green block */}
-                <div style={{
+                <div 
+                  className="lp-fpt-intro-box"
+                  style={{
                   display: 'flex',
                   flexWrap: 'wrap',
                   alignItems: 'center',
@@ -3120,7 +3132,7 @@ export default function LandingPage({
                   gap: '48px'
                 }}>
                   {/* Left side: Mascot */}
-                  <div style={{ flex: '1 1 380px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                  <div className="lp-lead-mascot-box" style={{ flex: '1 1 380px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
                     <img
                       src={sunMascotImg}
                       alt="Sun Mascot"
@@ -3138,7 +3150,7 @@ export default function LandingPage({
                   </div>
 
                   {/* Right side: Form */}
-                  <div style={{ flex: '1 1 450px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                  <div className="lp-lead-form-box" style={{ flex: '1 1 450px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
                     <div style={{ textAlign: 'left' }}>
                       <h2 style={{
                         fontSize: '38px',

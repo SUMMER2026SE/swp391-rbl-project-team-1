@@ -4,6 +4,7 @@ import studyImg from '../assets/student_3d_study_fixed.png';
 export default function FooterSunMascot() {
   return (
     <div
+      className="footer-sun-mascot-container"
       style={{ 
         position: 'absolute', 
         bottom: 0, 
