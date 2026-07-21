@@ -16,7 +16,7 @@ import { getExams, getExamById, startAttempt, saveAnswer, submitAttempt, getAtte
 import { streamAIChat, refreshRoadmap, generateAIQuestions, generateMindmap, saveMindmap, getMindmaps, getMindmapById, deleteMindmap, generateFlashcards, generateFlashcardMnemonic, generateFlashcardsOCR, getPublicMindmapById, generateNodeQuiz, submitNodeQuiz, getNodeProgress, generateWeaknessMindmap, uploadExamFile, generateExamMindmap } from './controllers/ai.js';
 import { getSharedMindmaps, shareMindmap, likeSharedMindmap, cloneSharedMindmap } from './controllers/sharedMindmaps.js';
 
-import { chatbotConsult } from './controllers/chatbot.js';
+import { chatbotConsult, documentChatbotConsult, documentFinderChatbotConsult } from './controllers/chatbot.js';
 import { getDocumentResources, getDocumentComments, addDocumentComment, getUserDocuments, createUserDocument, deleteUserDocument } from './controllers/document.js';
 import { createVNPayPayment, vnpayWebhook, sepayWebhook, checkEnrollmentStatus, checkUserProStatus, createDemoEnrollment, getPremiumPricing, checkDocumentPurchaseStatus, createDocumentVNPayPayment, createDocumentDemoPurchase } from './controllers/payment.js';
 import { authenticateJWT, requireRole, optionalAuthenticateJWT } from './middleware/auth.js';
@@ -433,8 +433,9 @@ app.post('/ai/mindmap/weakness', authenticateJWT, generateWeaknessMindmap);
 app.post('/ai/mindmap/exam-upload', authenticateJWT, upload.single('file'), uploadExamFile);
 app.post('/ai/mindmap/exam-analyse', authenticateJWT, generateExamMindmap);
 
-// Public AI Chatbot Route (No Auth required so landing page guests can use it!)
 app.post('/chatbot', chatbotConsult);
+app.post('/chatbot/document', documentChatbotConsult);
+app.post('/chatbot/document-finder', documentFinderChatbotConsult);
 
 // =========================================================================
 // FORUM FEATURES ROUTING

@@ -85,6 +85,15 @@ export default function Forum({ currentUser }) {
   const [groupChatMessages, setGroupChatMessages] = useState([]);
   const [sidebarOverlapOffset, setSidebarOverlapOffset] = useState(0);
   const [profileSubTab, setProfileSubTab] = useState('my_posts'); // my_posts, saved_posts
+  const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' ? window.innerWidth < 768 : false);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Calculate Footer Overlap dynamically to prevent sidebar clashing with footer
   useEffect(() => {
@@ -1099,9 +1108,9 @@ export default function Forum({ currentUser }) {
 
       <div style={{ display: 'flex', gap: '32px', width: '100%', margin: 0, padding: '24px 16px', minHeight: '100vh', boxSizing: 'border-box', position: 'relative' }}>
         
-        {/* ================= LEFT SIDEBAR (Portal Fixed to Viewport with Dynamic Footer Avoidance) ================= */}
-        {createPortal(
-          <aside style={{ position: 'fixed', top: '90px', left: '24px', width: '280px', maxHeight: sidebarOverlapOffset > 0 ? `calc(100vh - 110px - ${sidebarOverlapOffset}px)` : 'calc(100vh - 110px)', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '28px', borderRight: '1px solid var(--border)', paddingRight: '20px', boxSizing: 'border-box', zIndex: 99, background: 'transparent', transition: 'max-height 0.05s ease-out' }}>
+        {/* ================= LEFT SIDEBAR (Desktop Only, Portal Fixed to Viewport) ================= */}
+        {!isMobile && createPortal(
+          <aside className="forum-desktop-sidebar" style={{ position: 'fixed', top: '90px', left: '24px', width: '280px', maxHeight: sidebarOverlapOffset > 0 ? `calc(100vh - 110px - ${sidebarOverlapOffset}px)` : 'calc(100vh - 110px)', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '28px', borderRight: '1px solid var(--border)', paddingRight: '20px', boxSizing: 'border-box', zIndex: 99, background: 'transparent', transition: 'max-height 0.05s ease-out' }}>
             <div>
               {/* Navigation Items */}
               <nav style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -1223,7 +1232,46 @@ export default function Forum({ currentUser }) {
         )}
 
         {/* ================= MAIN CONTENT ================= */}
-        <main style={{ flex: 1, minWidth: 0, maxWidth: '920px', marginLeft: '312px', width: 'calc(100% - 312px)', boxSizing: 'border-box' }}>
+        <main className="forum-main-content" style={{ flex: 1, minWidth: 0, maxWidth: '920px', marginLeft: isMobile ? 0 : '312px', width: isMobile ? '100%' : 'calc(100% - 312px)', boxSizing: 'border-box' }}>
+          
+          {/* Mobile Sleek Horizontal Navigation Bar */}
+          {isMobile && (
+            <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', padding: '4px 0 12px 0', marginBottom: '16px', borderBottom: '1px solid var(--border)', WebkitOverflowScrolling: 'touch' }}>
+              {[
+                { id: 'feed', label: 'Dành cho bạn', icon: '🏠' },
+                { id: 'search', label: 'Tìm kiếm', icon: '🔍' },
+                { id: 'profile', label: 'Trang cá nhân', icon: '👤' },
+                { id: 'groups', label: 'Nhóm học tập', icon: '👥' },
+              ].map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => {
+                    setActiveTab(item.id);
+                    setSelectedGroup(null);
+                    if (item.id === 'profile') fetchGamifyProfile();
+                  }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '8px 14px',
+                    borderRadius: '20px',
+                    border: 'none',
+                    background: activeTab === item.id ? 'var(--primary)' : 'var(--bg-card)',
+                    color: activeTab === item.id ? '#fff' : 'var(--text-secondary)',
+                    fontWeight: '700',
+                    fontSize: '13px',
+                    whiteSpace: 'nowrap',
+                    cursor: 'pointer',
+                    boxShadow: activeTab === item.id ? '0 4px 12px rgba(108, 92, 231, 0.25)' : 'var(--shadow-sm)'
+                  }}
+                >
+                  <span>{item.icon}</span>
+                  <span>{item.label}</span>
+                </button>
+              ))}
+            </div>
+          )}
           
           {/* 1. FEED VIEW */}
           {activeTab === 'feed' && (
@@ -1590,8 +1638,8 @@ export default function Forum({ currentUser }) {
                 <p style={{ margin: '4px 0 0 0', fontSize: '13.5px', color: 'var(--text-secondary)' }}>Học viên: {currentUser?.fullName}</p>
               </div>
 
-              {/* Two columns: Posts left, Card right */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: '32px', alignItems: 'start' }}>
+              {/* Two columns: Posts left, Card right (Stacks on mobile) */}
+              <div className="forum-profile-grid" style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 320px', gap: isMobile ? '20px' : '32px', alignItems: 'start' }}>
                 {/* Left side: Sub-tabs and Posts list */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                   <div style={{ display: 'flex', gap: '8px', borderBottom: '2px solid var(--border)', paddingBottom: '8px' }}>

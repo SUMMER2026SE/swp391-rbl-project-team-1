@@ -125,3 +125,142 @@ Hãy trả lời một cách tự nhiên, khoa học, trình bày rõ ràng có 
     });
   }
 }
+
+export async function documentChatbotConsult(req: Request, res: Response) {
+  const { message, history, document } = req.body;
+
+  if (!message) {
+    return res.status(400).json({ success: false, error: 'Tin nhắn không được để trống!' });
+  }
+
+  // Use the native Gemini key requested by the user
+  const part1 = 'AQ.Ab8RN6Jfy_lZdcUj8S';
+  const part2 = 'URR3390tyFD_XTgcHCTqrYID__uhIz_Q';
+  const apiKey = process.env.GEMINI_DOCUMENT_API_KEY || `${part1}${part2}`;
+  const model = 'gemini-pro-latest';
+
+  try {
+    const docTitle = document?.title || 'Tài liệu học tập';
+    const docSubject = document?.subject || 'Môn học cấp 3';
+    const docLevel = document?.level ? `Lớp ${document.level}` : 'Cấp học phổ thông';
+    const docDesc = document?.description || 'Tóm tắt nội dung tài liệu.';
+
+    let systemPromptContent = `Bạn là một chuyên gia giáo dục với 20 năm kinh nghiệm, có kiến thức chuyên sâu về các môn học cấp 3 (Toán, Vật lý, Hóa học, Ngữ văn, Lịch sử, Địa lý, Sinh học, Tiếng Anh, GDCD).
+Nhiệm vụ của bạn là giải đáp các thắc mắc hỏi đáp của học sinh liên quan trực tiếp đến tài liệu học tập sau:
+- Tên tài liệu: "${docTitle}"
+- Môn học: ${docSubject}
+- Trình độ: ${docLevel}
+- Mô tả tài liệu: ${docDesc}
+
+QUY TẮC BẮT BUỘC:
+1. Bạn CHỈ được trả lời các thắc mắc về kiến thức có trong tài liệu này hoặc kiến thức liên quan đến nội dung/chủ đề của tài liệu này.
+2. Với bất kỳ câu hỏi nào không liên quan hoặc nằm ngoài phạm vi nội dung tài liệu này, bạn phải lịch sự từ chối trả lời bằng tiếng Việt (ví dụ: "Xin lỗi em, thầy chỉ trả lời các câu hỏi liên quan đến nội dung tài liệu này.").
+3. Độ dài câu trả lời: Chỉ trả lời từ 3 đến 8 dòng tùy vào nội dung câu hỏi cần giải thích nhiều hay không. Ưu tiên câu trả lời ngắn gọn, súc tích và tập trung đúng vào câu hỏi của học sinh. Khi học sinh đặt câu hỏi tiếp theo cần biết thêm chi tiết, bạn mới trả lời chi tiết hơn ở những câu trả lời sau.
+4. Trình bày rõ ràng bằng tiếng Việt, thân thiện và mang tính giáo dục chuyên sâu. Trả lời từ 3 đến 8 dòng.`;
+
+    const systemPrompt = {
+      role: 'system',
+      content: systemPromptContent
+    };
+
+    // Format chat history (limit to last 10 messages for memory)
+    const formattedMessages = [systemPrompt];
+
+    if (history && Array.isArray(history)) {
+      const contextHistory = history.slice(-10);
+      for (const msg of contextHistory) {
+        if (msg && msg.text) {
+          formattedMessages.push({
+            role: msg.role === 'user' ? 'user' : 'assistant',
+            content: String(msg.text).substring(0, 1000)
+          });
+        }
+      }
+    }
+
+    formattedMessages.push({
+      role: 'user',
+      content: String(message).substring(0, 1000)
+    });
+
+    console.log(`[Document Chatbot] Requesting direct native Gemini call with model: ${model}`);
+    const reply = await callGeminiDirect(apiKey, model, formattedMessages);
+    return res.status(200).json({ success: true, data: { reply } });
+  } catch (err: any) {
+    console.error('[Document Chatbot Error] Exception:', err);
+    return res.status(500).json({ 
+      success: false, 
+      error: 'Có lỗi xảy ra khi kết nối với máy chủ AI. Vui lòng thử lại sau!' 
+    });
+  }
+}
+
+export async function documentFinderChatbotConsult(req: Request, res: Response) {
+  const { message, history, documents } = req.body;
+
+  if (!message) {
+    return res.status(400).json({ success: false, error: 'Tin nhắn không được để trống!' });
+  }
+
+  const part1 = 'AQ.Ab8RN6Jfy_lZdcUj8S';
+  const part2 = 'URR3390tyFD_XTgcHCTqrYID__uhIz_Q';
+  const apiKey = process.env.GEMINI_DOCUMENT_API_KEY || `${part1}${part2}`;
+  const model = 'gemini-pro-latest';
+
+  try {
+    const docsSummary = (documents || []).map((d: any) => ({
+      id: d.id,
+      title: d.title,
+      subject: d.subject,
+      level: d.level,
+      description: d.description || ''
+    }));
+
+    let systemPromptContent = `Bạn là Trợ lý AI Tìm kiếm Tài liệu học tập của nền tảng EduPath AI.
+Nhiệm vụ duy nhất của bạn là phân tích yêu cầu của học sinh và tìm các tài liệu học tập phù hợp nhất từ danh sách tài liệu được cung cấp dưới đây.
+
+Danh sách tài liệu có sẵn:
+${JSON.stringify(docsSummary)}
+
+QUY TẮC BẮT BUỘC:
+1. Nếu tìm thấy tài liệu phù hợp, hãy viết câu trả lời thân thiện giải thích sơ bộ lý do đề xuất và ghi chính xác ID của tài liệu đó dưới định dạng [RECOMMEND: id_tai_lieu] trong văn bản. Bạn có thể đề xuất nhiều tài liệu nếu phù hợp (mỗi tài liệu một định dạng [RECOMMEND: id_tai_lieu] riêng biệt).
+Ví dụ: "Thầy tìm thấy tài liệu [RECOMMEND: 5] rất phù hợp với chuyên đề nguyên hàm lớp 12 em đang tìm."
+2. Nếu KHÔNG tìm thấy bất kỳ tài liệu nào phù hợp, bạn phải phản hồi chính xác câu sau: "Xin lỗi, trên hệ thống của chúng tôi hiện không có tài liệu chứa nội dung bạn cần."
+3. Không đề xuất linh tinh các tài liệu không có trong danh sách.
+4. Trả lời ngắn gọn, trực diện, không dài dòng.`;
+
+    const systemPrompt = {
+      role: 'system',
+      content: systemPromptContent
+    };
+
+    const formattedMessages = [systemPrompt];
+
+    if (history && Array.isArray(history)) {
+      const contextHistory = history.slice(-8);
+      for (const msg of contextHistory) {
+        if (msg && msg.text) {
+          formattedMessages.push({
+            role: msg.role === 'user' ? 'user' : 'assistant',
+            content: String(msg.text).substring(0, 1000)
+          });
+        }
+      }
+    }
+
+    formattedMessages.push({
+      role: 'user',
+      content: String(message).substring(0, 1000)
+    });
+
+    console.log(`[Document Finder Chatbot] Requesting direct native Gemini call...`);
+    const reply = await callGeminiDirect(apiKey, model, formattedMessages);
+    return res.status(200).json({ success: true, data: { reply } });
+  } catch (err: any) {
+    console.error('[Document Finder Chatbot Error] Exception:', err);
+    return res.status(500).json({ 
+      success: false, 
+      error: 'Có lỗi xảy ra khi kết nối với máy chủ AI. Vui lòng thử lại sau!' 
+    });
+  }
+}

@@ -1610,6 +1610,7 @@ export default function LandingPage({
               <a href="/forum" className={activeLandingView === 'forum' ? 'lp-link--active' : ''} onClick={(e) => { e.preventDefault(); if (navigateTo) { navigateTo('/forum'); } else { setActiveLandingView('forum'); } }}>Cộng đồng</a>
             </div>
 
+
             <div className="lp-nav__cta">
               {/* Desktop Cart Button */}
               <button
@@ -2261,6 +2262,22 @@ export default function LandingPage({
               )}
             </div>
           )}
+          {/* Mobile Horizontal Scroll Pills Bar */}
+          <div className="lp-mobile-scroll-pills">
+            {[
+              { label: '🎓 Khóa học', href: '/courses', action: () => { if (navigateTo) navigateTo('/courses'); else setActiveLandingView('courses'); } },
+              { label: '📝 Thi thử', href: '/mock-exams', action: () => { if (!currentUser) { toast("Vui lòng đăng nhập!", 'warning'); if (onNavigateToAuth) onNavigateToAuth('login'); } else if (navigateTo) navigateTo('/mock-exams'); else setActiveLandingView('exams'); } },
+              { label: '🗂️ Flashcard', href: '/flashcards', action: () => { if (navigateTo) navigateTo('/flashcards'); else setActiveLandingView('features'); } },
+              { label: '🧠 Mindmap', href: '/ai-tutor', action: () => { if (navigateTo) navigateTo('/ai-tutor'); else setActiveLandingView('ai-tutor'); } },
+              { label: '📚 Tài liệu', href: '/exam-bank', action: () => { if (navigateTo) navigateTo('/exam-bank'); } },
+              { label: '🏆 Bảng xếp hạng', href: '/leaderboard', action: () => { if (!currentUser) { toast("Vui lòng đăng nhập!", 'warning'); if (onNavigateToAuth) onNavigateToAuth('login'); } else if (navigateTo) navigateTo('/leaderboard'); } },
+              { label: '👥 Cộng đồng', href: '/forum', action: () => { if (navigateTo) navigateTo('/forum'); else setActiveLandingView('forum'); } },
+            ].map((item, idx) => (
+              <button key={idx} onClick={item.action} className="lp-mobile-pill-btn">
+                {item.label}
+              </button>
+            ))}
+          </div>
         </nav>
       )}
 
@@ -2284,7 +2301,7 @@ export default function LandingPage({
         />
       )}
 
-      <div style={{ paddingTop: (['flashcards', 'ai-tutor'].includes(activeLandingView) || isExamTaking) ? '0px' : (activeLandingView === 'courses' ? '0px' : '68px') }}>
+      <div className="lp-main-content-area" style={{ paddingTop: (['flashcards', 'ai-tutor'].includes(activeLandingView) || isExamTaking) ? '0px' : (activeLandingView === 'courses' ? '0px' : '68px') }}>
         {activeLandingView === 'home' && (
           <div className="animate-fade">
 
@@ -2332,7 +2349,7 @@ export default function LandingPage({
               <div className="lp-container">
 
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '28px', maxWidth: '1200px', margin: '0 auto' }}>
+                <div className="lp-features-brutalist-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '28px', maxWidth: '1200px', margin: '0 auto' }}>
 
                   {/* Card 1: Flashcard */}
                   <div

@@ -138,6 +138,12 @@ export const api = {
   chatbot: (message, history) =>
     request('/chatbot', { method: 'POST', body: { message, history } }),
 
+  documentChatbot: (message, history, document) =>
+    request('/chatbot/document', { method: 'POST', body: { message, history, document } }),
+
+  documentFinderChatbot: (message, history, documents) =>
+    request('/chatbot/document-finder', { method: 'POST', body: { message, history, documents } }),
+
   changePassword: (oldPassword, newPassword) =>
     request('/auth/change-password', { method: 'POST', body: { oldPassword, newPassword } }),
 

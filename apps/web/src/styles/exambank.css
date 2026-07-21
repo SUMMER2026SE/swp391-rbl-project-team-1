@@ -1669,6 +1669,320 @@
   text-align: center;
 }
 
+/* ── NEO-BRUTALIST CARD OVERRIDES & ANIMATIONS ── */
+.exambank-card {
+  border: 3.5px solid #000 !important;
+  box-shadow: 4px 4px 0px #000 !important;
+  transition: all 0.25s ease !important;
+}
+
+.exambank-card:hover {
+  transform: translate(-3px, -3px) !important;
+  box-shadow: 7px 7px 0px #000 !important;
+}
+
+.exambank-card__header {
+  border-bottom: 3.5px solid #000 !important;
+}
+
+.exambank-card__year-badge {
+  border-right: 3.5px solid #000 !important;
+}
+
+.exambank-card__stats {
+  border-bottom: 3.5px solid #000 !important;
+}
+
+/* Single full-width card button style */
+.exambank-card__btn-full {
+  width: 100%;
+  padding: 10px 14px;
+  font-size: 13.5px;
+  font-weight: 900;
+  text-align: center;
+  border: 3px solid #000;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.exambank-card__btn-full--buy {
+  background: #FFE259;
+  color: #000;
+  box-shadow: 2px 2px 0px #000;
+}
+
+.exambank-card__btn-full--buy:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 3.5px 3.5px 0px #000;
+}
+
+.exambank-card__btn-full--buy:active {
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0px #000;
+}
+
+.exambank-card__btn-full--view {
+  background: var(--card-color, #059669);
+  color: #fff;
+  box-shadow: 2px 2px 0px #000;
+}
+
+.exambank-card__btn-full--view:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 3.5px 3.5px 0px #000;
+}
+
+.exambank-card__btn-full--view:active {
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0px #000;
+}
+
+/* Slide in animation class */
+.exambank-card-slide-in {
+  opacity: 0;
+  animation: docSlideInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes docSlideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(28px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ── FLOATING CHATBOX FINDER ── */
+.eb-finder-chat-container {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 1000;
+  font-family: 'Inter', sans-serif;
+}
+
+.eb-finder-chat-bubble {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: #ea7a1f;
+  color: white;
+  border: 3.5px solid #000;
+  box-shadow: 4px 4px 0px #000;
+  font-size: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.eb-finder-chat-bubble:hover {
+  transform: scale(1.08) translate(-2px, -2px);
+  box-shadow: 6px 6px 0px #000;
+}
+
+.eb-finder-chat-bubble:active {
+  transform: scale(0.95) translate(1px, 1px);
+  box-shadow: 2px 2px 0px #000;
+}
+
+.eb-finder-chat-window {
+  position: absolute;
+  bottom: 80px;
+  right: 0;
+  width: 360px;
+  height: 480px;
+  background: white;
+  border: 3.5px solid #000;
+  border-radius: 16px;
+  box-shadow: 8px 8px 0px #000;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: ebSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes ebSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.eb-finder-chat-header {
+  background: #ea7a1f;
+  border-bottom: 3.5px solid #000;
+  padding: 14px 20px;
+  color: white;
+}
+
+.eb-finder-chat-header__title span {
+  display: block;
+  font-size: 15px;
+  font-weight: 900;
+  color: #000;
+}
+
+.eb-finder-chat-header__title small {
+  font-size: 11px;
+  font-weight: 700;
+  color: rgba(0, 0, 0, 0.7);
+}
+
+.eb-finder-chat-body {
+  flex: 1;
+  padding: 16px;
+  overflow-y: auto;
+  background: #FAF8F4;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.eb-finder-chat-msg {
+  display: flex;
+  width: 100%;
+}
+
+.eb-finder-chat-msg--bot {
+  justify-content: flex-start;
+}
+
+.eb-finder-chat-msg--user {
+  justify-content: flex-end;
+}
+
+.eb-finder-chat-msg__bubble {
+  max-width: 80%;
+  padding: 12px 16px;
+  font-size: 13px;
+  line-height: 1.45;
+  border: 2.5px solid #000;
+  border-radius: 12px;
+  font-weight: 600;
+}
+
+.eb-finder-chat-msg--bot .eb-finder-chat-msg__bubble {
+  background: #FFF;
+  color: #000;
+  border-bottom-left-radius: 2px;
+  box-shadow: 2px 2px 0px #000;
+}
+
+.eb-finder-chat-msg--user .eb-finder-chat-msg__bubble {
+  background: #FFE259;
+  color: #000;
+  border-bottom-right-radius: 2px;
+  box-shadow: 2px 2px 0px #000;
+}
+
+/* Matching recommended documents buttons in chatbot */
+.eb-finder-chat-recommendations {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+  width: 100%;
+}
+
+.eb-finder-chat-rec-btn {
+  background: #FAF8F4;
+  color: #000;
+  border: 2px solid #000;
+  border-radius: 6px;
+  padding: 8px;
+  font-size: 11px;
+  font-weight: 800;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: 2px 2px 0px #000;
+}
+
+.eb-finder-chat-rec-btn:hover {
+  background: #ea7a1f;
+  color: #fff;
+  transform: translate(-1px, -1px);
+  box-shadow: 3px 3px 0px #000;
+}
+
+.eb-finder-chat-rec-btn:active {
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0px #000;
+}
+
+/* Typing indicator */
+.eb-finder-chat-msg__bubble--typing {
+  display: flex;
+  gap: 4px;
+  padding: 10px 14px;
+}
+
+.eb-finder-chat-msg__bubble--typing span {
+  width: 6px;
+  height: 6px;
+  background: #000;
+  border-radius: 50%;
+  animation: ebTyping 1.4s infinite ease-in-out both;
+}
+
+.eb-finder-chat-msg__bubble--typing span:nth-child(1) { animation-delay: -0.32s; }
+.eb-finder-chat-msg__bubble--typing span:nth-child(2) { animation-delay: -0.16s; }
+
+@keyframes ebTyping {
+  0%, 80%, 100% { transform: scale(0); }
+  40% { transform: scale(1); }
+}
+
+.eb-finder-chat-footer {
+  display: flex;
+  padding: 10px;
+  border-top: 3.5px solid #000;
+  background: #FFF;
+  gap: 8px;
+}
+
+.eb-finder-chat-footer input {
+  flex: 1;
+  border: 2.5px solid #000;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  outline: none;
+}
+
+.eb-finder-chat-footer button {
+  background: #FFE259;
+  color: #000;
+  border: 2.5px solid #000;
+  border-radius: 8px;
+  padding: 0 16px;
+  font-size: 12px;
+  font-weight: 900;
+  cursor: pointer;
+  box-shadow: 2px 2px 0px #000;
+  transition: all 0.15s ease;
+}
+
+.eb-finder-chat-footer button:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 3px 3px 0px #000;
+}
+
+.eb-finder-chat-footer button:active {
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0px #000;
+}
+
 
 
 

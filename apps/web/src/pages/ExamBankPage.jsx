@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { toast } from '../utils/toast';
 import { api } from '../api';
 import {
@@ -121,6 +121,66 @@ export default function ExamBankPage({ currentUser, navigateTo, hideHeader, cart
   const [chatHistory, setChatHistory] = useState([]);
   const [chatInput, setChatInput] = useState('');
   const [isChatTyping, setIsChatTyping] = useState(false);
+
+  // Chatbox finder state
+  const [isFinderChatOpen, setIsFinderChatOpen] = useState(false);
+  const [finderChatInput, setFinderChatInput] = useState('');
+  const [finderChatHistory, setFinderChatHistory] = useState([
+    { sender: 'bot', text: 'Xin chào! Thầy là Trợ lý Tìm kiếm Tài liệu. Em cần tìm tài liệu chứa nội dung hay chuyên đề môn học nào để ôn luyện?' }
+  ]);
+  const [isFinderChatTyping, setIsFinderChatTyping] = useState(false);
+  const finderChatEndRef = useRef(null);
+
+  // Auto scroll finder chat history to bottom
+  useEffect(() => {
+    if (finderChatEndRef.current) {
+      finderChatEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [finderChatHistory, isFinderChatTyping]);
+
+  const handleSendFinderChat = async (e) => {
+    if (e) e.preventDefault();
+    if (!finderChatInput.trim()) return;
+
+    const userMsg = finderChatInput.trim();
+    setFinderChatInput('');
+    setFinderChatHistory(prev => [...prev, { sender: 'user', text: userMsg }]);
+    setIsFinderChatTyping(true);
+
+    try {
+      // Call backend API passing the current query, history, and full documents catalog
+      const res = await api.documentFinderChatbot(userMsg, finderChatHistory, documents);
+      const replyText = res.reply || 'Xin lỗi, trên hệ thống của chúng tôi hiện không có tài liệu chứa nội dung bạn cần.';
+      
+      // Parse recommendations [RECOMMEND: id]
+      const recommendRegex = /\[RECOMMEND:\s*(\d+)\]/g;
+      let match;
+      const matchedIds = [];
+      while ((match = recommendRegex.exec(replyText)) !== null) {
+        matchedIds.push(parseInt(match[1], 10));
+      }
+
+      // Filter docs from catalog
+      const recommendedDocs = documents.filter(d => matchedIds.includes(d.id));
+
+      // Remove the raw brackets from response text for clean display
+      const cleanReply = replyText.replace(/\[RECOMMEND:\s*\d+\]/g, '').trim();
+
+      setFinderChatHistory(prev => [...prev, { 
+        sender: 'bot', 
+        text: cleanReply || 'Xin lỗi, trên hệ thống của chúng tôi hiện không có tài liệu chứa nội dung bạn cần.',
+        docs: recommendedDocs
+      }]);
+    } catch (err) {
+      console.error('[Finder Chatbot Error] Failed to get response:', err);
+      setFinderChatHistory(prev => [...prev, { 
+        sender: 'bot', 
+        text: 'Có lỗi kết nối đến máy chủ AI. Vui lòng thử lại sau!' 
+      }]);
+    } finally {
+      setIsFinderChatTyping(false);
+    }
+  };
 
   // Discussion board states
   const [comments, setComments] = useState([]);
@@ -377,7 +437,7 @@ export default function ExamBankPage({ currentUser, navigateTo, hideHeader, cart
     }
   };
 
-  const handleAskChat = (questionText) => {
+  const handleAskChat = async (questionText) => {
     const q = questionText || chatInput;
     if (!q.trim() || !previewDoc) return;
 
@@ -386,15 +446,21 @@ export default function ExamBankPage({ currentUser, navigateTo, hideHeader, cart
     setChatInput('');
     setIsChatTyping(true);
 
-    setTimeout(() => {
-      const response = generateLocalAiResponse(previewDoc, q);
+    try {
+      const res = await api.documentChatbot(q, chatHistory, previewDoc);
       setChatHistory(prev => [...prev, {
         role: 'assistant',
-        text: response.text,
-        list: response.list
+        text: res.reply
       }]);
+    } catch (err) {
+      console.error('[Document Chatbot Error] Failed to get response:', err);
+      setChatHistory(prev => [...prev, {
+        role: 'assistant',
+        text: 'Xin lỗi em, đã có lỗi kết nối đến máy chủ giáo dục AI. Em hãy thử lại nhé!'
+      }]);
+    } finally {
       setIsChatTyping(false);
-    }, 800);
+    }
   };
 
   const handleAiSearchSubmit = (e) => {
@@ -411,7 +477,7 @@ export default function ExamBankPage({ currentUser, navigateTo, hideHeader, cart
     }, 1200);
   };
 
-  const handleAskDirectChat = (questionText) => {
+  const handleAskDirectChat = async (questionText) => {
     const q = questionText || directChatInput;
     if (!q.trim() || !selectedDirectDoc) return;
 
@@ -420,15 +486,21 @@ export default function ExamBankPage({ currentUser, navigateTo, hideHeader, cart
     setDirectChatInput('');
     setIsDirectChatTyping(true);
 
-    setTimeout(() => {
-      const response = generateLocalAiResponse(selectedDirectDoc, q);
+    try {
+      const res = await api.documentChatbot(q, directChatHistory, selectedDirectDoc);
       setDirectChatHistory(prev => [...prev, {
         role: 'assistant',
-        text: response.text,
-        list: response.list
+        text: res.reply
       }]);
+    } catch (err) {
+      console.error('[Document Chatbot Error] Failed to get response:', err);
+      setDirectChatHistory(prev => [...prev, {
+        role: 'assistant',
+        text: 'Xin lỗi em, đã có lỗi kết nối đến máy chủ giáo dục AI. Em hãy thử lại nhé!'
+      }]);
+    } finally {
       setIsDirectChatTyping(false);
-    }, 800);
+    }
   };
 
   // Autocomplete document suggestions from database
@@ -795,13 +867,39 @@ export default function ExamBankPage({ currentUser, navigateTo, hideHeader, cart
         ) : (
           <>
             <div className="exambank-grid">
-              {displayedDocs.map((doc) => {
-                // Match subject color and emoji
-                const matchedSubject = SUBJECTS.find(s => s.dbName.toLowerCase() === doc.subject.toLowerCase());
-                const cardColor = matchedSubject ? matchedSubject.color : '#64748b';
-                const cardEmoji = matchedSubject ? matchedSubject.emoji : '📄';
-                
-                 // Get file extension from driveUrl (e.g. PDF)
+              {displayedDocs.map((doc, idx) => {
+                 const getSubjectTheme = (subj) => {
+                   const s = subj?.toLowerCase() || '';
+                   if (s.includes('toán')) {
+                     return idx % 2 === 0 
+                       ? { bg: '#ea7a1f', text: '#fff' }
+                       : { bg: '#169873', text: '#fff' };
+                   }
+                   if (s.includes('văn')) {
+                     return { bg: '#4b6a3a', text: '#fff' };
+                   }
+                   if (s.includes('hóa')) {
+                     return { bg: '#cc394c', text: '#fff' };
+                   }
+                   if (s.includes('anh') || s.includes('english')) {
+                     return { bg: '#8c2d6a', text: '#fff' };
+                   }
+                   if (s.includes('sử') || s.includes('địa') || s.includes('lịch sử') || s.includes('địa lý')) {
+                     return { bg: '#2a59c2', text: '#fff' };
+                   }
+                   if (s.includes('sinh')) {
+                     return { bg: '#7c4bcf', text: '#fff' };
+                   }
+                   if (s.includes('lý') || s.includes('vật lý')) {
+                     return { bg: '#169873', text: '#fff' };
+                   }
+                   return { bg: '#bfa12a', text: '#fff' }; // Mustard yellow
+                 };
+
+                 const theme = getSubjectTheme(doc.subject);
+                 const cardColor = theme.bg;
+                 const cardEmoji = doc.subject.toLowerCase().includes('văn') ? '🦋' : (doc.subject.toLowerCase().includes('toán') ? '🦉' : '📄');
+                 
                  const getExt = (url) => {
                    if (!url) return 'PDF';
                    try {
@@ -819,112 +917,98 @@ export default function ExamBankPage({ currentUser, navigateTo, hideHeader, cart
                  };
                  const displayExt = getExt(doc.driveUrl);
 
-                return (
-                  <article
-                    key={doc.id}
-                    className="exambank-card"
-                    style={{ '--card-color': cardColor }}
-                  >
-                    <div className="exambank-card__header">
-                      <div className="exambank-card__year-badge" style={{ background: displayExt === 'PDF' ? '#ef4444' : cardColor }}>
-                        <span>{displayExt}</span>
-                        <small>Định dạng</small>
-                      </div>
-                      <div className="exambank-card__info">
-                        <div className="exambank-card__subject-tag">
-                          {cardEmoji} {doc.subject}
-                        </div>
-                        <h3 className="exambank-card__title" style={{ fontSize: '14px', fontWeight: '800', maxHeight: '42px', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
-                          {doc.title}
-                        </h3>
-                        <p className="exambank-card__subtitle" style={{ fontSize: '11.5px', marginTop: '4px' }}>
-                          Khối lớp: {doc.level === 'Sinh viên' ? 'Sinh viên' : `Lớp ${doc.level}`}
-                        </p>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '6px', fontSize: '12px' }}>
-                          <span style={{ color: '#f59e0b' }}>
-                            {doc.averageRating > 0 ? (
-                              <>{'★'.repeat(Math.round(doc.averageRating))}{'☆'.repeat(5 - Math.round(doc.averageRating))}</>
-                            ) : (
-                              '☆☆☆☆☆'
-                            )}
-                          </span>
-                          <strong style={{ color: '#1e293b' }}>{doc.averageRating ? doc.averageRating.toFixed(1) : '0.0'}</strong>
-                          <span style={{ color: '#64748b' }}>({doc.ratingCount || 0} đánh giá)</span>
-                        </div>
-                      </div>
-                    </div>
+                 return (
+                   <article
+                     key={doc.id}
+                     className="exambank-card exambank-card-slide-in"
+                     style={{ 
+                       '--card-color': cardColor,
+                       animationDelay: `${idx * 0.08}s`
+                     }}
+                   >
+                     <div className="exambank-card__header" style={{ background: cardColor, color: '#fff' }}>
+                       <div className="exambank-card__year-badge" style={{ background: 'rgba(0, 0, 0, 0.15)' }}>
+                         <span>{displayExt}</span>
+                         <small>Định dạng</small>
+                       </div>
+                       <div className="exambank-card__info">
+                         <div className="exambank-card__subject-tag" style={{ background: '#fff', color: cardColor }}>
+                           {cardEmoji} {doc.subject}
+                         </div>
+                         <h3 className="exambank-card__title" style={{ color: '#fff', fontSize: '14.5px', fontWeight: '900', maxHeight: '42px', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                           {doc.title}
+                         </h3>
+                         <p className="exambank-card__subtitle" style={{ color: 'rgba(255, 255, 255, 0.85)', fontSize: '11.5px', marginTop: '4px' }}>
+                           Khối lớp: {doc.level === 'Sinh viên' ? 'Sinh viên' : `Lớp ${doc.level}`}
+                         </p>
+                         <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '6px', fontSize: '12px' }}>
+                           <span style={{ color: '#f59e0b' }}>
+                             {doc.averageRating > 0 ? (
+                               <>{'★'.repeat(Math.round(doc.averageRating)) + '☆'.repeat(5 - Math.round(doc.averageRating))}</>
+                             ) : (
+                               '☆☆☆☆☆'
+                             )}
+                           </span>
+                           <strong style={{ color: '#fff' }}>{doc.averageRating ? doc.averageRating.toFixed(1) : '0.0'}</strong>
+                           <span style={{ color: 'rgba(255, 255, 255, 0.7)' }}>({doc.ratingCount || 0} đánh giá)</span>
+                         </div>
+                       </div>
+                     </div>
 
-                    <div className="exambank-card__stats" style={{ background: '#FAF8F4' }}>
-                      <div className="exambank-card__stat">
-                        <span className="exambank-card__stat-value" style={{ color: doc.isFree ? '#22C55E' : '#E28743' }}>
-                          {doc.isFree ? 'Miễn phí' : 'Premium'}
-                        </span>
-                        <div className="exambank-card__stat-label">Bản quyền</div>
-                      </div>
-                      <div className="exambank-card__stat">
-                        <span className="exambank-card__stat-value">
-                          {doc.price === 0 ? '0đ' : `${doc.price.toLocaleString('vi-VN')}đ`}
-                        </span>
-                        <div className="exambank-card__stat-label">Đơn giá</div>
-                      </div>
-                      <div className="exambank-card__stat">
-                        <span className="exambank-card__stat-value">Drive</span>
-                        <div className="exambank-card__stat-label">Lưu trữ</div>
-                      </div>
-                    </div>
+                     <div className="exambank-card__stats" style={{ background: '#FAF8F4' }}>
+                       <div className="exambank-card__stat">
+                         <span className="exambank-card__stat-value" style={{ color: doc.isFree ? '#22C55E' : '#E28743' }}>
+                           {doc.isFree ? 'Miễn phí' : 'Premium'}
+                         </span>
+                         <div className="exambank-card__stat-label">Bản quyền</div>
+                       </div>
+                       <div className="exambank-card__stat">
+                         <span className="exambank-card__stat-value">
+                           {doc.price === 0 ? '0đ' : `${doc.price.toLocaleString('vi-VN')}đ`}
+                         </span>
+                         <div className="exambank-card__stat-label">Đơn giá</div>
+                       </div>
+                       <div className="exambank-card__stat">
+                         <span className="exambank-card__stat-value">Drive</span>
+                         <div className="exambank-card__stat-label">Lưu trữ</div>
+                       </div>
+                     </div>
 
-                    <div className="exambank-card__actions">
-                      {(!doc.isFree && !doc.isPurchased) ? (
-                        <>
-                          <button
-                            type="button"
-                            className="exambank-card__btn exambank-card__btn--view"
-                            style={{ background: '#FFF', border: '2px solid #000', borderRadius: '8px', boxShadow: '2px 2px 0px #000', fontWeight: 'bold' }}
-                            onClick={() => handleAddDocToCart(doc)}
-                          >
-                            🛒 Thêm giỏ hàng
-                          </button>
-                          <button
-                            type="button"
-                            className="exambank-card__btn exambank-card__btn--download"
-                            style={{ background: '#FFE259', color: '#000', border: '2px solid #000', borderRadius: '8px', boxShadow: '2px 2px 0px #000', fontWeight: 'bold' }}
-                            onClick={() => handleCheckoutDocDirect(doc)}
-                          >
-                            💳 Mua ngay
-                          </button>
-                        </>
-                      ) : (
-                        <>
-                          <button
-                            className="exambank-card__btn exambank-card__btn--view"
-                            onClick={() => setPreviewDoc(doc)}
-                          >
-                            <HiEye /> Xem chi tiết
-                          </button>
-                          {displayExt === 'PDF' ? (
-                            <button
-                              className="exambank-card__btn exambank-card__btn--download"
-                              style={{ background: '#ef4444', color: '#fff' }}
-                              onClick={() => handleViewOnline(doc)}
-                            >
-                              <HiEye /> Xem tài liệu
-                            </button>
-                          ) : (
-                            <button
-                              className="exambank-card__btn exambank-card__btn--download"
-                              onClick={() => handleDownload(doc)}
-                            >
-                              <HiDownload /> Tải tài liệu
-                            </button>
-                          )}
-                        </>
-                      )}
-                    </div>
-                  </article>
-                );
-              })}
+                     <div className="exambank-card__actions">
+                       {(!doc.isFree && !doc.isPurchased) ? (
+                         <button
+                           type="button"
+                           className="exambank-card__btn-full exambank-card__btn-full--buy"
+                           onClick={() => handleCheckoutDocDirect(doc)}
+                         >
+                           💳 Mua ngay
+                         </button>
+                       ) : (
+                         displayExt === 'PDF' ? (
+                           <button
+                             type="button"
+                             className="exambank-card__btn-full exambank-card__btn-full--view"
+                             style={{ '--card-color': cardColor }}
+                             onClick={() => handleViewOnline(doc)}
+                           >
+                             👁️ Xem tài liệu
+                           </button>
+                         ) : (
+                           <button
+                             type="button"
+                             className="exambank-card__btn-full exambank-card__btn-full--view"
+                             style={{ '--card-color': cardColor }}
+                             onClick={() => handleDownload(doc)}
+                           >
+                             📥 Tải tài liệu
+                           </button>
+                         )
+                       )}
+                     </div>
+                   </article>
+                 );
+               })}
             </div>
-
             {totalPages > 1 && (
               <div className="exambank-pagination">
                 <button
@@ -962,10 +1046,11 @@ export default function ExamBankPage({ currentUser, navigateTo, hideHeader, cart
               </div>
             )}
           </>
-        )}
-      </div>
+        )
+      }
+    </div>
 
-      {/* Preview Modal */}
+    {/* Preview Modal */}
       {previewDoc && (
         <div className="exambank-modal-overlay" onClick={() => setPreviewDoc(null)}>
           <div className="exambank-modal" onClick={e => e.stopPropagation()}>
@@ -980,23 +1065,17 @@ export default function ExamBankPage({ currentUser, navigateTo, hideHeader, cart
 
             <div className="exambank-modal__body">
               {/* Document info tags */}
-              <div className="exambank-modal__exam-info">
+                    <div className="exambank-modal__exam-info">
                 <div className="exambank-modal__exam-tag">
                   📚 Môn học: <strong>{previewDoc.subject}</strong>
                 </div>
                 <div className="exambank-modal__exam-tag">
                   🎓 Trình độ: <strong>{previewDoc.level === 'Sinh viên' ? 'Sinh viên' : `Lớp ${previewDoc.level}`}</strong>
                 </div>
-                <div className="exambank-modal__exam-tag">
-                  💰 Học phí: <strong style={{ color: previewDoc.isFree ? '#10b981' : '#d97706' }}>{previewDoc.price === 0 ? 'Miễn phí' : `${previewDoc.price.toLocaleString('vi-VN')}đ`}</strong>
-                </div>
-                <div className="exambank-modal__exam-tag">
-                  📁 Nơi lưu: <strong>Google Drive</strong>
-                </div>
               </div>
 
               {/* Tabs Navigation */}
-              <div className="exambank-modal-tabs">
+                    <div className="exambank-modal-tabs">
                 <button
                   type="button"
                   className={`exambank-modal-tab ${modalTab === 'details' ? 'exambank-modal-tab--active' : ''}`}
@@ -1006,315 +1085,115 @@ export default function ExamBankPage({ currentUser, navigateTo, hideHeader, cart
                 </button>
                 <button
                   type="button"
-                  className={`exambank-modal-tab ${modalTab === 'chat' ? 'exambank-modal-tab--active' : ''}`}
-                  onClick={() => setModalTab('chat')}
-                >
-                  💬 Hỏi đáp AI (Chatbot)
-                </button>
-                <button
-                  type="button"
-                  className={`exambank-modal-tab ${modalTab === 'discussion' ? 'exambank-modal-tab--active' : ''}`}
-                  onClick={() => setModalTab('discussion')}
-                >
-                  👥 Thảo luận học viên
-                </button>
-                <button
-                  type="button"
                   className={`exambank-modal-tab ${modalTab === 'reviews' ? 'exambank-modal-tab--active' : ''}`}
                   onClick={() => setModalTab('reviews')}
                 >
                   ⭐ Đánh giá ({ratingsInfo.count})
                 </button>
-                {previewDoc.previewUrl && (
-                  <button
-                    type="button"
-                    className={`exambank-modal-tab ${modalTab === 'online-read' ? 'exambank-modal-tab--active' : ''}`}
-                    onClick={() => setModalTab('online-read')}
-                  >
-                    📖 Đọc trực tuyến
-                  </button>
-                )}
               </div>
 
               {modalTab === 'details' ? (
                 <>
-                  {/* Description block */}
-                  <div className="exambank-modal__section">
-                    <h3 style={{ display: 'flex', alignItems: 'center', gap: '6px', borderBottom: '1.5px solid #e2e8f0', paddingBottom: '8px', marginBottom: '16px' }}>
-                      <HiDocumentText /> Tóm tắt tài liệu & mô tả chi tiết
-                    </h3>
-                    <div className="exambank-modal__question" style={{ background: '#faf9f6', padding: '20px', borderRadius: '12px', border: '1.5px solid #e8e2d6' }}>
-                      {renderDescription(previewDoc.description)}
+                  {(!previewDoc.isFree && !isDocPurchased) ? (
+                    <div style={{
+                      marginBottom: '24px', height: '400px', border: '3px solid #000', borderRadius: '12px',
+                      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                      background: '#FFFDF9', boxShadow: '4px 4px 0px #000', padding: '40px', textAlign: 'center'
+                    }}>
+                      <div style={{ fontSize: '64px', marginBottom: '16px' }}>🔒</div>
+                      <h3 style={{ fontSize: '20px', fontWeight: '950', color: '#000', margin: '0 0 10px 0' }}>Tài liệu này thuộc gói Premium</h3>
+                      <p style={{ fontSize: '13.5px', color: '#555', maxWidth: '420px', lineHeight: 1.5, margin: '0 0 24px 0', fontWeight: 'bold' }}>
+                        Em cần mua tài liệu này để mở khóa tính năng đọc trực tuyến và tải về máy.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => handleCheckoutDocDirect(previewDoc)}
+                        style={{
+                          padding: '12px 28px', background: '#FFE259', color: '#000',
+                          border: '3px solid #000', borderRadius: '10px', fontSize: '14.5px', fontWeight: '950',
+                          boxShadow: '3px 3px 0px #000', cursor: 'pointer'
+                        }}
+                      >
+                        💳 Mua tài liệu ngay ({(previewDoc.price || 0).toLocaleString()}đ)
+                      </button>
                     </div>
-                  </div>
-
-                  {/* Notice */}
-                  <div style={{
-                    background: '#fffbeb',
-                    border: '1.5px solid #fbbf24',
-                    borderRadius: 12,
-                    padding: '14px 18px',
-                    fontSize: '13px',
-                    color: '#92400e',
-                    lineHeight: 1.6,
-                    marginBottom: '24px'
-                  }}>
-                    <strong>📌 Hướng dẫn sử dụng:</strong> Tài liệu học tập của em sẽ được mở và tải về trực tiếp từ tài khoản Google Drive chính thức của hệ thống. Vui lòng bấm vào nút dưới đây để chuyển hướng tới Drive.
-                  </div>
+                  ) : (
+                    /* Online PDF Reading Tab panel */
+                    previewDoc.previewUrl ? (
+                      <div style={{ marginBottom: '20px', height: '72vh', border: '3px solid #000', borderRadius: '12px', overflow: 'hidden', boxShadow: '4px 4px 0px #000' }}>
+                        <iframe
+                          src={previewDoc.previewUrl}
+                          title="PDF Online Reader"
+                          style={{ width: '100%', height: '100%', border: 'none' }}
+                        />
+                      </div>
+                    ) : (
+                      <div style={{ padding: '40px 20px', textAlign: 'center', fontSize: '16px', fontWeight: 'bold', color: '#666' }}>
+                        Tài liệu này hiện chưa hỗ trợ đọc trực tuyến.
+                      </div>
+                    )
+                  )}
                 </>
-              ) : modalTab === 'chat' ? (
-                /* Chatbot Tab panel */
-                <div style={{ marginBottom: '24px' }}>
-                  <div className="exambank-chat">
-                    <div className="exambank-chat__history">
-                      {chatHistory.map((msg, idx) => (
-                        <div key={idx} className={`exambank-chat__bubble exambank-chat__bubble--${msg.role}`}>
-                          <div className="exambank-chat__avatar">
-                            {msg.role === 'user' ? '🙋' : '🤖'}
-                          </div>
-                          <div className="exambank-chat__msg-content">
-                            <div>{msg.text}</div>
-                            {msg.list && (
-                              <ul className="exambank-chat__msg-list">
-                                {msg.list.map((item, lIdx) => (
-                                  <li key={lIdx} dangerouslySetInnerHTML={{ __html: item }} />
-                                ))}
-                              </ul>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                      
-                      {isChatTyping && (
-                        <div className="exambank-chat__bubble exambank-chat__bubble--assistant">
-                          <div className="exambank-chat__avatar">🤖</div>
-                          <div className="exambank-chat__msg-content">
-                            <div className="exambank-chat__dots">
-                              <span></span><span></span><span></span>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="exambank-chat__suggestions">
-                      <button
-                        type="button"
-                        className="exambank-chat__suggestion-btn"
-                        onClick={() => handleAskChat('Tóm tắt nội dung chính và cấu trúc tài liệu này?')}
-                        disabled={isChatTyping}
-                      >
-                        📖 Tóm tắt nội dung
-                      </button>
-                      <button
-                        type="button"
-                        className="exambank-chat__suggestion-btn"
-                        onClick={() => handleAskChat('Lộ trình 7 ngày ôn tập hiệu quả nhất với tài liệu?')}
-                        disabled={isChatTyping}
-                      >
-                        🎯 Lộ trình 7 ngày ôn tập
-                      </button>
-                      <button
-                        type="button"
-                        className="exambank-chat__suggestion-btn"
-                        onClick={() => handleAskChat('Những lưu ý quan trọng để đạt điểm cao?')}
-                        disabled={isChatTyping}
-                      >
-                        💡 Mẹo đạt điểm cao
-                      </button>
-                    </div>
-
-                    <form
-                      onSubmit={(e) => {
-                        e.preventDefault();
-                        handleAskChat();
-                      }}
-                      className="exambank-chat__form"
-                    >
-                      <input
-                        type="text"
-                        className="exambank-chat__input"
-                        placeholder="Hỏi AI thêm về tài liệu..."
-                        value={chatInput}
-                        onChange={(e) => setChatInput(e.target.value)}
-                        disabled={isChatTyping}
-                      />
-                      <button
-                        type="submit"
-                        className="exambank-chat__btn-send"
-                        disabled={isChatTyping || !chatInput.trim()}
-                      >
-                        Gửi
-                      </button>
-                    </form>
-                  </div>
-                </div>
-              ) : modalTab === 'discussion' ? (
-                /* Discussion Board Tab panel */
-                <div style={{ marginBottom: '24px' }} className="exambank-discussion">
-                  {/* Form to submit comment */}
-                  {currentUser ? (
-                    <form onSubmit={handlePostComment} className="exambank-discussion__form">
-                      <textarea
-                        className="exambank-discussion__textarea"
-                        placeholder="Đặt câu hỏi hoặc chia sẻ ý kiến của em về tài liệu này..."
-                        value={newCommentText}
-                        onChange={e => setNewCommentText(e.target.value)}
-                        required
-                      />
-                      <button type="submit" className="exambank-discussion__btn-submit">
-                        Gửi thảo luận
-                      </button>
-                    </form>
-                  ) : (
-                    <div className="exambank-discussion__guest-box">
-                      🔑 Vui lòng đăng nhập để tham gia thảo luận và hỏi đáp về tài liệu này.
-                    </div>
-                  )}
-
-                  {/* Comments list */}
-                  {commentsLoading ? (
-                    <div style={{ textAlign: 'center', padding: '30px 0' }}>
-                      <div className="exambank-chat__dots">
-                        <span></span><span></span><span></span>
-                      </div>
-                      <p style={{ fontSize: '13px', color: '#64748b', marginTop: '8px' }}>Đang tải thảo luận...</p>
-                    </div>
-                  ) : commentError ? (
-                    <p style={{ color: '#ef4444', textAlign: 'center', fontSize: '13.5px' }}>{commentError}</p>
-                  ) : comments.length === 0 ? (
-                    <div className="exambank-discussion__empty">
-                      💬 Chưa có thảo luận nào cho tài liệu này. Hãy là người đầu tiên đặt câu hỏi hoặc chia sẻ ý kiến của em!
-                    </div>
-                  ) : (
-                    <div className="exambank-discussion__comments-list">
-                      {comments.map(c => {
-                        const init = c.user.fullName ? c.user.fullName[0].toUpperCase() : '?';
-                        const dateStr = new Date(c.createdAt).toLocaleDateString('vi-VN', {
-                          hour: '2-digit',
-                          minute: '2-digit',
-                          day: '2-digit',
-                          month: '2-digit',
-                          year: 'numeric'
-                        });
-                        const roleClass = c.user.role === 'ADMIN' ? 'admin' : (c.user.role === 'TEACHER' ? 'teacher' : 'student');
-                        const roleLabel = c.user.role === 'ADMIN' ? 'Admin' : (c.user.role === 'TEACHER' ? 'Giáo viên' : 'Học sinh');
-                        
-                        return (
-                          <div key={c.id} className="exambank-discussion__comment-card">
-                            <div className="exambank-discussion__avatar">
-                              {c.user.avatarUrl ? (
-                                <img src={c.user.avatarUrl} alt={c.user.fullName} style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
-                              ) : init}
-                            </div>
-                            <div className="exambank-discussion__comment-body">
-                              <div className="exambank-discussion__comment-header">
-                                <span className="exambank-discussion__comment-author">{c.user.fullName}</span>
-                                <span className={`exambank-discussion__comment-role exambank-discussion__comment-role--${roleClass}`}>
-                                  {roleLabel}
-                                </span>
-                                <span className="exambank-discussion__comment-date">{dateStr}</span>
-                              </div>
-                              <p className="exambank-discussion__comment-text">{c.content}</p>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
               ) : modalTab === 'reviews' ? (
-                /* Ratings and Reviews Tab panel */
+                /* Reviews & Ratings Tab panel */
                 <div style={{ marginBottom: '24px' }}>
-                  {/* Average stats banner */}
-                  <div style={{ 
-                    display: 'flex', 
-                    gap: '20px', 
-                    alignItems: 'center', 
-                    background: '#faf9f6', 
-                    padding: '20px', 
-                    borderRadius: '12px', 
-                    border: '1.5px solid #e8e2d6', 
-                    marginBottom: '20px' 
-                  }}>
-                    <div style={{ textAlign: 'center', paddingRight: '20px', borderRight: '2px solid #e8e2d6', minWidth: '90px' }}>
-                      <div style={{ fontSize: '36px', fontWeight: 'bold', color: '#0f172a' }}>{ratingsInfo.average}</div>
-                      <div style={{ color: '#f59e0b', fontSize: '15px', margin: '4px 0' }}>
-                        {'★'.repeat(Math.round(ratingsInfo.average))}{'☆'.repeat(5 - Math.round(ratingsInfo.average))}
-                      </div>
-                      <div style={{ fontSize: '12px', color: '#64748b' }}>{ratingsInfo.count} đánh giá</div>
+                  <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', marginBottom: '24px' }}>
+                    <div style={{ flex: 1, minWidth: '220px', background: '#FFFDF9', border: '2.5px solid #000', padding: '20px', borderRadius: '14px', boxShadow: '3px 3px 0px #000', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                      <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#64748b', textTransform: 'uppercase' }}>Đánh giá trung bình</span>
+                      <strong style={{ fontSize: '48px', color: '#1e293b', margin: '8px 0 4px 0', lineHeight: 1 }}>{ratingsInfo.average ? ratingsInfo.average.toFixed(1) : '0.0'}</strong>
+                      <span style={{ color: '#f59e0b', fontSize: '20px', marginBottom: '6px' }}>
+                        {'★'.repeat(Math.round(ratingsInfo.average || 0))}{'☆'.repeat(5 - Math.round(ratingsInfo.average || 0))}
+                      </span>
+                      <span style={{ fontSize: '12.5px', color: '#64748b' }}>({ratingsInfo.count} lượt đánh giá)</span>
                     </div>
-                    <div>
-                      <h4 style={{ margin: '0 0 4px 0', fontSize: '14px', fontWeight: 'bold', color: '#1e293b' }}>⭐ Đánh giá trung bình từ học sinh</h4>
-                      <p style={{ margin: 0, fontSize: '12px', color: '#64748b', lineHeight: '1.5' }}>Đánh giá này được tổng hợp tự động từ phản hồi thực tế của các học viên đã sử dụng tài liệu.</p>
-                    </div>
-                  </div>
 
-                  {/* Submit Rating Form */}
-                  {currentUser ? (
-                    <form onSubmit={handlePostRating} style={{ background: '#fffbeb', border: '2px solid #000', padding: '16px', borderRadius: '12px', marginBottom: '20px' }}>
-                      <h4 style={{ margin: '0 0 12px 0', fontSize: '13.5px', fontWeight: 'bold', color: '#1e293b' }}>✍️ Gửi đánh giá của em</h4>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
-                        <span style={{ fontSize: '13px', fontWeight: 'bold' }}>Số sao đánh giá:</span>
-                        <div style={{ display: 'flex', gap: '6px', fontSize: '20px', cursor: 'pointer' }}>
+                    <form onSubmit={handlePostRating} style={{ flex: 2, minWidth: '300px', background: '#fff', border: '2.5px solid #000', padding: '20px', borderRadius: '14px', boxShadow: '3px 3px 0px #000' }}>
+                      <h4 style={{ margin: '0 0 12px 0', fontSize: '14px', fontWeight: 'bold', color: '#1e293b' }}>Đánh giá tài liệu của em</h4>
+                      
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
+                        <span style={{ fontSize: '13px', color: '#475569', fontWeight: '600' }}>Số sao chọn:</span>
+                        <div style={{ display: 'flex', gap: '4px' }}>
                           {[1, 2, 3, 4, 5].map(star => (
-                            <span 
-                              key={star} 
+                            <button
+                              key={star}
+                              type="button"
                               onClick={() => setUserRating(star)}
-                              style={{ color: star <= userRating ? '#f59e0b' : '#cbd5e1', transition: 'color 0.2s' }}
+                              style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '22px', color: star <= userRating ? '#f59e0b' : '#cbd5e1', padding: 0 }}
                             >
                               ★
-                            </span>
+                            </button>
                           ))}
                         </div>
                       </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+
+                      <div style={{ marginBottom: '14px' }}>
                         <textarea
-                          rows="3"
-                          placeholder="Nhập nhận xét chi tiết của em về tài liệu học tập này..."
+                          rows={2}
                           value={userComment}
                           onChange={e => setUserComment(e.target.value)}
-                          style={{ 
-                            width: '100%', 
-                            padding: '10px', 
-                            border: '2px solid #000', 
-                            borderRadius: '8px', 
-                            fontSize: '13px', 
-                            outline: 'none', 
-                            boxSizing: 'border-box' 
-                          }}
-                          required
+                          placeholder="Viết nhận xét của em về tài liệu này (không bắt buộc)..."
+                          style={{ width: '100%', border: '2px solid #000', borderRadius: '8px', padding: '10px', fontSize: '12.5px', outline: 'none' }}
                         />
-                        <button 
-                          type="submit" 
-                          disabled={submittingRating}
-                          style={{ 
-                            alignSelf: 'flex-end', 
-                            padding: '8px 20px', 
-                            background: '#6366f1', 
-                            color: '#fff', 
-                            border: '2px solid #000', 
-                            borderRadius: '8px', 
-                            fontWeight: 'bold', 
-                            cursor: 'pointer', 
-                            boxShadow: '2px 2px 0px #000',
-                            marginTop: '4px'
-                          }}
-                        >
-                          {submittingRating ? 'Đang gửi...' : 'Gửi nhận xét'}
-                        </button>
                       </div>
-                    </form>
-                  ) : (
-                    <div style={{ padding: '14px', background: '#f1f5f9', border: '1.5px dashed #cbd5e1', borderRadius: '8px', fontSize: '12.5px', color: '#475569', textAlign: 'center', marginBottom: '20px' }}>
-                      🔑 Vui lòng đăng nhập để bình chọn và viết đánh giá cho tài liệu này.
-                    </div>
-                  )}
 
-                  {/* Ratings list */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                      <button
+                        type="submit"
+                        disabled={submittingRating}
+                        style={{
+                          padding: '10px 20px', background: '#ea7a1f', color: '#fff',
+                          border: '2.5px solid #000', borderRadius: '8px', fontSize: '13px', fontWeight: 'bold',
+                          boxShadow: '2px 2px 0px #000', cursor: 'pointer'
+                        }}
+                      >
+                        {submittingRating ? 'Đang gửi...' : 'Gửi đánh giá'}
+                      </button>
+                    </form>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '320px', overflowY: 'auto' }}>
+                    <h4 style={{ margin: '0 0 4px 0', fontSize: '13.5px', fontWeight: 'bold', color: '#1e293b' }}>Tất cả bình luận</h4>
                     {ratingsLoading ? (
-                      <div style={{ textAlign: 'center', padding: '20px 0', fontSize: '12px', color: '#64748b' }}>Đang tải danh sách nhận xét...</div>
+                      <div style={{ textAlign: 'center', padding: '16px' }}>Đang tải...</div>
                     ) : ratingsInfo.ratings.length === 0 ? (
                       <div style={{ textAlign: 'center', padding: '20px 0', fontSize: '12px', color: '#64748b', fontStyle: 'italic' }}>Chưa có nhận xét nào. Hãy là người đầu tiên đánh giá!</div>
                     ) : (
@@ -1343,40 +1222,6 @@ export default function ExamBankPage({ currentUser, navigateTo, hideHeader, cart
                     )}
                   </div>
                 </div>
-              ) : modalTab === 'online-read' && previewDoc.previewUrl ? (
-                !isDocPurchased ? (
-                  <div style={{
-                    marginBottom: '24px', height: '400px', border: '3px solid #000', borderRadius: '12px',
-                    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                    background: '#FFFDF9', boxShadow: '4px 4px 0px #000', padding: '40px', textAlign: 'center'
-                  }}>
-                    <div style={{ fontSize: '64px', marginBottom: '16px' }}>🔒</div>
-                    <h3 style={{ fontSize: '20px', fontWeight: '950', color: '#000', margin: '0 0 10px 0' }}>Tài liệu này thuộc gói Premium</h3>
-                    <p style={{ fontSize: '13.5px', color: '#555', maxWidth: '420px', lineHeight: 1.5, margin: '0 0 24px 0', fontWeight: 'bold' }}>
-                      Em cần mua tài liệu này để mở khóa tính năng đọc trực tuyến và tải về máy.
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => handleCheckoutDocDirect(previewDoc)}
-                      style={{
-                        padding: '12px 28px', background: '#FFE259', color: '#000',
-                        border: '3px solid #000', borderRadius: '10px', fontSize: '14.5px', fontWeight: '950',
-                        boxShadow: '3px 3px 0px #000', cursor: 'pointer'
-                      }}
-                    >
-                      💳 Mua tài liệu ngay ({(previewDoc.price || 0).toLocaleString()}đ)
-                    </button>
-                  </div>
-                ) : (
-                  /* Online PDF Reading Tab panel */
-                  <div style={{ marginBottom: '20px', height: '72vh', border: '3px solid #000', borderRadius: '12px', overflow: 'hidden', boxShadow: '4px 4px 0px #000' }}>
-                    <iframe
-                      src={previewDoc.previewUrl}
-                      title="PDF Online Reader"
-                      style={{ width: '100%', height: '100%', border: 'none' }}
-                    />
-                  </div>
-                )
               ) : null}
 
               {/* Action Buttons */}
@@ -1413,6 +1258,79 @@ export default function ExamBankPage({ currentUser, navigateTo, hideHeader, cart
           </div>
         </div>
       )}
-    </div>
+    
+      {/* ── FLOATING CHATBOX FINDER ── */}
+      <div className="eb-finder-chat-container">
+        {/* Toggle bubble */}
+        <button 
+          className="eb-finder-chat-bubble"
+          onClick={() => setIsFinderChatOpen(!isFinderChatOpen)}
+          title="Trợ lý tìm tài liệu"
+        >
+          {isFinderChatOpen ? '✖' : '📚'}
+        </button>
+
+        {isFinderChatOpen && (
+          <div className="eb-finder-chat-window animate-fade-in">
+            <div className="eb-finder-chat-header">
+              <div className="eb-finder-chat-header__title">
+                <span>Trợ lý Tìm tài liệu AI</span>
+                <small>EduPath AI Chuyên gia</small>
+              </div>
+            </div>
+
+            <div className="eb-finder-chat-body">
+              {finderChatHistory.map((msg, idx) => (
+                <div key={idx} className={`eb-finder-chat-msg eb-finder-chat-msg--${msg.sender}`}>
+                  <div className="eb-finder-chat-msg__bubble">
+                    {msg.text}
+                    
+                    {/* Render matching document recommendation buttons */}
+                    {msg.docs && msg.docs.length > 0 && (
+                      <div className="eb-finder-chat-recommendations">
+                        {msg.docs.map(doc => (
+                          <button
+                            key={doc.id}
+                            className="eb-finder-chat-rec-btn"
+                            onClick={() => {
+                              setPreviewDoc(doc);
+                              setModalTab('details');
+                            }}
+                          >
+                            📖 {doc.title} ({doc.subject})
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+              
+              {isFinderChatTyping && (
+                <div className="eb-finder-chat-msg eb-finder-chat-msg--bot">
+                  <div className="eb-finder-chat-msg__bubble eb-finder-chat-msg__bubble--typing">
+                    <span></span><span></span><span></span>
+                  </div>
+                </div>
+              )}
+              <div ref={finderChatEndRef} />
+            </div>
+
+            <form onSubmit={handleSendFinderChat} className="eb-finder-chat-footer">
+              <input
+                type="text"
+                value={finderChatInput}
+                onChange={e => setFinderChatInput(e.target.value)}
+                placeholder="Ví dụ: Tìm tài liệu toán lớp 12..."
+                disabled={isFinderChatTyping}
+              />
+              <button type="submit" disabled={isFinderChatTyping || !finderChatInput.trim()}>
+                Gửi
+              </button>
+            </form>
+          </div>
+        )}
+      </div>
+  </div>
   );
 }
