@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { prisma } from '../lib/prisma.js';
 import type { Prisma } from '@prisma/client';
+import { ImportV2Service } from '../modules/importV2/importV2.service.js';
 
 export class ExamManagementRepository {
   // --- EXAM QUERIES ---
@@ -112,6 +113,7 @@ export class ExamManagementRepository {
       if (fs.existsSync(examDir)) {
         fs.rmSync(examDir, { recursive: true, force: true });
       }
+      ImportV2Service.cleanupOrphanImportFiles().catch(() => {});
     } catch (e) {
       console.warn(`[deleteExam] Could not delete upload folder for exam ${id}:`, e);
     }

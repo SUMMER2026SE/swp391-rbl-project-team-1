@@ -178,7 +178,7 @@ export function useExamManagement() {
   };
 
   const handleDeleteExam = async (id) => {
-    if (!window.confirm('Bạn có chắc chắn muốn xóa đề thi nháp này?')) return;
+    if (!window.confirm('Bạn có chắc chắn muốn xóa đề thi này khỏi hệ thống?')) return;
     try {
       setLoading(true);
       await api.deleteTeacherExam(id);

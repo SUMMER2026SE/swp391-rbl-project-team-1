@@ -395,21 +395,33 @@ export class ImportV2Service {
         candidatePaths.add(filePath);
         candidatePaths.add(path.resolve(processDir, filePath));
         candidatePaths.add(path.resolve(processDir, 'uploads', path.basename(filePath)));
+        candidatePaths.add(path.resolve(processDir, 'uploads', 'exams', path.basename(filePath)));
+        candidatePaths.add(path.resolve(processDir, 'uploads', 'imports', path.basename(filePath)));
         candidatePaths.add(path.resolve(processDir, 'apps', 'api', 'uploads', path.basename(filePath)));
+        candidatePaths.add(path.resolve(processDir, 'apps', 'api', 'uploads', 'exams', path.basename(filePath)));
         candidatePaths.add(path.resolve(rootDir, 'apps', 'api', 'uploads', path.basename(filePath)));
+        candidatePaths.add(path.resolve(rootDir, 'apps', 'api', 'uploads', 'exams', path.basename(filePath)));
         candidatePaths.add(path.resolve(rootDir, 'uploads', path.basename(filePath)));
       }
 
       if (fileName) {
         candidatePaths.add(path.resolve(processDir, 'uploads', fileName));
+        candidatePaths.add(path.resolve(processDir, 'uploads', 'exams', fileName));
+        candidatePaths.add(path.resolve(processDir, 'uploads', 'imports', fileName));
         candidatePaths.add(path.resolve(processDir, 'apps', 'api', 'uploads', fileName));
+        candidatePaths.add(path.resolve(processDir, 'apps', 'api', 'uploads', 'exams', fileName));
         candidatePaths.add(path.resolve(rootDir, 'apps', 'api', 'uploads', fileName));
+        candidatePaths.add(path.resolve(rootDir, 'apps', 'api', 'uploads', 'exams', fileName));
       }
 
       for (const p of candidatePaths) {
         if (fs.existsSync(p) && fs.statSync(p).isFile()) {
-          fs.rmSync(p, { force: true });
-          console.log(`[FileCleanup] 🗑️ Removed uploaded source file: ${p}`);
+          try {
+            fs.rmSync(p, { force: true });
+            console.log(`[FileCleanup] 🗑️ Removed uploaded source file: ${p}`);
+          } catch (err: any) {
+            console.warn(`[FileCleanup] ⚠️ Could not delete locked file ${p}:`, err.message);
+          }
         }
       }
     } catch (err: any) {
@@ -447,31 +459,43 @@ export class ImportV2Service {
               const sessionId = parseInt(idStr, 10);
               if (!isNaN(sessionId) && !activeIds.has(sessionId)) {
                 const orphanDir = path.join(cropsParentDir, entry.name);
-                fs.rmSync(orphanDir, { recursive: true, force: true });
-                console.log(`[FileCleanup] 🧹 Cleaned up orphan session crop folder: ${orphanDir}`);
+                try {
+                  fs.rmSync(orphanDir, { recursive: true, force: true });
+                  console.log(`[FileCleanup] 🧹 Cleaned up orphan session crop folder: ${orphanDir}`);
+                } catch (err: any) {
+                  console.warn(`[FileCleanup] ⚠️ Could not delete crop folder ${orphanDir}:`, err.message);
+                }
               }
             }
           }
         }
       }
 
-      // Clean up orphan source PDF / DOCX files in uploads directory
+      // Clean up orphan source PDF / DOCX files in uploads directory & subdirectories (exams, imports)
       const uploadsDirs = [
         path.join(processDir, 'uploads'),
-        path.join(rootDir, 'apps', 'api', 'uploads')
+        path.join(processDir, 'uploads', 'exams'),
+        path.join(processDir, 'uploads', 'imports'),
+        path.join(rootDir, 'apps', 'api', 'uploads'),
+        path.join(rootDir, 'apps', 'api', 'uploads', 'exams'),
+        path.join(rootDir, 'apps', 'api', 'uploads', 'imports')
       ];
 
       for (const uDir of uploadsDirs) {
         if (fs.existsSync(uDir)) {
           const files = fs.readdirSync(uDir);
           for (const f of files) {
-            const ext = path.extname(f).toLowerCase();
-            if (['.pdf', '.docx', '.doc'].includes(ext)) {
-              if (!activeFiles.has(f.toLowerCase())) {
-                const orphanFilePath = path.join(uDir, f);
-                if (fs.existsSync(orphanFilePath) && fs.statSync(orphanFilePath).isFile()) {
-                  fs.rmSync(orphanFilePath, { force: true });
-                  console.log(`[FileCleanup] 🧹 Cleaned up orphan source file: ${orphanFilePath}`);
+            const fullPath = path.join(uDir, f);
+            if (fs.existsSync(fullPath) && fs.statSync(fullPath).isFile()) {
+              const ext = path.extname(f).toLowerCase();
+              if (['.pdf', '.docx', '.doc'].includes(ext)) {
+                if (!activeFiles.has(f.toLowerCase())) {
+                  try {
+                    fs.rmSync(fullPath, { force: true });
+                    console.log(`[FileCleanup] 🧹 Cleaned up orphan source file: ${fullPath}`);
+                  } catch (err: any) {
+                    console.warn(`[FileCleanup] ⚠️ Could not delete locked orphan file ${fullPath}:`, err.message);
+                  }
                 }
               }
             }

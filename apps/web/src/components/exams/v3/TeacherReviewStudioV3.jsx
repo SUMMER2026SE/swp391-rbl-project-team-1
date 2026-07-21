@@ -242,6 +242,29 @@ export default function TeacherReviewStudioV3({
     }
   };
 
+  const formatRichText = (txt) => {
+    if (!txt) return '';
+    let cleaned = String(txt);
+    // Replace Datalab/Markdown image tags ![Alt](image.jpg) with formatted inline image elements
+    cleaned = cleaned.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (match, alt, src) => {
+      const fullSrc = src.startsWith('http') || src.startsWith('data:') 
+        ? src 
+        : `${API_BASE}/${src.replace(/\\/g, '/').replace(/^\/+/, '')}`;
+      return `<div style="text-align:center;margin:8px 0;"><img src="${fullSrc}" alt="${alt}" style="max-width:100%;max-height:280px;border-radius:8px;border:1px solid #cbd5e1;display:inline-block;" /></div>`;
+    });
+    return cleaned;
+  };
+
+  // Re-render MathJax typesetting whenever active question or content changes
+  useEffect(() => {
+    if (window.MathJax && typeof window.MathJax.typesetPromise === 'function') {
+      const timer = setTimeout(() => {
+        window.MathJax.typesetPromise().catch((err) => console.warn('MathJax error:', err));
+      }, 60);
+      return () => clearTimeout(timer);
+    }
+  }, [activeQuestionIndex, currentQuestion?.explanation, currentQuestion?.content, currentQuestion?.options]);
+
   const handleAddOption = () => {
     const isTF = currentQuestion.type === 'TRUE_FALSE';
     const currentOpts = Array.isArray(currentQuestion.options) 
@@ -396,7 +419,7 @@ export default function TeacherReviewStudioV3({
           <div style={{ flex: 1, padding: '16px', overflowY: 'auto', display: 'flex', justifyContent: 'center', alignItems: 'flex-start' }}>
             <div style={{ position: 'relative', maxWidth: '100%', display: 'inline-block' }}>
               <img 
-                src={`${API_BASE}/extracted_images/pdf_page_${currentPage}.png`}
+                src={`${API_BASE}/extracted_images/pdf_page_${currentPage}.png?v=${activeSession?.id || 1}`}
                 alt={`Page ${currentPage}`}
                 style={{ maxWidth: '100%', height: 'auto', borderRadius: '8px', border: '1px solid #cbd5e1', boxShadow: '0 4px 16px rgba(0,0,0,0.08)', display: 'block' }}
                 onError={(e) => {
@@ -580,9 +603,10 @@ export default function TeacherReviewStudioV3({
                           }}>
                             {opt.label}
                           </div>
-                          <span style={{ fontSize: '13px', fontWeight: 600, color: isSelected ? '#047857' : '#475569' }}>
-                            {opt.content || ''}
-                          </span>
+                          <span 
+                            style={{ fontSize: '13px', fontWeight: 600, color: isSelected ? '#047857' : '#475569' }}
+                            dangerouslySetInnerHTML={{ __html: formatRichText(opt.content || '') }}
+                          />
                         </div>
                       );
                     });
@@ -627,9 +651,10 @@ export default function TeacherReviewStudioV3({
                           }}>
                             {opt.label}
                           </div>
-                          <span style={{ fontSize: '13px', fontWeight: 600, color: isSelected ? '#047857' : '#475569' }}>
-                            {opt.content || ''} {opt.content ? '(Chọn nhiều)' : ''}
-                          </span>
+                          <span 
+                            style={{ fontSize: '13px', fontWeight: 600, color: isSelected ? '#047857' : '#475569' }}
+                            dangerouslySetInnerHTML={{ __html: formatRichText(opt.content ? `${opt.content} (Chọn nhiều)` : '') }}
+                          />
                         </div>
                       );
                     });
@@ -654,28 +679,52 @@ export default function TeacherReviewStudioV3({
                             padding: '10px 16px',
                             borderRadius: '10px',
                             border: '1px solid #e2e8f0',
-                            background: '#ffffff',
-                            cursor: 'default'
+                            background: '#ffffff'
                           }}
                         >
-                          <span style={{ fontSize: '13px', fontWeight: 700, color: '#475569' }}>{opt.label}) {opt.content || ''}</span>
+                          <span 
+                            style={{ fontSize: '13px', fontWeight: 700, color: '#475569' }}
+                            dangerouslySetInnerHTML={{ __html: `${opt.label}) ${formatRichText(opt.content || '')}` }}
+                          />
                           <div style={{ display: 'flex', gap: '8px' }}>
-                            <span style={{
-                              padding: '4px 12px', borderRadius: '6px', fontSize: '11px', fontWeight: 800,
-                              background: value === 'Đ' ? '#10b981' : '#f1f5f9',
-                              color: value === 'Đ' ? '#ffffff' : '#64748b',
-                              border: value === 'Đ' ? 'none' : '1px solid #cbd5e1'
-                            }}>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const next = [...currentAnswers];
+                                while (next.length < 4) next.push('Đ');
+                                next[idx] = 'Đ';
+                                handleUpdateQuestion(activeQuestionIndex, { correctAnswer: next.join(',') });
+                              }}
+                              style={{
+                                padding: '5px 14px', borderRadius: '6px', fontSize: '11px', fontWeight: 800,
+                                background: value === 'Đ' ? '#10b981' : '#f1f5f9',
+                                color: value === 'Đ' ? '#ffffff' : '#64748b',
+                                border: value === 'Đ' ? 'none' : '1px solid #cbd5e1',
+                                cursor: 'pointer',
+                                transition: 'all 0.15s ease'
+                              }}
+                            >
                               Đúng
-                            </span>
-                            <span style={{
-                              padding: '4px 12px', borderRadius: '6px', fontSize: '11px', fontWeight: 800,
-                              background: value === 'S' ? '#ef4444' : '#f1f5f9',
-                              color: value === 'S' ? '#ffffff' : '#64748b',
-                              border: value === 'S' ? 'none' : '1px solid #cbd5e1'
-                            }}>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const next = [...currentAnswers];
+                                while (next.length < 4) next.push('Đ');
+                                next[idx] = 'S';
+                                handleUpdateQuestion(activeQuestionIndex, { correctAnswer: next.join(',') });
+                              }}
+                              style={{
+                                padding: '5px 14px', borderRadius: '6px', fontSize: '11px', fontWeight: 800,
+                                background: value === 'S' ? '#ef4444' : '#f1f5f9',
+                                color: value === 'S' ? '#ffffff' : '#64748b',
+                                border: value === 'S' ? 'none' : '1px solid #cbd5e1',
+                                cursor: 'pointer',
+                                transition: 'all 0.15s ease'
+                              }}
+                            >
                               Sai
-                            </span>
+                            </button>
                           </div>
                         </div>
                       );
@@ -685,18 +734,26 @@ export default function TeacherReviewStudioV3({
 
                 {currentQuestion.type === 'SHORT_ANSWER' && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', width: '100%' }}>
-                    <label style={{ fontSize: '11px', fontWeight: 800, color: '#64748b' }}>BÀI LÀM CỦA HỌC SINH (MÔ PHỎNG):</label>
+                    <label style={{ fontSize: '11.5px', fontWeight: 800, color: '#4338ca', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      ✍️ ĐÁP ÁN ĐÚNG CỦA CÂU HỎI TRẢ LỜI NGẮN:
+                    </label>
                     <input 
                       type="text" 
-                      disabled 
-                      placeholder="Học sinh nhập câu trả lời ngắn tại đây..." 
-                      style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#f8fafc', fontSize: '12px' }}
+                      value={currentQuestion.correctAnswer || ''} 
+                      onChange={(e) => handleUpdateQuestion(activeQuestionIndex, { correctAnswer: e.target.value })}
+                      placeholder="Nhập đáp án đúng (Ví dụ: 15, -2.5, 0.5)..." 
+                      style={{
+                        width: '100%',
+                        padding: '10px 14px',
+                        borderRadius: '8px',
+                        border: '2px solid #6366f1',
+                        background: '#f5f3ff',
+                        fontSize: '14px',
+                        fontWeight: 700,
+                        color: '#1e1b4b',
+                        outline: 'none'
+                      }}
                     />
-                    {currentQuestion.correctAnswer && (
-                      <div style={{ marginTop: '6px', padding: '8px 12px', background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: '8px', fontSize: '12px', color: '#047857', fontWeight: 700 }}>
-                        ✓ Đáp án đúng: {currentQuestion.correctAnswer}
-                      </div>
-                    )}
                   </div>
                 )}
 
@@ -723,9 +780,10 @@ export default function TeacherReviewStudioV3({
                     💡 HƯỚNG DẪN GIẢI CHI TIẾT
                   </div>
                   {currentQuestion.explanation && (
-                    <div style={{ fontSize: '12px', color: '#334155', lineHeight: '1.6', whiteSpace: 'pre-wrap', marginBottom: currentQuestion.media?.explanationImagePath ? '12px' : 0 }}>
-                      {currentQuestion.explanation}
-                    </div>
+                    <div 
+                      style={{ fontSize: '13px', color: '#334155', lineHeight: '1.7', whiteSpace: 'pre-line', marginBottom: currentQuestion.media?.explanationImagePath ? '12px' : 0 }}
+                      dangerouslySetInnerHTML={{ __html: formatRichText(currentQuestion.explanation) }}
+                    />
                   )}
                   {currentQuestion.media?.explanationImagePath && (
                     <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
@@ -1211,7 +1269,7 @@ export default function TeacherReviewStudioV3({
                     <div style={{ flex: 1 }}>
                       <label style={{ fontSize: '9px', fontWeight: 800, color: '#475569', textTransform: 'uppercase', marginBottom: '4px', display: 'block' }}>Môn học</label>
                       <select
-                        value={currentQuestion.media?.subject || ''}
+                        value={currentQuestion.media?.subject || currentQuestion.subject || ''}
                         onChange={(e) => {
                           const selectedSubjName = e.target.value;
                           const subjObj = subjectsMetadata.find(s => s.name === selectedSubjName);
@@ -1221,7 +1279,7 @@ export default function TeacherReviewStudioV3({
                             subject: selectedSubjName,
                             topic: defaultTopic
                           };
-                          handleUpdateQuestion(activeQuestionIndex, { media: updatedMedia });
+                          handleUpdateQuestion(activeQuestionIndex, { subject: selectedSubjName, topic: defaultTopic, media: updatedMedia });
                         }}
                         style={{
                           width: '100%',
@@ -1246,13 +1304,13 @@ export default function TeacherReviewStudioV3({
                     <div style={{ flex: 1.5 }}>
                       <label style={{ fontSize: '9px', fontWeight: 800, color: '#475569', textTransform: 'uppercase', marginBottom: '4px', display: 'block' }}>Chủ đề / Chương bài</label>
                       <select
-                        value={currentQuestion.media?.topic || ''}
+                        value={currentQuestion.media?.topic || currentQuestion.topic || ''}
                         onChange={(e) => {
                           const updatedMedia = { 
                             ...(currentQuestion.media || {}), 
                             topic: e.target.value 
                           };
-                          handleUpdateQuestion(activeQuestionIndex, { media: updatedMedia });
+                          handleUpdateQuestion(activeQuestionIndex, { topic: e.target.value, media: updatedMedia });
                         }}
                         style={{
                           width: '100%',

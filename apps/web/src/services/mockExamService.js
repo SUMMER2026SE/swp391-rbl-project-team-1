@@ -77,11 +77,11 @@ const mapQuestion = (q, idx, examId) => {
 
   // Cache options for separate queries
   const mappedOptions = (options || []).map((opt, optIdx) => ({
-    id: `opt-${q.id}-${opt.label}`,
+    id: `opt-${q.id}-${opt.label || opt.option_label}`,
     question_id: String(q.id),
-    option_label: opt.label,
-    option_text: opt.text,
-    is_correct: opt.label === q.correctAnswer
+    option_label: opt.label || opt.option_label,
+    option_text: opt.content || opt.text || opt.option_text || '',
+    is_correct: (opt.label || opt.option_label) === q.correctAnswer
   }));
 
   optionsCache[String(q.id)] = mappedOptions;
@@ -93,7 +93,8 @@ const mapQuestion = (q, idx, examId) => {
     question_text: q.content,
     question_image_url: q.imageUrl ? (q.imageUrl.startsWith('http') ? q.imageUrl : `http://localhost:4000/${q.imageUrl.replace(/^\/+/, '')}`) : null,
     audio_url: q.audioUrl || null,
-    question_type: 'multiple_choice_single',
+    type: q.type || 'MULTIPLE_CHOICE',
+    question_type: q.type || 'MULTIPLE_CHOICE',
     difficulty: diffLabel,
     explanation: q.explanation || '',
     topic: q.topic || 'Kiến thức cốt lõi'

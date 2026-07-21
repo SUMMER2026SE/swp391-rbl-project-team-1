@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { authenticateJWT, requireRole } from '../middleware/auth.js';
-import { uploadValidation } from '../middleware/upload.js';
+import { uploadValidation, examUploadValidation } from '../middleware/upload.js';
 import {
   validateCreateExam,
   validateCreateQuestion,

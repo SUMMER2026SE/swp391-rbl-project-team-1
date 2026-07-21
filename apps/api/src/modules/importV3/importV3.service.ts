@@ -164,6 +164,18 @@ export class ImportV3Service {
       const examDocument = DocumentNormalizer.normalize(mineruJson);
       pipelineArtifactsV3.examDocument = examDocument;
 
+      // STEP 2.5: Full Document Pre-Analysis AI (Bảng đáp án, Lời giải chi tiết, Môn học, Chủ đề)
+      await ImportV2Repository.createLog(sessionId, 'INFO', 'Step 2.5 [Import V3]: Phân tích toàn bộ đề thi bằng AI (Tìm Bảng đáp án & Lời giải chi tiết)...');
+      const startTimeAnalysis = Date.now();
+      const globalAnalysis = await GeminiVisionService.analyzeFullDocument(examDocument);
+      const analysisTime = Date.now() - startTimeAnalysis;
+      pipelineArtifactsV3.globalAnalysis = globalAnalysis;
+      await ImportV2Repository.createLog(
+        sessionId,
+        'INFO',
+        `✅ Step 2.5 Complete: Phân tích đề hoàn tất trong ${analysisTime}ms (Tìm thấy ${Object.keys(globalAnalysis.answerKey).length} đáp án & ${Object.keys(globalAnalysis.explanations).length} lời giải chi tiết. Môn: ${globalAnalysis.subject}).`
+      );
+
       // STEP 3: Question Boundary Detector (Visual Y-Coordinates)
       await ImportV2Repository.createLog(sessionId, 'INFO', 'Step 3 [Import V3]: Locating visual question boundaries (Boundary Detector)...');
       const startTimeBound = Date.now();
@@ -183,34 +195,47 @@ export class ImportV3Service {
       pipelineArtifactsV3.crops = crops;
       await ImportV2Repository.createLog(sessionId, 'INFO', `✅ Step 4 Complete: Cropped ${crops.length} question images in ${cropTime}ms.`);
 
-      // STEP 5: Gemini Vision API Processing
+      // STEP 5: Gemini Vision API Processing with Pre-Analysis Enrichment & Section Mapping
       await ImportV2Repository.createLog(sessionId, 'INFO', `Step 5 [Import V3]: Sending ${crops.length} question crops to Gemini 2.5 Flash Vision...`);
       const startTimeVision = Date.now();
-      const visionOutputs = await GeminiVisionService.processAllQuestionCrops(crops);
+      
+      const sectionsMap: Record<number, string> = {};
+      crops.forEach(c => {
+        sectionsMap[c.questionIndex] = c.section || 'PART_I';
+      });
+
+      const visionOutputs = await GeminiVisionService.processAllQuestionCrops(crops, sectionsMap, globalAnalysis);
       const visionTime = Date.now() - startTimeVision;
       pipelineArtifactsV3.visionOutputs = visionOutputs;
       await ImportV2Repository.createLog(sessionId, 'INFO', `✅ Step 5 Complete: Gemini Vision extracted ${visionOutputs.length} questions in ${visionTime}ms.`);
 
       // STEP 6: Save ImportQuestions to DB
-      const allQuestions: any[] = visionOutputs.map(vo => ({
-        content: vo.content,
-        options: vo.options,
-        correctAnswer: vo.correctAnswer || 'A',
-        explanation: vo.explanation || '',
-        difficulty: vo.difficulty || 'MEDIUM',
-        status: 'OK',
-        type: vo.type,
-        section: vo.section || 'PHẦN I',
-        questionOrder: vo.questionIndex,
-        media: {
-          cropImagePath: vo.cropImagePath,
-          hasDiagram: vo.hasDiagram,
-          hasTable: vo.hasTable,
-          latexFormulas: vo.latexFormulas,
-          subject: vo.subject || 'Toán học',
-          topic: vo.topic || 'Chương 1'
-        }
-      }));
+      const resolvedSubject = globalAnalysis?.subject || 'Vật lý';
+      const resolvedTopic = globalAnalysis?.topic || 'Dao động cơ';
+
+      const allQuestions: any[] = visionOutputs.map(vo => {
+        const itemSubject = (vo.subject && vo.subject !== 'Toán học') ? vo.subject : resolvedSubject;
+        const itemTopic = (vo.topic && vo.topic !== 'Chương 1' && vo.topic !== 'Chủ đề tổng hợp') ? vo.topic : resolvedTopic;
+        return {
+          content: vo.content,
+          options: vo.options,
+          correctAnswer: vo.correctAnswer || 'A',
+          explanation: vo.explanation || '',
+          difficulty: vo.difficulty || globalAnalysis?.defaultDifficulty || 'MEDIUM',
+          status: 'OK',
+          type: vo.type,
+          section: vo.section || 'PHẦN I',
+          questionOrder: vo.questionIndex,
+          media: {
+            cropImagePath: vo.cropImagePath,
+            hasDiagram: vo.hasDiagram,
+            hasTable: vo.hasTable,
+            latexFormulas: vo.latexFormulas,
+            subject: itemSubject,
+            topic: itemTopic
+          }
+        };
+      });
 
       pipelineArtifactsV3.questionGraph = allQuestions;
       this.saveArtifacts(sessionId, pipelineArtifactsV3);

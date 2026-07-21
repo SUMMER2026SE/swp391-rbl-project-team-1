@@ -98,6 +98,9 @@ export async function getExamById(req: Request, res: Response) {
         subject: q.subject,
         topic: q.topic,
         difficulty: q.difficulty,
+        type: q.type || 'MULTIPLE_CHOICE',
+        correctAnswer: q.correctAnswer || '',
+        explanation: q.explanation || '',
         imageUrl: formatQuestionImageUrl(q.imageUrl),
         question_number: eq.order
       };
@@ -222,7 +225,28 @@ export async function submitAttempt(req: AuthRequest, res: Response) {
       for (const ans of answers) {
         const q = await prisma.question.findUnique({ where: { id: Number(ans.questionId) } });
         if (q) {
-          const isCorrect = ans.selectedAnswer === q.correctAnswer;
+          let isCorrect = false;
+          const userStr = (ans.selectedAnswer || '').trim();
+          const targetStr = (q.correctAnswer || '').trim();
+
+          if (q.type === 'TRUE_FALSE') {
+            const userArr = userStr.split(',');
+            const correctArr = targetStr.split(',');
+            let matches = 0;
+            for (let i = 0; i < 4; i++) {
+              if (userArr[i] && correctArr[i] && userArr[i].trim().toUpperCase() === correctArr[i].trim().toUpperCase()) {
+                matches++;
+              }
+            }
+            isCorrect = matches === 4;
+          } else if (q.type === 'SHORT_ANSWER') {
+            const normUser = userStr.toLowerCase().replace(',', '.');
+            const normTarget = targetStr.toLowerCase().replace(',', '.');
+            isCorrect = normUser === normTarget;
+          } else {
+            isCorrect = userStr.toUpperCase() === targetStr.toUpperCase();
+          }
+
           await prisma.testAttemptAnswer.upsert({
             where: { attemptId_questionId: { attemptId: Number(attemptId), questionId: Number(ans.questionId) } },
             update: { selectedAnswer: ans.selectedAnswer, isCorrect },
@@ -451,6 +475,9 @@ export async function getExamQuestionsPublic(req: Request, res: Response) {
         subject: q.subject,
         topic: q.topic,
         difficulty: q.difficulty,
+        type: q.type || 'MULTIPLE_CHOICE',
+        correctAnswer: q.correctAnswer || '',
+        explanation: q.explanation || '',
         imageUrl: formatQuestionImageUrl(q.imageUrl),
         question_number: eq.order
       };

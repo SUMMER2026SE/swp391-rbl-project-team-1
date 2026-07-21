@@ -5,6 +5,7 @@ import { QuestionBoundary } from './importV3.boundaryDetector.js';
 
 export interface CroppedQuestionManifest {
   questionIndex: number;
+  section?: string;
   cropPath: string;
   relativeCropPath: string;
   cropFilename: string;
@@ -54,8 +55,12 @@ export class QuestionCropGenerator {
     const manifestPath = path.join(outputDir, 'crops_manifest.json');
     if (fs.existsSync(manifestPath)) {
       const manifestRaw = JSON.parse(fs.readFileSync(manifestPath, 'utf-8')) as any[];
+      const boundaryMap: Record<number, string> = {};
+      boundaries.forEach(b => { boundaryMap[b.questionIndex] = b.section; });
+
       const manifest: CroppedQuestionManifest[] = manifestRaw.map(m => ({
         ...m,
+        section: boundaryMap[m.questionIndex] || m.section || 'PART_I',
         cropPath: `scratch/crops/session_${sessionId}/${m.cropFilename}`,
         relativeCropPath: `scratch/crops/session_${sessionId}/${m.cropFilename}`
       }));
@@ -112,6 +117,7 @@ export class QuestionCropGenerator {
       const relativeCropPath = `scratch/crops/session_${sessionId}/${cropFilename}`;
       return {
         questionIndex: b.questionIndex,
+        section: b.section || 'PART_I',
         cropPath,
         relativeCropPath,
         cropFilename,

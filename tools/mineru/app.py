@@ -207,6 +207,7 @@ def parse_pdf(file_path: Path) -> Dict[str, Any]:
             "page": page_num,
             "width": page_w,
             "height": page_h,
+            "pageImageRelPath": f"extracted_images/{page_img_filename}",
             "blocks": blocks
         })
 

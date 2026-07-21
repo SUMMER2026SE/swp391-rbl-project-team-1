@@ -168,6 +168,18 @@ export function examUploadValidation(req: Request, res: Response, next: NextFunc
       }
     } catch (e) {}
 
+    // Restrict extension to .pdf only
+    const ext = path.extname(req.file.originalname).toLowerCase();
+    if (ext !== '.pdf') {
+      try {
+        fs.unlinkSync(req.file.path);
+      } catch (unlinkErr) {}
+      return res.status(400).json({
+        success: false,
+        error: 'Hệ thống bóc tách tự động hiện tại chỉ hỗ trợ định dạng tệp .PDF! Vui lòng chọn tệp .PDF.'
+      });
+    }
+
     // Kiểm tra dung lượng tệp tải lên động
     const maxMb = SystemSettingService.getNumber('MAX_UPLOAD_SIZE_MB') || 50;
     const maxBytes = maxMb * 1024 * 1024;

@@ -63,6 +63,12 @@ export async function seedSystemSettings() {
       value: '7',
       type: 'NUMBER',
       description: 'Số ngày lưu trữ tối đa của System Log trong Database trước khi xóa [>= 1]'
+    },
+    {
+      key: 'GEMINI_API_KEY',
+      value: process.env.GEMINI_API_KEY || '',
+      type: 'STRING',
+      description: 'API Key cá nhân Google Gemini AI'
     }
   ];
 
@@ -83,6 +89,12 @@ export async function seedSystemSettings() {
       });
       count++;
       console.log(`[SeedSettings] Đã thêm cấu hình mặc định: ${setting.key} = ${setting.value}`);
+    } else if (setting.key === 'GEMINI_API_KEY' && existing.value !== setting.value) {
+      await prisma.systemSetting.update({
+        where: { key: setting.key },
+        data: { value: setting.value }
+      });
+      console.log(`[SeedSettings] Đã cập nhật cấu hình GEMINI_API_KEY trong CSDL.`);
     }
   }
   

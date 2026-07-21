@@ -1,5 +1,5 @@
 import React from 'react';
-import { HiSearch, HiPlus, HiPencilAlt, HiDocumentDuplicate, HiTrash } from 'react-icons/hi';
+import { HiSearch, HiPlus, HiPencilAlt, HiDocumentDuplicate, HiTrash, HiEye } from 'react-icons/hi';
 
 export function ExamsTab({ 
   exams, 
@@ -79,7 +79,7 @@ export function ExamsTab({
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <div>
                   <span style={{ fontSize: '11px', fontWeight: 700, color: '#6366f1', textTransform: 'uppercase' }}>
-                    {ex.subject} - Lớp {ex.grade}
+                    {ex.subject} - Lớp {ex.grade || 12}
                   </span>
                   <h4 style={{ margin: '4px 0 0 0', fontSize: '16px', fontWeight: 700, color: '#1e293b' }}>
                     {ex.title}
@@ -104,19 +104,19 @@ export function ExamsTab({
               >
                 <div>
                   <span style={{ display: 'block', fontSize: '10px', color: '#64748b' }}>Lượt thi</span>
-                  <span style={{ fontSize: '13px', fontWeight: 700 }}>{ex.attemptsCount}</span>
+                  <span style={{ fontSize: '13px', fontWeight: 700 }}>{ex.attemptsCount || 0}</span>
                 </div>
                 <div>
                   <span style={{ display: 'block', fontSize: '10px', color: '#64748b' }}>Điểm TB</span>
-                  <span style={{ fontSize: '13px', fontWeight: 700 }}>{ex.averageScore}</span>
+                  <span style={{ fontSize: '13px', fontWeight: 700 }}>{ex.averageScore || 0}</span>
                 </div>
                 <div>
                   <span style={{ display: 'block', fontSize: '10px', color: '#64748b' }}>Số câu hỏi</span>
-                  <span style={{ fontSize: '13px', fontWeight: 700 }}>{ex.questionCount}</span>
+                  <span style={{ fontSize: '13px', fontWeight: 700 }}>{ex.questionCount || ex.totalQuestions || 0}</span>
                 </div>
               </div>
 
-              {/* Bottom Row */}
+              {/* Bottom Row: Actions */}
               <div 
                 style={{
                   display: 'flex',
@@ -128,56 +128,93 @@ export function ExamsTab({
                 }}
               >
                 <span style={{ fontSize: '11.5px', color: '#94a3b8' }}>
-                  Thời gian: {ex.duration} phút
+                  Thời gian: {ex.duration || 60} phút
                 </span>
                 
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  {ex.status?.toLowerCase() === 'draft' && (
-                    <button
-                      onClick={() => onEditClick(ex.id)}
-                      style={{
-                        padding: '6px',
-                        border: '1px solid #e2e8f0',
-                        borderRadius: '6px',
-                        backgroundColor: '#ffffff',
-                        cursor: 'pointer',
-                        color: '#64748b'
-                      }}
-                      title="Sửa đề thi"
-                    >
-                      <HiPencilAlt />
-                    </button>
-                  )}
+                <div style={{ display: 'flex', gap: '6px' }}>
+                  {/* Xem / Xem trước (View / Preview) */}
                   <button
-                    onClick={() => onCloneClick(ex.id)}
+                    onClick={() => {
+                      const url = `/mock-exam/${ex.id}`;
+                      window.open(url, '_blank');
+                    }}
                     style={{
-                      padding: '6px',
-                      border: '1px solid #e2e8f0',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      padding: '5px 10px',
+                      border: '1px solid #cbd5e1',
                       borderRadius: '6px',
                       backgroundColor: '#ffffff',
                       cursor: 'pointer',
-                      color: '#64748b'
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      color: '#4f46e5'
                     }}
-                    title="Nhân bản"
+                    title="Xem trước giao diện thi"
+                  >
+                    <HiEye /> Xem
+                  </button>
+
+                  {/* Sửa (Edit) */}
+                  <button
+                    onClick={() => onEditClick(ex.id)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      padding: '5px 10px',
+                      border: '1px solid #cbd5e1',
+                      borderRadius: '6px',
+                      backgroundColor: '#ffffff',
+                      cursor: 'pointer',
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      color: '#0284c7'
+                    }}
+                    title="Chỉnh sửa đề thi"
+                  >
+                    <HiPencilAlt /> Sửa
+                  </button>
+
+                  {/* Nhân bản (Clone) */}
+                  <button
+                    onClick={() => onCloneClick(ex.id)}
+                    style={{
+                      padding: '5px 8px',
+                      border: '1px solid #cbd5e1',
+                      borderRadius: '6px',
+                      backgroundColor: '#ffffff',
+                      cursor: 'pointer',
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      color: '#475569'
+                    }}
+                    title="Nhân bản đề thi"
                   >
                     <HiDocumentDuplicate />
                   </button>
-                  {ex.status?.toLowerCase() === 'draft' && (
-                    <button
-                      onClick={() => onDeleteClick(ex.id)}
-                      style={{
-                        padding: '6px',
-                        border: '1px solid #e2e8f0',
-                        borderRadius: '6px',
-                        backgroundColor: '#ffffff',
-                        cursor: 'pointer',
-                        color: '#ef4444'
-                      }}
-                      title="Xóa đề thi"
-                    >
-                      <HiTrash />
-                    </button>
-                  )}
+
+                  {/* Xóa (Delete) */}
+                  <button
+                    onClick={() => onDeleteClick(ex.id)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      padding: '5px 10px',
+                      border: '1px solid #fca5a5',
+                      borderRadius: '6px',
+                      backgroundColor: '#fef2f2',
+                      cursor: 'pointer',
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      color: '#dc2626'
+                    }}
+                    title="Xóa đề thi"
+                  >
+                    <HiTrash /> Xóa
+                  </button>
                 </div>
               </div>
             </div>
