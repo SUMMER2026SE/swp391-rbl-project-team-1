@@ -149,9 +149,6 @@ export class ExamManagementService {
 
   static async deleteExam(id: number, userId: number) {
     const exam = await this.getExamById(id, userId);
-    if (exam.status.toLowerCase() !== 'draft') {
-      throw new Error('VALIDATION_ERROR: Chỉ cho phép xóa đề thi ở trạng thái bản nháp (DRAFT)');
-    }
     return ExamManagementRepository.deleteExam(id);
   }
 
@@ -186,6 +183,19 @@ export class ExamManagementService {
     if (question.createdBy !== userId) throw new Error('FORBIDDEN: Bạn không có quyền sửa câu hỏi của giáo viên khác');
     
     return ExamManagementRepository.updateQuestion(id, data);
+  }
+
+  static async deleteQuestion(id: number, userId: number) {
+    const question = await ExamManagementRepository.getQuestionById(id);
+    if (!question) throw new Error('NOT_FOUND: Câu hỏi không tồn tại');
+    if (question.createdBy !== userId) throw new Error('FORBIDDEN: Bạn không có quyền xóa câu hỏi của giáo viên khác');
+
+    const examLinksCount = await prisma.examQuestion.count({ where: { questionId: id } });
+    if (examLinksCount > 0) {
+      throw new Error('VALIDATION_ERROR: Câu hỏi này đang thuộc về đề thi. Bạn chỉ được phép chỉnh sửa câu hỏi này, không được xóa trực tiếp!');
+    }
+
+    return ExamManagementRepository.deleteQuestion(id);
   }
 
   static async reportQuestion(id: number, reporterId: number, reason: string) {

@@ -1478,6 +1478,8 @@ export default function App() {
     }
     if (currentPath.startsWith('/teacher/')) {
       const tab = currentPath.substring(9).replace(/\/$/, '');
+      if (tab === 'home' || tab === 'overview') return { route: 'teacher', tab: 'home' };
+      if (tab === 'exams' || tab === 'exam') return { route: 'teacher', tab: 'exams' };
       return { route: 'teacher', tab: tab };
     }
 
@@ -2088,8 +2090,19 @@ export default function App() {
     }
   }, [theme]);
 
-  // Sync live backend data if logged in
+  // Sync live backend data
   const fetchInitialData = async () => {
+    try {
+      // Fetch exams from backend (public for guests and logged in users)
+      const backendExams = await api.getExams();
+      if (backendExams && Array.isArray(backendExams)) {
+        setExamsList(backendExams);
+        localStorage.setItem('supabase_mock_exams', JSON.stringify(backendExams));
+      }
+    } catch (err) {
+      console.warn("Không thể tải danh sách đề thi từ backend API:", err);
+    }
+
     if (!currentUser) return;
 
     // Fetch feature flags for routing controls
@@ -2121,19 +2134,6 @@ export default function App() {
       } catch (err) {
         // ignore
       }
-    }
-
-    try {
-      // 3. Fetch exams from backend
-      const backendExams = await api.getExams();
-      if (backendExams && backendExams.length > 0) {
-        const validExams = backendExams.filter(e => e.examQuestions && e.examQuestions.length > 0);
-        const massiveList = generateMassiveExamsList(validExams);
-        setExamsList(massiveList);
-        localStorage.setItem('supabase_mock_exams', JSON.stringify(massiveList));
-      }
-    } catch (err) {
-      console.warn("Không thể tải danh sách đề thi từ backend API:", err);
     }
 
     try {
@@ -4356,9 +4356,11 @@ export default function App() {
                   navigateTo={navigateTo}
                   setActiveTab={(tab) => {
                     const prefix = parsedRoute.route === 'teacher' ? '/teacher' : '/dashboard';
-                    if (tab === 'courses') navigateTo(`${prefix}/courses`);
+                    if (tab === 'home' || tab === 'overview') navigateTo(`${prefix}/home`);
+                    else if (tab === 'courses') navigateTo(`${prefix}/courses`);
                     else if (tab === 'forum') navigateTo(`${prefix}/forum`);
                     else if (tab === 'questions') navigateTo(`${prefix}/questions`);
+                    else if (tab === 'exams' || tab === 'exam') navigateTo(`${prefix}/exams`);
                     else if (tab === 'stats') navigateTo(`${prefix}/stats`);
                     else if (tab === 'settings') navigateTo(`${prefix}/settings`);
                     else navigateTo(`${prefix}/home`);

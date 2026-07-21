@@ -370,21 +370,47 @@ export class ImportV2Service {
     }
   }
 
-  static async cleanupSessionFiles(sessionId: number, filePath?: string | null) {
+  static async cleanupSessionFiles(sessionId: number, filePath?: string | null, fileName?: string | null) {
     try {
       const rootDir = path.resolve(process.cwd(), '..', '..');
+      const processDir = process.cwd();
 
       // 1. Delete crops directory for session
-      const cropDir = path.join(rootDir, 'scratch', 'crops', `session_${sessionId}`);
-      if (fs.existsSync(cropDir)) {
-        fs.rmSync(cropDir, { recursive: true, force: true });
-        console.log(`[FileCleanup] 🗑️ Removed crop directory for session ${sessionId}`);
+      const cropDirs = [
+        path.join(rootDir, 'scratch', 'crops', `session_${sessionId}`),
+        path.join(processDir, 'scratch', 'crops', `session_${sessionId}`),
+        path.join(processDir, 'uploads', 'questions', `session_${sessionId}`)
+      ];
+      for (const cd of cropDirs) {
+        if (fs.existsSync(cd)) {
+          fs.rmSync(cd, { recursive: true, force: true });
+          console.log(`[FileCleanup] 🗑️ Removed crop directory: ${cd}`);
+        }
       }
 
-      // 2. Delete original uploaded file if stored locally
-      if (filePath && fs.existsSync(filePath)) {
-        fs.rmSync(filePath, { force: true });
-        console.log(`[FileCleanup] 🗑️ Removed uploaded file: ${filePath}`);
+      // 2. Locate and delete original uploaded source file (.pdf, .docx, .doc)
+      const candidatePaths = new Set<string>();
+
+      if (filePath) {
+        candidatePaths.add(filePath);
+        candidatePaths.add(path.resolve(processDir, filePath));
+        candidatePaths.add(path.resolve(processDir, 'uploads', path.basename(filePath)));
+        candidatePaths.add(path.resolve(processDir, 'apps', 'api', 'uploads', path.basename(filePath)));
+        candidatePaths.add(path.resolve(rootDir, 'apps', 'api', 'uploads', path.basename(filePath)));
+        candidatePaths.add(path.resolve(rootDir, 'uploads', path.basename(filePath)));
+      }
+
+      if (fileName) {
+        candidatePaths.add(path.resolve(processDir, 'uploads', fileName));
+        candidatePaths.add(path.resolve(processDir, 'apps', 'api', 'uploads', fileName));
+        candidatePaths.add(path.resolve(rootDir, 'apps', 'api', 'uploads', fileName));
+      }
+
+      for (const p of candidatePaths) {
+        if (fs.existsSync(p) && fs.statSync(p).isFile()) {
+          fs.rmSync(p, { force: true });
+          console.log(`[FileCleanup] 🗑️ Removed uploaded source file: ${p}`);
+        }
       }
     } catch (err: any) {
       console.warn(`[FileCleanup] Warning cleaning up files for session ${sessionId}:`, err.message);
@@ -394,29 +420,62 @@ export class ImportV2Service {
   static async cleanupOrphanImportFiles() {
     try {
       const activeSessions = await prisma.importSession.findMany({
-        select: { id: true }
+        select: { id: true, filePath: true, fileName: true }
       });
       const activeIds = new Set(activeSessions.map(s => s.id));
+      const activeFiles = new Set<string>();
+      activeSessions.forEach(s => {
+        if (s.filePath) activeFiles.add(path.basename(s.filePath).toLowerCase());
+        if (s.fileName) activeFiles.add(s.fileName.toLowerCase());
+      });
 
       const rootDir = path.resolve(process.cwd(), '..', '..');
-      const cropsParentDir = path.join(rootDir, 'scratch', 'crops');
+      const processDir = process.cwd();
 
-      if (fs.existsSync(cropsParentDir)) {
-        const entries = fs.readdirSync(cropsParentDir, { withFileTypes: true });
-        let cleanedCount = 0;
-        for (const entry of entries) {
-          if (entry.isDirectory() && entry.name.startsWith('session_')) {
-            const idStr = entry.name.replace('session_', '');
-            const sessionId = parseInt(idStr, 10);
-            if (!isNaN(sessionId) && !activeIds.has(sessionId)) {
-              const orphanDir = path.join(cropsParentDir, entry.name);
-              fs.rmSync(orphanDir, { recursive: true, force: true });
-              cleanedCount++;
+      // Clean up orphan crop directories
+      const cropsParentDirs = [
+        path.join(rootDir, 'scratch', 'crops'),
+        path.join(processDir, 'scratch', 'crops')
+      ];
+
+      for (const cropsParentDir of cropsParentDirs) {
+        if (fs.existsSync(cropsParentDir)) {
+          const entries = fs.readdirSync(cropsParentDir, { withFileTypes: true });
+          for (const entry of entries) {
+            if (entry.isDirectory() && entry.name.startsWith('session_')) {
+              const idStr = entry.name.replace('session_', '');
+              const sessionId = parseInt(idStr, 10);
+              if (!isNaN(sessionId) && !activeIds.has(sessionId)) {
+                const orphanDir = path.join(cropsParentDir, entry.name);
+                fs.rmSync(orphanDir, { recursive: true, force: true });
+                console.log(`[FileCleanup] 🧹 Cleaned up orphan session crop folder: ${orphanDir}`);
+              }
             }
           }
         }
-        if (cleanedCount > 0) {
-          console.log(`[FileCleanup] 🧹 Cleaned up ${cleanedCount} orphan session crop folders.`);
+      }
+
+      // Clean up orphan source PDF / DOCX files in uploads directory
+      const uploadsDirs = [
+        path.join(processDir, 'uploads'),
+        path.join(rootDir, 'apps', 'api', 'uploads')
+      ];
+
+      for (const uDir of uploadsDirs) {
+        if (fs.existsSync(uDir)) {
+          const files = fs.readdirSync(uDir);
+          for (const f of files) {
+            const ext = path.extname(f).toLowerCase();
+            if (['.pdf', '.docx', '.doc'].includes(ext)) {
+              if (!activeFiles.has(f.toLowerCase())) {
+                const orphanFilePath = path.join(uDir, f);
+                if (fs.existsSync(orphanFilePath) && fs.statSync(orphanFilePath).isFile()) {
+                  fs.rmSync(orphanFilePath, { force: true });
+                  console.log(`[FileCleanup] 🧹 Cleaned up orphan source file: ${orphanFilePath}`);
+                }
+              }
+            }
+          }
         }
       }
 
@@ -447,7 +506,7 @@ export class ImportV2Service {
     if (session.userId !== userId) throw new Error('FORBIDDEN: Bạn không có quyền xóa phiên này!');
 
     this.artifactsCache.delete(id);
-    await this.cleanupSessionFiles(id, session.filePath);
+    await this.cleanupSessionFiles(id, session.filePath, session.fileName);
 
     const result = await ImportV2Repository.deleteSession(id);
     this.cleanupOrphanImportFiles().catch(() => {});
@@ -459,6 +518,43 @@ export class ImportV2Service {
     if (!session) throw new Error('NOT_FOUND: Phiên nhập đề không tồn tại!');
     if (session.userId !== userId) throw new Error('FORBIDDEN: Bạn không có quyền duyệt phiên này!');
 
+    const cleanExamTitle = session.fileName.replace(/\.(pdf|docx|doc)$/i, '').trim();
+
+    // Infer subject
+    let inferredSubject = 'Toán học';
+    const lowerName = session.fileName.toLowerCase();
+    if (lowerName.includes('lý') || lowerName.includes('ly')) inferredSubject = 'Vật lý';
+    else if (lowerName.includes('hóa') || lowerName.includes('hoa')) inferredSubject = 'Hóa học';
+    else if (lowerName.includes('anh') || lowerName.includes('english')) inferredSubject = 'Tiếng Anh';
+    else if (lowerName.includes('văn') || lowerName.includes('van')) inferredSubject = 'Ngữ văn';
+    else if (lowerName.includes('sinh')) inferredSubject = 'Sinh học';
+    else if (lowerName.includes('sử') || lowerName.includes('su')) inferredSubject = 'Lịch sử';
+    else if (lowerName.includes('địa') || lowerName.includes('dia')) inferredSubject = 'Địa lý';
+
+    // 1. Create Exam record first to get exam.id
+    const exam = await prisma.exam.create({
+      data: {
+        title: cleanExamTitle,
+        subject: inferredSubject,
+        subjectGroup: 'KHTN',
+        duration: 60,
+        isPublic: true,
+        createdBy: userId,
+        totalQuestions: session.questions.length,
+        status: 'published',
+        year: new Date().getFullYear()
+      }
+    });
+
+    // 2. Ensure exam questions uploads folder exists: apps/api/uploads/questions/{examId}/
+    const workspaceRoot = path.resolve(process.cwd(), '..', '..');
+    const examQuestionsDir = path.resolve(workspaceRoot, 'apps', 'api', 'uploads', 'questions', String(exam.id));
+    if (!fs.existsSync(examQuestionsDir)) {
+      fs.mkdirSync(examQuestionsDir, { recursive: true });
+    }
+
+    const createdQuestions: { id: number; order: number }[] = [];
+
     for (const q of session.questions) {
       const dec = decisions?.find(d => d.importQuestionId === q.id);
       const action = dec ? dec.action : 'CREATE_NEW';
@@ -468,12 +564,63 @@ export class ImportV2Service {
       }
 
       const mediaObj = (q.media as any) || {};
-      const imageUrl = mediaObj?.imageUrl || '';
 
-      await ImportV2Repository.confirmQuestionInBank(userId, session.fileName, q, imageUrl);
+      // Locate crop image file
+      let srcCropFile: string | null = null;
+      const candidateCropPaths = [
+        mediaObj?.cropImagePath,
+        mediaObj?.imageUrl,
+        `scratch/crops/session_${sessionId}/q_${q.questionOrder || 1}.png`,
+        `apps/api/scratch/crops/session_${sessionId}/q_${q.questionOrder || 1}.png`
+      ].filter(Boolean) as string[];
+
+      for (const rel of candidateCropPaths) {
+        const cleanRel = rel.replace(/\\/g, '/');
+        const pathsToTry = [
+          path.resolve(process.cwd(), cleanRel),
+          path.resolve(workspaceRoot, cleanRel),
+          path.resolve(workspaceRoot, 'apps', 'api', cleanRel)
+        ];
+        for (const p of pathsToTry) {
+          if (fs.existsSync(p) && fs.statSync(p).isFile()) {
+            srcCropFile = p;
+            break;
+          }
+        }
+        if (srcCropFile) break;
+      }
+
+      let questionImageUrl = '';
+      if (srcCropFile) {
+        const destFileName = `q_${q.questionOrder || 1}.png`;
+        const destFilePath = path.join(examQuestionsDir, destFileName);
+        fs.copyFileSync(srcCropFile, destFilePath);
+        questionImageUrl = `uploads/questions/${exam.id}/${destFileName}`;
+      } else if (mediaObj?.imageUrl) {
+        questionImageUrl = mediaObj.imageUrl;
+      }
+
+      const createdQ = await ImportV2Repository.confirmQuestionInBank(userId, cleanExamTitle, q, questionImageUrl);
+      createdQuestions.push({ id: createdQ.id, order: q.questionOrder || 1 });
+    }
+
+    // 3. Link created questions to exam
+    if (createdQuestions.length > 0) {
+      await prisma.examQuestion.createMany({
+        data: createdQuestions.map(q => ({
+          examId: exam.id,
+          questionId: q.id,
+          order: q.order
+        }))
+      });
+
+      await prisma.exam.update({
+        where: { id: exam.id },
+        data: { totalQuestions: createdQuestions.length }
+      });
     }
 
     await ImportV2Repository.updateSession(sessionId, { status: 'COMPLETED' });
-    return { success: true };
+    return { success: true, examId: exam.id };
   }
 }

@@ -40,9 +40,6 @@ dist-ssr
 apps/**/.env
 apps/**/.env.*
 
-# Uploads
-apps/api/uploads
-
 # Python virtual environments & temporary output directories
 mineru-env
 mineru-env/

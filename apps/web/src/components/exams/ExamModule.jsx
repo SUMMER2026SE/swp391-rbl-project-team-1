@@ -53,14 +53,7 @@ export default function ExamModule({ currentUser }) {
       {/* Upper Metrics Header */}
       <HeaderStats stats={stats} />
 
-      {/* Quick Actions Row */}
-      <QuickActions 
-        onTabChange={(tab) => setActiveTab(tab)} 
-        onCreateExam={() => {
-          setEditingExamId(null);
-          setShowWizard(true);
-        }} 
-      />
+
 
       {/* Main Tabs Navigation */}
       <div className="saas-tabs-container">
@@ -68,7 +61,7 @@ export default function ExamModule({ currentUser }) {
           className={`saas-tab-btn ${activeTab === 'exams' ? 'active' : ''}`}
           onClick={() => setActiveTab('exams')}
         >
-          Đề thi & Bài kiểm tra
+          Đề thi
         </button>
         <button 
           className={`saas-tab-btn ${activeTab === 'questions' ? 'active' : ''}`}
@@ -80,19 +73,13 @@ export default function ExamModule({ currentUser }) {
           className={`saas-tab-btn ${activeTab === 'imports' ? 'active' : ''}`}
           onClick={() => setActiveTab('imports')}
         >
-          Nhập đề (AI Import)
+          Nhập đề thi
         </button>
         <button 
           className={`saas-tab-btn ${activeTab === 'reports' ? 'active' : ''}`}
           onClick={() => setActiveTab('reports')}
         >
           Báo cáo lỗi câu hỏi
-        </button>
-        <button 
-          className={`saas-tab-btn ${activeTab === 'stats' ? 'active' : ''}`}
-          onClick={() => setActiveTab('stats')}
-        >
-          Thống kê phân tích
         </button>
       </div>
 
@@ -155,10 +142,6 @@ export default function ExamModule({ currentUser }) {
             reports={reports}
             onResolve={handleResolveReport}
           />
-        )}
-
-        {!loading && activeTab === 'stats' && (
-          <StatsTab stats={stats} />
         )}
       </div>
 

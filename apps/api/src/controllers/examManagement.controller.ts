@@ -168,6 +168,19 @@ export async function updateQuestion(req: AuthRequest, res: Response) {
   }
 }
 
+export async function deleteQuestion(req: AuthRequest, res: Response) {
+  const userId = req.user?.id;
+  const { id } = req.params;
+  if (!userId) return res.status(401).json({ success: false, error: 'Chưa xác thực!' });
+
+  try {
+    await ExamManagementService.deleteQuestion(Number(id), userId);
+    return res.status(200).json({ success: true, message: 'Đã xóa câu hỏi thành công' });
+  } catch (err: any) {
+    return handleError(res, err);
+  }
+}
+
 export async function reportQuestion(req: AuthRequest, res: Response) {
   const userId = req.user?.id;
   const { id } = req.params;

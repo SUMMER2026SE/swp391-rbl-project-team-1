@@ -145,7 +145,7 @@ EXPECTED JSON SCHEMA:
   private static generateFallbackVisionOutput(crop: CroppedQuestionManifest, section: string): GeminiVisionQuestionOutput {
     return {
       questionIndex: crop.questionIndex,
-      content: `Câu ${crop.questionIndex}: Nội dung được trích xuất từ ảnh cắt ${crop.cropFilename}`,
+      content: `Câu ${crop.questionIndex}`,
       type: 'MULTIPLE_CHOICE',
       section,
       options: [

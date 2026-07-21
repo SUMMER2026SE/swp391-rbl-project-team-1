@@ -58,6 +58,7 @@ export default function TeacherDashboard({
   // --- SUB TAB SYSTEM ---
   const [localTab, setLocalTab] = useState(() => {
     if (propActiveTab === 'home' || propActiveTab === 'overview') return 'overview';
+    if (propActiveTab === 'exams' || propActiveTab === 'exam') return 'exams';
     if (propActiveTab === 'questions') return 'questions';
     if (propActiveTab === 'stats' || propActiveTab === 'students') return 'students';
     return propActiveTab; // courses, exams, revenue, etc.
@@ -70,11 +71,20 @@ export default function TeacherDashboard({
     }
     if (setActiveTab) {
       if (tab === 'overview') setActiveTab('home');
+      else if (tab === 'exams' || tab === 'exam') setActiveTab('exams');
       else if (tab === 'questions') setActiveTab('questions');
       else if (tab === 'students') setActiveTab('stats');
       else setActiveTab(tab);
     }
   };
+
+  useEffect(() => {
+    if (propActiveTab === 'home' || propActiveTab === 'overview') setLocalTab('overview');
+    else if (propActiveTab === 'exams' || propActiveTab === 'exam') setLocalTab('exams');
+    else if (propActiveTab === 'questions') setLocalTab('questions');
+    else if (propActiveTab === 'stats' || propActiveTab === 'students') setLocalTab('students');
+    else if (propActiveTab) setLocalTab(propActiveTab);
+  }, [propActiveTab]);
 
   // --- STATE STORES ---
   const [courses, setCourses] = useState(initialCourses || []);

@@ -21,14 +21,14 @@ export function QuickActions({ onTabChange, onCreateExam }) {
       onClick: () => onTabChange('imports')
     },
     {
-      title: 'Question Bank',
+      title: 'Ngân hàng câu hỏi',
       desc: 'Quản lý ngân hàng câu hỏi',
       icon: <HiDatabase />,
       onClick: () => onTabChange('questions')
     },
     {
-      title: 'Lịch sử Import',
-      desc: 'Xem các phiên duyệt AI',
+      title: 'Nhập đề thi AI',
+      desc: 'Bóc tách đề thi tự động',
       icon: <HiCollection />,
       onClick: () => onTabChange('imports')
     }

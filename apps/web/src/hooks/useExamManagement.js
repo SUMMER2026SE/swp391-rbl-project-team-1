@@ -61,8 +61,10 @@ export function useExamManagement() {
     try {
       setLoading(true);
       const res = await api.getTeacherExams({ ...examsFilters, page });
-      setExams(res.exams || []);
-      setExamsPagination(res.pagination || { page, limit: 10, total: 0 });
+      const examList = Array.isArray(res) ? res : (res?.exams || res?.data || []);
+      const pagination = res?.pagination || { page, limit: 10, total: examList.length };
+      setExams(examList);
+      setExamsPagination(pagination);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -74,8 +76,10 @@ export function useExamManagement() {
     try {
       setLoading(true);
       const res = await api.getTeacherQuestions({ ...questionsFilters, page });
-      setQuestions(res.questions || []);
-      setQuestionsPagination(res.pagination || { page, limit: 10, total: 0 });
+      const qList = Array.isArray(res) ? res : (res?.questions || res?.data || []);
+      const pagination = res?.pagination || { page, limit: 10, total: qList.length };
+      setQuestions(qList);
+      setQuestionsPagination(pagination);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -208,10 +212,12 @@ export function useExamManagement() {
         action
       }));
       await api.confirmImportSession(sessionId, decisionsList);
-      alert('Xác nhận nhập danh sách câu hỏi thành công vào Ngân hàng câu hỏi!');
+      alert('🎉 Đã xuất bản đề thi thành công!\n- Đề thi mới đã được tạo trong "Đề thi & Bài kiểm tra"\n- Các câu hỏi đã được lưu vào "Ngân hàng câu hỏi".');
       setActiveImportSession(null);
-      setActiveTab('questions');
-      fetchQuestions(1);
+      await fetchExams(1);
+      await fetchQuestions(1);
+      await fetchStats();
+      setActiveTab('exams');
     } catch (err) {
       alert(err.message);
     } finally {

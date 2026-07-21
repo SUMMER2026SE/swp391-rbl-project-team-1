@@ -360,10 +360,10 @@ export default function TeacherReviewStudioV3({
           </button>
           <div>
             <h1 style={{ margin: 0, fontSize: '15px', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              Teacher Review Studio V3: {activeSession?.fileName || 'Đề Thi Thử'}
+              Duyệt &amp; Kiểm Tra Đề Thi: {activeSession?.fileName || 'Đề Thi Thử'}
             </h1>
             <span style={{ fontSize: '11px', color: '#4f46e5', fontWeight: 700 }}>
-              Import V3 Image-First Pipeline ({questions.length} câu hỏi)
+              Tự động bóc tách bằng AI ({questions.length} câu hỏi)
             </span>
           </div>
         </div>

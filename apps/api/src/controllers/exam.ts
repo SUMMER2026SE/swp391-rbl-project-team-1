@@ -4,14 +4,34 @@ import { prisma } from '../lib/prisma.js';
 import { Difficulty } from '@prisma/client';
 import { logUserActivity, logAttendanceInternal } from './gamification.js';
 import { incrementBothStats } from '../lib/monthlyStats.js';
-import { LeaderboardService } from '../services/leaderboard.service.js';
+import { ExamManagementService } from '../services/examManagement.service.js';
 
+function formatQuestionImageUrl(url: string | null): string | null {
+  if (!url) return null;
+  if (url.startsWith('http://') || url.startsWith('https://')) return url;
+  const clean = url.replace(/^\/+/, '');
+  return `http://localhost:4000/${clean}`;
+}
 
 export async function getExams(req: AuthRequest, res: Response) {
-  const { subject, year, source, difficulty, grade, status, teacherId } = req.query;
+  const { search, subject, year, source, difficulty, grade, status, teacherId, page, limit } = req.query;
   const userRole = req.user?.role;
+  const userId = req.user?.id;
 
   try {
+    if (userRole === 'TEACHER' && userId) {
+      const filters = {
+        search: search ? String(search) : undefined,
+        subject: subject && subject !== 'All' ? String(subject) : undefined,
+        status: status && status !== 'All' ? String(status) : undefined
+      };
+      const p = page ? Number(page) : 1;
+      const l = limit ? Number(limit) : 10;
+
+      const result = await ExamManagementService.getExams(userId, filters, p, l);
+      return res.status(200).json({ success: true, data: { exams: result.exams, pagination: result.pagination } });
+    }
+
     const where: any = {};
     if (subject && subject !== 'All') where.subject = String(subject);
     if (year && year !== 'All') where.year = Number(year);
@@ -78,7 +98,7 @@ export async function getExamById(req: Request, res: Response) {
         subject: q.subject,
         topic: q.topic,
         difficulty: q.difficulty,
-        imageUrl: q.imageUrl,
+        imageUrl: formatQuestionImageUrl(q.imageUrl),
         question_number: eq.order
       };
     });
@@ -139,7 +159,7 @@ export async function startAttempt(req: AuthRequest, res: Response) {
         subject: q.subject,
         topic: q.topic,
         difficulty: q.difficulty,
-        imageUrl: q.imageUrl,
+        imageUrl: formatQuestionImageUrl(q.imageUrl),
         question_number: eq.order
       };
     });
@@ -431,7 +451,7 @@ export async function getExamQuestionsPublic(req: Request, res: Response) {
         subject: q.subject,
         topic: q.topic,
         difficulty: q.difficulty,
-        imageUrl: q.imageUrl,
+        imageUrl: formatQuestionImageUrl(q.imageUrl),
         question_number: eq.order
       };
     });

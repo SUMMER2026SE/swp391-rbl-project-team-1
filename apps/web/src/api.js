@@ -767,6 +767,8 @@ export const api = {
 
   updateTeacherQuestion: (id, payload) => request(`/questions/${id}`, { method: 'PUT', body: payload }),
 
+  deleteTeacherQuestion: (id) => request(`/questions/${id}`, { method: 'DELETE' }),
+
   reportTeacherQuestion: (id, reason) => request(`/questions/${id}/report`, { method: 'POST', body: { reason } }),
 
   uploadImportDocument: (file) => {

@@ -10,7 +10,12 @@ if (!fs.existsSync(UPLOADS_DIR)) {
   fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 }
 
-// Multer Disk Storage config
+const EXAMS_UPLOADS_DIR = path.resolve(process.cwd(), 'uploads', 'exams');
+if (!fs.existsSync(EXAMS_UPLOADS_DIR)) {
+  fs.mkdirSync(EXAMS_UPLOADS_DIR, { recursive: true });
+}
+
+// Multer Disk Storage config (General)
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, UPLOADS_DIR);
@@ -22,9 +27,31 @@ const storage = multer.diskStorage({
   }
 });
 
-// Create Multer instance
+// Multer Disk Storage config (Exams - saved in uploads/exams/)
+const examStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    if (!fs.existsSync(EXAMS_UPLOADS_DIR)) {
+      fs.mkdirSync(EXAMS_UPLOADS_DIR, { recursive: true });
+    }
+    cb(null, EXAMS_UPLOADS_DIR);
+  },
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    const uniqueName = `${crypto.randomUUID()}${ext}`;
+    cb(null, uniqueName);
+  }
+});
+
+// Create Multer instances
 export const multerUpload = multer({
   storage,
+  limits: {
+    fileSize: 500 * 1024 * 1024 // 500 MB Max Capability
+  }
+});
+
+export const multerExamUpload = multer({
+  storage: examStorage,
   limits: {
     fileSize: 500 * 1024 * 1024 // 500 MB Max Capability
   }
@@ -88,6 +115,12 @@ export function uploadValidation(req: Request, res: Response, next: NextFunction
       return res.status(400).json({ success: false, error: 'Không tìm thấy tệp tải lên!' });
     }
 
+    try {
+      if (req.file.originalname && /[\u00C0-\u00FF]/.test(req.file.originalname)) {
+        req.file.originalname = Buffer.from(req.file.originalname, 'latin1').toString('utf8');
+      }
+    } catch (e) {}
+
     // Kiểm tra dung lượng tệp tải lên động
     const maxMb = SystemSettingService.getNumber('MAX_UPLOAD_SIZE_MB') || 50;
     const maxBytes = maxMb * 1024 * 1024;
@@ -105,6 +138,52 @@ export function uploadValidation(req: Request, res: Response, next: NextFunction
     const isValid = validateMagicBytes(req.file.path);
     if (!isValid) {
       // Clean up invalid file
+      try {
+        fs.unlinkSync(req.file.path);
+      } catch (unlinkErr) {}
+      return res.status(400).json({ success: false, error: 'Định dạng tệp không hợp lệ hoặc nội dung tệp đã bị giả mạo!' });
+    }
+
+    next();
+  });
+}
+
+// Dedicated Express Middleware for Exam uploads -> saves in uploads/exams/
+export function examUploadValidation(req: Request, res: Response, next: NextFunction) {
+  multerExamUpload.single('file')(req, res, (err) => {
+    if (err) {
+      if (err instanceof multer.MulterError && err.code === 'LIMIT_FILE_SIZE') {
+        return res.status(400).json({ success: false, error: 'Dung lượng tệp tải lên vượt quá giới hạn tối đa 500MB!' });
+      }
+      return res.status(400).json({ success: false, error: err.message });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({ success: false, error: 'Không tìm thấy tệp tải lên!' });
+    }
+
+    try {
+      if (req.file.originalname && /[\u00C0-\u00FF]/.test(req.file.originalname)) {
+        req.file.originalname = Buffer.from(req.file.originalname, 'latin1').toString('utf8');
+      }
+    } catch (e) {}
+
+    // Kiểm tra dung lượng tệp tải lên động
+    const maxMb = SystemSettingService.getNumber('MAX_UPLOAD_SIZE_MB') || 50;
+    const maxBytes = maxMb * 1024 * 1024;
+    if (req.file.size > maxBytes) {
+      try {
+        fs.unlinkSync(req.file.path);
+      } catch (unlinkErr) {}
+      return res.status(400).json({ 
+        success: false, 
+        error: `Dung lượng tệp tải lên vượt quá giới hạn cấu hình của hệ thống (Tối đa ${maxMb}MB)!` 
+      });
+    }
+
+    // Validate magic bytes
+    const isValid = validateMagicBytes(req.file.path);
+    if (!isValid) {
       try {
         fs.unlinkSync(req.file.path);
       } catch (unlinkErr) {}

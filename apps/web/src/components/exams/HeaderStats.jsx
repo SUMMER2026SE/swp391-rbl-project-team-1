@@ -60,7 +60,7 @@ export function HeaderStats({ stats }) {
       bgColor: 'rgba(14, 165, 233, 0.08)'
     },
     {
-      title: 'AI Parsing',
+      title: 'Xử lý AI',
       value: metrics.processingImports,
       desc: 'Tệp đang phân tích',
       icon: <HiUpload />,

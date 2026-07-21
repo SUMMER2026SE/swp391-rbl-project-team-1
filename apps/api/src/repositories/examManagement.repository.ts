@@ -1,3 +1,5 @@
+import fs from 'fs';
+import path from 'path';
 import { prisma } from '../lib/prisma.js';
 import type { Prisma } from '@prisma/client';
 
@@ -76,9 +78,45 @@ export class ExamManagementRepository {
   }
 
   static async deleteExam(id: number) {
-    return prisma.exam.delete({
+    const examQuestions = await prisma.examQuestion.findMany({
+      where: { examId: id },
+      select: { questionId: true }
+    });
+    const questionIds = examQuestions.map(eq => eq.questionId);
+
+    // Delete related attempt events, attempt answers, attempts, exam question links
+    await prisma.examEvent.deleteMany({ where: { attempt: { examId: id } } });
+    await prisma.testAttemptAnswer.deleteMany({ where: { attempt: { examId: id } } });
+    await prisma.testAttempt.deleteMany({ where: { examId: id } });
+    await prisma.examQuestion.deleteMany({ where: { examId: id } });
+
+    // Clean up questions that belonged to this exam if not linked to any other exam
+    for (const qId of questionIds) {
+      const otherUsages = await prisma.examQuestion.count({ where: { questionId: qId } });
+      if (otherUsages === 0) {
+        await prisma.questionOption.deleteMany({ where: { questionId: qId } });
+        await prisma.questionMedia.deleteMany({ where: { questionId: qId } });
+        await prisma.questionReport.deleteMany({ where: { questionId: qId } });
+        await prisma.testAttemptAnswer.deleteMany({ where: { questionId: qId } });
+        await prisma.question.delete({ where: { id: qId } }).catch(() => {});
+      }
+    }
+
+    const deletedExam = await prisma.exam.delete({
       where: { id }
     });
+
+    try {
+      const workspaceRoot = path.resolve(process.cwd(), '..', '..');
+      const examDir = path.resolve(workspaceRoot, 'apps', 'api', 'uploads', 'questions', String(id));
+      if (fs.existsSync(examDir)) {
+        fs.rmSync(examDir, { recursive: true, force: true });
+      }
+    } catch (e) {
+      console.warn(`[deleteExam] Could not delete upload folder for exam ${id}:`, e);
+    }
+
+    return deletedExam;
   }
 
   static async createExamQuestions(examId: number, questionIds: number[]) {
@@ -237,6 +275,16 @@ export class ExamManagementRepository {
       }
 
       return question;
+    });
+  }
+
+  static async deleteQuestion(id: number) {
+    return prisma.$transaction(async (tx) => {
+      await tx.questionOption.deleteMany({ where: { questionId: id } });
+      await tx.questionMedia.deleteMany({ where: { questionId: id } });
+      await tx.questionReport.deleteMany({ where: { questionId: id } });
+      await tx.testAttemptAnswer.deleteMany({ where: { questionId: id } });
+      return tx.question.delete({ where: { id } });
     });
   }
 

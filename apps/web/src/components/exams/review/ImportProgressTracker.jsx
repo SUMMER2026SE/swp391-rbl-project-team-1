@@ -16,13 +16,13 @@ export default function ImportProgressTracker({
   onClose
 }) {
   const steps = [
-    { id: 'upload', name: '1. Khởi tạo phiên Import V3', key: 'Step 1' },
+    { id: 'upload', name: '1. Khởi tạo phiên bóc tách', key: 'Step 1' },
     { id: 'mineru', name: '2. Render ảnh trang PDF (MinerU)', key: 'Step 2' },
     { id: 'boundary', name: '3. Nhận diện ranh giới câu hỏi (Boundary Detector)', key: 'Step 3' },
     { id: 'crop', name: '4. Cắt ảnh câu hỏi & ghép trang (Crop Generator)', key: 'Step 4' },
     { id: 'vision', name: '5. Bóc tách Văn bản & LaTeX (Gemini Vision)', key: 'Step 5' },
     { id: 'graph', name: '6. Xây dựng sơ đồ câu hỏi', key: 'Step 6' },
-    { id: 'studio', name: '7. Chuẩn bị Review Studio V3', key: 'Step 7' }
+    { id: 'studio', name: '7. Khởi tạo giao diện xem lại', key: 'Step 7' }
   ];
 
   // Helper to deduce step status from live server logs
@@ -159,7 +159,7 @@ export default function ImportProgressTracker({
 
         {/* Modal Title */}
         <h3 style={{ fontSize: '18px', fontWeight: 800, color: '#ffffff', margin: 0, letterSpacing: '-0.02em' }}>
-          {sessionStatus === 'FAILED' ? 'CẢNH BÁO LỖI TIẾN TRÌNH V3' : 'TIẾN TRÌNH PHÂN TÁCH ĐỀ THI V3'}
+          {sessionStatus === 'FAILED' ? 'CẢNH BÁO LỖI BÓC TÁCH' : 'TIẾN TRÌNH PHÂN TÁCH ĐỀ THI'}
         </h3>
 
         {fileName && (
@@ -271,7 +271,7 @@ export default function ImportProgressTracker({
               letterSpacing: '0.5px'
             }}
           >
-            ✨ Mở Teacher Review Studio V3 Ngay →
+            ✨ Mở Duyệt & Kiểm Tra Đề Thi Ngay →
           </button>
         ) : sessionStatus === 'PROCESSING' ? (
           <button

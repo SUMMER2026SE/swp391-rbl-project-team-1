@@ -86,7 +86,7 @@ export function ExamsTab({
                   </h4>
                 </div>
                 <span className={`saas-badge ${ex.status?.toLowerCase()}`}>
-                  {ex.status === 'published' ? 'Đã phát hành' : ex.status === 'draft' ? 'Bản nháp' : 'Chờ duyệt'}
+                  {ex.status?.toLowerCase() === 'published' ? 'Đã phát hành' : ex.status?.toLowerCase() === 'draft' ? 'Bản nháp' : 'Chờ duyệt'}
                 </span>
               </div>
 

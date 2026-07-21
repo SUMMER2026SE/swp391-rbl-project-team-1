@@ -17,6 +17,7 @@ import {
   getQuestionById,
   createQuestion,
   updateQuestion,
+  deleteQuestion,
   reportQuestion,
   getReports,
   resolveReport,
@@ -43,10 +44,11 @@ router.get('/questions', authenticateJWT, requireRole(['TEACHER', 'ADMIN']), get
 router.get('/questions/:id', authenticateJWT, requireRole(['TEACHER', 'ADMIN']), getQuestionById);
 router.post('/questions', authenticateJWT, requireRole(['TEACHER']), validateCreateQuestion, createQuestion);
 router.put('/questions/:id', authenticateJWT, requireRole(['TEACHER']), validateCreateQuestion, updateQuestion);
+router.delete('/questions/:id', authenticateJWT, requireRole(['TEACHER']), deleteQuestion);
 router.post('/questions/:id/report', authenticateJWT, requireRole(['TEACHER']), reportQuestion);
 
 // AI Document Import V2 routes (MinerU Standalone API + Gemini Block Mapping)
-router.post('/import/upload', authenticateJWT, requireRole(['TEACHER']), uploadValidation, ImportV2Controller.uploadDocument);
+router.post('/import/upload', authenticateJWT, requireRole(['TEACHER']), examUploadValidation, ImportV2Controller.uploadDocument);
 router.get('/import/sessions', authenticateJWT, requireRole(['TEACHER']), ImportV2Controller.getSessions);
 router.get('/import/sessions/:id', authenticateJWT, requireRole(['TEACHER']), ImportV2Controller.getSessionById);
 router.put('/import/questions/:id', authenticateJWT, requireRole(['TEACHER']), ImportV2Controller.updateQuestion);
@@ -56,7 +58,7 @@ router.post('/import/sessions/:id/confirm', authenticateJWT, requireRole(['TEACH
 router.delete('/import/sessions/:id', authenticateJWT, requireRole(['TEACHER']), ImportV2Controller.deleteSession);
 
 // NEW: AI Document Import V3 routes (Image First Pipeline: MinerU Page PNG -> Boundary -> Crop -> Gemini Vision)
-router.post('/import-v3/upload', authenticateJWT, requireRole(['TEACHER']), uploadValidation, ImportV3Controller.uploadDocumentV3);
+router.post('/import-v3/upload', authenticateJWT, requireRole(['TEACHER']), examUploadValidation, ImportV3Controller.uploadDocumentV3);
 router.get('/import-v3/session/:id', authenticateJWT, requireRole(['TEACHER']), ImportV3Controller.getSessionV3);
 router.post('/import-v3/session/:id/recrop/:questionIndex', authenticateJWT, requireRole(['TEACHER']), ImportV3Controller.recropQuestionV3);
 router.post('/import-v3/session/:id/explanation-image/:questionIndex', authenticateJWT, requireRole(['TEACHER']), uploadValidation, ImportV3Controller.uploadExplanationImageV3);

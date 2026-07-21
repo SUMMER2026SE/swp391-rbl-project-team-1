@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { HiSearch, HiPlus, HiOutlineFlag, HiPencilAlt, HiEye } from 'react-icons/hi';
+import { HiSearch, HiPlus, HiOutlineFlag, HiPencilAlt, HiEye, HiTrash } from 'react-icons/hi';
 import { api } from '../../api';
 
 const TOPICS_BY_SUBJECT = {
@@ -160,6 +160,23 @@ export function QuestionsTab({
     }
   };
 
+  const handleDeleteQuestion = async (q) => {
+    if (q._count?.examQuestions > 0) {
+      alert('Câu hỏi này đang thuộc về đề thi. Bạn chỉ được phép chỉnh sửa câu hỏi này, không được xóa trực tiếp khỏi Ngân hàng câu hỏi!');
+      return;
+    }
+    if (!window.confirm(`Bạn có chắc chắn muốn xóa câu hỏi #${q.id} khỏi ngân hàng câu hỏi không?`)) {
+      return;
+    }
+    try {
+      await api.deleteTeacherQuestion(q.id);
+      alert('Đã xóa câu hỏi thành công!');
+      onPageChange(pagination.page);
+    } catch (err) {
+      alert(err.message);
+    }
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
       {/* Search Toolbar */}
@@ -263,13 +280,22 @@ export function QuestionsTab({
                       </button>
                       
                       {q.createdBy === currentUser?.id ? (
-                        <button 
-                          onClick={() => handleOpenForm(q)}
-                          style={{ padding: '6px', border: '1px solid #e2e8f0', borderRadius: '6px', backgroundColor: '#ffffff', cursor: 'pointer' }}
-                          title="Sửa câu hỏi"
-                        >
-                          <HiPencilAlt style={{ color: '#6366f1' }} />
-                        </button>
+                        <>
+                          <button 
+                            onClick={() => handleOpenForm(q)}
+                            style={{ padding: '6px', border: '1px solid #e2e8f0', borderRadius: '6px', backgroundColor: '#ffffff', cursor: 'pointer' }}
+                            title="Sửa câu hỏi"
+                          >
+                            <HiPencilAlt style={{ color: '#6366f1' }} />
+                          </button>
+                          <button 
+                            onClick={() => handleDeleteQuestion(q)}
+                            style={{ padding: '6px', border: '1px solid #e2e8f0', borderRadius: '6px', backgroundColor: '#ffffff', cursor: 'pointer' }}
+                            title={q._count?.examQuestions > 0 ? "Câu hỏi thuộc về đề thi (chỉ được sửa)" : "Xóa câu hỏi"}
+                          >
+                            <HiTrash style={{ color: q._count?.examQuestions > 0 ? '#cbd5e1' : '#ef4444' }} />
+                          </button>
+                        </>
                       ) : (
                         <button 
                           onClick={() => setShowReportModal(q.id)}

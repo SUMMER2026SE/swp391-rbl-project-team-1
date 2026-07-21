@@ -91,7 +91,7 @@ const mapQuestion = (q, idx, examId) => {
     exam_id: String(examId),
     question_number: idx + 1,
     question_text: q.content,
-    question_image_url: q.imageUrl || null,
+    question_image_url: q.imageUrl ? (q.imageUrl.startsWith('http') ? q.imageUrl : `http://localhost:4000/${q.imageUrl.replace(/^\/+/, '')}`) : null,
     audio_url: q.audioUrl || null,
     question_type: 'multiple_choice_single',
     difficulty: diffLabel,
@@ -158,7 +158,8 @@ export const mockExamService = {
       }
 
       const list = await api.getExams(apiFilters);
-      if (list && list.length > 0) {
+      if (list && Array.isArray(list)) {
+        setLocalData('supabase_mock_exams', list);
         let result = list.map(mapExam).filter(e => e.total_questions > 0);
         if (filters.search) {
           const query = filters.search.toLowerCase();
@@ -579,7 +580,7 @@ export const mockExamService = {
             exam_id: String(attempt.examId),
             question_number: eq.order,
             question_text: q.content,
-            question_image_url: q.imageUrl || null,
+            question_image_url: q.imageUrl ? (q.imageUrl.startsWith('http') ? q.imageUrl : `http://localhost:4000/${q.imageUrl.replace(/^\/+/, '')}`) : null,
             audio_url: q.audioUrl || null,
             question_type: 'multiple_choice_single',
             difficulty: q.difficulty === 'EASY' ? 'Dễ' : (q.difficulty === 'HARD' ? 'Khó' : 'Trung bình'),
