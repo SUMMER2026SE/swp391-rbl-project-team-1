@@ -9742,4 +9742,173 @@ code, pre, a[href^="http"], .breakable {
   }
 }
 
+/* ==========================================
+   IPAD & TABLET DEDICATED RESPONSIVE SYSTEM
+   (768px - 1024px Viewports)
+   ========================================== */
+@media (min-width: 769px) and (max-width: 1024px) {
+  /* 1. Container Padding & General Layout for iPad */
+  .lp-container {
+    padding: 0 32px !important;
+  }
+
+  /* 2. Header & Navigation Pills for iPad */
+  .lp-nav__inner {
+    padding: 12px 24px !important;
+  }
+
+  .lp-nav__links {
+    gap: 16px !important;
+  }
+
+  .lp-nav__links a {
+    font-size: 13.5px !important;
+  }
+
+  /* 3. Hero Section iPad Layout */
+  .lp-hero {
+    padding: 48px 0 60px 0 !important;
+  }
+
+  .lp-hero__content {
+    grid-template-columns: 1fr !important;
+    gap: 36px !important;
+    text-align: center !important;
+  }
+
+  .lp-hero__left {
+    max-width: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+  }
+
+  .lp-hero__title-main {
+    font-size: 38px !important;
+    line-height: 1.2 !important;
+  }
+
+  .lp-hero__highlight-box {
+    font-size: 32px !important;
+    padding: 8px 24px !important;
+  }
+
+  .lp-hero__sub {
+    font-size: 16px !important;
+    max-width: 650px !important;
+    margin: 16px auto 28px auto !important;
+  }
+
+  .lp-hero__actions {
+    justify-content: center !important;
+    gap: 16px !important;
+  }
+
+  .lp-hero__right {
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+  }
+
+  .footer-sun-mascot-container {
+    max-width: 380px !important;
+    margin: 0 auto !important;
+  }
+
+  /* 4. Neo-Brutalist Feature Cards 2-Column iPad Grid */
+  .lp-features-brutalist-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 24px !important;
+  }
+
+  .lp-feature-card-neo {
+    min-height: 340px !important;
+    padding: 28px !important;
+  }
+
+  .lp-card-pill-badge {
+    position: absolute !important;
+    top: 20px !important;
+    right: 20px !important;
+    font-size: 10.5px !important;
+    padding: 4px 12px !important;
+  }
+
+  /* 5. Unified Learning Journey (UJS) Section on iPad */
+  .ujs-root {
+    padding: 48px 0 60px 0 !important;
+  }
+
+  .ujs-mockup-scroll-wrapper {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .ujs-mockup-window {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    border-radius: 16px !important;
+    border-width: 4px !important;
+  }
+
+  /* 6. Green FPT Card Section on iPad */
+  #role-tabs-section {
+    padding: 50px 0 !important;
+  }
+
+  #role-tabs-section .lp-container > div:first-child {
+    padding: 44px 36px 60px 36px !important;
+    border-radius: 28px !important;
+  }
+
+  /* 2-column grid for capsules on iPad */
+  #role-tabs-section div[style*="gridTemplateColumns"] {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 20px !important;
+  }
+
+  .lp-capsule-item {
+    padding: 12px 20px !important;
+  }
+
+  /* 7. Lead Registration Form Section (#pricing) on iPad */
+  .lp-pricing-section {
+    padding: 60px 0 !important;
+  }
+
+  .lp-pricing-section .lp-container > div {
+    gap: 36px !important;
+  }
+
+  .lp-lead-mascot-box img {
+    max-width: 360px !important;
+  }
+
+  .lp-lead-form-box h2 {
+    font-size: 32px !important;
+  }
+
+  /* 8. iPad Slide-in Animations & Momentum Transitions */
+  .lp-features-brutalist-grid > div,
+  .lp-capsule-item,
+  .lp-fpt-intro-box,
+  .lp-lead-mascot-box,
+  .lp-lead-form-box {
+    opacity: 0 !important;
+    transform: translateX(-80px) scale(0.95) !important;
+    transition: transform 1.5s cubic-bezier(0.16, 1, 0.3, 1), opacity 1.5s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    will-change: transform, opacity !important;
+  }
+
+  .lp-features-brutalist-grid > div.is-in-view,
+  .lp-capsule-item.is-in-view,
+  .lp-fpt-intro-box.is-in-view,
+  .lp-lead-mascot-box.is-in-view,
+  .lp-lead-form-box.is-in-view {
+    opacity: 1 !important;
+    transform: translateX(0) scale(1) !important;
+  }
+}
+
 
