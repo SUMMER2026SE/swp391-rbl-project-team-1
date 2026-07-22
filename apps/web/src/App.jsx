@@ -1529,19 +1529,19 @@ export default function App() {
       return { route: 'public-course-detail', courseId: courseMatch[1] };
     }
     if (currentPath === '/mock-exams') {
-      return { route: 'public-mock-exams' };
+      return { route: 'mock-exams-list' };
     }
     const mockExamMatch = currentPath.match(/^\/mock-exams\/([^/]+)$/);
     if (mockExamMatch && !currentPath.includes('/start') && !currentPath.includes('/result/')) {
-      return { route: 'public-mock-exam-detail', examId: mockExamMatch[1] };
+      return { route: 'mock-exam-detail', examId: mockExamMatch[1] };
     }
     const mockExamTakingMatch = currentPath.match(/^\/mock-exams\/([^/]+)\/start$/);
     if (mockExamTakingMatch) {
-      return { route: 'public-mock-exam-taking', examId: mockExamTakingMatch[1] };
+      return { route: 'mock-exam-taking', examId: mockExamTakingMatch[1] };
     }
     const mockExamResultMatch = currentPath.match(/^\/mock-exams\/([^/]+)\/result\/([^/]+)$/);
     if (mockExamResultMatch) {
-      return { route: 'public-mock-exam-result', examId: mockExamResultMatch[1], attemptId: mockExamResultMatch[2] };
+      return { route: 'mock-exam-result', examId: mockExamResultMatch[1], attemptId: mockExamResultMatch[2] };
     }
 
     if (currentPath.startsWith('/ai-tutor') || currentPath.startsWith('/ai tutor') || currentPath.startsWith('/ai%20tutor')) {
@@ -2944,7 +2944,7 @@ export default function App() {
           ) : null}
 
           {/* ================= PUBLIC OR PREVIEW LANDING PAGE ================= */}
-          {(parsedRoute.route === 'landing' || parsedRoute.route.startsWith('public-')) && parsedRoute.route !== 'admin' && (
+          {(parsedRoute.route === 'landing' || parsedRoute.route.startsWith('public-') || (parsedRoute.route.startsWith('mock-') && parsedRoute.route !== 'mock-exam-taking')) && parsedRoute.route !== 'admin' && (
             <div>
               {role === 'guest' && activeTab === 'reset-password' ? (
                 <div className="auth-page-layout" style={{ position: 'relative', display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '80vh', padding: '20px' }}>
@@ -3075,44 +3075,15 @@ export default function App() {
             />
           )}
 
-          {/* ================= MOCK EXAMS ROUTER WORKSPACE (PUBLIC ACCESS) ================= */}
-          {parsedRoute.route.startsWith('mock-') && (
+          {/* ================= MOCK EXAMS TAKING ROOM (FULLSCREEN EXAM MODE) ================= */}
+          {(parsedRoute.route === 'mock-exam-taking' || parsedRoute.route === 'public-mock-exam-taking') && (
             <div className="mock-exams-workspace-wrapper" style={{ padding: '20px 0' }}>
-              {parsedRoute.route === 'mock-exams-list' && (
-                <MockExamsPage
-                  currentUser={currentUser}
-                  onSelectExam={(examId) => navigateTo(`/mock-exams/${examId}`)}
-                  navigateTo={navigateTo}
-                  examsList={examsList}
-                />
-              )}
-
-              {parsedRoute.route === 'mock-exam-detail' && (
-                <MockExamDetailPage
-                  examId={parsedRoute.examId}
-                  currentUser={currentUser}
-                  onStartExam={(examId) => navigateTo(`/mock-exams/${examId}/start`)}
-                  navigateTo={navigateTo}
-                />
-              )}
-
-              {parsedRoute.route === 'mock-exam-taking' && (
-                <MockExamTakingPage
-                  examId={parsedRoute.examId}
-                  currentUser={currentUser}
-                  onFinished={(examId, attemptId) => navigateTo(`/mock-exams/${examId}/result/${attemptId}`)}
-                  navigateTo={navigateTo}
-                />
-              )}
-
-              {parsedRoute.route === 'mock-exam-result' && (
-                <MockExamResultPage
-                  examId={parsedRoute.examId}
-                  attemptId={parsedRoute.attemptId}
-                  currentUser={currentUser}
-                  navigateTo={navigateTo}
-                />
-              )}
+              <MockExamTakingPage
+                examId={parsedRoute.examId}
+                currentUser={currentUser}
+                onFinished={(examId, attemptId) => navigateTo(`/mock-exams/${examId}/result/${attemptId}`)}
+                navigateTo={navigateTo}
+              />
             </div>
           )}
 

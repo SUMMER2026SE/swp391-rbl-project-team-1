@@ -3492,15 +3492,6 @@ export default function LandingPage({
               />
             )}
 
-            {(parsedRoute.route === 'public-mock-exam-taking' || parsedRoute.route === 'mock-exam-taking') && (
-              <MockExamTakingPage
-                examId={parsedRoute.examId}
-                currentUser={currentUser}
-                onFinished={(examId, attemptId) => navigateTo(`/mock-exams/${examId}/result/${attemptId}`)}
-                navigateTo={navigateTo}
-              />
-            )}
-
             {(parsedRoute.route === 'public-mock-exam-result' || parsedRoute.route === 'mock-exam-result') && (
               <MockExamResultPage
                 examId={parsedRoute.examId}

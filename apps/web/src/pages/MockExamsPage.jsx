@@ -5,6 +5,7 @@ import { mockExamService } from '../services/mockExamService';
 import { supabase } from '../lib/supabaseClient';
 import { getLocalData } from '../services/mockDb';
 import { api } from '../api';
+import AnalyticsTab from '../components/mock-exams/analytics/AnalyticsTab';
 import { 
   HiBookOpen, 
   HiClipboardList, 
@@ -43,7 +44,7 @@ export default function MockExamsPage({ currentUser, onSelectExam, navigateTo, e
     grade: 'All'
   });
 
-  // Tab state: 'list' | 'history'
+  // Tab state: 'list' | 'history' | 'analytics'
   const [activeTab, setActiveTab] = useState('list');
 
   // Exam history state
@@ -104,11 +105,12 @@ export default function MockExamsPage({ currentUser, onSelectExam, navigateTo, e
     }
   };
 
-  // Auto-switch to tab from query param (e.g. ?tab=history)
+  // Auto-switch to tab from query param (e.g. ?tab=history or ?tab=analytics)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const tabParam = params.get('tab');
     if (tabParam === 'history' && currentUser) setActiveTab('history');
+    if (tabParam === 'analytics') setActiveTab('analytics');
   }, [currentUser]);
 
   useEffect(() => { 
@@ -158,6 +160,7 @@ export default function MockExamsPage({ currentUser, onSelectExam, navigateTo, e
           {[
             { key: 'list', label: '📋 Tất cả đề thi', authRequired: false },
             { key: 'history', label: '📜 Lịch sử thi', authRequired: true },
+            { key: 'analytics', label: '📊 Phân tích AI', authRequired: false },
           ].filter(t => !t.authRequired || currentUser).map(tab => (
             <button
               key={tab.key}
@@ -181,7 +184,7 @@ export default function MockExamsPage({ currentUser, onSelectExam, navigateTo, e
           ))}
         </div>
 
-        {activeTab === 'list' ? (
+        {activeTab === 'list' && (
           <>
             {/* Filter panel */}
             <MockExamFilters
@@ -280,7 +283,9 @@ export default function MockExamsPage({ currentUser, onSelectExam, navigateTo, e
               </div>
             )}
           </>
-        ) : (
+        )}
+
+        {activeTab === 'history' && (
           /* ── EXAM HISTORY TAB ── */
           <div style={{ marginTop: '12px', marginBottom: '40px' }}>
             {/* Header */}
@@ -434,6 +439,10 @@ export default function MockExamsPage({ currentUser, onSelectExam, navigateTo, e
               </div>
             )}
           </div>
+        )}
+
+        {activeTab === 'analytics' && (
+          <AnalyticsTab navigateTo={navigateTo} />
         )}
 
         {/* CTA Banner for guests */}

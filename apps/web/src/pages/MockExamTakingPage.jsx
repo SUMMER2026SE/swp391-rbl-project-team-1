@@ -68,6 +68,8 @@ export default function MockExamTakingPage({ examId, currentUser, onFinished, na
   
   const [loading, setLoading] = useState(true);
   const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false);
+  const [showNoQuestionsModal, setShowNoQuestionsModal] = useState(false);
+  const [targetTopicTitle, setTargetTopicTitle] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // ── Real Exam Experience Upgrades ──
@@ -206,8 +208,70 @@ export default function MockExamTakingPage({ examId, currentUser, onFinished, na
           attPromise
         ]);
 
-        setExam(examData);
-        setQuestions(qs);
+        let finalQs = qs;
+        const targetTopic = historyState?.targetTopic || historyState?.usr?.targetTopic;
+        const practiceConfig = historyState?.practiceConfig || historyState?.usr?.practiceConfig;
+
+        let customTitle = examData?.title;
+        let activeTopicName = null;
+        if (targetTopic) {
+          activeTopicName = targetTopic.subTopic || targetTopic.topic || targetTopic.name;
+        } else if (practiceConfig && practiceConfig.singleTopicName) {
+          activeTopicName = practiceConfig.singleTopicName;
+        }
+
+        const isTopicMatch = (qTopic, qText, searchTopic) => {
+          if (!searchTopic) return true;
+          const s = searchTopic.toLowerCase();
+          const t = (qTopic || '').toLowerCase();
+          const txt = (qText || '').toLowerCase();
+
+          if (s.includes('xác suất') || s.includes('tổ hợp')) {
+            return t.includes('xác suất') || t.includes('tổ hợp') || txt.includes('xác suất') || txt.includes('tổ hợp');
+          }
+          if (s.includes('mũ') || s.includes('lôgarit') || s.includes('logarit')) {
+            return t.includes('mũ') || t.includes('lôgarit') || t.includes('logarit') || txt.includes('mũ') || txt.includes('log');
+          }
+          if (s.includes('tích phân') || s.includes('nguyên hàm')) {
+            return t.includes('tích phân') || t.includes('nguyên hàm') || txt.includes('tích phân') || txt.includes('nguyên hàm');
+          }
+          if (s.includes('hàm số') || s.includes('đồ thị')) {
+            return t.includes('hàm số') || t.includes('đồ thị') || txt.includes('hàm số') || txt.includes('đồ thị');
+          }
+          if (s.includes('oxyz') || s.includes('tọa độ')) {
+            return t.includes('oxyz') || t.includes('tọa độ');
+          }
+          if (s.includes('dao động') || s.includes('sóng')) {
+            return t.includes('dao động') || t.includes('sóng');
+          }
+          if (s.includes('dòng điện') || s.includes('xoay chiều')) {
+            return t.includes('dòng điện') || t.includes('xoay chiều');
+          }
+          if (s.includes('hạt nhân')) {
+            return t.includes('hạt nhân');
+          }
+
+          return t.includes(s) || s.includes(t) || txt.includes(s);
+        };
+
+        if (activeTopicName) {
+          customTitle = `⚡ Đề luyện tập AI: ${activeTopicName} (Chuyên đề trọng tâm)`;
+          setTargetTopicTitle(activeTopicName);
+          const matching = qs.filter(q => isTopicMatch(q.topic, q.question_text || q.content, activeTopicName));
+          if (matching.length > 0) {
+            finalQs = matching.slice(0, 20);
+            setIsPreExam(true); // Có câu hỏi -> Mở trang xác nhận làm bài!
+          } else {
+            setIsPreExam(false);
+            setShowNoQuestionsModal(true); // Không có câu hỏi -> Bật popup thông báo, KHÔNG chuyển vào trang làm bài!
+            finalQs = [];
+          }
+        } else {
+          setIsPreExam(true); // Đề thi thông thường -> Mở trang xác nhận làm bài!
+        }
+
+        setExam({ ...examData, title: customTitle, total_questions: finalQs.length });
+        setQuestions(finalQs);
 
         const savedAnswers = localStorage.getItem(`exam_taking_answers_${examId}`);
         if (savedAnswers) setAnswers(JSON.parse(savedAnswers));
@@ -627,9 +691,21 @@ export default function MockExamTakingPage({ examId, currentUser, onFinished, na
     return (
       <div style={{ textAlign: 'center', padding: '100px 20px' }}>
         <span style={{ fontSize: '48px' }}>📂</span>
-        <h3>Đề thi chưa có câu hỏi</h3>
-        <button className="btn-outline" onClick={() => navigateTo(`/mock-exams/${examId}`)} style={{ marginTop: '12px' }}>
-          Quay lại trang chi tiết
+        <h3 style={{ fontSize: '20px', fontWeight: '800', marginTop: '16px', color: 'var(--text-primary)' }}>
+          Đề thi chưa có câu hỏi
+        </h3>
+        <button
+          className="btn-outline"
+          onClick={() => navigateTo('/mock-exams')}
+          style={{
+            marginTop: '16px',
+            padding: '10px 20px',
+            borderRadius: '10px',
+            fontWeight: '800',
+            cursor: 'pointer'
+          }}
+        >
+          ← Quay lại trang thi thử
         </button>
       </div>
     );
@@ -1085,6 +1161,96 @@ export default function MockExamTakingPage({ examId, currentUser, onFinished, na
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <span style={{ color: '#6366f1', fontWeight: 'bold' }}>⏳</span> Đang tổng hợp phân tích AI & chuyển sang báo cáo
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* POPUP MODAL: KHÔNG TÌM THẤY CÂU HỎI PHÙ HỢP */}
+      {showNoQuestionsModal && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0, 0, 0, 0.75)',
+          backdropFilter: 'blur(6px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 10000,
+          padding: '20px'
+        }}>
+          <div style={{
+            background: 'var(--bg-card, #ffffff)',
+            borderRadius: '24px',
+            maxWidth: '480px',
+            width: '100%',
+            padding: '32px',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.35)',
+            border: '2px solid #000000',
+            textAlign: 'center',
+            position: 'relative'
+          }}>
+            <div style={{
+              width: '64px',
+              height: '64px',
+              borderRadius: '50%',
+              background: '#FEF3C7',
+              color: '#D97706',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '32px',
+              margin: '0 auto 18px auto',
+              border: '2px solid #000000',
+              boxShadow: '3px 3px 0px #000000'
+            }}>
+              ⚠️
+            </div>
+
+            <h3 style={{ fontSize: '20px', fontWeight: '900', color: 'var(--text-primary)', marginBottom: '10px' }}>
+              Không tìm thấy câu hỏi phù hợp!
+            </h3>
+
+            <p style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.6', marginBottom: '24px' }}>
+              Hệ thống không tìm thấy câu hỏi phù hợp thuộc chủ đề <strong>"{targetTopicTitle || 'yêu cầu'}"</strong> trong CSDL. Vui lòng chọn chủ đề khác hoặc luyện tập với bộ đề tổng hợp!
+            </p>
+
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+              <button
+                onClick={() => {
+                  setShowNoQuestionsModal(false);
+                  if (navigateTo) navigateTo('/mock-exams');
+                }}
+                style={{
+                  padding: '12px 20px',
+                  borderRadius: '12px',
+                  background: '#F3F4F6',
+                  color: '#374151',
+                  fontWeight: '800',
+                  fontSize: '13.5px',
+                  border: '2px solid #000000',
+                  cursor: 'pointer',
+                  boxShadow: '2px 2px 0px #000000'
+                }}
+              >
+                ← Chọn chủ đề khác
+              </button>
+              <button
+                onClick={() => setShowNoQuestionsModal(false)}
+                style={{
+                  padding: '12px 20px',
+                  borderRadius: '12px',
+                  background: 'linear-gradient(135deg, #6c5ce7 0%, #4f46e5 100%)',
+                  color: '#ffffff',
+                  fontWeight: '900',
+                  fontSize: '13.5px',
+                  border: '2px solid #000000',
+                  boxShadow: '2px 2px 0px #000000',
+                  cursor: 'pointer'
+                }}
+              >
+                Luyện tập đề tổng hợp 🚀
+              </button>
             </div>
           </div>
         </div>
