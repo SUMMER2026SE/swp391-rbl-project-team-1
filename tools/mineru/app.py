@@ -31,13 +31,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Directories for temporary files and extracted images
 BASE_DIR = Path(__file__).resolve().parent
 UPLOAD_DIR = BASE_DIR / "temp_uploads"
 IMAGES_DIR = BASE_DIR / "output" / "extracted_images"
+EXAMS_UPLOADS_DIR = BASE_DIR.parent.parent / "apps" / "api" / "uploads" / "exams"
 
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 IMAGES_DIR.mkdir(parents=True, exist_ok=True)
+EXAMS_UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
 
 # Mount static route for extracted images
 app.mount("/extracted_images", StaticFiles(directory=str(IMAGES_DIR)), name="extracted_images")
@@ -64,7 +65,7 @@ def health_check():
     return {"status": "ok"}
 
 
-def parse_pdf(file_path: Path) -> Dict[str, Any]:
+def parse_pdf(file_path: Path, session_id: str = None) -> Dict[str, Any]:
     """
     Parses PDF document using PyMuPDF and MinerU layout engine.
     Renders high-res full page PNG images and extracts line-level tight bboxes for visual boundary detector.
@@ -89,10 +90,20 @@ def parse_pdf(file_path: Path) -> Dict[str, Any]:
         # RENDER FULL HIGH-RES PAGE IMAGE FOR VISUAL VIEWER & CROP ENGINE
         try:
             pix = page.get_pixmap(dpi=150)
-            page_img_filename = f"pdf_page_{page_num}.png"
-            page_img_path = IMAGES_DIR / page_img_filename
-            pix.save(str(page_img_path))
-            logger.info(f"Rendered page image: {page_img_path}")
+            page_img_rel_path = f"extracted_images/pdf_page_{page_num}.png"
+
+            if session_id:
+                session_exam_dir = EXAMS_UPLOADS_DIR / str(session_id)
+                session_exam_dir.mkdir(parents=True, exist_ok=True)
+                exam_page_path = session_exam_dir / f"pdf_page_{page_num}.png"
+                pix.save(str(exam_page_path))
+                page_img_rel_path = f"uploads/exams/{session_id}/pdf_page_{page_num}.png"
+
+            # Also save legacy fallback in IMAGES_DIR
+            page_img_filename = f"session_{session_id}_pdf_page_{page_num}.png" if session_id else f"pdf_page_{page_num}.png"
+            pix.save(str(IMAGES_DIR / page_img_filename))
+            pix.save(str(IMAGES_DIR / f"pdf_page_{page_num}.png"))
+            logger.info(f"Rendered page image: {page_img_rel_path}")
         except Exception as render_err:
             logger.warning(f"Failed to render page image for page {page_num}: {render_err}")
 
@@ -207,7 +218,7 @@ def parse_pdf(file_path: Path) -> Dict[str, Any]:
             "page": page_num,
             "width": page_w,
             "height": page_h,
-            "pageImageRelPath": f"extracted_images/{page_img_filename}",
+            "pageImageRelPath": page_img_rel_path,
             "blocks": blocks
         })
 
@@ -310,11 +321,14 @@ def parse_docx(file_path: Path) -> Dict[str, Any]:
     }
 
 
+from typing import List, Dict, Any, Optional
+from fastapi import FastAPI, UploadFile, File, Form, HTTPException
+
 @app.post("/parse")
-async def parse_document(file: UploadFile = File(...)):
+async def parse_document(file: UploadFile = File(...), session_id: Optional[str] = Form(None)):
     start_time = time.time()
     filename = file.filename or "uploaded_document"
-    logger.info(f"[MinerU] Upload started: '{filename}'")
+    logger.info(f"[MinerU] Upload started: '{filename}' (session_id: {session_id})")
 
     ext = Path(filename).suffix.lower()
     allowed_extensions = {".pdf", ".doc", ".docx", ".png", ".jpg", ".jpeg"}
@@ -329,7 +343,7 @@ async def parse_document(file: UploadFile = File(...)):
             f_out.write(content)
 
         if ext == ".pdf":
-            parsed_res = parse_pdf(temp_path)
+            parsed_res = parse_pdf(temp_path, session_id=session_id)
         elif ext in [".docx", ".doc"]:
             parsed_res = parse_docx(temp_path)
         else: # Image files

@@ -78,6 +78,24 @@ export default function TeacherReviewStudioV3({
   const [isStudentPreview, setIsStudentPreview] = useState(false);
   const [isUploadingExpImage, setIsUploadingExpImage] = useState(false);
   const [subjectsMetadata, setSubjectsMetadata] = useState([]);
+  const [publishingState, setPublishingState] = useState(null); // null | 'saving' | 'success'
+
+  const handlePublishClick = async () => {
+    if (!activeSession || !onConfirmPublish) return;
+    setPublishingState('saving');
+    try {
+      await onConfirmPublish(activeSession.id);
+      setPublishingState('success');
+      window.dispatchEvent(new CustomEvent('refresh-import-sessions', { detail: { showLoading: false } }));
+      setTimeout(() => {
+        setPublishingState(null);
+        if (onCloseDetail) onCloseDetail();
+      }, 1500);
+    } catch (err) {
+      alert(err.message || 'Lỗi xuất bản đề thi!');
+      setPublishingState(null);
+    }
+  };
 
   useEffect(() => {
     api.getSubjectsAndTopics().then(res => {
@@ -343,12 +361,12 @@ export default function TeacherReviewStudioV3({
     handleUpdateQuestion(activeQuestionIndex, { options: newOpts });
   };
 
-  const rawCropPath = currentCrop?.relativeCropPath || currentCrop?.cropPath || currentQuestion?.media?.cropImagePath || `scratch/crops/session_${activeSession?.id}/q_${activeQuestionIndex + 1}.png`;
+  const rawCropPath = currentQuestion?.media?.cropImagePath || currentCrop?.relativeCropPath || currentCrop?.cropPath || `uploads/exams/${activeSession?.id}/q_${activeQuestionIndex + 1}.png`;
   let normalizedPath = rawCropPath.replace(/\\/g, '/');
-  if (normalizedPath.includes('scratch/')) {
-    normalizedPath = normalizedPath.replace(/^.*?(scratch\/.*)$/, '$1');
-  } else if (normalizedPath.includes('uploads/')) {
+  if (normalizedPath.includes('uploads/')) {
     normalizedPath = normalizedPath.replace(/^.*?(uploads\/.*)$/, '$1');
+  } else if (normalizedPath.includes('scratch/')) {
+    normalizedPath = normalizedPath.replace(/^.*?(scratch\/.*)$/, '$1');
   } else {
     normalizedPath = normalizedPath.replace(/^\/+/, '');
   }
@@ -400,10 +418,22 @@ export default function TeacherReviewStudioV3({
           </button>
 
           <button
-            onClick={() => onConfirmPublish && activeSession && onConfirmPublish(activeSession.id)}
-            style={{ padding: '6px 18px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: '#ffffff', fontSize: '12px', fontWeight: 800, borderRadius: '8px', border: 'none', cursor: 'pointer', boxShadow: '0 4px 10px rgba(16, 185, 129, 0.2)' }}
+            onClick={handlePublishClick}
+            disabled={Boolean(publishingState)}
+            style={{ 
+              padding: '6px 18px', 
+              background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', 
+              color: '#ffffff', 
+              fontSize: '12px', 
+              fontWeight: 800, 
+              borderRadius: '8px', 
+              border: 'none', 
+              cursor: publishingState ? 'not-allowed' : 'pointer', 
+              boxShadow: '0 4px 10px rgba(16, 185, 129, 0.2)',
+              opacity: publishingState ? 0.7 : 1
+            }}
           >
-            ✓ Xuất bản vào Ngân hàng Đề
+            {publishingState === 'saving' ? '⏳ Đang xuất bản...' : '✓ Xuất bản vào Ngân hàng Đề'}
           </button>
         </div>
       </div>
@@ -419,11 +449,15 @@ export default function TeacherReviewStudioV3({
           <div style={{ flex: 1, padding: '16px', overflowY: 'auto', display: 'flex', justifyContent: 'center', alignItems: 'flex-start' }}>
             <div style={{ position: 'relative', maxWidth: '100%', display: 'inline-block' }}>
               <img 
-                src={`${API_BASE}/extracted_images/pdf_page_${currentPage}.png?v=${activeSession?.id || 1}`}
+                src={
+                  artifactsV3?.mineruJson?.pages?.[currentPage - 1]?.pageImageRelPath
+                    ? `${API_BASE}/${artifactsV3.mineruJson.pages[currentPage - 1].pageImageRelPath.replace(/^\/+/, '')}?v=${activeSession?.id || 1}`
+                    : `${API_BASE}/uploads/exams/${activeSession?.id}/pdf_page_${currentPage}.png?v=${activeSession?.id || 1}`
+                }
                 alt={`Page ${currentPage}`}
                 style={{ maxWidth: '100%', height: 'auto', borderRadius: '8px', border: '1px solid #cbd5e1', boxShadow: '0 4px 16px rgba(0,0,0,0.08)', display: 'block' }}
                 onError={(e) => {
-                  e.currentTarget.src = 'https://via.placeholder.com/600x800?text=Original+PDF+Page+Image';
+                  e.currentTarget.src = `${API_BASE}/extracted_images/session_${activeSession?.id}_pdf_page_${currentPage}.png?v=${activeSession?.id || 1}`;
                 }}
               />
               {activeBoundary && activeBoundary.pageStart === currentPage && (
@@ -499,8 +533,8 @@ export default function TeacherReviewStudioV3({
             <span style={{ color: '#059669', fontWeight: 800 }}>{currentQuestion.type || 'MULTIPLE_CHOICE'}</span>
           </div>
           
-          {/* Top Section: Student Question Image Card (55% Height) */}
-          <div style={{ height: '55%', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px', minHeight: 0, overflow: 'hidden', borderBottom: '1px solid #e2e8f0' }}>
+          {/* Panel 2 Scrollable Workspace */}
+          <div style={{ flex: 1, padding: '16px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '16px' }}>
             {/* Question Selector Bar */}
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', width: '100%', padding: '10px', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '12px' }}>
               {questions.map((q, idx) => (
@@ -523,46 +557,65 @@ export default function TeacherReviewStudioV3({
               ))}
             </div>
 
-            {/* Simulated Student Question Card (Light Style) */}
+            {/* Simulated Student Question Card (Light Style - High-Res Expanded) */}
             <div style={{ 
-              flex: 1, 
               background: '#ffffff', 
               borderRadius: '16px', 
               border: '1px solid #cbd5e1',
-              boxShadow: '0 4px 16px rgba(0,0,0,0.04)', 
+              boxShadow: '0 4px 20px rgba(0,0,0,0.05)', 
               display: 'flex', 
               flexDirection: 'column',
-              padding: '20px', 
-              color: '#0f172a',
-              overflowY: 'auto',
-              minHeight: 0
+              padding: '24px', 
+              color: '#0f172a'
             }}>
               {/* Simulated Card Header */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '12px', borderBottom: '1px solid #e2e8f0', marginBottom: '16px' }}>
-                <span style={{ fontSize: '15px', fontWeight: 800, color: '#4f46e5' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '14px', borderBottom: '1px solid #e2e8f0', marginBottom: '20px' }}>
+                <span style={{ fontSize: '16px', fontWeight: 800, color: '#4f46e5' }}>
                   Câu {activeQuestionIndex + 1}
                 </span>
                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                  <span style={{ background: '#e0e7ff', color: '#4338ca', fontSize: '11px', fontWeight: 700, padding: '3px 8px', borderRadius: '6px' }}>
+                  <span style={{ background: '#e0e7ff', color: '#4338ca', fontSize: '11px', fontWeight: 700, padding: '4px 10px', borderRadius: '6px' }}>
                     {currentQuestion.type || 'Trắc nghiệm'}
                   </span>
-                  <button style={{ background: '#f1f5f9', color: '#64748b', fontSize: '11px', fontWeight: 700, border: 'none', padding: '3px 8px', borderRadius: '6px', cursor: 'default', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <button style={{ background: '#f1f5f9', color: '#64748b', fontSize: '11px', fontWeight: 700, border: 'none', padding: '4px 10px', borderRadius: '6px', cursor: 'default', display: 'flex', alignItems: 'center', gap: '4px' }}>
                     🔖 Lưu câu hỏi
                   </button>
                 </div>
               </div>
 
-              {/* Simulated Question Body (The cropped question image!) */}
-              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px', width: '100%' }}>
-                <img 
-                  src={cropImageUrl}
-                  alt={`Crop Question ${activeQuestionIndex + 1}`}
-                  style={{ maxWidth: '100%', maxHeight: '240px', objectFit: 'contain', borderRadius: '6px' }}
-                  onError={(e) => {
-                    e.currentTarget.src = 'https://via.placeholder.com/500x200?text=Question+Crop+Image+Preview';
+              {/* Question Text Content (if available) */}
+              {(currentQuestion.content || currentQuestion.question_text) && (
+                <div 
+                  style={{ 
+                    fontSize: '15px', 
+                    color: '#0f172a', 
+                    fontWeight: 700, 
+                    lineHeight: 1.6, 
+                    marginBottom: cropImageUrl ? '14px' : '20px', 
+                    whiteSpace: 'pre-line' 
                   }}
+                  dangerouslySetInnerHTML={{ __html: formatRichText(currentQuestion.content || currentQuestion.question_text) }}
                 />
-              </div>
+              )}
+
+              {/* Question Cropped Image (Compact Balanced Display) */}
+              {cropImageUrl && (
+                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px', width: '100%', background: '#fafafa', padding: '8px', borderRadius: '10px', border: '1px solid #f1f5f9' }}>
+                  <img 
+                    src={cropImageUrl}
+                    alt={`Crop Question ${activeQuestionIndex + 1}`}
+                    style={{ maxWidth: '85%', maxHeight: '340px', objectFit: 'contain', borderRadius: '6px', display: 'block' }}
+                    onError={(e) => {
+                      if (activeSession?.id && !e.currentTarget.dataset.fallbackTried) {
+                        e.currentTarget.dataset.fallbackTried = 'true';
+                        e.currentTarget.src = `${API_BASE}/scratch/crops/session_${activeSession.id}/q_${activeQuestionIndex + 1}.png?v=${recropCacheBuster}`;
+                      } else {
+                        e.currentTarget.style.display = 'none';
+                      }
+                    }}
+                  />
+                </div>
+              )}
 
               {/* Simulated Option List */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', width: '100%' }}>
@@ -799,10 +852,7 @@ export default function TeacherReviewStudioV3({
                 </div>
               )}
             </div>
-          </div>
 
-          {/* Bottom Section: Question Configurations (45% Height - Light Theme) */}
-          <div style={{ height: '45%', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px', minHeight: 0 }}>
             
             {/* Top Row: Căn chỉnh biên cắt (Compact Light Layout) */}
             <div style={{
@@ -933,24 +983,61 @@ export default function TeacherReviewStudioV3({
               </button>
             </div>
 
+            {/* Question Text Field & OCR Status Badge */}
+            <div style={{ background: '#ffffff', border: '1px solid #cbd5e1', padding: '16px', borderRadius: '12px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <label style={{ fontSize: '11px', fontWeight: 800, color: '#4338ca', display: 'flex', alignItems: 'center', gap: '6px', textTransform: 'uppercase' }}>
+                  📝 Nội dung văn bản câu hỏi (Văn bản OCR / Nhận diện AI)
+                </label>
+                <span style={{ 
+                  fontSize: '10px', 
+                  fontWeight: 800, 
+                  padding: '3px 10px', 
+                  borderRadius: '20px', 
+                  background: (currentQuestion.content || currentQuestion.question_text) ? '#dcfce7' : '#fef3c7',
+                  color: (currentQuestion.content || currentQuestion.question_text) ? '#15803d' : '#b45309',
+                  border: (currentQuestion.content || currentQuestion.question_text) ? '1px solid #bbf7d0' : '1px solid #fde68a'
+                }}>
+                  {(currentQuestion.content || currentQuestion.question_text) ? '✓ Có văn bản OCR' : '⚠️ Chưa có văn bản (Dùng ảnh bóc tách PDF)'}
+                </span>
+              </div>
+              <textarea 
+                rows={2}
+                value={currentQuestion.content || currentQuestion.question_text || ''}
+                onChange={(e) => handleUpdateQuestion(activeQuestionIndex, { content: e.target.value, question_text: e.target.value })}
+                placeholder="Nếu chưa có văn bản (hoặc AI nhận diện thiếu), giáo viên có thể nhập/chỉnh sửa nội dung văn bản tại đây..."
+                style={{
+                  width: '100%',
+                  padding: '8px 12px',
+                  borderRadius: '8px',
+                  border: '1px solid #cbd5e1',
+                  background: '#f8fafc',
+                  fontSize: '13px',
+                  color: '#0f172a',
+                  outline: 'none',
+                  resize: 'vertical',
+                  fontFamily: 'inherit',
+                  lineHeight: '1.5'
+                }}
+              />
+            </div>
+
             {/* Bottom Row: Answer & Explanation Panel (Expanded Light Layout) */}
             <div style={{
-              flex: 1,
               background: '#ffffff',
               border: '1px solid #cbd5e1',
               padding: '16px',
               borderRadius: '12px',
               display: 'flex',
-              flexDirection: 'column',
-              minHeight: 0
+              flexDirection: 'column'
             }}>
               <h4 style={{ margin: '0 0 10px 0', fontSize: '11px', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px', textTransform: 'uppercase' }}>
                 <HiCheckCircle style={{ color: '#10b981' }} /> Đáp Án & Hướng Dẫn Giải
               </h4>
 
-              <div style={{ display: 'flex', flexDirection: 'row', gap: '20px', flex: 1, minHeight: 0 }}>
+              <div style={{ display: 'flex', flexDirection: 'row', gap: '20px' }}>
                 {/* Left Column: Type selection + Answer key selector (35% Width) */}
-                <div style={{ width: '35%', display: 'flex', flexDirection: 'column', gap: '10px', borderRight: '1px solid #e2e8f0', paddingRight: '20px', overflowY: 'auto' }}>
+                <div style={{ width: '35%', display: 'flex', flexDirection: 'column', gap: '10px', borderRight: '1px solid #e2e8f0', paddingRight: '20px' }}>
                   {/* Question Type Selection */}
                   <div>
                     <label style={{ fontSize: '10px', fontWeight: 800, color: '#475569', textTransform: 'uppercase', marginBottom: '4px', display: 'block' }}>Loại câu hỏi</label>
@@ -1368,6 +1455,91 @@ export default function TeacherReviewStudioV3({
           </div>
         </div>
       </div>
+      {/* PUBLISHING POPUP MODAL */}
+      {publishingState && (
+        <div 
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(15, 23, 42, 0.55)',
+            backdropFilter: 'blur(6px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 99999
+          }}
+        >
+          <div 
+            style={{
+              backgroundColor: '#ffffff',
+              borderRadius: '24px',
+              padding: '36px 32px',
+              width: '90%',
+              maxWidth: '440px',
+              textAlign: 'center',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '16px'
+            }}
+          >
+            {publishingState === 'saving' ? (
+              <>
+                <div 
+                  style={{
+                    width: '48px',
+                    height: '48px',
+                    borderRadius: '50%',
+                    border: '4px solid #e0e7ff',
+                    borderTopColor: '#10b981',
+                    animation: 'spin 0.8s linear infinite'
+                  }} 
+                />
+                <div>
+                  <h3 style={{ margin: '0 0 6px 0', fontSize: '18px', fontWeight: 800, color: '#0f172a' }}>
+                    Đang lưu và xuất bản đề thi...
+                  </h3>
+                  <p style={{ margin: 0, fontSize: '13px', color: '#64748b', lineHeight: '1.5' }}>
+                    Hệ thống đang đồng bộ câu hỏi, đáp án và hình ảnh vào Ngân hàng dữ liệu. Vui lòng đợi trong giây lát!
+                  </p>
+                </div>
+              </>
+            ) : (
+              <>
+                <div 
+                  style={{
+                    width: '56px',
+                    height: '56px',
+                    borderRadius: '50%',
+                    backgroundColor: '#d1fae5',
+                    color: '#10b981',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '28px',
+                    fontWeight: 'bold',
+                    boxShadow: '0 4px 14px rgba(16, 185, 129, 0.25)'
+                  }}
+                >
+                  ✓
+                </div>
+                <div>
+                  <h3 style={{ margin: '0 0 6px 0', fontSize: '18px', fontWeight: 800, color: '#0f172a' }}>
+                    Xuất bản đề thi thành công!
+                  </h3>
+                  <p style={{ margin: 0, fontSize: '13px', color: '#64748b', lineHeight: '1.5' }}>
+                    Đề thi đã được lưu và đưa vào Ngân hàng dữ liệu. Đang tự động đóng cửa sổ...
+                  </p>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -650,10 +650,11 @@ async function seedDefaultCategories() {
 // Auto-seed on startup
 import { ImportV2Service } from './modules/importV2/importV2.service.js';
 
-seedDefaultCategories();
-NotificationTemplateService.seedDefaultTemplates();
-VoucherService.seedDefaultVouchers();
-ImportV2Service.cleanupOrphanImportFiles().catch(err => console.warn('[Startup] Orphan cleanup warning:', err.message));
+seedDefaultCategories().catch(err => console.warn('[Startup] Default categories seed notice:', err.message || err));
+NotificationTemplateService.seedDefaultTemplates().catch(err => console.warn('[Startup] Notification templates seed notice:', err.message || err));
+VoucherService.seedDefaultVouchers().catch(err => console.warn('[Startup] Vouchers seed notice:', err.message || err));
+ImportV2Service.cleanupOrphanImportFiles().catch(err => console.warn('[Startup] Orphan cleanup notice:', err.message || err));
+
 
 // Global Error Handler Middleware to catch exceptions and log them
 app.use((err: any, req: any, res: any, next: any) => {

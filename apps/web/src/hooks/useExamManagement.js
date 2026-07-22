@@ -44,22 +44,25 @@ export function useExamManagement() {
   // Edit / Preview State
   const [editingExamId, setEditingExamId] = useState(null);
 
+  // Initial & Background Loading State
+  const [initialLoading, setInitialLoading] = useState(true);
+
   // --- FETCH DATA ACTIONS ---
-  const fetchStats = async () => {
+  const fetchStats = async (showLoading = false) => {
     try {
-      setLoading(true);
+      if (showLoading) setLoading(true);
       const res = await api.getTeacherExamStats();
       setStats(res);
     } catch (err) {
       setError(err.message);
     } finally {
-      setLoading(false);
+      if (showLoading) setLoading(false);
     }
   };
 
-  const fetchExams = async (page = 1) => {
+  const fetchExams = async (page = 1, showLoading = false) => {
     try {
-      setLoading(true);
+      if (showLoading) setLoading(true);
       const res = await api.getTeacherExams({ ...examsFilters, page });
       const examList = Array.isArray(res) ? res : (res?.exams || res?.data || []);
       const pagination = res?.pagination || { page, limit: 10, total: examList.length };
@@ -68,13 +71,13 @@ export function useExamManagement() {
     } catch (err) {
       setError(err.message);
     } finally {
-      setLoading(false);
+      if (showLoading) setLoading(false);
     }
   };
 
-  const fetchQuestions = async (page = 1) => {
+  const fetchQuestions = async (page = 1, showLoading = false) => {
     try {
-      setLoading(true);
+      if (showLoading) setLoading(true);
       const res = await api.getTeacherQuestions({ ...questionsFilters, page });
       const qList = Array.isArray(res) ? res : (res?.questions || res?.data || []);
       const pagination = res?.pagination || { page, limit: 10, total: qList.length };
@@ -83,11 +86,11 @@ export function useExamManagement() {
     } catch (err) {
       setError(err.message);
     } finally {
-      setLoading(false);
+      if (showLoading) setLoading(false);
     }
   };
 
-  const fetchImportSessions = async (showLoading = true) => {
+  const fetchImportSessions = async (showLoading = false) => {
     try {
       if (showLoading) setLoading(true);
       const res = await api.getImportSessions();
@@ -99,7 +102,7 @@ export function useExamManagement() {
     }
   };
 
-  const fetchImportSessionDetail = async (id, showLoading = true) => {
+  const fetchImportSessionDetail = async (id, showLoading = false) => {
     try {
       if (showLoading) setLoading(true);
       let res;
@@ -112,7 +115,7 @@ export function useExamManagement() {
 
       const initialDecisions = {};
       res.questions?.forEach(q => {
-        initialDecisions[q.id] = q.status === 'WARNING' ? 'REUSE' : 'CREATE_NEW';
+        initialDecisions[q.id] = 'CREATE_NEW';
       });
       setImportDecisions(initialDecisions);
     } catch (err) {
@@ -122,15 +125,15 @@ export function useExamManagement() {
     }
   };
 
-  const fetchReports = async () => {
+  const fetchReports = async (showLoading = false) => {
     try {
-      setLoading(true);
+      if (showLoading) setLoading(true);
       const res = await api.getTeacherReports();
       setReports(res || []);
     } catch (err) {
       setError(err.message);
     } finally {
-      setLoading(false);
+      if (showLoading) setLoading(false);
     }
   };
 
@@ -212,11 +215,12 @@ export function useExamManagement() {
         action
       }));
       await api.confirmImportSession(sessionId, decisionsList);
-      alert('🎉 Đã xuất bản đề thi thành công!\n- Đề thi mới đã được tạo trong "Đề thi & Bài kiểm tra"\n- Các câu hỏi đã được lưu vào "Ngân hàng câu hỏi".');
       setActiveImportSession(null);
+      await fetchImportSessions(false);
       await fetchExams(1);
       await fetchQuestions(1);
       await fetchStats();
+      window.dispatchEvent(new CustomEvent('refresh-import-sessions', { detail: { showLoading: false } }));
       setActiveTab('exams');
     } catch (err) {
       alert(err.message);
@@ -286,24 +290,39 @@ export function useExamManagement() {
     const handleRefresh = (e) => {
       const showLoading = e?.detail?.showLoading ?? false;
       fetchImportSessions(showLoading);
+      fetchExams(1, showLoading);
+      fetchStats(showLoading);
     };
     window.addEventListener('refresh-import-sessions', handleRefresh);
     return () => window.removeEventListener('refresh-import-sessions', handleRefresh);
   }, []);
 
-  // Sync tab data triggers
+  // Initial Data Fetch
   useEffect(() => {
-    fetchStats();
-    if (activeTab === 'exams') fetchExams(1);
-    if (activeTab === 'questions') fetchQuestions(1);
-    if (activeTab === 'imports') fetchImportSessions();
-    if (activeTab === 'reports') fetchReports();
+    Promise.all([
+      fetchStats(false),
+      fetchExams(1, false),
+      fetchImportSessions(false),
+      fetchQuestions(1, false),
+      fetchReports(false)
+    ]).finally(() => {
+      setInitialLoading(false);
+    });
+  }, []);
+
+  // Sync tab data triggers across all sections on filter change
+  useEffect(() => {
+    fetchExams(1, false);
+    if (activeTab === 'questions') fetchQuestions(1, false);
+    if (activeTab === 'reports') fetchReports(false);
   }, [activeTab, examsFilters, questionsFilters]);
+
 
   return {
     activeTab,
     setActiveTab,
     loading,
+    initialLoading,
     error,
     stats,
     exams,

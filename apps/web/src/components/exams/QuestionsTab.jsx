@@ -181,15 +181,35 @@ export function QuestionsTab({
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
       {/* Search Toolbar */}
       <div className="saas-toolbar">
-        <div className="saas-search-input-wrapper">
+        <div className="saas-search-input-wrapper" style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
           <HiSearch className="saas-input-icon" />
           <input
             type="text"
             className="saas-search-input"
-            placeholder="Tìm kiếm câu hỏi..."
+            placeholder="Tìm kiếm theo mã ID (#7260), nội dung, chuyên đề..."
             value={filters.search}
             onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+            style={{ paddingRight: filters.search ? '30px' : '14px' }}
           />
+          {filters.search && (
+            <button
+              onClick={() => setFilters({ ...filters, search: '' })}
+              style={{
+                position: 'absolute',
+                right: '10px',
+                background: 'none',
+                border: 'none',
+                color: '#94a3b8',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: 'bold',
+                padding: '2px 6px'
+              }}
+              title="Xóa tìm kiếm"
+            >
+              ✕
+            </button>
+          )}
         </div>
 
         <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>

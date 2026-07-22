@@ -166,8 +166,12 @@ export class ImportV3Service {
 
       // STEP 2.5: Full Document Pre-Analysis AI (Bảng đáp án, Lời giải chi tiết, Môn học, Chủ đề)
       await ImportV2Repository.createLog(sessionId, 'INFO', 'Step 2.5 [Import V3]: Phân tích toàn bộ đề thi bằng AI (Tìm Bảng đáp án & Lời giải chi tiết)...');
+      const dbSubjects = await prisma.subject.findMany({
+        include: { topics: true }
+      });
+
       const startTimeAnalysis = Date.now();
-      const globalAnalysis = await GeminiVisionService.analyzeFullDocument(examDocument);
+      const globalAnalysis = await GeminiVisionService.analyzeFullDocument(examDocument, dbSubjects);
       const analysisTime = Date.now() - startTimeAnalysis;
       pipelineArtifactsV3.globalAnalysis = globalAnalysis;
       await ImportV2Repository.createLog(
@@ -204,18 +208,19 @@ export class ImportV3Service {
         sectionsMap[c.questionIndex] = c.section || 'PART_I';
       });
 
-      const visionOutputs = await GeminiVisionService.processAllQuestionCrops(crops, sectionsMap, globalAnalysis);
+      const visionOutputs = await GeminiVisionService.processAllQuestionCrops(crops, sectionsMap, globalAnalysis, dbSubjects);
       const visionTime = Date.now() - startTimeVision;
       pipelineArtifactsV3.visionOutputs = visionOutputs;
       await ImportV2Repository.createLog(sessionId, 'INFO', `✅ Step 5 Complete: Gemini Vision extracted ${visionOutputs.length} questions in ${visionTime}ms.`);
 
+
       // STEP 6: Save ImportQuestions to DB
-      const resolvedSubject = globalAnalysis?.subject || 'Vật lý';
-      const resolvedTopic = globalAnalysis?.topic || 'Dao động cơ';
+      const resolvedSubject = globalAnalysis?.subject || 'Toán học';
+      const resolvedTopic = globalAnalysis?.topic || 'Chủ đề tổng hợp';
 
       const allQuestions: any[] = visionOutputs.map(vo => {
-        const itemSubject = (vo.subject && vo.subject !== 'Toán học') ? vo.subject : resolvedSubject;
-        const itemTopic = (vo.topic && vo.topic !== 'Chương 1' && vo.topic !== 'Chủ đề tổng hợp') ? vo.topic : resolvedTopic;
+        const itemSubject = vo.subject || resolvedSubject;
+        const itemTopic = vo.topic || resolvedTopic;
         return {
           content: vo.content,
           options: vo.options,
@@ -236,6 +241,7 @@ export class ImportV3Service {
           }
         };
       });
+
 
       pipelineArtifactsV3.questionGraph = allQuestions;
       this.saveArtifacts(sessionId, pipelineArtifactsV3);

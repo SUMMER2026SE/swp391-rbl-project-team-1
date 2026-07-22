@@ -53,30 +53,83 @@ function getEffectiveApiKey(): { apiKey: string; isDirectGemini: boolean; model:
   return { apiKey: '', isDirectGemini: false, model: '' };
 }
 
-export function detectSubjectFromText(text: string, fileName = ''): { subject: string; topic: string } {
+export function normalizeSubjectAndTopic(
+  rawSubject: string,
+  rawTopic: string,
+  availableSubjects?: Array<{ name: string; topics: Array<{ name: string }> }>
+): { subject: string; topic: string } {
+  if (!availableSubjects || availableSubjects.length === 0) {
+    return { subject: rawSubject || 'Vật lý', topic: rawTopic || 'Dao động cơ' };
+  }
+
+  const rawSubLower = (rawSubject || '').toLowerCase().trim();
+  const rawTopLower = (rawTopic || '').toLowerCase().trim();
+
+  // 1. Find matching subject
+  let matchedSubj = availableSubjects.find(s => s.name.toLowerCase() === rawSubLower);
+  if (!matchedSubj && rawSubLower) {
+    matchedSubj = availableSubjects.find(s => 
+      s.name.toLowerCase().includes(rawSubLower) || rawSubLower.includes(s.name.toLowerCase())
+    );
+  }
+  if (!matchedSubj && rawSubLower) {
+    if (rawSubLower.includes('lý') || rawSubLower.includes('lí')) {
+      matchedSubj = availableSubjects.find(s => s.name.toLowerCase().includes('lý') || s.name.toLowerCase().includes('lí'));
+    } else if (rawSubLower.includes('toán')) {
+      matchedSubj = availableSubjects.find(s => s.name.toLowerCase().includes('toán'));
+    } else if (rawSubLower.includes('hóa')) {
+      matchedSubj = availableSubjects.find(s => s.name.toLowerCase().includes('hóa'));
+    } else if (rawSubLower.includes('sinh')) {
+      matchedSubj = availableSubjects.find(s => s.name.toLowerCase().includes('sinh'));
+    } else if (rawSubLower.includes('anh') || rawSubLower.includes('english')) {
+      matchedSubj = availableSubjects.find(s => s.name.toLowerCase().includes('anh'));
+    } else if (rawSubLower.includes('văn')) {
+      matchedSubj = availableSubjects.find(s => s.name.toLowerCase().includes('văn'));
+    }
+  }
+
+  const finalSubject = matchedSubj ? matchedSubj.name : (availableSubjects[0]?.name || rawSubject || 'Vật lý');
+
+  // 2. Find matching topic within chosen subject
+  const availableTopics = matchedSubj ? matchedSubj.topics : (availableSubjects[0]?.topics || []);
+  let matchedTopic = availableTopics.find(t => t.name.toLowerCase() === rawTopLower);
+  if (!matchedTopic && rawTopLower) {
+    matchedTopic = availableTopics.find(t => 
+      t.name.toLowerCase().includes(rawTopLower) || rawTopLower.includes(t.name.toLowerCase())
+    );
+  }
+
+  const finalTopic = matchedTopic ? matchedTopic.name : (availableTopics[0]?.name || rawTopic || 'Chủ đề tổng hợp');
+
+  return { subject: finalSubject, topic: finalTopic };
+}
+
+export function detectSubjectFromText(
+  text: string, 
+  fileName = '',
+  availableSubjects?: Array<{ name: string; topics: Array<{ name: string }> }>
+): { subject: string; topic: string } {
   const combined = `${fileName} ${text}`.toLowerCase();
+  let rawSub = 'Toán học';
+  let rawTop = 'Hàm số & Đồ thị';
+
   if (combined.includes('vật lý') || combined.includes('vật lí') || combined.includes('môn lý') || combined.includes('lí 12') || combined.includes('lý 12')) {
-    return { subject: 'Vật lý', topic: 'Dao động cơ' };
+    rawSub = 'Vật lý'; rawTop = 'Dao động cơ';
+  } else if (combined.includes('hóa học') || combined.includes('hóa lí') || combined.includes('môn hóa') || combined.includes('hóa 12')) {
+    rawSub = 'Hóa học'; rawTop = 'Este & Lipit';
+  } else if (combined.includes('sinh học') || combined.includes('môn sinh') || combined.includes('sinh 12')) {
+    rawSub = 'Sinh học'; rawTop = 'Cơ chế di truyền & Biến dị';
+  } else if (combined.includes('tiếng anh') || combined.includes('môn anh') || combined.includes('english') || combined.includes('anh 12')) {
+    rawSub = 'Tiếng Anh'; rawTop = 'Ngữ pháp & Từ vựng (Grammar & Vocabulary)';
+  } else if (combined.includes('ngữ văn') || combined.includes('môn văn') || combined.includes('văn học') || combined.includes('văn 12')) {
+    rawSub = 'Ngữ văn'; rawTop = 'Nghị luận văn học';
+  } else if (combined.includes('lịch sử') || combined.includes('môn sử') || combined.includes('sử 12')) {
+    rawSub = 'Lịch sử'; rawTop = 'Lịch sử Việt Nam';
+  } else if (combined.includes('địa lý') || combined.includes('địa lí') || combined.includes('môn địa') || combined.includes('địa 12')) {
+    rawSub = 'Địa lý'; rawTop = 'Địa lý tự nhiên';
   }
-  if (combined.includes('hóa học') || combined.includes('hóa lí') || combined.includes('môn hóa') || combined.includes('hóa 12')) {
-    return { subject: 'Hóa học', topic: 'Este & Lipit' };
-  }
-  if (combined.includes('sinh học') || combined.includes('môn sinh') || combined.includes('sinh 12')) {
-    return { subject: 'Sinh học', topic: 'Cơ chế di truyền & Biến dị' };
-  }
-  if (combined.includes('tiếng anh') || combined.includes('môn anh') || combined.includes('english') || combined.includes('anh 12')) {
-    return { subject: 'Tiếng Anh', topic: 'Ngữ pháp & Từ vựng (Grammar & Vocabulary)' };
-  }
-  if (combined.includes('ngữ văn') || combined.includes('môn văn') || combined.includes('văn học') || combined.includes('văn 12')) {
-    return { subject: 'Ngữ văn', topic: 'Nghị luận văn học' };
-  }
-  if (combined.includes('lịch sử') || combined.includes('môn sử') || combined.includes('sử 12')) {
-    return { subject: 'Lịch sử', topic: 'Lịch sử Việt Nam' };
-  }
-  if (combined.includes('địa lý') || combined.includes('địa lí') || combined.includes('môn địa') || combined.includes('địa 12')) {
-    return { subject: 'Địa lý', topic: 'Địa lý tự nhiên' };
-  }
-  return { subject: 'Toán học', topic: 'Hàm số & Đồ thị' };
+
+  return normalizeSubjectAndTopic(rawSub, rawTop, availableSubjects);
 }
 
 function safeParseJson(rawText: string): any {
@@ -179,7 +232,10 @@ export class GeminiVisionService {
    * 2. Detailed Explanations section (Lời giải chi tiết)
    * 3. School subject, topic, and difficulty
    */
-  static async analyzeFullDocument(examDocument: any): Promise<GlobalDocumentAnalysis> {
+  static async analyzeFullDocument(
+    examDocument: any,
+    availableSubjects?: Array<{ name: string; topics: Array<{ name: string }> }>
+  ): Promise<GlobalDocumentAnalysis> {
     console.log('[GeminiVision V3] 🧠 Pre-analyzing full exam document for Answer Key & Detailed Explanations...');
 
     const fullText = (examDocument?.blocks || [])
@@ -187,7 +243,7 @@ export class GeminiVisionService {
       .filter(Boolean)
       .join('\n');
 
-    const detectedSubject = detectSubjectFromText(fullText, examDocument?.fileName || '');
+    const detectedSubject = detectSubjectFromText(fullText, examDocument?.fileName || '', availableSubjects);
 
     const defaultResult: GlobalDocumentAnalysis = {
       answerKey: {},
@@ -201,6 +257,14 @@ export class GeminiVisionService {
       return defaultResult;
     }
 
+    let subjectsPromptList = '';
+    if (availableSubjects && availableSubjects.length > 0) {
+      subjectsPromptList = availableSubjects.map(s => {
+        const tNames = (s.topics || []).map(t => `"${t.name}"`).join(', ');
+        return `- Subject: "${s.name}" -> Allowed Topics: [${tNames}]`;
+      }).join('\n');
+    }
+
     const truncatedText = fullText.slice(0, 40000); // Limit text payload
 
     const prompt = `
@@ -211,8 +275,14 @@ Scan the ENTIRE document text below to extract global exam metadata.
 CRITICAL INSTRUCTIONS:
 1. Scan for a Global Answer Key table (Bảng đáp án / ĐÁP ÁN) in the document. Extract the correct option choice ('A', 'B', 'C', 'D' or short answer) for each question number. Store in "answerKey": { "1": "A", "2": "C", ... }.
 2. Scan for a Detailed Solutions/Explanations section (Lời giải chi tiết / HƯỚNG DẪN GIẢI). Extract the detailed explanation text for each question number. Store in "explanations": { "1": "Lời giải chi tiết câu 1...", ... }.
-3. Identify the main Subject ("Toán học", "Vật lý", "Hóa học", "Sinh học", "Lịch sử", "Địa lý", "Tiếng Anh", "Ngữ văn", etc.), Topic/Chapter, and general Difficulty level ("EASY", "MEDIUM", "HARD").
-4. Return JSON ONLY matching the schema below. Do NOT include markdown wrappers.
+3. Identify the main Subject ("subject") and Topic ("topic") strictly from the provided allowed database list below.
+${subjectsPromptList ? `
+STRICT SUBJECT & TOPIC SELECTION LIST:
+You MUST pick the Subject ("subject") and Topic ("topic") ONLY from the following allowed options:
+${subjectsPromptList}
+` : ''}
+4. Determine general Difficulty level ("EASY", "MEDIUM", "HARD").
+5. Return JSON ONLY matching the schema below. Do NOT include markdown wrappers.
 
 EXPECTED JSON SCHEMA:
 {
@@ -250,13 +320,19 @@ ${truncatedText}
         });
       }
 
-      console.log(`[GeminiVision V3] ✅ Pre-analysis complete: Extracted ${Object.keys(parsedAnswerKey).length} answers, ${Object.keys(parsedExplanations).length} explanations. Subject: ${parsed.subject || detectedSubject.subject}`);
+      const normalized = normalizeSubjectAndTopic(
+        parsed.subject || detectedSubject.subject,
+        parsed.topic || detectedSubject.topic,
+        availableSubjects
+      );
+
+      console.log(`[GeminiVision V3] ✅ Pre-analysis complete: Extracted ${Object.keys(parsedAnswerKey).length} answers, ${Object.keys(parsedExplanations).length} explanations. Subject: ${normalized.subject}, Topic: ${normalized.topic}`);
 
       return {
         answerKey: parsedAnswerKey,
         explanations: parsedExplanations,
-        subject: parsed.subject || detectedSubject.subject,
-        topic: parsed.topic || detectedSubject.topic,
+        subject: normalized.subject,
+        topic: normalized.topic,
         defaultDifficulty: parsed.defaultDifficulty || 'MEDIUM'
       };
     } catch (err: any) {
@@ -271,7 +347,8 @@ ${truncatedText}
   static async processQuestionCrop(
     crop: CroppedQuestionManifest,
     section = 'PART_I',
-    globalAnalysis?: GlobalDocumentAnalysis
+    globalAnalysis?: GlobalDocumentAnalysis,
+    availableSubjects?: Array<{ name: string; topics: Array<{ name: string }> }>
   ): Promise<GeminiVisionQuestionOutput> {
     console.log(`[GeminiVision V3] 👁️ Processing question crop image: ${crop.cropFilename}...`);
 
@@ -293,7 +370,7 @@ ${truncatedText}
 
     if (!actualCropPath) {
       console.warn(`[GeminiVision V3] Crop file not found at ${crop.cropPath}. Generating fallback...`);
-      return this.generateFallbackVisionOutput(crop, section, globalAnalysis);
+      return this.generateFallbackVisionOutput(crop, section, globalAnalysis, availableSubjects);
     }
 
     const imageBase64 = fs.readFileSync(actualCropPath).toString('base64');
@@ -305,6 +382,14 @@ ${truncatedText}
     const globalDifficulty = globalAnalysis?.defaultDifficulty;
 
     const inferredType = section === 'PART_II' ? 'TRUE_FALSE' : (section === 'PART_III' ? 'SHORT_ANSWER' : 'MULTIPLE_CHOICE');
+
+    let subjectsPromptList = '';
+    if (availableSubjects && availableSubjects.length > 0) {
+      subjectsPromptList = availableSubjects.map(s => {
+        const tNames = (s.topics || []).map(t => `"${t.name}"`).join(', ');
+        return `- Subject: "${s.name}" -> Allowed Topics: [${tNames}]`;
+      }).join('\n');
+    }
 
     const prompt = `
 SYSTEM DIRECTIVE:
@@ -323,10 +408,14 @@ CRITICAL INSTRUCTIONS BY SECTION & QUESTION TYPE:
 - IF section is "PART_III" (Câu hỏi trả lời ngắn / điền số): Set "type": "SHORT_ANSWER". Set "options": []. Set "correctAnswer" to the short numeric or text answer e.g. "15", "-2.5", "0.5".
 - IF Essay question: Set "type": "ESSAY". Set "options": [].
 
-FORMULAS & DIAGRAMS:
+FORMULAS & DIAGRAMS & METADATA:
 - Convert all mathematical equations and formulas into valid inline LaTeX $...$ or block LaTeX $$...$$.
 - Detect if there is a diagram/graph (hasDiagram: true/false) or table (hasTable: true/false).
-- Determine Subject ("Toán học", "Vật lý", "Hóa học", "Sinh học", "Lịch sử", "Địa lý", "Tiếng Anh", "Ngữ văn"), Topic, and Difficulty ("EASY", "MEDIUM", "HARD").
+- Classify the specific Topic ("topic") and Difficulty ("difficulty") for THIS INDIVIDUAL QUESTION based on its mathematical formulas, text, and concepts:
+  * "subject": "${globalSubject || 'Toán học'}"
+  * "topic": Must be the single most relevant topic name chosen from the allowed list for subject "${globalSubject || 'Toán học'}" (e.g. "Mũ & Lôgarit", "Nguyên hàm & Tích phân", "Số phức", "Hình học tọa độ Oxyz", "Tổ hợp & Xác suất", etc.).
+  * "difficulty": Must be "EASY" (Dễ), "MEDIUM" (Trung bình), or "HARD" (Khó).
+${subjectsPromptList ? `ALLOWED LIST:\n${subjectsPromptList}` : ''}
 ${knownAnswer ? `- PRE-ANALYZED ANSWER KEY: Question ${crop.questionIndex} has answer "${knownAnswer}". Set "correctAnswer": "${knownAnswer}".` : ''}
 ${knownExplanation ? `- PRE-ANALYZED EXPLANATION: Question ${crop.questionIndex} has explanation: "${knownExplanation}". Set "explanation": "${knownExplanation}".` : ''}
 
@@ -337,7 +426,7 @@ EXPECTED JSON SCHEMA:
   "type": "${inferredType}",
   "section": "${section}",
   "options": [
-    ${inferredType === 'SHORT_ANSWER' || inferredType === 'ESSAY' ? '' : (inferredType === 'TRUE_FALSE' ? `
+    ${(inferredType as string) === 'SHORT_ANSWER' || (inferredType as string) === 'ESSAY' ? '' : (inferredType === 'TRUE_FALSE' ? `
     { "label": "a", "content": "Nội dung ý a" },
     { "label": "b", "content": "Nội dung ý b" },
     { "label": "c", "content": "Nội dung ý c" },
@@ -354,14 +443,20 @@ EXPECTED JSON SCHEMA:
   "latexFormulas": [],
   "hasDiagram": false,
   "hasTable": false,
-  "subject": "${globalSubject || 'Vật lý'}",
-  "topic": "${globalTopic || 'Dao động cơ'}",
-  "difficulty": "${globalDifficulty || 'MEDIUM'}"
+  "subject": "${globalSubject || 'Toán học'}",
+  "topic": "Classified specific topic name from allowed list",
+  "difficulty": "EASY, MEDIUM, or HARD"
 }
 `;
 
     try {
       const parsed = await this.callAiJson(prompt, imageBase64);
+
+      const normalized = normalizeSubjectAndTopic(
+        parsed.subject || globalSubject || 'Toán học',
+        parsed.topic || globalTopic || 'Chủ đề tổng hợp',
+        availableSubjects
+      );
 
       return {
         questionIndex: crop.questionIndex,
@@ -375,13 +470,14 @@ EXPECTED JSON SCHEMA:
         hasDiagram: Boolean(parsed.hasDiagram),
         hasTable: Boolean(parsed.hasTable),
         cropImagePath: crop.relativeCropPath,
-        subject: globalSubject || parsed.subject || 'Vật lý',
-        topic: globalTopic || parsed.topic || 'Vật lý THPT',
-        difficulty: globalDifficulty || parsed.difficulty || 'MEDIUM'
+        subject: normalized.subject,
+        topic: normalized.topic,
+        difficulty: parsed.difficulty || globalDifficulty || 'MEDIUM'
       };
+
     } catch (err: any) {
       console.warn(`[GeminiVision V3] Gemini Vision call failed for ${crop.cropFilename}: ${err.message}. Using fallback...`);
-      return this.generateFallbackVisionOutput(crop, section, globalAnalysis);
+      return this.generateFallbackVisionOutput(crop, section, globalAnalysis, availableSubjects);
     }
   }
 
@@ -391,7 +487,8 @@ EXPECTED JSON SCHEMA:
   static async processAllQuestionCrops(
     crops: CroppedQuestionManifest[],
     sectionsMap?: Record<number, string>,
-    globalAnalysis?: GlobalDocumentAnalysis
+    globalAnalysis?: GlobalDocumentAnalysis,
+    availableSubjects?: Array<{ name: string; topics: Array<{ name: string }> }>
   ): Promise<GeminiVisionQuestionOutput[]> {
     console.log(`[GeminiVision V3] 🚀 Processing ${crops.length} question crop images via Gemini Vision API...`);
 
@@ -399,7 +496,8 @@ EXPECTED JSON SCHEMA:
       this.processQuestionCrop(
         c, 
         c.section || sectionsMap?.[c.questionIndex] || 'PART_I',
-        globalAnalysis
+        globalAnalysis,
+        availableSubjects
       )
     );
     const results = await Promise.all(promises);
@@ -412,18 +510,18 @@ EXPECTED JSON SCHEMA:
   private static generateFallbackVisionOutput(
     crop: CroppedQuestionManifest,
     section: string,
-    globalAnalysis?: GlobalDocumentAnalysis
+    globalAnalysis?: GlobalDocumentAnalysis,
+    availableSubjects?: Array<{ name: string; topics: Array<{ name: string }> }>
   ): GeminiVisionQuestionOutput {
     const knownAnswer = globalAnalysis?.answerKey?.[crop.questionIndex];
     const knownExplanation = globalAnalysis?.explanations?.[crop.questionIndex];
 
-    const textSubject = detectSubjectFromText(crop.cropFilename, crop.cropFilename);
-    const resolvedSubject = globalAnalysis?.subject && globalAnalysis.subject !== 'Toán học' 
-      ? globalAnalysis.subject 
-      : textSubject.subject;
-    const resolvedTopic = globalAnalysis?.topic && globalAnalysis.topic !== 'Chuyên đề Toán học THPT' 
-      ? globalAnalysis.topic 
-      : textSubject.topic;
+    const textSubject = detectSubjectFromText(crop.cropFilename, crop.cropFilename, availableSubjects);
+    const normalized = normalizeSubjectAndTopic(
+      globalAnalysis?.subject || textSubject.subject,
+      globalAnalysis?.topic || textSubject.topic,
+      availableSubjects
+    );
 
     let fallbackType = 'MULTIPLE_CHOICE';
     let fallbackOptions = [
@@ -452,7 +550,7 @@ EXPECTED JSON SCHEMA:
     return {
       questionIndex: crop.questionIndex,
       content: `Câu ${crop.questionIndex}`,
-      type: fallbackType,
+      type: fallbackType as any,
       section,
       options: fallbackOptions,
       correctAnswer: fallbackAnswer,
@@ -461,9 +559,10 @@ EXPECTED JSON SCHEMA:
       hasDiagram: false,
       hasTable: false,
       cropImagePath: crop.relativeCropPath,
-      subject: resolvedSubject,
-      topic: resolvedTopic,
+      subject: normalized.subject,
+      topic: normalized.topic,
       difficulty: globalAnalysis?.defaultDifficulty || 'MEDIUM'
     };
   }
 }
+

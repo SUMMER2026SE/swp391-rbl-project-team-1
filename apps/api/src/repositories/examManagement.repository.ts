@@ -79,47 +79,96 @@ export class ExamManagementRepository {
   }
 
   static async deleteExam(id: number) {
+    const exam = await prisma.exam.findUnique({ where: { id } });
+    if (!exam) return null;
+
     const examQuestions = await prisma.examQuestion.findMany({
       where: { examId: id },
       select: { questionId: true }
     });
     const questionIds = examQuestions.map(eq => eq.questionId);
 
-    // Delete related attempt events, attempt answers, attempts, exam question links
+    // 1. Delete related attempt events, attempt answers, attempts, exam question links
     await prisma.examEvent.deleteMany({ where: { attempt: { examId: id } } });
     await prisma.testAttemptAnswer.deleteMany({ where: { attempt: { examId: id } } });
     await prisma.testAttempt.deleteMany({ where: { examId: id } });
     await prisma.examQuestion.deleteMany({ where: { examId: id } });
 
-    // Clean up questions that belonged to this exam if not linked to any other exam
+    // 2. Clean up questions that belonged to this exam if not linked to any other exam
     for (const qId of questionIds) {
       const otherUsages = await prisma.examQuestion.count({ where: { questionId: qId } });
       if (otherUsages === 0) {
+        // Delete image file on disk if exists
+        const questionObj = await prisma.question.findUnique({ where: { id: qId }, select: { imageUrl: true } });
+        if (questionObj?.imageUrl) {
+          try {
+            const relPath = questionObj.imageUrl.replace(/\\/g, '/');
+            const workspaceRoot = path.resolve(process.cwd(), '..', '..');
+            const candidatePaths = [
+              path.resolve(process.cwd(), relPath),
+              path.resolve(workspaceRoot, 'apps', 'api', relPath)
+            ];
+            for (const cp of candidatePaths) {
+              if (fs.existsSync(cp)) fs.rmSync(cp, { force: true });
+            }
+          } catch (e) {}
+        }
+
         await prisma.questionOption.deleteMany({ where: { questionId: qId } });
         await prisma.questionMedia.deleteMany({ where: { questionId: qId } });
         await prisma.questionReport.deleteMany({ where: { questionId: qId } });
         await prisma.testAttemptAnswer.deleteMany({ where: { questionId: qId } });
-        await prisma.question.delete({ where: { id: qId } }).catch(() => {});
+        await (prisma as any).nodeQuizAttempt?.deleteMany({ where: { questionId: qId } }).catch(() => {});
+        await prisma.question.delete({ where: { id: qId } }).catch(err => {
+          console.warn(`[deleteExam] Could not delete question ${qId}:`, err.message);
+        });
       }
     }
 
+    // 3. Delete Exam record
     const deletedExam = await prisma.exam.delete({
       where: { id }
     });
 
+    // 4. Delete exam upload folders on disk
     try {
       const workspaceRoot = path.resolve(process.cwd(), '..', '..');
-      const examDir = path.resolve(workspaceRoot, 'apps', 'api', 'uploads', 'questions', String(id));
-      if (fs.existsSync(examDir)) {
-        fs.rmSync(examDir, { recursive: true, force: true });
+      const processDir = process.cwd();
+      const candidateFolderPaths = [
+        path.resolve(processDir, 'uploads', 'questions', String(id)),
+        path.resolve(processDir, 'apps', 'api', 'uploads', 'questions', String(id)),
+        path.resolve(workspaceRoot, 'apps', 'api', 'uploads', 'questions', String(id))
+      ];
+      for (const folder of candidateFolderPaths) {
+        if (fs.existsSync(folder)) {
+          fs.rmSync(folder, { recursive: true, force: true });
+        }
       }
-      ImportV2Service.cleanupOrphanImportFiles().catch(() => {});
     } catch (e) {
       console.warn(`[deleteExam] Could not delete upload folder for exam ${id}:`, e);
     }
 
+    // 5. Also clean up any associated ImportSession matching exam title
+    try {
+      const matchingSessions = await prisma.importSession.findMany({
+        where: {
+          userId: exam.createdBy,
+          fileName: { contains: exam.title, mode: 'insensitive' }
+        }
+      });
+      for (const sess of matchingSessions) {
+        await ImportV2Service.cleanupSessionFiles(sess.id, sess.filePath, sess.fileName);
+        await prisma.importQuestion.deleteMany({ where: { sessionId: sess.id } });
+        await prisma.importLog.deleteMany({ where: { sessionId: sess.id } });
+        await prisma.importSession.delete({ where: { id: sess.id } }).catch(() => {});
+      }
+    } catch (e) {}
+
+    ImportV2Service.cleanupOrphanImportFiles().catch(() => {});
+
     return deletedExam;
   }
+
 
   static async createExamQuestions(examId: number, questionIds: number[]) {
     // Clear old exam questions
@@ -142,8 +191,18 @@ export class ExamManagementRepository {
   // --- QUESTION BANK QUERIES ---
   static async getQuestions(filters: { search?: string; subject?: string; topic?: string; difficulty?: string; createdBy?: number }, skip = 0, take = 10) {
     const where: Prisma.QuestionWhereInput = {};
-    if (filters.search) {
-      where.content = { contains: filters.search, mode: 'insensitive' };
+    if (filters.search && filters.search.trim()) {
+      const cleanTerm = filters.search.trim();
+      const rawNum = cleanTerm.replace('#', '').trim();
+      const searchNum = parseInt(rawNum, 10);
+      const isNum = !isNaN(searchNum) && String(searchNum) === rawNum;
+
+      where.OR = [
+        ...(isNum ? [{ id: searchNum }] : []),
+        { content: { contains: cleanTerm, mode: 'insensitive' } },
+        { topic: { contains: cleanTerm, mode: 'insensitive' } },
+        { explanation: { contains: cleanTerm, mode: 'insensitive' } }
+      ];
     }
     if (filters.subject) {
       where.subject = { equals: filters.subject, mode: 'insensitive' };
@@ -178,8 +237,18 @@ export class ExamManagementRepository {
 
   static async countQuestions(filters: { search?: string; subject?: string; topic?: string; difficulty?: string; createdBy?: number }) {
     const where: Prisma.QuestionWhereInput = {};
-    if (filters.search) {
-      where.content = { contains: filters.search, mode: 'insensitive' };
+    if (filters.search && filters.search.trim()) {
+      const cleanTerm = filters.search.trim();
+      const rawNum = cleanTerm.replace('#', '').trim();
+      const searchNum = parseInt(rawNum, 10);
+      const isNum = !isNaN(searchNum) && String(searchNum) === rawNum;
+
+      where.OR = [
+        ...(isNum ? [{ id: searchNum }] : []),
+        { content: { contains: cleanTerm, mode: 'insensitive' } },
+        { topic: { contains: cleanTerm, mode: 'insensitive' } },
+        { explanation: { contains: cleanTerm, mode: 'insensitive' } }
+      ];
     }
     if (filters.subject) {
       where.subject = { equals: filters.subject, mode: 'insensitive' };

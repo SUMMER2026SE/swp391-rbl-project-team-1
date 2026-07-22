@@ -44,12 +44,12 @@ export class MineruService {
   /**
    * Uploads file to MinerU HTTP service (POST /parse) and receives normalized structured document JSON.
    */
-  static async parseDocument(filePath: string, fileName: string): Promise<MineruDocumentJSON> {
+  static async parseDocument(filePath: string, fileName: string, sessionId?: number): Promise<MineruDocumentJSON> {
     if (!fs.existsSync(filePath)) {
       throw new Error(`File not found at path: ${filePath}`);
     }
 
-    console.log(`[MineruService] 🚀 Sending document '${fileName}' to MinerU HTTP API (${this.baseUrl}/parse)...`);
+    console.log(`[MineruService] 🚀 Sending document '${fileName}' (Session: ${sessionId || 'N/A'}) to MinerU HTTP API (${this.baseUrl}/parse)...`);
 
     const fileBuffer = fs.readFileSync(filePath);
     const ext = path.extname(fileName || filePath).toLowerCase();
@@ -60,6 +60,9 @@ export class MineruService {
     const formData = new FormData();
     const blob = new Blob([fileBuffer], { type: mimeType });
     formData.append('file', blob, fileName);
+    if (sessionId) {
+      formData.append('session_id', String(sessionId));
+    }
 
     const endpoint = `${this.baseUrl}/parse`;
     let response;

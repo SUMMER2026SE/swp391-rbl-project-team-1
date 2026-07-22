@@ -20,14 +20,10 @@ export default function QuestionNavigator({
       </h3>
 
       {/* Stats summaries */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '16px' }}>
-        <div style={{ background: 'rgba(108, 92, 231, 0.08)', padding: '10px', borderRadius: '10px', textAlign: 'center' }}>
-          <span style={{ display: 'block', fontSize: '10px', color: 'var(--text-secondary)', fontWeight: 'bold' }}>ĐÃ LÀM</span>
+      <div style={{ marginBottom: '16px' }}>
+        <div style={{ background: 'rgba(108, 92, 231, 0.08)', padding: '10px 14px', borderRadius: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 'bold' }}>ĐÃ LÀM:</span>
           <strong style={{ fontSize: '16px', color: 'var(--exams-purple)' }}>{answeredCount} / {totalQuestions}</strong>
-        </div>
-        <div style={{ background: 'rgba(225, 112, 85, 0.08)', padding: '10px', borderRadius: '10px', textAlign: 'center' }}>
-          <span style={{ display: 'block', fontSize: '10px', color: 'var(--text-secondary)', fontWeight: 'bold' }}>GHI CHÚ / LƯU</span>
-          <strong style={{ fontSize: '16px', color: 'var(--exams-orange)' }}>{markedCount} câu</strong>
         </div>
       </div>
 
@@ -41,12 +37,10 @@ export default function QuestionNavigator({
         {questions.map((q, idx) => {
           const isCurrent = idx === currentQuestionIndex;
           const isAnswered = !!answers[q.id];
-          const isMarked = !!bookmarks[q.id];
 
           let bubbleClass = '';
           if (isCurrent) bubbleClass += ' current';
           if (isAnswered) bubbleClass += ' answered';
-          if (isMarked) bubbleClass += ' marked';
 
           return (
             <button

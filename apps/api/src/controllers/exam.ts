@@ -286,6 +286,80 @@ export async function submitAttempt(req: AuthRequest, res: Response) {
       HARD: { total: 0, correct: 0, accuracy: 0 }
     };
 
+    const normalizeText = (str: string): string => {
+      if (!str) return '';
+      return str.trim().toLowerCase().replace(/\s+/g, ' ').replace(',', '.');
+    };
+
+    const evaluateQuestionAnswer = (q: any, selected: any): boolean => {
+      if (!selected) return false;
+      const qType = (q.type || 'MULTIPLE_CHOICE').toUpperCase();
+
+      if (qType === 'SHORT_ANSWER' || qType === 'FILL_IN' || qType === 'ESSAY' || qType === 'SHORT') {
+        const userText = normalizeText(typeof selected === 'string' ? selected : String(selected));
+        const correctText = normalizeText(q.correctAnswer || '');
+        if (!correctText && q.options && q.options.length > 0) {
+          const firstOptText = normalizeText(q.options[0].optionText || q.options[0].text || '');
+          if (firstOptText) return userText === firstOptText;
+        }
+        return Boolean(correctText) && userText === correctText;
+      }
+
+      if (qType === 'TRUE_FALSE' || qType === 'TF') {
+        let userTfMap: Record<string, string> = {};
+        if (typeof selected === 'object' && selected !== null) {
+          userTfMap = selected;
+        } else if (typeof selected === 'string') {
+          try {
+            userTfMap = JSON.parse(selected);
+          } catch (_) {
+            selected.split(',').forEach((part: string) => {
+              const [k, v] = part.split(':').map((s: string) => s.trim());
+              if (k && v) userTfMap[k.toLowerCase()] = v;
+            });
+          }
+        }
+
+        const options = q.options || [];
+        if (options.length === 0) return false;
+
+        let allSubCorrect = true;
+        let checkedCount = 0;
+
+        for (const opt of options) {
+          const label = (opt.optionLabel || opt.label || '').toLowerCase();
+          const userChoice = (userTfMap[label] || userTfMap[label.toUpperCase()] || '').trim().toLowerCase();
+          
+          const expectedText = (opt.optionText || opt.text || '').trim().toLowerCase();
+          let expectedBool = opt.isCorrect === true;
+          if (expectedText.includes('đúng') || expectedText === 'true') expectedBool = true;
+          if (expectedText.includes('sai') || expectedText === 'false') expectedBool = false;
+
+          const userBool = userChoice.includes('đúng') || userChoice === 'true';
+
+          if (!userChoice || userBool !== expectedBool) {
+            allSubCorrect = false;
+            break;
+          }
+          checkedCount++;
+        }
+
+        return allSubCorrect && checkedCount > 0;
+      }
+
+      const selectedLabel = String(selected).trim().toUpperCase();
+      let correctLabel = q.correctAnswer ? String(q.correctAnswer).trim().toUpperCase() : '';
+
+      if (!correctLabel && q.options) {
+        const correctOpt = q.options.find((o: any) => o.isCorrect === true || o.is_correct === true);
+        if (correctOpt) {
+          correctLabel = String(correctOpt.optionLabel || correctOpt.label || '').trim().toUpperCase();
+        }
+      }
+
+      return Boolean(correctLabel) && selectedLabel === correctLabel;
+    };
+
     filteredExamQuestions.forEach((eq) => {
       const q = eq.question;
       const userAns = savedAnswers.find(a => a.questionId === q.id);
@@ -303,7 +377,7 @@ export async function submitAttempt(req: AuthRequest, res: Response) {
       if (!selected) {
         skippedCount++;
       } else {
-        isCorrect = selected === q.correctAnswer;
+        isCorrect = evaluateQuestionAnswer(q, selected);
         if (isCorrect) {
           correctCount++;
           topicStats[topic].correct++;
@@ -391,7 +465,7 @@ export async function submitAttempt(req: AuthRequest, res: Response) {
 
     // Invalidate leaderboard cache for score updates
     try {
-      LeaderboardService.invalidateCache();
+      (global as any).LeaderboardService?.invalidateCache?.();
     } catch (cacheErr: any) {
       console.error('[submitAttempt Cache Invalidation Error]', cacheErr.message);
     }
@@ -423,22 +497,15 @@ export async function getAttempts(req: AuthRequest, res: Response) {
       full: 'Thi lại full đề'
     };
 
-    const mappedList = list.map(a => {
+    const filteredList = list.filter(a => {
       const fb = (a.aiFeedback as any) || {};
-      if (fb.retakeMode && a.exam) {
-        const suffix = modeLabel[fb.retakeMode] || 'Ôn luyện';
-        return {
-          ...a,
-          exam: {
-            ...a.exam,
-            title: `${a.exam.title} — ${suffix}`
-          }
-        };
-      }
-      return a;
+      const retakeMode = fb.retakeMode;
+      // Do not include practice / generated retake modes (topic_practice, wrong_only, weak_topic, ai_similar, etc.) in exam history
+      if (retakeMode && retakeMode !== 'full') return false;
+      return true;
     });
 
-    return res.status(200).json({ success: true, data: mappedList });
+    return res.status(200).json({ success: true, data: filteredList });
   } catch (err: any) {
     return res.status(500).json({ success: false, error: err.message });
   }

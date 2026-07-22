@@ -68,6 +68,7 @@ export default function MockExamTakingPage({ examId, currentUser, onFinished, na
   
   const [loading, setLoading] = useState(true);
   const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // ── Real Exam Experience Upgrades ──
   const [isPreExam, setIsPreExam] = useState(true);
@@ -133,26 +134,30 @@ export default function MockExamTakingPage({ examId, currentUser, onFinished, na
 
         const mappedQuestions = retakeData.questions.map((q, idx) => {
           const options = typeof q.options === 'string' ? JSON.parse(q.options) : q.options;
-          const mappedOptions = (options || []).map((opt) => ({
-            id: `opt-${q.id}-${opt.label || opt.option_label}`,
+          const mappedOptions = (options || []).map((opt, optIdx) => ({
+            id: `opt-${q.id}-${opt.label || opt.option_label || optIdx}`,
             question_id: String(q.id),
-            option_label: opt.label || opt.option_label,
-            option_text: opt.content || opt.text || opt.option_text || '',
-            is_correct: (opt.label || opt.option_label) === q.correctAnswer
+            option_label: opt.label || opt.option_label || String.fromCharCode(65 + optIdx),
+            option_text: opt.content ?? opt.text ?? opt.option_text ?? opt.value ?? opt.option_content ?? '',
+            is_correct: (opt.label || opt.option_label) === q.correctAnswer || opt.is_correct || opt.isCorrect || false
           }));
 
           let diffLabel = 'Trung bình';
           if (q.difficulty === 'EASY') diffLabel = 'Dễ';
           else if (q.difficulty === 'HARD') diffLabel = 'Khó';
 
+          const rawImg = q.imageUrl || q.question_image_url || null;
+          const formattedImg = rawImg ? (rawImg.startsWith('http') ? rawImg : `http://localhost:4000/${rawImg.replace(/^\/+/, '')}`) : null;
+
           return {
             id: String(q.id),
             exam_id: String(examData.id),
             question_number: idx + 1,
-            question_text: q.content,
-            question_image_url: q.imageUrl || null,
-            type: q.type || 'MULTIPLE_CHOICE',
-            question_type: q.type || 'MULTIPLE_CHOICE',
+            question_text: q.content || q.question_text || '',
+            imageUrl: formattedImg,
+            question_image_url: formattedImg,
+            type: q.type || q.question_type || 'MULTIPLE_CHOICE',
+            question_type: q.type || q.question_type || 'MULTIPLE_CHOICE',
             difficulty: diffLabel,
             explanation: q.explanation || '',
             topic: q.topic || 'Kiến thức cốt lõi',
@@ -308,15 +313,7 @@ export default function MockExamTakingPage({ examId, currentUser, onFinished, na
     return Math.max(0, 100 - tabs * 15 - copies * 10 - fullscreen * 8);
   };
 
-  // Trigger MathJax rendering when current question changes
-  useEffect(() => {
-    if (window.MathJax) {
-      const timer = setTimeout(() => {
-        window.MathJax.typesetPromise?.().catch(e => console.warn('MathJax error:', e));
-      }, 100);
-      return () => clearTimeout(timer);
-    }
-  }, [currentIdx, questions]);
+
 
   // Visibility & Tab-blur violation triggers (enhanced with per-type tracking)
   const triggerViolation = (violationType, reason) => {
@@ -456,6 +453,7 @@ export default function MockExamTakingPage({ examId, currentUser, onFinished, na
   const handleFinalSubmit = async (forceSubmit = false) => {
     setIsSubmitModalOpen(false);
     setShowViolationModal(false);
+    setIsSubmitting(true);
 
     // Record submit event (fire-and-forget)
     if (attemptId && !attemptId.toString().startsWith('guest')) {
@@ -474,11 +472,14 @@ export default function MockExamTakingPage({ examId, currentUser, onFinished, na
       localStorage.setItem('redirect_post_auth', window.location.pathname);
       window.history.pushState({}, '', '/');
       window.dispatchEvent(new PopStateEvent('popstate'));
+      setIsSubmitting(false);
       return;
     }
 
     try {
-      const durationSeconds = (exam.duration_minutes * 60) - secondsRemainingRef.current;
+      const savedSecs = localStorage.getItem(`exam_taking_seconds_${examId}`);
+      const secLeft = savedSecs ? parseInt(savedSecs, 10) : (secondsRemainingRef.current || (exam?.duration_minutes * 60));
+      const durationSeconds = Math.max(0, ((exam?.duration_minutes || 90) * 60) - secLeft);
       const historyState = window.history.state;
       const activeRetakeMode = exam?.retakeMode || historyState?.retakeMode || null;
       const qIds = activeRetakeMode ? questions.map(q => Number(q.id)) : [];
@@ -507,6 +508,7 @@ export default function MockExamTakingPage({ examId, currentUser, onFinished, na
     } catch (err) {
       console.error('Lỗi nộp bài thi:', err);
       toast('Không thể nộp bài thi thử. Vui lòng kiểm tra lại kết nối mạng!', 'error');
+      setIsSubmitting(false);
     }
   };
 
@@ -687,14 +689,12 @@ export default function MockExamTakingPage({ examId, currentUser, onFinished, na
               🖥️ {isFullscreen ? 'Thu nhỏ' : 'Toàn màn hình'}
             </button>
 
-            {secondsRemaining > 0 && (
-              <ExamTimer
-                durationMinutes={exam.duration_minutes}
-                initialSeconds={secondsRemaining}
-                onTimeUp={handleTimeUp}
-                onSecondsChange={handleSecondsChange}
-              />
-            )}
+            <ExamTimer
+              examId={examId}
+              durationMinutes={exam?.duration_minutes}
+              initialSeconds={secondsRemaining}
+              onTimeUp={handleTimeUp}
+            />
           </div>
         </div>
 
@@ -861,8 +861,6 @@ export default function MockExamTakingPage({ examId, currentUser, onFinished, na
             options={currentQ.options}
             selectedOptionLabel={answers[currentQ.id]}
             onSelectOption={handleSelectOption}
-            isBookmarked={!!bookmarks[currentQ.id]}
-            onBookmarkToggle={handleBookmarkToggle}
             essayAnswer={answers[currentQ.id]}
             onChangeEssayAnswer={handleChangeEssay}
           />
@@ -882,23 +880,21 @@ export default function MockExamTakingPage({ examId, currentUser, onFinished, na
               Câu hỏi {currentIdx + 1} / {questions.length}
             </span>
 
-            {currentIdx < questions.length - 1 ? (
-              <button 
-                className="btn-outline"
-                onClick={() => setCurrentIdx(prev => prev + 1)}
-                style={{ padding: '10px 20px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
-              >
-                Câu tiếp theo <HiChevronRight />
-              </button>
-            ) : (
-              <button 
-                className="btn-primary"
-                onClick={() => setIsSubmitModalOpen(true)}
-                style={{ padding: '10px 20px', background: 'var(--exams-red)', color: '#fff', border: 'none', fontWeight: 'bold', cursor: 'pointer' }}
-              >
-                Nộp bài & Hoàn thành ⚡
-              </button>
-            )}
+            <button 
+              className="btn-outline"
+              disabled={currentIdx === questions.length - 1}
+              onClick={() => setCurrentIdx(prev => prev + 1)}
+              style={{ 
+                padding: '10px 20px', 
+                cursor: currentIdx === questions.length - 1 ? 'not-allowed' : 'pointer', 
+                opacity: currentIdx === questions.length - 1 ? 0.4 : 1,
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '4px' 
+              }}
+            >
+              Câu tiếp theo <HiChevronRight />
+            </button>
           </div>
         </div>
 
@@ -1020,6 +1016,79 @@ export default function MockExamTakingPage({ examId, currentUser, onFinished, na
         totalQuestions={questions.length}
         answeredCount={answeredCount}
       />
+
+      {/* Submitting Loading Modal */}
+      {isSubmitting && (
+        <div style={{
+          position: 'fixed',
+          top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(15, 23, 42, 0.85)',
+          backdropFilter: 'blur(12px)',
+          zIndex: 999999,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '20px'
+        }}>
+          <div style={{
+            background: '#1e293b',
+            border: '1px solid rgba(255, 255, 255, 0.15)',
+            borderRadius: '24px',
+            padding: '40px 32px',
+            maxWidth: '460px',
+            width: '100%',
+            textAlign: 'center',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.6)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '20px'
+          }}>
+            {/* Spinning Gradient Ring */}
+            <div style={{
+              width: '64px',
+              height: '64px',
+              border: '4px solid rgba(99, 102, 241, 0.2)',
+              borderTop: '4px solid #6366f1',
+              borderRadius: '50%',
+              animation: 'spin 1s linear infinite'
+            }} />
+
+            <div>
+              <h3 style={{ fontSize: '20px', fontWeight: '800', color: '#f8fafc', margin: '0 0 8px 0', letterSpacing: '-0.3px' }}>
+                ⚡ Đang Nộp Bài Thi & Chấm Điểm...
+              </h3>
+              <p style={{ fontSize: '13px', color: '#94a3b8', margin: 0, lineHeight: '1.6' }}>
+                Hệ thống đang lưu lại kết quả bài làm, tính toán điểm số và tổng hợp dữ liệu phân tích từ AI. Vui lòng không thoát trang web!
+              </p>
+            </div>
+
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '10px',
+              width: '100%',
+              background: 'rgba(15, 23, 42, 0.6)',
+              padding: '16px 18px',
+              borderRadius: '16px',
+              fontSize: '12.5px',
+              color: '#cbd5e1',
+              textAlign: 'left',
+              border: '1px solid rgba(255, 255, 255, 0.05)'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <span style={{ color: '#10b981', fontWeight: 'bold' }}>✓</span> Đang lưu kết quả bài làm ({answeredCount}/{questions.length} câu)
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <span style={{ color: '#10b981', fontWeight: 'bold' }}>✓</span> Đang xác nhận thời gian & độ tin cậy
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <span style={{ color: '#6366f1', fontWeight: 'bold' }}>⏳</span> Đang tổng hợp phân tích AI & chuyển sang báo cáo
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

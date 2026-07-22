@@ -87,6 +87,7 @@ export class ExamManagementService {
       duration,
       grade,
       description,
+      source: 'EDUPATH',
       year: year || new Date().getFullYear(),
       createdBy: userId,
       status: 'DRAFT',

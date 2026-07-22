@@ -15,6 +15,7 @@ export default function ExamModule({ currentUser }) {
     activeTab,
     setActiveTab,
     loading,
+    initialLoading,
     stats,
     exams,
     examsPagination,
@@ -53,8 +54,6 @@ export default function ExamModule({ currentUser }) {
       {/* Upper Metrics Header */}
       <HeaderStats stats={stats} />
 
-
-
       {/* Main Tabs Navigation */}
       <div className="saas-tabs-container">
         <button 
@@ -84,64 +83,66 @@ export default function ExamModule({ currentUser }) {
       </div>
 
       {/* Active Tab Content Area */}
-      <div style={{ minHeight: '380px' }}>
-        {loading && (
-          <div style={{ padding: '20px 0', color: '#64748b', fontSize: '13.5px', fontWeight: 600 }}>
-            Đang tải dữ liệu từ hệ thống...
+      <div style={{ minHeight: '380px', position: 'relative' }}>
+        {initialLoading ? (
+          <div style={{ padding: '40px 0', textAlign: 'center', color: '#64748b', fontSize: '14px', fontWeight: 600 }}>
+            ⏳ Đang tải dữ liệu từ hệ thống...
           </div>
-        )}
+        ) : (
+          <>
+            {activeTab === 'exams' && (
+              <ExamsTab 
+                exams={exams}
+                pagination={examsPagination}
+                filters={examsFilters}
+                setFilters={setExamsFilters}
+                onPageChange={fetchExams}
+                onCreateClick={() => {
+                  setEditingExamId(null);
+                  setShowWizard(true);
+                }}
+                onEditClick={(id) => {
+                  setEditingExamId(id);
+                  setShowWizard(true);
+                }}
+                onCloneClick={handleCloneExam}
+                onDeleteClick={handleDeleteExam}
+              />
+            )}
 
-        {!loading && activeTab === 'exams' && (
-          <ExamsTab 
-            exams={exams}
-            pagination={examsPagination}
-            filters={examsFilters}
-            setFilters={setExamsFilters}
-            onPageChange={fetchExams}
-            onCreateClick={() => {
-              setEditingExamId(null);
-              setShowWizard(true);
-            }}
-            onEditClick={(id) => {
-              setEditingExamId(id);
-              setShowWizard(true);
-            }}
-            onCloneClick={handleCloneExam}
-            onDeleteClick={handleDeleteExam}
-          />
-        )}
+            {activeTab === 'questions' && (
+              <QuestionsTab 
+                questions={questions}
+                pagination={questionsPagination}
+                filters={questionsFilters}
+                setFilters={setQuestionsFilters}
+                onPageChange={fetchQuestions}
+                currentUser={currentUser}
+              />
+            )}
 
-        {!loading && activeTab === 'questions' && (
-          <QuestionsTab 
-            questions={questions}
-            pagination={questionsPagination}
-            filters={questionsFilters}
-            setFilters={setQuestionsFilters}
-            onPageChange={fetchQuestions}
-            currentUser={currentUser}
-          />
-        )}
+            {activeTab === 'imports' && (
+              <ImportsTab 
+                sessions={importSessions}
+                activeSession={activeImportSession}
+                decisions={importDecisions}
+                setDecisions={setImportDecisions}
+                onUpload={handleUploadDocument}
+                onConfirm={handleConfirmImport}
+                onUpdateQuestion={handleUpdateImportQuestion}
+                onDeleteSession={handleDeleteImportSession}
+                onViewDetail={fetchImportSessionDetail}
+                onCloseDetail={() => setActiveImportSession(null)}
+              />
+            )}
 
-        {!loading && activeTab === 'imports' && (
-          <ImportsTab 
-            sessions={importSessions}
-            activeSession={activeImportSession}
-            decisions={importDecisions}
-            setDecisions={setImportDecisions}
-            onUpload={handleUploadDocument}
-            onConfirm={handleConfirmImport}
-            onUpdateQuestion={handleUpdateImportQuestion}
-            onDeleteSession={handleDeleteImportSession}
-            onViewDetail={fetchImportSessionDetail}
-            onCloseDetail={() => setActiveImportSession(null)}
-          />
-        )}
-
-        {!loading && activeTab === 'reports' && (
-          <ReportsTab 
-            reports={reports}
-            onResolve={handleResolveReport}
-          />
+            {activeTab === 'reports' && (
+              <ReportsTab 
+                reports={reports}
+                onResolve={handleResolveReport}
+              />
+            )}
+          </>
         )}
       </div>
 

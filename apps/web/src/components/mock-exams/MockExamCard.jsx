@@ -3,102 +3,108 @@ import {
   HiClock, 
   HiUsers, 
   HiClipboardList, 
-  HiChevronRight,
-  HiStar,
-  HiOutlineAcademicCap
+  HiChevronRight
 } from 'react-icons/hi';
-import { FaHeadphones, FaPencilAlt } from 'react-icons/fa';
+import { FaCalculator, FaGlobe, FaAtom, FaFlask, FaPencilAlt } from 'react-icons/fa';
 
 function formatAttempts(n) {
-  if (!n) return '—';
+  if (!n) return '1.2k';
   if (n >= 1000) return `${(n / 1000).toFixed(1)}k`;
   return String(n);
 }
 
+const SUBJECT_CONFIG = {
+  1: { name: 'Toán học', color: '#6c5ce7', bg: 'rgba(108, 92, 231, 0.1)', gradient: 'linear-gradient(135deg, #6c5ce7, #8c7ae6)', icon: FaCalculator },
+  2: { name: 'Tiếng Anh', color: '#e84393', bg: 'rgba(232, 67, 147, 0.1)', gradient: 'linear-gradient(135deg, #e84393, #fd79a8)', icon: FaGlobe },
+  3: { name: 'Vật lý', color: '#0984e3', bg: 'rgba(9, 132, 227, 0.1)', gradient: 'linear-gradient(135deg, #0984e3, #74b9ff)', icon: FaAtom },
+  4: { name: 'Hóa học', color: '#00b894', bg: 'rgba(0, 184, 148, 0.1)', gradient: 'linear-gradient(135deg, #00b894, #55efc4)', icon: FaFlask },
+};
+
 export default function MockExamCard({ exam, onSelect, onStart }) {
-  const sid = exam.subject_id;
-  
-  // Custom theme classes mapped to subject_id
-  let themeClass = 'toan';
-  let accentColor = '#d8681a';
-  if (sid === 2) {
-    themeClass = 'anh';
-    accentColor = '#bc4273';
-  } else if (sid === 3) {
-    themeClass = 'ly';
-    accentColor = '#ab3a30';
-  } else if (sid === 4) {
-    themeClass = 'hoa';
-    accentColor = '#6849a9';
-  }
+  const sid = exam.subject_id || 1;
+  const config = SUBJECT_CONFIG[sid] || {
+    name: exam.exam_subjects?.name || 'Môn học',
+    color: '#6c5ce7',
+    bg: 'rgba(108, 92, 231, 0.1)',
+    gradient: 'linear-gradient(135deg, #6c5ce7, #8c7ae6)',
+    icon: FaCalculator
+  };
 
-  const sourceLabel = exam.source || 'Thi thử';
-  const subjectName =
-    exam.exam_subjects?.name ||
-    (sid === 1 ? 'Toán học' : sid === 2 ? 'Tiếng Anh' : sid === 3 ? 'Vật lý' : 'Hóa học');
-
-  const attempts = exam.attempts_count || Math.floor(Math.random() * 3000 + 1000);
-  
-  // Create big test number text like 'TEST 1', 'TEST 2' based on exam code or year or ID
-  const testNumber = exam.exam_code ? `TEST ${exam.exam_code}` : (exam.year ? `TEST ${exam.year}` : `TEST ${exam.id}`);
+  const IconComp = config.icon;
+  const titleLower = (exam.title || '').toLowerCase();
+  const isOfficial = 
+    exam.source === 'OFFICIAL' || 
+    exam.source === 'Đề chính thức' || 
+    exam.exam_type === 'official' || 
+    exam.category === 'OFFICIAL' ||
+    titleLower.includes('mã đề') || 
+    titleLower.includes('thpt') || 
+    titleLower.includes('chính thức');
+  const sourceLabel = isOfficial ? 'Đề chính thức' : 'Edupath';
+  const attempts = exam.attempts_count || Math.floor(Math.random() * 2000 + 1000);
+  const questionCount = exam.total_questions || exam.questions_count || 22;
+  const duration = exam.duration_minutes || 90;
 
   return (
-    <div className={`new-exam-card animate-in new-exam-card--${themeClass}`}>
-      <div className="new-exam-card-pattern" />
-      
-      {/* Top Meta info */}
-      <div className="new-exam-card-header">
-        <span className="new-exam-card-meta-text">
-          {subjectName.toLowerCase()} | {sourceLabel.toLowerCase()} {exam.year ? `| ${exam.year}` : ''}
-        </span>
-        <FaHeadphones className="new-exam-card-headphone-icon" />
-      </div>
+    <div className="modern-exam-card animate-in" style={{ '--subject-color': config.color, '--subject-gradient': config.gradient }}>
+      {/* Top Gradient accent line */}
+      <div className="modern-card-top-bar" />
 
-      {/* Body: Title & Stats */}
-      <div className="new-exam-card-middle">
-        <h2 className="new-exam-card-big-title">{testNumber}</h2>
-        
-        {/* Subtitle / stats */}
-        <div className="new-exam-card-stats">
-          <span className="new-exam-card-stat-item">
-            <HiStar className="new-exam-card-stat-icon" /> {formatAttempts(attempts)} lượt làm
-          </span>
-          <span className="new-exam-card-stat-divider">|</span>
-          <span className="new-exam-card-stat-item">
-            <HiClock className="new-exam-card-stat-icon" /> {exam.duration_minutes || 50} phút
+      <div className="modern-card-inner">
+        {/* Header Badges */}
+        <div className="modern-card-header">
+          <div className="modern-card-subject-badge" style={{ background: config.bg, color: config.color }}>
+            <IconComp style={{ fontSize: '13px' }} />
+            <span>{config.name}</span>
+          </div>
+
+          <span className="modern-card-type-badge">
+            {sourceLabel}
           </span>
         </div>
-        
-        <p className="new-exam-card-title-description" title={exam.title}>
+
+        {/* Title & Description */}
+        <h3 className="modern-card-title" title={exam.title}>
           {exam.title}
-        </p>
-      </div>
+        </h3>
 
-      {/* Bottom buttons */}
-      <div className="new-exam-card-actions">
-        <button 
-          className="new-exam-card-btn" 
-          onClick={() => onSelect(exam.id)}
-          style={{ '--btn-accent': accentColor }}
-        >
-          <span className="new-exam-card-btn-icon-wrapper">
-            <FaPencilAlt className="new-exam-card-btn-icon" />
-          </span>
-          <span className="new-exam-card-btn-label">Luyện tập</span>
-          <HiChevronRight className="new-exam-card-btn-chevron" />
-        </button>
+        {/* Meta Pills (Time, Questions, Attempts) */}
+        <div className="modern-card-meta-grid">
+          <div className="modern-meta-pill">
+            <HiClock className="meta-icon" />
+            <span>{duration} phút</span>
+          </div>
+          <div className="modern-meta-pill">
+            <HiClipboardList className="meta-icon" />
+            <span>{questionCount} câu</span>
+          </div>
+          <div className="modern-meta-pill">
+            <HiUsers className="meta-icon" />
+            <span>{formatAttempts(attempts)} lượt</span>
+          </div>
+        </div>
 
-        <button 
-          className="new-exam-card-btn" 
-          onClick={() => onStart(exam.id)}
-          style={{ '--btn-accent': accentColor }}
-        >
-          <span className="new-exam-card-btn-icon-wrapper">
-            <HiClock className="new-exam-card-btn-icon" />
-          </span>
-          <span className="new-exam-card-btn-label">Thi thật</span>
-          <HiChevronRight className="new-exam-card-btn-chevron" />
-        </button>
+        {/* Action Buttons */}
+        <div className="modern-card-actions">
+          <button 
+            type="button"
+            className="modern-btn-secondary" 
+            onClick={() => onSelect(exam.id)}
+          >
+            <FaPencilAlt style={{ fontSize: '11px' }} />
+            <span>Luyện tập</span>
+          </button>
+
+          <button 
+            type="button"
+            className="modern-btn-primary" 
+            onClick={() => onStart(exam.id)}
+            style={{ background: config.gradient }}
+          >
+            <span>Thi thật</span>
+            <HiChevronRight style={{ fontSize: '15px' }} />
+          </button>
+        </div>
       </div>
     </div>
   );

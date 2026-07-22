@@ -181,4 +181,84 @@ export class ImportV2Repository {
       return newQuestion;
     });
   }
+
+  static async updateQuestionInBank(
+    questionId: number,
+    sessionName: string,
+    questionData: any,
+    imageUrl: string
+  ) {
+    return prisma.$transaction(async (tx) => {
+      const cleanTitle = (sessionName || 'Đề thi').replace(/\.(pdf|docx|doc)$/i, '').trim();
+      const questionTitle = `Câu ${questionData.questionOrder || 1}. (${cleanTitle})`;
+      
+      let rawContent = (questionData.content || '').trim();
+      rawContent = rawContent.replace(/Câu \d+:\s*Nội dung được trích xuất từ ảnh cắt[^\n]*/gi, '').trim();
+      rawContent = rawContent.replace(/Nội dung được trích xuất từ ảnh cắt[^\n]*/gi, '').trim();
+
+      let finalContent = rawContent;
+      if (!rawContent || rawContent === `Câu ${questionData.questionOrder || 1}`) {
+        finalContent = questionTitle;
+      } else if (!rawContent.startsWith(questionTitle)) {
+        finalContent = `${questionTitle}\n${rawContent}`;
+      }
+
+      const lowerName = cleanTitle.toLowerCase();
+      let inferredSubject = (questionData.media as any)?.subject;
+      if (!inferredSubject) {
+        if (lowerName.includes('lý') || lowerName.includes('ly')) inferredSubject = 'Vật lý';
+        else if (lowerName.includes('hóa') || lowerName.includes('hoa')) inferredSubject = 'Hóa học';
+        else if (lowerName.includes('anh') || lowerName.includes('english')) inferredSubject = 'Tiếng Anh';
+        else if (lowerName.includes('văn') || lowerName.includes('van')) inferredSubject = 'Ngữ văn';
+        else if (lowerName.includes('sinh')) inferredSubject = 'Sinh học';
+        else if (lowerName.includes('sử') || lowerName.includes('su')) inferredSubject = 'Lịch sử';
+        else if (lowerName.includes('địa') || lowerName.includes('dia')) inferredSubject = 'Địa lý';
+        else inferredSubject = 'Toán học';
+      }
+
+      const updatedQuestion = await tx.question.update({
+        where: { id: questionId },
+        data: {
+          content: finalContent,
+          options: questionData.options ? (questionData.options as any) : [],
+          correctAnswer: questionData.correctAnswer || '',
+          explanation: questionData.explanation || '',
+          subject: inferredSubject,
+          topic: (questionData.media as any)?.topic || questionData.regions?.topic || 'Chương 1',
+          difficulty: questionData.difficulty === 'EASY' ? 'EASY' : questionData.difficulty === 'HARD' ? 'HARD' : 'MEDIUM',
+          type: questionData.type || 'MULTIPLE_CHOICE',
+          section: questionData.section || 'PHẦN I',
+          questionOrder: questionData.questionOrder || 1,
+          status: 'APPROVED',
+          ...(imageUrl ? { imageUrl } : {})
+        }
+      });
+
+      // Re-create options for this question
+      await tx.questionOption.deleteMany({ where: { questionId } });
+
+      const optionsArray = Array.isArray(questionData.options) ? questionData.options : [];
+      if (optionsArray.length > 0) {
+        await tx.questionOption.createMany({
+          data: optionsArray.map((opt: any) => ({
+            questionId: updatedQuestion.id,
+            optionLabel: opt.label,
+            optionText: opt.content || opt.text || '',
+            isCorrect: (() => {
+              if (questionData.type === 'TRUE_FALSE') {
+                const currentAnswers = (questionData.correctAnswer || '').split(',');
+                const labelIdx = optionsArray.findIndex((o: any) => o.label === opt.label);
+                const val = currentAnswers[labelIdx === -1 ? 0 : labelIdx] || 'Đ';
+                return val === 'Đ';
+              }
+              const correctList = (questionData.correctAnswer || '').split(',').map((s: string) => s.trim());
+              return correctList.includes(opt.label);
+            })()
+          }))
+        });
+      }
+
+      return updatedQuestion;
+    });
+  }
 }

@@ -9,37 +9,54 @@ import lyDemo from '../data/mockExams/vatly-2024-demo.json';
 import hoaDemo from '../data/mockExams/hoahoc-2024-demo.json';
 
 const getSlug = (subject) => {
-  if (subject === 'Toán học') return 'toan';
-  if (subject === 'Tiếng Anh') return 'anh';
-  if (subject === 'Vật lý') return 'ly';
-  if (subject === 'Hóa học') return 'hoa';
+  if (!subject) return 'toan';
+  const s = subject.toLowerCase();
+  if (s.includes('toán') || s.includes('toan')) return 'toan';
+  if (s.includes('anh') || s.includes('english')) return 'anh';
+  if (s.includes('vật l') || s.includes('vat l') || s.includes('ly')) return 'ly';
+  if (s.includes('hóa') || s.includes('hoa')) return 'hoa';
   return 'toan';
 };
 
 const getIcon = (subject) => {
-  if (subject === 'Toán học') return '📐';
-  if (subject === 'Tiếng Anh') return '🗣️';
-  if (subject === 'Vật lý') return '⚛️';
-  if (subject === 'Hóa học') return '🧪';
+  if (!subject) return '📐';
+  const s = subject.toLowerCase();
+  if (s.includes('toán') || s.includes('toan')) return '📐';
+  if (s.includes('anh') || s.includes('english')) return '🗣️';
+  if (s.includes('vật l') || s.includes('vat l') || s.includes('ly')) return '⚛️';
+  if (s.includes('hóa') || s.includes('hoa')) return '🧪';
   return '🎯';
 };
 
 const getSubjectId = (subject) => {
-  if (subject === 'Toán học') return 1;
-  if (subject === 'Tiếng Anh') return 2;
-  if (subject === 'Vật lý') return 3;
-  if (subject === 'Hóa học') return 4;
+  if (!subject) return 1;
+  const s = subject.toLowerCase();
+  if (s.includes('toán') || s.includes('toan')) return 1;
+  if (s.includes('anh') || s.includes('english')) return 2;
+  if (s.includes('vật l') || s.includes('vat l') || s.includes('ly')) return 3;
+  if (s.includes('hóa') || s.includes('hoa')) return 4;
   return 1;
+};
+
+const inferSubjectName = (e) => {
+  const titleLower = (e.title || '').toLowerCase();
+  if (titleLower.includes('vật lý') || titleLower.includes('vật lí') || titleLower.includes('vat ly')) return 'Vật lý';
+  if (titleLower.includes('tiếng anh') || titleLower.includes('tieng anh')) return 'Tiếng Anh';
+  if (titleLower.includes('hóa học') || titleLower.includes('hoa hoc')) return 'Hóa học';
+  if (titleLower.includes('toán')) return 'Toán học';
+  return e.subject || 'Toán học';
 };
 
 const mapExam = (e) => {
   const years = [2026, 2025, 2024, 2023, 2022, 2021, 2020];
   const matchedYear = years.find(y => e.title.includes(String(y))) || 2024;
   const matchedCode = e.title.match(/Mã đề (\d+)/)?.[1] || '101';
-  const isOfficial = e.title.toLowerCase().includes('chính thức');
-  const subjectSlug = getSlug(e.subject);
-  const subjectIcon = getIcon(e.subject);
-  const subjectId = getSubjectId(e.subject);
+  const titleLower = (e.title || '').toLowerCase();
+  const isOfficial = e.source === 'OFFICIAL' || e.source === 'Đề chính thức' || titleLower.includes('mã đề') || titleLower.includes('thpt') || titleLower.includes('chính thức');
+  const realSubject = inferSubjectName(e);
+  const subjectSlug = getSlug(realSubject);
+  const subjectIcon = getIcon(realSubject);
+  const subjectId = getSubjectId(realSubject);
 
   return {
     id: String(e.id),
@@ -47,19 +64,19 @@ const mapExam = (e) => {
     title: e.title,
     year: matchedYear,
     exam_code: matchedCode,
+    source: isOfficial ? 'OFFICIAL' : 'EDUPATH',
     exam_type: isOfficial ? 'official' : 'mock',
-    source: isOfficial ? 'Bộ GD&ĐT' : 'Trường chuyên',
     duration_minutes: e.duration,
     grade: e.grade,
-    total_questions: e.examQuestions ? e.examQuestions.length : (e.totalQuestions || 0),
-    description: e.description || `Đề thi ôn luyện môn ${e.subject} thi tốt nghiệp THPT Quốc Gia.`,
+    total_questions: (e.examQuestions && e.examQuestions.length > 0) ? e.examQuestions.length : (e.totalQuestions || 0),
+    description: e.description || `Đề thi ôn luyện môn ${realSubject} thi tốt nghiệp THPT Quốc Gia.`,
     status: e.status || 'published',
     exam_subjects: {
       id: subjectId,
-      name: e.subject,
+      name: realSubject,
       slug: subjectSlug,
       icon: subjectIcon,
-      description: `Môn ${e.subject} ôn thi THPT Quốc Gia`
+      description: `Môn ${realSubject} ôn thi THPT Quốc Gia`
     },
     attempts_count: 0
   };
@@ -75,13 +92,16 @@ const mapQuestion = (q, idx, examId) => {
   if (q.difficulty === 'EASY') diffLabel = 'Dễ';
   else if (q.difficulty === 'HARD') diffLabel = 'Khó';
 
+  const rawImg = q.imageUrl || q.question_image_url || null;
+  const formattedImg = rawImg ? (rawImg.startsWith('http') ? rawImg : `http://localhost:4000/${rawImg.replace(/^\/+/, '')}`) : null;
+
   // Cache options for separate queries
   const mappedOptions = (options || []).map((opt, optIdx) => ({
-    id: `opt-${q.id}-${opt.label || opt.option_label}`,
+    id: `opt-${q.id}-${opt.label || opt.option_label || optIdx}`,
     question_id: String(q.id),
-    option_label: opt.label || opt.option_label,
-    option_text: opt.content || opt.text || opt.option_text || '',
-    is_correct: (opt.label || opt.option_label) === q.correctAnswer
+    option_label: opt.label || opt.option_label || String.fromCharCode(65 + optIdx),
+    option_text: opt.content ?? opt.text ?? opt.option_text ?? opt.value ?? opt.option_content ?? '',
+    is_correct: (opt.label || opt.option_label) === q.correctAnswer || opt.is_correct || opt.isCorrect || false
   }));
 
   optionsCache[String(q.id)] = mappedOptions;
@@ -90,14 +110,16 @@ const mapQuestion = (q, idx, examId) => {
     id: String(q.id),
     exam_id: String(examId),
     question_number: idx + 1,
-    question_text: q.content,
-    question_image_url: q.imageUrl ? (q.imageUrl.startsWith('http') ? q.imageUrl : `http://localhost:4000/${q.imageUrl.replace(/^\/+/, '')}`) : null,
-    audio_url: q.audioUrl || null,
-    type: q.type || 'MULTIPLE_CHOICE',
-    question_type: q.type || 'MULTIPLE_CHOICE',
+    question_text: q.content || q.question_text || '',
+    imageUrl: formattedImg,
+    question_image_url: formattedImg,
+    audio_url: q.audioUrl || q.audio_url || null,
+    type: q.type || q.question_type || 'MULTIPLE_CHOICE',
+    question_type: q.type || q.question_type || 'MULTIPLE_CHOICE',
     difficulty: diffLabel,
     explanation: q.explanation || '',
-    topic: q.topic || 'Kiến thức cốt lõi'
+    topic: q.topic || 'Kiến thức cốt lõi',
+    options: mappedOptions
   };
 };
 
@@ -144,8 +166,16 @@ export const mockExamService = {
     try {
       const apiFilters = {};
       if (filters.subjectId && filters.subjectId !== 'All') {
-        const subjects = getLocalData('supabase_mock_exam_subjects') || [];
-        const subjectName = subjects.find(s => String(s.id) === String(filters.subjectId))?.name;
+        const getSubjectNameById = (id) => {
+          const numId = Number(id);
+          if (numId === 1) return 'Toán học';
+          if (numId === 2) return 'Tiếng Anh';
+          if (numId === 3) return 'Vật lý';
+          if (numId === 4) return 'Hóa học';
+          const subjects = getLocalData('supabase_mock_exam_subjects') || [];
+          return subjects.find(s => String(s.id) === String(id))?.name;
+        };
+        const subjectName = getSubjectNameById(filters.subjectId);
         if (subjectName) apiFilters.subject = subjectName;
       }
       if (filters.year && filters.year !== 'All') {
@@ -162,9 +192,18 @@ export const mockExamService = {
       if (list && Array.isArray(list)) {
         setLocalData('supabase_mock_exams', list);
         let result = list.map(mapExam).filter(e => e.total_questions > 0);
+        if (filters.subjectId && filters.subjectId !== 'All') {
+          result = result.filter(e => String(e.subject_id) === String(filters.subjectId));
+        }
         if (filters.search) {
-          const query = filters.search.toLowerCase();
-          result = result.filter(e => e.title.toLowerCase().includes(query) || e.description?.toLowerCase().includes(query));
+          const query = filters.search.trim().toLowerCase();
+          result = result.filter(e => {
+            const titleMatch = e.title ? e.title.toLowerCase().includes(query) : false;
+            const subjectMatch = e.exam_subjects?.name ? e.exam_subjects.name.toLowerCase().includes(query) : false;
+            const yearMatch = e.year ? String(e.year).includes(query) : false;
+            const codeMatch = e.exam_code ? String(e.exam_code).toLowerCase().includes(query) : false;
+            return titleMatch || subjectMatch || yearMatch || codeMatch;
+          });
         }
         return result;
       }
@@ -200,8 +239,14 @@ export const mockExamService = {
       result = result.filter(e => String(e.grade) === String(filters.grade));
     }
     if (filters.search) {
-      const query = filters.search.toLowerCase();
-      result = result.filter(e => e.title.toLowerCase().includes(query) || e.description?.toLowerCase().includes(query));
+      const query = filters.search.trim().toLowerCase();
+      result = result.filter(e => {
+        const titleMatch = e.title ? e.title.toLowerCase().includes(query) : false;
+        const subjectMatch = e.exam_subjects?.name ? e.exam_subjects.name.toLowerCase().includes(query) : false;
+        const yearMatch = e.year ? String(e.year).includes(query) : false;
+        const codeMatch = e.exam_code ? String(e.exam_code).toLowerCase().includes(query) : false;
+        return titleMatch || subjectMatch || yearMatch || codeMatch;
+      });
     }
 
     return result;
@@ -523,7 +568,13 @@ export const mockExamService = {
 
       const list = await api.getAttempts();
       if (list && list.length > 0) {
-        const filtered = list.filter(a => String(a.examId) === String(realExamId) && a.status === 'SUBMITTED');
+        const filtered = list.filter(a => {
+          if (String(a.examId) !== String(realExamId) || a.status !== 'SUBMITTED') return false;
+          const fb = a.aiFeedback || {};
+          const mode = fb.retakeMode || a.retakeMode;
+          if (mode && mode !== 'full') return false;
+          return true;
+        });
         return filtered.map(a => ({
           id: String(a.id),
           user_id: String(a.studentId),
@@ -544,7 +595,7 @@ export const mockExamService = {
 
     const attempts = getLocalData('supabase_mock_exam_attempts') || [];
     return attempts
-      .filter(a => String(a.user_id) === String(userId) && String(a.exam_id) === String(examId) && a.status === 'completed')
+      .filter(a => String(a.user_id) === String(userId) && String(a.exam_id) === String(examId) && a.status === 'completed' && (!a.retakeMode || a.retakeMode === 'full'))
       .sort((a, b) => b.started_at.localeCompare(a.started_at));
   },
 
@@ -568,12 +619,12 @@ export const mockExamService = {
         const mappedQuestions = (attempt.exam?.examQuestions || []).map((eq) => {
           const q = eq.question;
           const options = typeof q.options === 'string' ? JSON.parse(q.options) : q.options;
-          const mappedOptions = (options || []).map((opt) => ({
-            id: `opt-${q.id}-${opt.label}`,
+          const mappedOptions = (options || []).map((opt, optIdx) => ({
+            id: `opt-${q.id}-${opt.label || opt.option_label || optIdx}`,
             question_id: String(q.id),
-            option_label: opt.label,
-            option_text: opt.text,
-            is_correct: opt.label === q.correctAnswer
+            option_label: opt.label || opt.option_label || String.fromCharCode(65 + optIdx),
+            option_text: opt.content ?? opt.text ?? opt.option_text ?? opt.value ?? opt.option_content ?? '',
+            is_correct: (opt.label || opt.option_label) === q.correctAnswer || opt.is_correct || opt.isCorrect || false
           }));
 
           return {
@@ -1027,6 +1078,80 @@ export const mockExamService = {
         },
         questions
       };
+    }
+  },
+
+  // ── NEW: Generate topic practice exam (max 15 questions from Question Bank) ──
+  async createTopicPracticeExam(topic, examId = null) {
+    try {
+      let allTopicQs = [];
+
+      // Try fetching questions for topic from API / Question Bank
+      try {
+        const questionsFromBank = await api.getQuestionsByTopic(topic);
+        if (Array.isArray(questionsFromBank) && questionsFromBank.length > 0) {
+          allTopicQs = questionsFromBank;
+        }
+      } catch (e) {}
+
+      // If API didn't return or was empty, search current exam questions or DB
+      if (allTopicQs.length === 0 && examId) {
+        const examQs = await this.getExamQuestions(examId);
+        allTopicQs = examQs.filter(q => q.topic === topic || !topic);
+        if (allTopicQs.length === 0) {
+          allTopicQs = examQs;
+        }
+      }
+
+      // Limit to max 15 questions
+      const selectedQs = allTopicQs.slice(0, 15);
+
+      const mappedQuestions = selectedQs.map((q, idx) => {
+        const options = typeof q.options === 'string' ? JSON.parse(q.options) : (q.options || []);
+        const mappedOptions = (options || []).map((opt, optIdx) => ({
+          id: `opt-${q.id}-${opt.label || opt.option_label || optIdx}`,
+          question_id: String(q.id),
+          option_label: opt.label || opt.option_label || String.fromCharCode(65 + optIdx),
+          option_text: opt.content ?? opt.text ?? opt.option_text ?? opt.value ?? opt.option_content ?? '',
+          is_correct: (opt.label || opt.option_label) === q.correctAnswer || opt.is_correct || opt.isCorrect || false
+        }));
+
+        let diffLabel = 'Trung bình';
+        if (q.difficulty === 'EASY' || q.difficulty === 'Dễ') diffLabel = 'Dễ';
+        else if (q.difficulty === 'HARD' || q.difficulty === 'Khó') diffLabel = 'Khó';
+
+        const rawImg = q.imageUrl || q.question_image_url || null;
+        const formattedImg = rawImg ? (rawImg.startsWith('http') ? rawImg : `http://localhost:4000/${rawImg.replace(/^\/+/, '')}`) : null;
+
+        return {
+          id: Number(q.id) || idx + 1,
+          content: q.question_text || q.content || '',
+          options: mappedOptions,
+          subject: q.subject || 'Toán học',
+          topic: q.topic || topic || 'Chủ đề ôn tập',
+          difficulty: diffLabel,
+          imageUrl: formattedImg,
+          question_image_url: formattedImg,
+          explanation: q.explanation || '',
+          question_number: idx + 1
+        };
+      });
+
+      return {
+        exam: {
+          id: Number(examId) || 211,
+          title: `Luyện chuyên sâu chủ đề: ${topic}`,
+          subject: mappedQuestions[0]?.subject || 'Toán học',
+          duration: Math.max(10, Math.ceil(mappedQuestions.length * 2)),
+          totalQuestions: mappedQuestions.length,
+          retakeMode: 'topic_practice',
+          sourceExamId: Number(examId) || 211
+        },
+        questions: mappedQuestions
+      };
+    } catch (err) {
+      console.error('[mockExamService] createTopicPracticeExam error:', err);
+      throw err;
     }
   },
 

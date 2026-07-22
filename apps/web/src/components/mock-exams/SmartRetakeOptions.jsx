@@ -32,26 +32,6 @@ const RETAKE_MODES = [
     badge: 'Đề xuất'
   },
   {
-    mode: 'bookmarked',
-    icon: '🔖',
-    title: 'Làm lại câu đánh dấu',
-    desc: 'Ôn lại những câu bạn đã đánh dấu cần xem lại trong lúc thi',
-    color: '#6c5ce7',
-    bg: '#6c5ce710',
-    border: '#6c5ce730',
-    badge: null
-  },
-  {
-    mode: 'ai_similar',
-    icon: '🤖',
-    title: 'Đề tương tự AI',
-    desc: 'Hệ thống AI tự động soạn thảo đề thi mới bám sát cấu trúc đề này',
-    color: '#00b894',
-    bg: '#00b89410',
-    border: '#00b89430',
-    badge: 'Mới'
-  },
-  {
     mode: 'full',
     icon: '📝',
     title: 'Thi lại full đề',

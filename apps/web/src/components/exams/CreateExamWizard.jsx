@@ -75,11 +75,21 @@ export function CreateExamWizard({ onClose, onSubmit, editingExamId }) {
     return () => clearTimeout(timer);
   }, [step, availableQuestions]);
 
+  const [loadingEdit, setLoadingEdit] = useState(Boolean(editingExamId));
+
   // Fetch questions for manual choice
   useEffect(() => {
     if (step === 2 && formData.creationMethod === 'MANUAL') {
-      api.getTeacherQuestions({ subject: formData.subject, limit: 50 }).then(res => {
-        setAvailableQuestions(res.questions || []);
+      api.getTeacherQuestions({ subject: formData.subject, limit: 200 }).then(res => {
+        const fetchedList = Array.isArray(res) ? res : (res.questions || res.data || []);
+        setAvailableQuestions(prev => {
+          const map = new Map();
+          // Keep existing selected/linked questions first
+          prev.forEach(q => { if (q && q.id) map.set(q.id, q); });
+          // Merge fetched questions
+          fetchedList.forEach(q => { if (q && q.id) map.set(q.id, q); });
+          return Array.from(map.values());
+        });
       });
     }
   }, [step, formData.subject, formData.creationMethod]);
@@ -87,19 +97,38 @@ export function CreateExamWizard({ onClose, onSubmit, editingExamId }) {
   // Load existing exam for edit
   useEffect(() => {
     if (editingExamId) {
+      setLoadingEdit(true);
       api.getTeacherExamById(editingExamId).then(res => {
         if (res) {
+          const examObj = res.data || res;
+          const linkedEqs = examObj.examQuestions || [];
+          const linkedQuestionIds = linkedEqs.map(eq => eq.questionId).filter(Boolean);
+          const linkedQuestions = linkedEqs.map(eq => eq.question).filter(Boolean);
+
           setFormData({
-            title: res.title || '',
-            subject: res.subject || 'Toán học',
-            duration: res.duration || 90,
-            grade: res.grade || 12,
-            description: res.description || '',
+            title: examObj.title || '',
+            subject: examObj.subject || 'Toán học',
+            duration: examObj.duration || 90,
+            grade: examObj.grade || 12,
+            description: examObj.description || '',
             creationMethod: 'MANUAL',
-            questionIds: res.examQuestions?.map(eq => eq.questionId) || [],
+            questionIds: linkedQuestionIds,
             aiConfig: { topic: '', easyCount: 5, mediumCount: 5, hardCount: 5 }
           });
+
+          if (linkedQuestions.length > 0) {
+            setAvailableQuestions(prev => {
+              const map = new Map();
+              linkedQuestions.forEach(q => { if (q && q.id) map.set(q.id, q); });
+              prev.forEach(q => { if (q && q.id) map.set(q.id, q); });
+              return Array.from(map.values());
+            });
+          }
         }
+      }).catch(err => {
+        console.error('[CreateExamWizard] Error loading exam for edit:', err);
+      }).finally(() => {
+        setLoadingEdit(false);
       });
     }
   }, [editingExamId]);
@@ -190,7 +219,13 @@ export function CreateExamWizard({ onClose, onSubmit, editingExamId }) {
 
         {/* Step Body */}
         <div style={{ flex: 1, overflowY: 'auto', paddingRight: '4px' }}>
-          {step === 1 && (
+          {loadingEdit ? (
+            <div style={{ padding: '40px 0', textAlign: 'center', color: '#64748b', fontSize: '13.5px', fontWeight: 600 }}>
+              ⏳ Đang tải thông tin và danh sách câu hỏi của đề thi...
+            </div>
+          ) : (
+            <>
+              {step === 1 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#64748b', marginBottom: '6px' }}>Tiêu đề đề thi</label>
@@ -409,6 +444,8 @@ export function CreateExamWizard({ onClose, onSubmit, editingExamId }) {
               </p>
             </div>
           )}
+          </>
+        )}
         </div>
 
         {/* Footer Buttons */}

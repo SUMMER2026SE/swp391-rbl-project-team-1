@@ -32,6 +32,7 @@ const SUBJECT_ICONS = {
 
 export default function MockExamsPage({ currentUser, onSelectExam, navigateTo, examsList }) {
   const [exams, setExams] = useState([]);
+  const [allExams, setAllExams] = useState([]);
   const [subjects, setSubjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({
@@ -68,33 +69,20 @@ export default function MockExamsPage({ currentUser, onSelectExam, navigateTo, e
     setSubjects(localSubj);
   };
 
+  const loadAllExams = async () => {
+    try {
+      const data = await mockExamService.getMockExams({});
+      setAllExams(data || []);
+    } catch (err) {
+      console.error('Lỗi tải tất cả đề thi:', err);
+    }
+  };
+
   const loadExams = async () => {
     setLoading(true);
     try {
-      if (examsList && examsList.length > 0) {
-        let result = [...examsList];
-        
-        if (filters.subjectId && filters.subjectId !== 'All') {
-          result = result.filter(e => String(e.subject_id) === String(filters.subjectId));
-        }
-        if (filters.year && filters.year !== 'All') {
-          result = result.filter(e => String(e.year) === String(filters.year));
-        }
-        if (filters.examType && filters.examType !== 'All') {
-          result = result.filter(e => e.exam_type === filters.examType);
-        }
-        if (filters.grade && filters.grade !== 'All') {
-          result = result.filter(e => String(e.grade) === String(filters.grade));
-        }
-        if (filters.search) {
-          const query = filters.search.toLowerCase();
-          result = result.filter(e => e.title.toLowerCase().includes(query) || e.description?.toLowerCase().includes(query));
-        }
-        setExams(result);
-      } else {
-        const data = await mockExamService.getMockExams(filters);
-        setExams(data || []);
-      }
+      const data = await mockExamService.getMockExams(filters);
+      setExams(data || []);
     } catch (err) {
       console.error('Lỗi tải danh sách đề thi:', err);
     } finally {
@@ -123,7 +111,11 @@ export default function MockExamsPage({ currentUser, onSelectExam, navigateTo, e
     if (tabParam === 'history' && currentUser) setActiveTab('history');
   }, [currentUser]);
 
-  useEffect(() => { loadSubjects(); }, []);
+  useEffect(() => { 
+    loadSubjects(); 
+    loadAllExams();
+  }, [examsList]);
+
   useEffect(() => { loadExams(); }, [filters, examsList]);
 
   useEffect(() => {
@@ -134,12 +126,16 @@ export default function MockExamsPage({ currentUser, onSelectExam, navigateTo, e
     navigateTo(`/mock-exams/${examId}/start`);
   };
 
-  const subjectCounts = {};
-  exams.forEach(e => {
+  const subjectCounts = { All: allExams.length };
+  allExams.forEach(e => {
+    const sid = e.subject_id;
+    if (sid) {
+      subjectCounts[sid] = (subjectCounts[sid] || 0) + 1;
+    }
     const name = e.exam_subjects?.name || (
-      e.subject_id === 1 ? 'Toán học' :
-      e.subject_id === 2 ? 'Tiếng Anh' :
-      e.subject_id === 3 ? 'Vật lý' : 'Hóa học'
+      sid === 1 ? 'Toán học' :
+      sid === 2 ? 'Tiếng Anh' :
+      sid === 3 ? 'Vật lý' : 'Hóa học'
     );
     subjectCounts[name] = (subjectCounts[name] || 0) + 1;
   });
@@ -192,6 +188,7 @@ export default function MockExamsPage({ currentUser, onSelectExam, navigateTo, e
               filters={filters}
               onFilterChange={setFilters}
               subjects={subjects}
+              subjectCounts={subjectCounts}
             />
 
             {/* RESULTS BAR v2 */}

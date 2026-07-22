@@ -1,28 +1,39 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 
-export default function ExamTimer({ durationMinutes, initialSeconds, onTimeUp, onSecondsChange }) {
-  const [secondsLeft, setSecondsLeft] = useState(
-    initialSeconds != null ? initialSeconds : durationMinutes * 60
-  );
+export default function ExamTimer({ durationMinutes, initialSeconds, examId, onTimeUp }) {
+  const [secondsLeft, setSecondsLeft] = useState(() => {
+    if (examId) {
+      const saved = localStorage.getItem(`exam_taking_seconds_${examId}`);
+      if (saved) return parseInt(saved, 10);
+    }
+    return initialSeconds != null ? initialSeconds : (durationMinutes || 90) * 60;
+  });
+
+  const onTimeUpRef = useRef(onTimeUp);
+  useEffect(() => { onTimeUpRef.current = onTimeUp; }, [onTimeUp]);
 
   useEffect(() => {
     if (secondsLeft <= 0) {
-      onTimeUp();
+      if (onTimeUpRef.current) onTimeUpRef.current();
       return;
     }
 
     const timer = setInterval(() => {
       setSecondsLeft(prev => {
         const next = prev - 1;
-        if (onSecondsChange) {
-          onSecondsChange(next);
+        if (examId) {
+          localStorage.setItem(`exam_taking_seconds_${examId}`, next);
+        }
+        if (next <= 0) {
+          clearInterval(timer);
+          if (onTimeUpRef.current) onTimeUpRef.current();
         }
         return next;
       });
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [secondsLeft, onTimeUp, onSecondsChange]);
+  }, [examId]);
 
   const minutes = Math.floor(secondsLeft / 60);
   const seconds = secondsLeft % 60;

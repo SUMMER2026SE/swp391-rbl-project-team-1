@@ -1,7 +1,61 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { HiBookmark } from 'react-icons/hi';
+import katex from 'katex';
+import 'katex/dist/katex.min.css';
 
-export default function QuestionCard({ 
+const getFullImageUrl = (url) => {
+  if (!url) return null;
+  if (url.startsWith('http://') || url.startsWith('https://')) return url;
+  const cleanPath = url.replace(/^\/+/, '');
+  return `http://localhost:4000/${cleanPath}`;
+};
+
+export function renderLatexToHtml(text) {
+  if (!text) return '';
+  let str = String(text).trim();
+
+  // 1. Unwrap dollar-wrapped plain numbers & percentages (e.g. $10000$ -> 10000, $0,9$ -> 0,9)
+  str = str.replace(/\$(\d+(?:[.,]\d+)?\%?)\$/g, '$1');
+
+  // 2. Fix accidental double $$
+  str = str.replace(/\$\$/g, '$');
+
+  // 3. Auto-wrap unwrapped TeX commands (like \overrightarrow{...}, \frac{...}{...}, \begin{array}, \neq) in $...$
+  const hasTexCommand = /\\(overrightarrow|cdot|frac|neq|log|sqrt|vec|int|alpha|beta|gamma|theta|pi|infty|begin|cline|matrix|array|text)/i.test(str);
+  if (hasTexCommand && !str.includes('$')) {
+    str = `$$${str}$$`;
+  }
+
+  // 4. Synchronously replace $...$ and $$...$$ with KaTeX HTML!
+  return str.replace(/(\$\$[\s\S]+?\$\$|\$[^\$]+?\$)/g, (match) => {
+    const isDisplay = match.startsWith('$$') && match.endsWith('$$');
+    const mathContent = isDisplay ? match.slice(2, -2) : match.slice(1, -1);
+    try {
+      return katex.renderToString(mathContent, {
+        displayMode: isDisplay,
+        throwOnError: false
+      });
+    } catch (e) {
+      return match;
+    }
+  });
+}
+
+const MathContent = React.memo(({ html, style, className }) => {
+  const renderedHtml = React.useMemo(() => {
+    return renderLatexToHtml(html);
+  }, [html]);
+
+  return (
+    <div 
+      className={className}
+      style={style}
+      dangerouslySetInnerHTML={{ __html: renderedHtml }}
+    />
+  );
+});
+
+function QuestionCard({ 
   question, 
   options = [], 
   selectedOptionLabel, 
@@ -13,13 +67,6 @@ export default function QuestionCard({
 }) {
   const [bookmarkNote, setBookmarkNote] = useState('');
   const [showNoteInput, setShowNoteInput] = useState(false);
-
-  // Trigger MathJax typesetting whenever question content or options change
-  useEffect(() => {
-    if (window.MathJax && typeof window.MathJax.typesetPromise === 'function') {
-      window.MathJax.typesetPromise().catch((err) => console.warn('MathJax error:', err));
-    }
-  }, [question, options]);
 
   const handleBookmarkClick = () => {
     if (isBookmarked) {
@@ -38,12 +85,19 @@ export default function QuestionCard({
   const formatText = (txt) => {
     if (!txt) return '';
     let cleaned = txt;
-    // Replace Datalab Markdown image tags ![Alt](image.jpg) with formatted images
+
+    // 1. Unwrap dollar-wrapped plain numbers & percentages (e.g. $10000$ -> 10000, $0,9$ -> 0,9) to prevent LaTeX flickering
+    cleaned = cleaned.replace(/\$(\d+(?:[.,]\d+)?\%?)\$/g, '$1');
+
+    // 2. Replace Datalab Markdown image tags ![Alt](image.jpg) with formatted images using full backend URLs
     cleaned = cleaned.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (match, alt, src) => {
-      return `<div style="text-align:center;margin:8px 0;"><img src="${src}" alt="${alt}" style="max-width:100%;max-height:280px;border-radius:8px;border:1px solid #cbd5e1;" /></div>`;
+      const fullSrc = getFullImageUrl(src);
+      return `<div style="text-align:center;margin:12px 0;"><img src="${fullSrc}" alt="${alt}" style="max-width:100%;max-height:380px;border-radius:8px;border:1px solid var(--border);box-shadow:0 4px 12px rgba(0,0,0,0.06);" /></div>`;
     });
-    // Remove leaked raw English image alt descriptions wrapped in $...$
+
+    // 3. Remove leaked raw English image alt descriptions wrapped in $...$
     cleaned = cleaned.replace(/\$(The [x-z]-axis is along[^\$]+)\$/gi, '');
+
     return cleaned;
   };
 
@@ -51,64 +105,59 @@ export default function QuestionCard({
     if (!txt) return '';
     let cleaned = txt.replace(/\$?The [x-z]-axis is along[^\$]*\$?/gi, '').trim();
     cleaned = cleaned.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '').trim();
+    cleaned = cleaned.replace(/\$(\d+(?:[.,]\d+)?\%?)\$/g, '$1').trim();
     return cleaned || txt;
   };
 
-  const formattedQuestionText = formatText(question?.question_text || '');
+  const formattedQuestionText = formatText(question?.question_text || question?.content || '');
+  const mainImgUrl = getFullImageUrl(question?.question_image_url || question?.imageUrl);
 
   return (
     <div className="taking-question-card animate-in">
       <div className="taking-question-header">
         <span className="taking-question-number">Câu {question?.question_number}</span>
         
-        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          {question?.topic && (
+            <span 
+              style={{ 
+                background: 'rgba(99, 102, 241, 0.08)', 
+                color: '#4f46e5', 
+                border: '1px solid rgba(99, 102, 241, 0.2)', 
+                padding: '3px 10px', 
+                borderRadius: '12px', 
+                fontSize: '11px', 
+                fontWeight: '700',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px'
+              }}
+            >
+              🎯 {question.topic}
+            </span>
+          )}
           <span className="badge-pill" style={{ background: 'var(--bg-main)', color: 'var(--text-secondary)', fontSize: '11px' }}>
             {question?.difficulty}
           </span>
-          <button 
-            className={`bookmark-btn ${isBookmarked ? 'active' : ''}`}
-            onClick={handleBookmarkClick}
-            title={isBookmarked ? "Bỏ lưu câu hỏi" : "Lưu câu hỏi để ôn tập"}
-          >
-            <HiBookmark />
-            <span style={{ fontSize: '12.5px' }}>{isBookmarked ? "Đã lưu" : "Lưu câu hỏi"}</span>
-          </button>
         </div>
       </div>
 
-      {showNoteInput && (
-        <div style={{ background: 'var(--bg-main)', border: '1px solid var(--border)', padding: '12px', borderRadius: '8px', marginBottom: '16px', display: 'flex', gap: '8px', alignItems: 'center' }}>
-          <input 
-            type="text" 
-            placeholder="Ghi chú học tập (Ví dụ: Công thức đạo hàm nâng cao)..." 
-            value={bookmarkNote} 
-            onChange={(e) => setBookmarkNote(e.target.value)}
-            className="form-control"
-            style={{ flex: 1, padding: '6px 12px', fontSize: '12px' }}
-          />
-          <button className="btn-primary" onClick={handleSaveBookmark} style={{ padding: '6px 12px', fontSize: '12px' }}>
-            Lưu
-          </button>
-          <button className="btn-outline" onClick={() => setShowNoteInput(false)} style={{ padding: '6px 12px', fontSize: '12px' }}>
-            Hủy
-          </button>
-        </div>
+      {/* Question Text (if available) */}
+      {formattedQuestionText && (
+        <MathContent 
+          className="taking-question-text"
+          style={{ marginBottom: mainImgUrl ? '16px' : 0, fontSize: '14.5px', lineHeight: '1.7', whiteSpace: 'pre-line' }}
+          html={formattedQuestionText}
+        />
       )}
 
-      {/* If question image is available (image-first V3 mode), render ONLY the clean cropped image */}
-      {(question?.question_image_url || question?.imageUrl) ? (
+      {/* Main question image if available */}
+      {mainImgUrl && (
         <div style={{ margin: '16px 0', textAlign: 'center', display: 'flex', justifyContent: 'center' }}>
           <img 
-            src={question.question_image_url || question.imageUrl} 
+            src={mainImgUrl} 
             alt={`Ảnh câu hỏi ${question.question_number}`} 
-            style={{ maxWidth: '100%', maxHeight: '380px', borderRadius: '8px', border: '1px solid var(--border)', boxShadow: '0 4px 12px rgba(0,0,0,0.06)' }} 
-          />
-        </div>
-      ) : (
-        <div className="taking-question-text">
-          <div 
-            style={{ margin: 0, whiteSpace: 'pre-line', fontSize: '14.5px', lineHeight: '1.7' }}
-            dangerouslySetInnerHTML={{ __html: formattedQuestionText }}
+            style={{ maxWidth: '100%', maxHeight: '480px', borderRadius: '8px', border: '1px solid var(--border)', boxShadow: '0 4px 12px rgba(0,0,0,0.06)' }} 
           />
         </div>
       )}
@@ -121,7 +170,7 @@ export default function QuestionCard({
           if (t.includes('TRUE') || t.includes('ĐÚNG')) return 'TRUE_FALSE';
           if (t.includes('SHORT') || t.includes('SHORT_ANSWER') || t.includes('TRẢ LỜI NGẮN') || t.includes('ĐIỀN')) return 'SHORT_ANSWER';
           if (t.includes('ESSAY') || t.includes('TỰ LUẬN')) return 'ESSAY';
-          if (t.includes('MULTI_SELECT') || t.includes('MULTI') || t.includes('CHỌN NHIỀU')) return 'MULTIPLE_SELECT';
+          if (t === 'MULTIPLE_SELECT' || t === 'MULTI_SELECT' || t.includes('CHỌN NHIỀU')) return 'MULTIPLE_SELECT';
           return 'MULTIPLE_CHOICE';
         };
 
@@ -302,7 +351,7 @@ export default function QuestionCard({
                     <div className="taking-option-label" style={{ background: isSelected ? '#10b981' : undefined, color: isSelected ? '#ffffff' : undefined }}>
                       {optLabel}
                     </div>
-                    <div style={{ fontSize: '13.5px', color: 'var(--text-primary)' }}>{displayText}</div>
+                    <MathContent html={displayText} style={{ fontSize: '13.5px', color: 'var(--text-primary)' }} />
                   </div>
                 );
               })}
@@ -325,7 +374,7 @@ export default function QuestionCard({
                   onClick={() => onSelectOption(question?.id, opt.option_label || opt.label)}
                 >
                   <div className="taking-option-label">{opt.option_label || opt.label}</div>
-                  <div style={{ fontSize: '13.5px', color: 'var(--text-primary)' }}>{displayText}</div>
+                  <MathContent html={displayText} style={{ fontSize: '13.5px', color: 'var(--text-primary)' }} />
                   {opt.option_image_url && (
                     <img 
                       src={opt.option_image_url} 
@@ -342,3 +391,5 @@ export default function QuestionCard({
     </div>
   );
 }
+
+export default React.memo(QuestionCard);

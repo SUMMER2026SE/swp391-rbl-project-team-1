@@ -12,11 +12,32 @@ export class ImportV2Service {
   // In-memory cache for full pipeline intermediate artifacts (Debugger 7 Tabs)
   private static artifactsCache = new Map<number, any>();
 
-  static async createSession(userId: number, fileName: string, fileSize: number, filePath?: string) {
-    const session = await ImportV2Repository.createSession(userId, fileName, fileSize, filePath);
+  static async createSession(userId: number, fileName: string, fileSize: number, initialFilePath?: string) {
+    const session = await ImportV2Repository.createSession(userId, fileName, fileSize, initialFilePath);
     
+    // Create dedicated session folder: uploads/exams/{session.id}/
+    const sessionFolder = path.join(process.cwd(), 'uploads', 'exams', String(session.id));
+    if (!fs.existsSync(sessionFolder)) {
+      fs.mkdirSync(sessionFolder, { recursive: true });
+    }
+
+    let finalFilePath = initialFilePath;
+    if (initialFilePath && fs.existsSync(initialFilePath)) {
+      const destPath = path.join(sessionFolder, fileName);
+      try {
+        fs.copyFileSync(initialFilePath, destPath);
+        finalFilePath = destPath;
+        await prisma.importSession.update({
+          where: { id: session.id },
+          data: { filePath: finalFilePath }
+        });
+      } catch (copyErr) {
+        console.error(`[ImportV2] Failed to copy file to session directory:`, copyErr);
+      }
+    }
+
     // Trigger background processing pipeline
-    this.runBackgroundPipeline(session.id, filePath || '', fileName, userId);
+    this.runBackgroundPipeline(session.id, finalFilePath || '', fileName, userId);
 
     return session;
   }
@@ -58,7 +79,7 @@ export class ImportV2Service {
       // STEP 2: Parse document using MinerU HTTP Service
       await ImportV2Repository.createLog(sessionId, 'INFO', 'Step 2: Sending document to MinerU Standalone Service (http://localhost:8001/parse)...');
       const startTimeMineru = Date.now();
-      const mineruJson = await MineruService.parseDocument(filePath, fileName);
+      const mineruJson = await MineruService.parseDocument(filePath, fileName, sessionId);
       const mineruTime = Date.now() - startTimeMineru;
       pipelineArtifacts.mineruJson = mineruJson;
       await ImportV2Repository.createLog(sessionId, 'INFO', `✅ Step 2 Complete: MinerU parsed ${mineruJson.pages?.length || 1} pages in ${mineruTime}ms.`);
@@ -532,10 +553,25 @@ export class ImportV2Service {
     this.artifactsCache.delete(id);
     await this.cleanupSessionFiles(id, session.filePath, session.fileName);
 
+    // If an Exam was already published from this session, delete that Exam and its questions/files as well
+    const cleanTitle = session.fileName.replace(/\.(pdf|docx|doc)$/i, '').trim();
+    const publishedExam = await prisma.exam.findFirst({
+      where: {
+        createdBy: userId,
+        title: { contains: cleanTitle, mode: 'insensitive' }
+      }
+    });
+
+    if (publishedExam) {
+      const { ExamManagementRepository } = await import('../../repositories/examManagement.repository.js');
+      await ExamManagementRepository.deleteExam(publishedExam.id).catch(err => console.warn('[deleteSession] Exam cleanup warning:', err.message));
+    }
+
     const result = await ImportV2Repository.deleteSession(id);
     this.cleanupOrphanImportFiles().catch(() => {});
     return result;
   }
+
 
   static async confirmImport(sessionId: number, userId: number, decisions: Array<{ importQuestionId: number; action: string }>) {
     const session = await ImportV2Repository.getSessionById(sessionId);
@@ -544,31 +580,72 @@ export class ImportV2Service {
 
     const cleanExamTitle = session.fileName.replace(/\.(pdf|docx|doc)$/i, '').trim();
 
-    // Infer subject
-    let inferredSubject = 'Toán học';
-    const lowerName = session.fileName.toLowerCase();
-    if (lowerName.includes('lý') || lowerName.includes('ly')) inferredSubject = 'Vật lý';
-    else if (lowerName.includes('hóa') || lowerName.includes('hoa')) inferredSubject = 'Hóa học';
-    else if (lowerName.includes('anh') || lowerName.includes('english')) inferredSubject = 'Tiếng Anh';
-    else if (lowerName.includes('văn') || lowerName.includes('van')) inferredSubject = 'Ngữ văn';
-    else if (lowerName.includes('sinh')) inferredSubject = 'Sinh học';
-    else if (lowerName.includes('sử') || lowerName.includes('su')) inferredSubject = 'Lịch sử';
-    else if (lowerName.includes('địa') || lowerName.includes('dia')) inferredSubject = 'Địa lý';
+    // Infer subject accurately from questions media or filename
+    const firstQSubject = (session.questions?.[0]?.media as any)?.subject || (session.questions?.[0] as any)?.subject;
+    let inferredSubject = firstQSubject;
 
-    // 1. Create Exam record first to get exam.id
-    const exam = await prisma.exam.create({
-      data: {
-        title: cleanExamTitle,
-        subject: inferredSubject,
-        subjectGroup: 'KHTN',
-        duration: 60,
-        isPublic: true,
+    if (!inferredSubject) {
+      const lowerName = session.fileName.toLowerCase();
+      if (lowerName.includes('lý') || lowerName.includes('ly') || lowerName.includes('vật')) inferredSubject = 'Vật lý';
+      else if (lowerName.includes('hóa') || lowerName.includes('hoa')) inferredSubject = 'Hóa học';
+      else if (lowerName.includes('anh') || lowerName.includes('english')) inferredSubject = 'Tiếng Anh';
+      else if (lowerName.includes('văn') || lowerName.includes('van')) inferredSubject = 'Ngữ văn';
+      else if (lowerName.includes('sinh')) inferredSubject = 'Sinh học';
+      else if (lowerName.includes('sử') || lowerName.includes('su')) inferredSubject = 'Lịch sử';
+      else if (lowerName.includes('địa') || lowerName.includes('dia')) inferredSubject = 'Địa lý';
+      else inferredSubject = 'Toán học';
+    }
+
+    // 1. Check if exam already exists for this title to update in place
+    let existingExam = await prisma.exam.findFirst({
+      where: {
         createdBy: userId,
-        totalQuestions: session.questions.length,
-        status: 'published',
-        year: new Date().getFullYear()
+        title: cleanExamTitle,
+        status: 'published'
+      },
+      include: {
+        examQuestions: {
+          include: { question: true },
+          orderBy: { order: 'asc' }
+        }
       }
     });
+
+    let exam: any;
+    if (!existingExam) {
+      exam = await prisma.exam.create({
+        data: {
+          title: cleanExamTitle,
+          subject: inferredSubject,
+          subjectGroup: 'KHTN',
+          duration: 60,
+          isPublic: true,
+          createdBy: userId,
+          totalQuestions: session.questions.length,
+          status: 'published',
+          source: 'OFFICIAL',
+          year: new Date().getFullYear()
+        }
+      });
+    } else {
+      exam = existingExam;
+      await prisma.exam.update({
+        where: { id: exam.id },
+        data: {
+          subject: inferredSubject,
+          totalQuestions: session.questions.length,
+          source: 'OFFICIAL'
+        }
+      });
+    }
+
+    // Map existing linked questions by order
+    const existingEqByOrder = new Map<number, any>();
+    if (existingExam && existingExam.examQuestions) {
+      existingExam.examQuestions.forEach((eq: any) => {
+        if (eq.order) existingEqByOrder.set(eq.order, eq);
+      });
+    }
 
     // 2. Ensure exam questions uploads folder exists: apps/api/uploads/questions/{examId}/
     const workspaceRoot = path.resolve(process.cwd(), '..', '..');
@@ -577,9 +654,10 @@ export class ImportV2Service {
       fs.mkdirSync(examQuestionsDir, { recursive: true });
     }
 
-    const createdQuestions: { id: number; order: number }[] = [];
+    const updatedOrCreatedQuestions: { id: number; order: number }[] = [];
 
     for (const q of session.questions) {
+      const qOrder = q.questionOrder || 1;
       const dec = decisions?.find(d => d.importQuestionId === q.id);
       const action = dec ? dec.action : 'CREATE_NEW';
 
@@ -594,8 +672,8 @@ export class ImportV2Service {
       const candidateCropPaths = [
         mediaObj?.cropImagePath,
         mediaObj?.imageUrl,
-        `scratch/crops/session_${sessionId}/q_${q.questionOrder || 1}.png`,
-        `apps/api/scratch/crops/session_${sessionId}/q_${q.questionOrder || 1}.png`
+        `scratch/crops/session_${sessionId}/q_${qOrder}.png`,
+        `apps/api/scratch/crops/session_${sessionId}/q_${qOrder}.png`
       ].filter(Boolean) as string[];
 
       for (const rel of candidateCropPaths) {
@@ -616,7 +694,7 @@ export class ImportV2Service {
 
       let questionImageUrl = '';
       if (srcCropFile) {
-        const destFileName = `q_${q.questionOrder || 1}.png`;
+        const destFileName = `q_${qOrder}.png`;
         const destFilePath = path.join(examQuestionsDir, destFileName);
         fs.copyFileSync(srcCropFile, destFilePath);
         questionImageUrl = `uploads/questions/${exam.id}/${destFileName}`;
@@ -624,25 +702,48 @@ export class ImportV2Service {
         questionImageUrl = mediaObj.imageUrl;
       }
 
-      const createdQ = await ImportV2Repository.confirmQuestionInBank(userId, cleanExamTitle, q, questionImageUrl);
-      createdQuestions.push({ id: createdQ.id, order: q.questionOrder || 1 });
+      const existingEq = existingEqByOrder.get(qOrder);
+      if (existingEq && existingEq.questionId) {
+        // Update existing question IN-PLACE!
+        const updatedQ = await ImportV2Repository.updateQuestionInBank(
+          existingEq.questionId,
+          cleanExamTitle,
+          q,
+          questionImageUrl
+        );
+        updatedOrCreatedQuestions.push({ id: updatedQ.id, order: qOrder });
+      } else {
+        // Create new question & link to exam
+        const createdQ = await ImportV2Repository.confirmQuestionInBank(userId, cleanExamTitle, q, questionImageUrl);
+        await prisma.examQuestion.create({
+          data: {
+            examId: exam.id,
+            questionId: createdQ.id,
+            order: qOrder
+          }
+        });
+        updatedOrCreatedQuestions.push({ id: createdQ.id, order: qOrder });
+      }
     }
 
-    // 3. Link created questions to exam
-    if (createdQuestions.length > 0) {
-      await prisma.examQuestion.createMany({
-        data: createdQuestions.map(q => ({
-          examId: exam.id,
-          questionId: q.id,
-          order: q.order
-        }))
-      });
-
-      await prisma.exam.update({
-        where: { id: exam.id },
-        data: { totalQuestions: createdQuestions.length }
-      });
+    // Clean up any extra old exam questions if order > session.questions.length
+    if (existingExam && existingExam.examQuestions) {
+      const currentOrders = new Set(session.questions.map(q => q.questionOrder || 1));
+      const orphanEqs = existingExam.examQuestions.filter((eq: any) => !currentOrders.has(eq.order));
+      if (orphanEqs.length > 0) {
+        for (const oeq of orphanEqs) {
+          await prisma.examQuestion.deleteMany({
+            where: { examId: exam.id, questionId: oeq.questionId }
+          });
+          await prisma.question.delete({ where: { id: oeq.questionId } }).catch(() => {});
+        }
+      }
     }
+
+    await prisma.exam.update({
+      where: { id: exam.id },
+      data: { totalQuestions: updatedOrCreatedQuestions.length }
+    });
 
     await ImportV2Repository.updateSession(sessionId, { status: 'COMPLETED' });
     return { success: true, examId: exam.id };

@@ -65,7 +65,7 @@ OUTPUT FORMAT: Return ONLY a JSON object with key "questions" containing an arra
 
     // 1. Try Direct Google AI Studio API with user paid key
     if (this.geminiKey) {
-      const modelsToTry = ['gemini-flash-latest', 'gemini-2.0-flash', 'gemini-pro-latest'];
+      const modelsToTry = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-flash-latest'];
       for (const model of modelsToTry) {
         try {
           const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${this.geminiKey}`;
@@ -98,10 +98,10 @@ OUTPUT FORMAT: Return ONLY a JSON object with key "questions" containing an arra
       }
     }
 
-    // 2. Try OpenRouter Gemini 2.5 Flash Endpoint
+    // 2. Try OpenRouter Gemini Endpoint
     if (this.openrouterKey) {
       const openRouterModels = [
-        process.env.OPENROUTER_MODEL || 'google/gemini-2.5-flash',
+        process.env.OPENROUTER_MODEL || 'google/gemini-2.0-flash',
         'google/gemini-2.0-flash-001',
         'openrouter/free'
       ];
