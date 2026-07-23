@@ -9,128 +9,122 @@ datasource db {
 }
 
 model User {
-  id                 Int                 @id @default(autoincrement())
-  email              String              @unique
-  passwordHash       String
-  fullName           String
-  avatarUrl          String?
-  role               Role                @default(STUDENT)
-  isActive           Boolean             @default(true)
-  status             UserStatus          @default(ACTIVE)
-  phone              String?
-  lastLoginAt        DateTime?
-  blockedAt          DateTime?
-  blockedReason      String?
-  blockedBy          String?
-  googleId           String?             @unique
-  createdAt          DateTime            @default(now())
-  updatedAt          DateTime            @updatedAt
-  isPro              Boolean             @default(false)
-  emailVerified      Boolean             @default(false)
-  onboardingComplete Boolean             @default(true)
-  notifications      Notification[]
-  roleChangeRequests RoleChangeRequest[]
-  student            Student?
-  teacher            Teacher?
-  referredBy         Int?
-  referrer           User?                @relation("UserReferral", fields: [referredBy], references: [id])
-  referredUsers      User[]               @relation("UserReferral")
-  asReferral         Referral?            @relation("ReferredUser")
-  affiliate          Affiliate?
-
-  // Forum Relations
-  forumPosts         ForumPost[]
-  forumComments      ForumComment[]
-  forumReactions     ForumReaction[]
-  savedPosts         SavedForumPost[]
-  moderatedCategories ForumCategory[]     @relation("CategoryModerators")
-  createdGroups      StudyGroup[]        @relation("GroupCreator")
-  groupMemberships   StudyGroupMember[]
-  announcements      GroupAnnouncement[]
-  reviewedResources  ResourceShare[]     @relation("ReviewedResources")
-  reputations        ReputationHistory[]
-  badges             UserBadge[]
-  gamification       UserGamification?
-  reportsSubmitted   ForumReport[]       @relation("Reporter")
-  reportsResolved    ForumReport[]       @relation("Resolver")
-  auditLogs          ForumAuditLog[]
-  documentComments   DocumentComment[]
-  mindmaps           Mindmap[]
-  dailyContributions DailyContribution[]
-  subjectStreaks     SubjectStreak[]
+  id                   Int                   @id @default(autoincrement())
+  email                String                @unique
+  passwordHash         String
+  fullName             String
+  avatarUrl            String?
+  role                 Role                  @default(STUDENT)
+  isActive             Boolean               @default(true)
+  status               UserStatus            @default(ACTIVE)
+  phone                String?
+  lastLoginAt          DateTime?
+  blockedAt            DateTime?
+  blockedReason        String?
+  blockedBy            String?
+  googleId             String?               @unique
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  isPro                Boolean               @default(false)
+  emailVerified        Boolean               @default(false)
+  onboardingComplete   Boolean               @default(true)
+  referredBy           Int?
+  flashcardVipTurns    Int                   @default(0)
+  affiliate            Affiliate?
+  dailyContributions   DailyContribution[]
+  examsCreated         Exam[]                @relation("ExamCreatedByUser")
+  auditLogs            ForumAuditLog[]
+  forumComments        ForumComment[]
+  forumPosts           ForumPost[]
+  forumReactions       ForumReaction[]
+  reportsSubmitted     ForumReport[]         @relation("Reporter")
+  reportsResolved      ForumReport[]         @relation("Resolver")
+  announcements        GroupAnnouncement[]
+  importSessions       ImportSession[]
   leaderboardSnapshots LeaderboardSnapshot[]
+  notifications        Notification[]
+  questionsCreated     Question[]            @relation("QuestionCreatedByUser")
+  questionReports      QuestionReport[]      @relation("Reporter")
+  asReferral           Referral?             @relation("ReferredUser")
+  reputations          ReputationHistory[]
+  reviewedResources    ResourceShare[]       @relation("ReviewedResources")
+  roleChangeRequests   RoleChangeRequest[]
+  savedPosts           SavedForumPost[]
+  student              Student?
+  createdGroups        StudyGroup[]          @relation("GroupCreator")
+  groupMemberships     StudyGroupMember[]
+  subjectStreaks       SubjectStreak[]
+  teacher              Teacher?
+  referrer             User?                 @relation("UserReferral", fields: [referredBy], references: [id])
+  referredUsers        User[]                @relation("UserReferral")
+  badges               UserBadge[]
+  userDocuments        UserDocument[]
+  gamification         UserGamification?
+  apiAuditLogs         AuditLog[]
+  documentComments     DocumentComment[]
+  documentPurchases    DocumentPurchase[]
+  documentRatings      DocumentRating[]
+  examAnalyses         ExamPaperAnalysis[]
+  learningAttendances  LearningAttendance[]
+  mindmaps             Mindmap[]
   nodeProgress         NodeProgress[]
   nodeQuizAttempts     NodeQuizAttempt[]
-  examAnalyses         ExamPaperAnalysis[]
-  uploadedExamFiles    UploadedExamFile[]
-  weaknessMindmaps     WeaknessMindmap[]
-  apiAuditLogs         AuditLog[]
-  userDocuments        UserDocument[]
+  reportsCreated       Report[]              @relation("ReportReporter")
+  reportsReviewed      Report[]              @relation("ReportResolver")
   systemLogs           SystemLog[]
-  reportsCreated       Report[]            @relation("ReportReporter")
-  reportsReviewed      Report[]            @relation("ReportResolver")
-  warningsReceived     Warning[]           @relation("UserWarnings")
-  learningAttendances  LearningAttendance[]
+  uploadedExamFiles    UploadedExamFile[]
   userEffort           UserEffort?
-  voucherUsages        VoucherUsage[]
   voucherReservations  VoucherReservation[]
-  documentRatings      DocumentRating[]
-  documentPurchases    DocumentPurchase[]
-
-  questionsCreated     Question[]          @relation("QuestionCreatedByUser")
-  examsCreated         Exam[]              @relation("ExamCreatedByUser")
-  questionReports      QuestionReport[]    @relation("Reporter")
-  importSessions       ImportSession[]
+  voucherUsages        VoucherUsage[]
+  warningsReceived     Warning[]             @relation("UserWarnings")
+  weaknessMindmaps     WeaknessMindmap[]
+  moderatedCategories  ForumCategory[]       @relation("CategoryModerators")
 }
 
-
-
 model Student {
-  userId       Int             @id
-  subjectGroup String
-  chatMessages ChatMessage[]
-  enrollments  Enrollment[]
-  reviews      Review[]
-  roadmap      Roadmap?
-  user         User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  testAttempts TestAttempt[]
-  totalAiQuestions Int             @default(0)
-  grade        Int?
-  province     String?
-  school       String?
+  userId           Int           @id
+  subjectGroup     String
+  totalAiQuestions Int           @default(0)
+  grade            Int?
+  province         String?
+  school           String?
   targetScore      Float?
   targetUniversity String?
+  chatMessages     ChatMessage[]
+  enrollments      Enrollment[]
+  reviews          Review[]
+  roadmap          Roadmap?
+  user             User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  testAttempts     TestAttempt[]
 
   @@index([grade])
   @@index([province])
 }
 
 model Teacher {
-  userId          Int              @id
-  isApproved      Boolean          @default(false)
-  bio             String?          @db.Text
-  courses         Course[]
-  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  materials       TeacherMaterial[]
+  userId          Int               @id
+  isApproved      Boolean           @default(false)
+  bio             String?
   subjects        String?
   education       String?
   university      String?
-  experienceYears Int              @default(0)
+  experienceYears Int               @default(0)
   dob             DateTime?
   cvUrl           String?
   degreeUrl       String?
   certificateUrl  String?
-  status          RequestStatus    @default(PENDING)
+  status          RequestStatus     @default(PENDING)
   approvedAt      DateTime?
   approvedBy      Int?
   rejectedAt      DateTime?
   rejectedBy      Int?
-  rejectedReason  String?          @db.Text
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @default(now()) @updatedAt
+  rejectedReason  String?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @default(now()) @updatedAt
+  courses         Course[]
+  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  materials       TeacherMaterial[]
 }
-
-
 
 model Course {
   id             Int              @id @default(autoincrement())
@@ -145,10 +139,6 @@ model Course {
   isPublished    Boolean          @default(false)
   isApproved     Boolean          @default(false)
   teacherId      Int
-  teacher        Teacher          @relation(fields: [teacherId], references: [userId], onDelete: Cascade)
-  enrollments    Enrollment[]
-  lessons        Lesson[]
-  reviews        Review[]
   status         CourseStatus     @default(DRAFT)
   visibility     CourseVisibility @default(HIDDEN)
   submittedAt    DateTime?
@@ -156,10 +146,14 @@ model Course {
   approvedBy     Int?
   rejectedAt     DateTime?
   rejectedBy     Int?
-  rejectedReason String?          @db.Text
+  rejectedReason String?
   hiddenAt       DateTime?
   hiddenBy       Int?
-  hiddenReason   String?          @db.Text
+  hiddenReason   String?
+  teacher        Teacher          @relation(fields: [teacherId], references: [userId], onDelete: Cascade)
+  enrollments    Enrollment[]
+  lessons        Lesson[]
+  reviews        Review[]
 }
 
 model Lesson {
@@ -200,20 +194,21 @@ model Question {
   audioUrl       String?
   createdAt      DateTime            @default(now())
   updatedAt      DateTime            @default(now()) @updatedAt
-  examQuestions  ExamQuestion[]
-  type           String              @default("MULTIPLE_CHOICE")
-  section        String              @default("PHẦN I")
-  questionOrder  Int                 @default(1)
-  attemptAnswers TestAttemptAnswer[]
-
-  // Tích hợp thêm mới
   knowledgeId    Int?
-  knowledge      Knowledge?          @relation(fields: [knowledgeId], references: [id], onDelete: Restrict)
-  creator        User                @relation("QuestionCreatedByUser", fields: [createdBy], references: [id], onDelete: Restrict)
   status         QuestionStatus      @default(APPROVED)
-  optionsRel     QuestionOption[]
+  questionOrder  Int                 @default(1)
+  section        String              @default("PHẦN I")
+  type           String              @default("MULTIPLE_CHOICE")
+  renderMode     String?
+  examQuestions  ExamQuestion[]
+  creator        User                @relation("QuestionCreatedByUser", fields: [createdBy], references: [id])
+  knowledge      Knowledge?          @relation(fields: [knowledgeId], references: [id], onDelete: Restrict)
   mediaRel       QuestionMedia[]
+  optionsRel     QuestionOption[]
+  QuestionRegion QuestionRegion[]
   reports        QuestionReport[]
+  SearchIndex    SearchIndex[]
+  attemptAnswers TestAttemptAnswer[]
 }
 
 model Exam {
@@ -226,27 +221,24 @@ model Exam {
   createdBy      Int
   year           Int?
   source         String?
-  description    String?        @db.Text
   totalQuestions Int            @default(0)
   difficulty     Difficulty     @default(MEDIUM)
   status         String         @default("pending")
-
   grade          Int?
-  approvedAt     DateTime?
-  approvedBy     Int?
-  rejectedAt     DateTime?
-  rejectedBy     Int?
-  rejectedReason String?        @db.Text
-  hiddenAt       DateTime?
-  hiddenBy       Int?
-  hiddenReason   String?        @db.Text
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @default(now()) @updatedAt
+  approvedAt     DateTime?
+  approvedBy     Int?
+  hiddenAt       DateTime?
+  hiddenBy       Int?
+  hiddenReason   String?
+  rejectedAt     DateTime?
+  rejectedBy     Int?
+  rejectedReason String?
+  description    String?
+  creator        User           @relation("ExamCreatedByUser", fields: [createdBy], references: [id])
   examQuestions  ExamQuestion[]
   attempts       TestAttempt[]
-
-  // Tích hợp thêm mới
-  creator        User           @relation("ExamCreatedByUser", fields: [createdBy], references: [id], onDelete: Restrict)
 }
 
 model ExamQuestion {
@@ -278,10 +270,10 @@ model TestAttempt {
   topicStats          Json?
   difficultyStats     Json?
   status              AttemptStatus       @default(IN_PROGRESS)
+  examEvents          ExamEvent[]
   exam                Exam                @relation(fields: [examId], references: [id], onDelete: Cascade)
   student             Student             @relation(fields: [studentId], references: [userId], onDelete: Cascade)
   attemptAnswers      TestAttemptAnswer[]
-  examEvents          ExamEvent[]
 
   @@index([studentId, status])
   @@index([examId])
@@ -290,11 +282,11 @@ model TestAttempt {
 model ExamEvent {
   id         Int         @id @default(autoincrement())
   attemptId  Int
-  attempt    TestAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
   eventType  String
   questionId Int?
   payload    Json?
   createdAt  DateTime    @default(now())
+  attempt    TestAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
 
   @@index([attemptId])
   @@index([eventType])
@@ -328,38 +320,20 @@ model ChatMessage {
   createdAt DateTime @default(now())
   student   Student  @relation(fields: [studentId], references: [userId], onDelete: Cascade)
 }
-enum NotificationType {
-  INFO
-  SUCCESS
-  WARNING
-  ERROR
-}
-
-enum NotificationCategory {
-  SYSTEM
-  ACCOUNT
-  COURSE
-  EXAM
-  PAYMENT
-  AI
-  REPORT
-  TEACHER
-  ADMIN
-}
 
 model Notification {
   id        Int                  @id @default(autoincrement())
   userId    Int
   title     String
   message   String
-  type      NotificationType     @default(INFO)
+  isRead    Boolean              @default(false)
+  createdAt DateTime             @default(now())
   category  NotificationCategory @default(SYSTEM)
   icon      String?
   link      String?
-  isRead    Boolean              @default(false)
-  readAt    DateTime?
   metadata  Json?
-  createdAt DateTime             @default(now())
+  readAt    DateTime?
+  type      NotificationType     @default(INFO)
   updatedAt DateTime             @default(now()) @updatedAt
   user      User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
@@ -403,12 +377,1040 @@ model Document {
 model UserDocument {
   id        Int      @id @default(autoincrement())
   userId    Int
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   title     String
   fileUrl   String
   fileType  String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model OtpVerification {
+  id          Int        @id @default(autoincrement())
+  email       String
+  otpHash     String
+  purpose     OtpPurpose @default(REGISTRATION)
+  payload     Json?
+  attempts    Int        @default(0)
+  maxAttempts Int        @default(5)
+  expiresAt   DateTime
+  createdAt   DateTime   @default(now())
+  isUsed      Boolean    @default(false)
+
+  @@index([email, purpose])
+}
+
+model RoleChangeRequest {
+  id            Int           @id @default(autoincrement())
+  userId        Int
+  currentRole   Role
+  requestedRole Role
+  reason        String?
+  status        RequestStatus @default(PENDING)
+  reviewedBy    Int?
+  reviewedAt    DateTime?
+  createdAt     DateTime      @default(now())
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+}
+
+model ForumCategory {
+  id            Int             @id @default(autoincrement())
+  name          String
+  slug          String          @unique
+  description   String?
+  parentId      Int?
+  allowedRoles  Role[]          @default([STUDENT, TEACHER, ADMIN])
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  parent        ForumCategory?  @relation("CategoryNesting", fields: [parentId], references: [id], onDelete: Cascade)
+  subCategories ForumCategory[] @relation("CategoryNesting")
+  posts         ForumPost[]
+  moderators    User[]          @relation("CategoryModerators")
+
+  @@index([parentId])
+}
+
+model ForumPost {
+  id           Int              @id @default(autoincrement())
+  title        String
+  content      String
+  slug         String           @unique
+  postType     PostType         @default(GENERAL)
+  categoryId   Int
+  authorId     Int
+  isPinned     Boolean          @default(false)
+  isArchived   Boolean          @default(false)
+  isDraft      Boolean          @default(false)
+  scheduledAt  DateTime?
+  difficulty   Difficulty?
+  viewsCount   Int              @default(0)
+  studyGroupId Int?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  comments     ForumComment[]
+  author       User             @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  category     ForumCategory    @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  studyGroup   StudyGroup?      @relation(fields: [studyGroupId], references: [id])
+  reactions    ForumReaction[]
+  reports      ForumReport[]
+  resource     ResourceShare?
+  savedBy      SavedForumPost[]
+  tags         ForumTag[]       @relation("PostTags")
+
+  @@index([categoryId])
+  @@index([authorId])
+  @@index([postType])
+}
+
+model ForumComment {
+  id         Int             @id @default(autoincrement())
+  postId     Int
+  parentId   Int?
+  authorId   Int
+  content    String
+  isSolution Boolean         @default(false)
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+  author     User            @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  parent     ForumComment?   @relation("CommentNesting", fields: [parentId], references: [id], onDelete: Cascade)
+  replies    ForumComment[]  @relation("CommentNesting")
+  post       ForumPost       @relation(fields: [postId], references: [id], onDelete: Cascade)
+  reactions  ForumReaction[]
+  reports    ForumReport[]
+
+  @@index([postId])
+  @@index([parentId])
+  @@index([authorId])
+}
+
+model ForumReaction {
+  id        Int           @id @default(autoincrement())
+  userId    Int
+  postId    Int?
+  commentId Int?
+  type      String
+  createdAt DateTime      @default(now())
+  comment   ForumComment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  post      ForumPost?    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId, type])
+  @@unique([userId, commentId, type])
+  @@index([postId])
+  @@index([commentId])
+}
+
+model SavedForumPost {
+  id        Int       @id @default(autoincrement())
+  userId    Int
+  postId    Int
+  createdAt DateTime  @default(now())
+  post      ForumPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId])
+  @@index([userId])
+  @@index([postId])
+}
+
+model ForumTag {
+  id    Int         @id @default(autoincrement())
+  name  String      @unique
+  slug  String      @unique
+  posts ForumPost[] @relation("PostTags")
+}
+
+model StudyGroup {
+  id            Int                 @id @default(autoincrement())
+  name          String
+  description   String?
+  avatarUrl     String?
+  isPrivate     Boolean             @default(false)
+  creatorId     Int
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  posts         ForumPost[]
+  announcements GroupAnnouncement[]
+  creator       User                @relation("GroupCreator", fields: [creatorId], references: [id])
+  members       StudyGroupMember[]
+}
+
+model StudyGroupMember {
+  id       Int        @id @default(autoincrement())
+  groupId  Int
+  userId   Int
+  role     GroupRole  @default(MEMBER)
+  joinedAt DateTime   @default(now())
+  group    StudyGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user     User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, userId])
+  @@index([userId])
+}
+
+model GroupAnnouncement {
+  id        Int        @id @default(autoincrement())
+  groupId   Int
+  title     String
+  content   String
+  authorId  Int
+  createdAt DateTime   @default(now())
+  author    User       @relation(fields: [authorId], references: [id])
+  group     StudyGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+}
+
+model ResourceShare {
+  id            Int            @id @default(autoincrement())
+  postId        Int            @unique
+  fileUrl       String
+  fileType      String
+  fileSize      Int
+  downloadCount Int            @default(0)
+  ratingSum     Int            @default(0)
+  ratingCount   Int            @default(0)
+  version       Int            @default(1)
+  status        ResourceStatus @default(PENDING)
+  reviewedById  Int?
+  reviewedAt    DateTime?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  post          ForumPost      @relation(fields: [postId], references: [id], onDelete: Cascade)
+  reviewedBy    User?          @relation("ReviewedResources", fields: [reviewedById], references: [id])
+
+  @@index([status])
+}
+
+model ReputationHistory {
+  id          Int              @id @default(autoincrement())
+  userId      Int
+  points      Int
+  action      ReputationAction
+  referenceId String?
+  createdAt   DateTime         @default(now())
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model Badge {
+  id          Int           @id @default(autoincrement())
+  name        String        @unique
+  description String
+  iconUrl     String
+  category    BadgeCategory @default(POSTING)
+  criteria    Json
+  users       UserBadge[]
+}
+
+model UserBadge {
+  userId     Int
+  badgeId    Int
+  unlockedAt DateTime @default(now())
+  badge      Badge    @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, badgeId])
+}
+
+model UserGamification {
+  userId            Int       @id
+  level             Int       @default(1)
+  xp                Int       @default(0)
+  streakDays        Int       @default(0)
+  lastActiveDate    DateTime?
+  milestonesReached Json?
+  updatedAt         DateTime  @updatedAt
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([xp])
+  @@index([streakDays])
+}
+
+model ForumReport {
+  id              Int           @id @default(autoincrement())
+  reporterId      Int
+  postId          Int?
+  commentId       Int?
+  reason          String
+  status          ReportStatus  @default(PENDING)
+  resolvedById    Int?
+  resolvedAt      DateTime?
+  resolutionNotes String?
+  createdAt       DateTime      @default(now())
+  comment         ForumComment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  post            ForumPost?    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  reporter        User          @relation("Reporter", fields: [reporterId], references: [id], onDelete: Cascade)
+  resolvedBy      User?         @relation("Resolver", fields: [resolvedById], references: [id])
+
+  @@index([status])
+}
+
+model ForumAuditLog {
+  id        Int      @id @default(autoincrement())
+  actorId   Int
+  action    String
+  targetId  String
+  details   String?
+  ipAddress String?
+  createdAt DateTime @default(now())
+  actor     User     @relation(fields: [actorId], references: [id])
+}
+
+model DocumentResource {
+  id                  Int                @id @default(autoincrement())
+  title               String
+  description         String?
+  subject             String
+  level               String
+  isFree              Boolean            @default(false)
+  driveUrl            String?
+  imageUrl            String?
+  price               Int                @default(0)
+  isActive            Boolean            @default(true)
+  isDeleted           Boolean            @default(false)
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @default(now()) @updatedAt
+  commissionPercent   Float?
+  markdownDescription String?
+  previewUrl          String?
+  comments            DocumentComment[]
+  purchases           DocumentPurchase[]
+  ratings             DocumentRating[]
+
+  @@map("document_resources")
+}
+
+model DocumentComment {
+  id         Int              @id @default(autoincrement())
+  documentId Int
+  userId     Int
+  content    String
+  createdAt  DateTime         @default(now())
+  document   DocumentResource @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  user       User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("document_comments")
+}
+
+model Mindmap {
+  id           Int                @id @default(autoincrement())
+  userId       Int
+  title        String
+  content      Json
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @default(now()) @updatedAt
+  examAnalysis ExamPaperAnalysis? @relation("ExamMindmap")
+  nodes        MindmapNode[]
+  user         User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("mindmaps")
+}
+
+model Lead {
+  id             Int      @id @default(autoincrement())
+  name           String
+  phone          String
+  email          String
+  target         String
+  registeredDate DateTime @default(now())
+  status         String   @default("Chờ tư vấn")
+}
+
+model FeatureFlag {
+  id        String   @id
+  name      String
+  isEnabled Boolean  @default(true)
+  updatedAt DateTime @updatedAt
+}
+
+model DailyContribution {
+  id               Int      @id @default(autoincrement())
+  userId           Int
+  date             DateTime
+  exerciseCount    Int      @default(0)
+  examsCompleted   Int      @default(0)
+  lessonsCompleted Int      @default(0)
+  studyMinutes     Int      @default(0)
+  xpEarned         Int      @default(0)
+  subjectsStudied  Json
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+  @@index([userId, date])
+}
+
+model SubjectStreak {
+  id            Int       @id @default(autoincrement())
+  userId        Int
+  subject       String
+  currentStreak Int       @default(0)
+  longestStreak Int       @default(0)
+  lastActive    DateTime?
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, subject])
+}
+
+model LeaderboardSnapshot {
+  id           Int      @id @default(autoincrement())
+  dimensionKey String
+  rank         Int
+  userId       Int
+  score        Float
+  xp           Int
+  streakDays   Int
+  updatedAt    DateTime @default(now())
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([dimensionKey, rank])
+}
+
+model MindmapNode {
+  id          Int               @id @default(autoincrement())
+  mindmapId   Int
+  nodeKey     String
+  name        String
+  description String
+  createdAt   DateTime          @default(now())
+  mindmap     Mindmap           @relation(fields: [mindmapId], references: [id], onDelete: Cascade)
+  progress    NodeProgress[]
+  attempts    NodeQuizAttempt[]
+  questions   QuizQuestion[]
+
+  @@unique([mindmapId, nodeKey])
+  @@map("mindmap_nodes")
+}
+
+model NodeProgress {
+  id            Int         @id @default(autoincrement())
+  userId        Int
+  mindmapNodeId Int
+  mastery       Float       @default(0.0)
+  bestScore     Int         @default(0)
+  attempts      Int         @default(0)
+  lastPracticed DateTime    @default(now()) @updatedAt
+  node          MindmapNode @relation(fields: [mindmapNodeId], references: [id], onDelete: Cascade)
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, mindmapNodeId])
+  @@map("node_progress")
+}
+
+model QuizQuestion {
+  id            Int          @id @default(autoincrement())
+  mindmapNodeId Int
+  questionText  String
+  options       Json
+  correctOption Int
+  explanation   String
+  createdAt     DateTime     @default(now())
+  node          MindmapNode  @relation(fields: [mindmapNodeId], references: [id], onDelete: Cascade)
+  userAnswers   UserAnswer[]
+
+  @@map("quiz_questions")
+}
+
+model NodeQuizAttempt {
+  id             Int          @id @default(autoincrement())
+  userId         Int
+  mindmapNodeId  Int
+  score          Int
+  totalQuestions Int          @default(10)
+  completionTime Int
+  createdAt      DateTime     @default(now())
+  node           MindmapNode  @relation(fields: [mindmapNodeId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  answers        UserAnswer[]
+
+  @@map("node_quiz_attempts")
+}
+
+model UserAnswer {
+  id             Int             @id @default(autoincrement())
+  attemptId      Int
+  questionId     Int
+  selectedOption Int
+  isCorrect      Boolean
+  createdAt      DateTime        @default(now())
+  attempt        NodeQuizAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  question       QuizQuestion    @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@map("user_answers")
+}
+
+model WeaknessMindmap {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  title     String
+  content   Json
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("weakness_mindmaps")
+}
+
+model ExamPaperAnalysis {
+  id             Int                @id @default(autoincrement())
+  userId         Int
+  title          String
+  subject        String
+  grade          String
+  analysisResult Json
+  mindmapId      Int?               @unique
+  createdAt      DateTime           @default(now())
+  mindmap        Mindmap?           @relation("ExamMindmap", fields: [mindmapId], references: [id])
+  user           User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  files          UploadedExamFile[]
+
+  @@map("exam_paper_analyses")
+}
+
+model UploadedExamFile {
+  id         Int                @id @default(autoincrement())
+  userId     Int
+  filename   String
+  fileUrl    String
+  fileType   String
+  analysisId Int?
+  createdAt  DateTime           @default(now())
+  analysis   ExamPaperAnalysis? @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+  user       User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("uploaded_exam_files")
+}
+
+model AuditLog {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  userRole  Role
+  action    String
+  target    String
+  payload   Json?
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+model Affiliate {
+  userId          Int                 @id
+  referralCode    String              @unique
+  commissionRate  Float               @default(0.15)
+  totalEarnings   Float               @default(0)
+  pendingEarnings Float               @default(0)
+  paidEarnings    Float               @default(0)
+  tier            AffiliateTier       @default(BRONZE)
+  bankAccount     String?
+  bankName        String?
+  taxId           String?
+  payoutMethod    String?
+  isApproved      Boolean             @default(false)
+  approvedAt      DateTime?
+  createdAt       DateTime            @default(now())
+  user            User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  materials       AffiliateMaterial[]
+  commissions     Commission[]
+  payouts         Payout[]
+  referrals       Referral[]
+}
+
+model Referral {
+  id             Int       @id @default(autoincrement())
+  affiliateId    Int
+  referredUserId Int       @unique
+  source         String?
+  campaign       String?
+  clickedAt      DateTime  @default(now())
+  convertedAt    DateTime?
+  isConverted    Boolean   @default(false)
+  affiliate      Affiliate @relation(fields: [affiliateId], references: [userId], onDelete: Cascade)
+  referredUser   User      @relation("ReferredUser", fields: [referredUserId], references: [id], onDelete: Cascade)
+}
+
+model Commission {
+  id          Int              @id @default(autoincrement())
+  affiliateId Int
+  orderId     Int
+  amount      Float
+  rate        Float
+  status      CommissionStatus @default(PENDING)
+  earnedAt    DateTime         @default(now())
+  approvedAt  DateTime?
+  paidAt      DateTime?
+  affiliate   Affiliate        @relation(fields: [affiliateId], references: [userId], onDelete: Cascade)
+}
+
+model Payout {
+  id            Int       @id @default(autoincrement())
+  affiliateId   Int
+  amount        Float
+  method        String
+  status        String    @default("PENDING")
+  requestedAt   DateTime  @default(now())
+  completedAt   DateTime?
+  transactionId String?
+  receiptUrl    String?
+  affiliate     Affiliate @relation(fields: [affiliateId], references: [userId], onDelete: Cascade)
+}
+
+model AffiliateMaterial {
+  id          Int       @id @default(autoincrement())
+  affiliateId Int
+  type        String
+  targetUrl   String
+  imageUrl    String?
+  copy        String?
+  clicks      Int       @default(0)
+  conversions Int       @default(0)
+  createdAt   DateTime  @default(now())
+  affiliate   Affiliate @relation(fields: [affiliateId], references: [userId], onDelete: Cascade)
+}
+
+model TeacherMaterial {
+  id              Int            @id @default(autoincrement())
+  teacherId       Int
+  title           String
+  description     String?
+  subject         String
+  grade           String?
+  fileUrl         String
+  fileType        String
+  fileSize        Int
+  thumbnailUrl    String?
+  tags            String[]
+  downloadCount   Int            @default(0)
+  viewCount       Int            @default(0)
+  price           Float          @default(0)
+  uploadedAt      DateTime       @default(now())
+  status          MaterialStatus @default(DRAFT)
+  previewUrl      String?
+  previewStatus   PreviewStatus?
+  pageCount       Int?
+  rejectionReason String?
+  approvedBy      Int?
+  approvedAt      DateTime?
+  rejectedBy      Int?
+  rejectedAt      DateTime?
+  hiddenBy        Int?
+  hiddenAt        DateTime?
+  teacher         Teacher        @relation(fields: [teacherId], references: [userId], onDelete: Cascade)
+}
+
+model MonthlyStatistic {
+  id               Int      @id @default(autoincrement())
+  month            Int
+  year             Int
+  totalUsers       Int      @default(0)
+  newUsers         Int      @default(0)
+  totalAttempts    Int      @default(0)
+  totalAiQuestions Int      @default(0)
+  revenue          Float    @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@unique([month, year])
+  @@map("monthly_statistics")
+}
+
+model DailyStatistic {
+  id               Int      @id @default(autoincrement())
+  date             DateTime @unique
+  newUsers         Int      @default(0)
+  totalAttempts    Int      @default(0)
+  totalAiQuestions Int      @default(0)
+  revenue          Float    @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@map("daily_statistics")
+}
+
+model Report {
+  id             Int       @id @default(autoincrement())
+  reporterId     Int
+  targetType     String
+  targetId       Int
+  reason         String
+  description    String?
+  status         String    @default("PENDING")
+  reviewedAt     DateTime?
+  reviewedBy     Int?
+  resolutionNote String?
+  createdAt      DateTime  @default(now())
+  reporter       User      @relation("ReportReporter", fields: [reporterId], references: [id], onDelete: Cascade)
+  resolver       User?     @relation("ReportResolver", fields: [reviewedBy], references: [id])
+  warnings       Warning[]
+
+  @@map("reports")
+}
+
+model Warning {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  reportId  Int
+  message   String
+  createdAt DateTime @default(now())
+  report    Report   @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  user      User     @relation("UserWarnings", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("warnings")
+}
+
+model SystemLog {
+  id              Int       @id @default(autoincrement())
+  type            LogType
+  action          String
+  module          String
+  userId          Int?
+  ipAddress       String?
+  device          String?
+  browser         String?
+  operatingSystem String?
+  description     String
+  metadata        Json?
+  level           LogLevel
+  createdAt       DateTime  @default(now())
+  syncedAt        DateTime?
+  syncedToGoogle  Boolean   @default(false)
+  user            User?     @relation(fields: [userId], references: [id])
+
+  @@map("system_logs")
+}
+
+model LearningAttendance {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  date      DateTime
+  activity  String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date, activity])
+  @@map("learning_attendances")
+}
+
+model UserEffort {
+  userId      Int      @id
+  score       Int      @default(0)
+  forumPoints Int      @default(0)
+  studyPoints Int      @default(0)
+  updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_efforts")
+}
+
+model SystemSetting {
+  id          Int      @id @default(autoincrement())
+  key         String   @unique
+  value       String
+  type        String
+  description String?
+  updatedAt   DateTime @updatedAt
+
+  @@map("system_settings")
+}
+
+model Voucher {
+  id                  Int                   @id @default(autoincrement())
+  code                String                @unique
+  name                String
+  description         String?
+  discountType        VoucherDiscountType
+  discountValue       Float
+  minimumOrderValue   Float                 @default(0)
+  maximumDiscount     Float?
+  totalQuantity       Int?
+  usedQuantity        Int                   @default(0)
+  limitPerUser        Int                   @default(1)
+  applicableType      VoucherApplicableType @default(ALL)
+  applicableCourseIds Int[]
+  status              VoucherStatus         @default(ACTIVE)
+  startDate           DateTime?
+  endDate             DateTime?
+  createdBy           Int
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+  reservations        VoucherReservation[]
+  usages              VoucherUsage[]
+
+  @@map("vouchers")
+}
+
+model VoucherUsage {
+  id             Int      @id @default(autoincrement())
+  voucherId      Int
+  userId         Int
+  paymentId      String?
+  discountAmount Float
+  usedAt         DateTime @default(now())
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  voucher        Voucher  @relation(fields: [voucherId], references: [id], onDelete: Cascade)
+
+  @@map("voucher_usages")
+}
+
+model VoucherReservation {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  voucherId Int
+  courseId  Int?
+  isPremium Boolean  @default(false)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  voucher   Voucher  @relation(fields: [voucherId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, voucherId, courseId, isPremium])
+  @@map("voucher_reservations")
+}
+
+model Announcement {
+  id                Int      @id @default(autoincrement())
+  title             String
+  type              String
+  content           String
+  bannerUrl         String?
+  voucherCode       String?
+  showCopyButton    Boolean  @default(true)
+  buttonText        String?
+  buttonUrl         String?
+  buttonTarget      String   @default("_blank")
+  targetRoles       String[]
+  targetPages       String[]
+  allowHide         Boolean  @default(true)
+  hideDurationHours Int      @default(24)
+  priority          Int      @default(0)
+  animation         String   @default("fade")
+  status            String   @default("DRAFT")
+  startAt           DateTime
+  endAt             DateTime
+  createdBy         Int
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@map("announcements")
+}
+
+model DocumentRating {
+  id           Int              @id @default(autoincrement())
+  documentId   Int
+  studentId    Int
+  rating       Int
+  comment      String?
+  isHidden     Boolean          @default(false)
+  hiddenReason String?
+  hiddenBy     Int?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @default(now()) @updatedAt
+  document     DocumentResource @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  student      User             @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([documentId, studentId])
+  @@map("document_ratings")
+}
+
+model DocumentPurchase {
+  id            Int              @id @default(autoincrement())
+  studentId     Int
+  documentId    Int
+  paidAt        DateTime         @default(now())
+  transactionId String           @unique
+  amount        Float            @default(0)
+  document      DocumentResource @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  student       User             @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, documentId])
+  @@map("document_purchases")
+}
+
+model Subject {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  slug        String   @unique
+  description String?
+  createdAt   DateTime @default(now())
+  topics      Topic[]
+}
+
+model Topic {
+  id          Int         @id @default(autoincrement())
+  subjectId   Int
+  name        String
+  description String?
+  createdAt   DateTime    @default(now())
+  knowledges  Knowledge[]
+  subject     Subject     @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  @@unique([subjectId, name])
+}
+
+model Knowledge {
+  id          Int        @id @default(autoincrement())
+  topicId     Int
+  name        String
+  description String?
+  createdAt   DateTime   @default(now())
+  topic       Topic      @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  questions   Question[]
+
+  @@unique([topicId, name])
+}
+
+model QuestionOption {
+  id          Int      @id @default(autoincrement())
+  questionId  Int
+  optionLabel String
+  optionText  String
+  isCorrect   Boolean  @default(false)
+  question    Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([questionId, optionLabel])
+}
+
+model QuestionMedia {
+  id         Int      @id @default(autoincrement())
+  questionId Int
+  createdAt  DateTime @default(now())
+  order      Int      @default(0)
+  mediaType  String
+  url        String
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+}
+
+model QuestionReport {
+  id         Int          @id @default(autoincrement())
+  questionId Int
+  reporterId Int
+  reason     String
+  status     ReportStatus @default(PENDING)
+  createdAt  DateTime     @default(now())
+  resolvedAt DateTime?
+  question   Question     @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  reporter   User         @relation("Reporter", fields: [reporterId], references: [id])
+
+  @@index([questionId])
+  @@index([reporterId])
+  @@index([status])
+}
+
+model ImportSession {
+  id        Int              @id @default(autoincrement())
+  userId    Int
+  fileName  String
+  fileSize  Int
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  filePath  String?
+  status    String           @default("PROCESSING")
+  ImportLog ImportLog[]
+  questions ImportQuestion[]
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model ImportQuestion {
+  id            Int           @id @default(autoincrement())
+  sessionId     Int
+  content       String
+  options       Json?
+  correctAnswer String
+  explanation   String?
+  status        String        @default("OK")
+  statusDetails String?
+  media         Json?
+  questionOrder Int           @default(1)
+  section       String        @default("PHẦN I")
+  type          String        @default("MULTIPLE_CHOICE")
+  regions       Json?
+  difficulty    String        @default("MEDIUM")
+  session       ImportSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+}
+
+model CourseDiscussion {
+  id         Int      @id @default(autoincrement())
+  lessonId   Int      @map("lesson_id")
+  userId     Int      @map("user_id")
+  userName   String   @map("user_name")
+  userAvatar String   @map("user_avatar")
+  content    String
+  parentId   Int?     @map("parent_id")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@map("course_discussions")
+}
+
+model ImportLog {
+  id            Int           @id @default(autoincrement())
+  sessionId     Int
+  level         String
+  message       String
+  details       String?
+  createdAt     DateTime      @default(now())
+  ImportSession ImportSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+}
+
+model MediaAsset {
+  id           Int       @id @default(autoincrement())
+  hash         String    @unique
+  url          String
+  thumbnail    String?
+  mimeType     String    @default("image/png")
+  width        Int?
+  height       Int?
+  usageCount   Int?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime?
+  size         Int       @default(0)
+  thumbnailUrl String?
+}
+
+model QuestionRegion {
+  id         Int      @id @default(autoincrement())
+  questionId Int
+  order      Int
+  content    String
+  coords     Json?
+  type       String
+  Question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+}
+
+model SearchIndex {
+  id           Int      @id @default(autoincrement())
+  questionId   Int
+  ocrText      String
+  subject      String
+  topic        String
+  knowledge    String?
+  difficulty   String
+  questionType String
+  createdAt    DateTime @default(now())
+  Question     Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+}
+
+enum NotificationType {
+  INFO
+  SUCCESS
+  WARNING
+  ERROR
+}
+
+enum NotificationCategory {
+  SYSTEM
+  ACCOUNT
+  COURSE
+  EXAM
+  PAYMENT
+  AI
+  REPORT
+  TEACHER
+  ADMIN
 }
 
 enum Role {
@@ -447,40 +1449,6 @@ enum RequestStatus {
   APPROVED
   REJECTED
 }
-
-model OtpVerification {
-  id          Int        @id @default(autoincrement())
-  email       String
-  otpHash     String
-  purpose     OtpPurpose @default(REGISTRATION)
-  payload     Json?
-  attempts    Int        @default(0)
-  maxAttempts Int        @default(5)
-  expiresAt   DateTime
-  createdAt   DateTime   @default(now())
-  isUsed      Boolean    @default(false)
-
-  @@index([email, purpose])
-}
-
-model RoleChangeRequest {
-  id            Int           @id @default(autoincrement())
-  userId        Int
-  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  currentRole   Role
-  requestedRole Role
-  reason        String?
-  status        RequestStatus @default(PENDING)
-  reviewedBy    Int?
-  reviewedAt    DateTime?
-  createdAt     DateTime      @default(now())
-
-  @@index([userId, status])
-}
-
-// =========================================================================
-// FORUM SYSTEM MODEL EXTENSIONS
-// =========================================================================
 
 enum PostType {
   GENERAL
@@ -524,516 +1492,6 @@ enum ReportStatus {
   DISMISSED
 }
 
-model ForumCategory {
-  id             Int             @id @default(autoincrement())
-  name           String
-  slug           String          @unique
-  description    String?
-  parentId       Int?
-  parent         ForumCategory?  @relation("CategoryNesting", fields: [parentId], references: [id], onDelete: Cascade)
-  subCategories  ForumCategory[] @relation("CategoryNesting")
-  allowedRoles   Role[]          @default([STUDENT, TEACHER, ADMIN])
-  posts          ForumPost[]
-  moderators     User[]          @relation("CategoryModerators")
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
-
-  @@index([parentId])
-}
-
-model ForumPost {
-  id             Int             @id @default(autoincrement())
-  title          String
-  content        String          @db.Text
-  slug           String          @unique
-  postType       PostType        @default(GENERAL)
-  categoryId     Int
-  category       ForumCategory   @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-  authorId       Int
-  author         User            @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  
-  isPinned       Boolean         @default(false)
-  isArchived     Boolean         @default(false)
-  isDraft        Boolean         @default(false)
-  scheduledAt    DateTime?
-  
-  difficulty     Difficulty?
-  viewsCount     Int             @default(0)
-  
-  comments       ForumComment[]
-  reactions      ForumReaction[]
-  tags           ForumTag[]      @relation("PostTags")
-  resource       ResourceShare?
-  studyGroupId   Int?
-  studyGroup     StudyGroup?     @relation(fields: [studyGroupId], references: [id], onDelete: SetNull)
-  reports        ForumReport[]
-  savedBy        SavedForumPost[]
-  
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
-
-  @@index([categoryId])
-  @@index([authorId])
-  @@index([postType])
-}
-
-model ForumComment {
-  id             Int             @id @default(autoincrement())
-  postId         Int
-  post           ForumPost       @relation(fields: [postId], references: [id], onDelete: Cascade)
-  parentId       Int?
-  parent         ForumComment?   @relation("CommentNesting", fields: [parentId], references: [id], onDelete: Cascade)
-  replies        ForumComment[]  @relation("CommentNesting")
-  authorId       Int
-  author         User            @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  content        String          @db.Text
-  
-  isSolution     Boolean         @default(false)
-  
-  reactions      ForumReaction[]
-  reports        ForumReport[]
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
-
-  @@index([postId])
-  @@index([parentId])
-  @@index([authorId])
-}
-
-model ForumReaction {
-  id             Int             @id @default(autoincrement())
-  userId         Int
-  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  postId         Int?
-  post           ForumPost?      @relation(fields: [postId], references: [id], onDelete: Cascade)
-  commentId      Int?
-  comment        ForumComment?   @relation(fields: [commentId], references: [id], onDelete: Cascade)
-  
-  type           String
-  createdAt      DateTime        @default(now())
-
-  @@unique([userId, postId, type])
-  @@unique([userId, commentId, type])
-  @@index([postId])
-  @@index([commentId])
-}
-
-model SavedForumPost {
-  id        Int       @id @default(autoincrement())
-  userId    Int
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  postId    Int
-  post      ForumPost @relation(fields: [postId], references: [id], onDelete: Cascade)
-  createdAt DateTime  @default(now())
-
-  @@unique([userId, postId])
-  @@index([userId])
-  @@index([postId])
-}
-
-model ForumTag {
-  id             Int             @id @default(autoincrement())
-  name           String          @unique
-  slug           String          @unique
-  posts          ForumPost[]     @relation("PostTags")
-}
-
-model StudyGroup {
-  id             Int                @id @default(autoincrement())
-  name           String
-  description    String?            @db.Text
-  avatarUrl      String?
-  isPrivate      Boolean            @default(false)
-  creatorId      Int
-  creator        User               @relation("GroupCreator", fields: [creatorId], references: [id])
-  createdAt      DateTime           @default(now())
-  updatedAt      DateTime           @updatedAt
-  
-  members        StudyGroupMember[]
-  posts          ForumPost[]
-  announcements  GroupAnnouncement[]
-}
-
-model StudyGroupMember {
-  id             Int             @id @default(autoincrement())
-  groupId        Int
-  group          StudyGroup      @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  userId         Int
-  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  role           GroupRole       @default(MEMBER)
-  joinedAt       DateTime        @default(now())
-
-  @@unique([groupId, userId])
-  @@index([userId])
-}
-
-model GroupAnnouncement {
-  id             Int             @id @default(autoincrement())
-  groupId        Int
-  group          StudyGroup      @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  title          String
-  content        String          @db.Text
-  authorId       Int
-  author         User            @relation(fields: [authorId], references: [id])
-  createdAt      DateTime        @default(now())
-}
-
-model ResourceShare {
-  id             Int             @id @default(autoincrement())
-  postId         Int             @unique
-  post           ForumPost       @relation(fields: [postId], references: [id], onDelete: Cascade)
-  fileUrl        String
-  fileType       String
-  fileSize       Int
-  downloadCount  Int             @default(0)
-  
-  ratingSum      Int             @default(0)
-  ratingCount    Int             @default(0)
-  version        Int             @default(1)
-  status         ResourceStatus  @default(PENDING)
-  
-  reviewedById   Int?
-  reviewedBy     User?           @relation("ReviewedResources", fields: [reviewedById], references: [id])
-  reviewedAt     DateTime?
-  
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
-
-  @@index([status])
-}
-
-model ReputationHistory {
-  id             Int              @id @default(autoincrement())
-  userId         Int
-  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  points         Int
-  action         ReputationAction
-  referenceId    String?
-  createdAt      DateTime         @default(now())
-
-  @@index([userId])
-  @@index([createdAt])
-}
-
-model Badge {
-  id             Int             @id @default(autoincrement())
-  name           String          @unique
-  description    String
-  iconUrl        String
-  category       BadgeCategory   @default(POSTING)
-  criteria       Json
-  users          UserBadge[]
-}
-
-model UserBadge {
-  userId         Int
-  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  badgeId        Int
-  badge          Badge           @relation(fields: [badgeId], references: [id], onDelete: Cascade)
-  unlockedAt     DateTime        @default(now())
-
-  @@id([userId, badgeId])
-}
-
-model UserGamification {
-  userId            Int             @id
-  user              User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  level             Int             @default(1)
-  xp                Int             @default(0)
-  streakDays        Int             @default(0)
-  lastActiveDate    DateTime?
-  milestonesReached Json?
-
-  updatedAt         DateTime        @updatedAt
-
-  @@index([xp])
-  @@index([streakDays])
-}
-
-model ForumReport {
-  id             Int             @id @default(autoincrement())
-  reporterId     Int
-  reporter       User            @relation("Reporter", fields: [reporterId], references: [id], onDelete: Cascade)
-  postId         Int?
-  post           ForumPost?      @relation(fields: [postId], references: [id], onDelete: Cascade)
-  commentId      Int?
-  comment        ForumComment?   @relation(fields: [commentId], references: [id], onDelete: Cascade)
-  reason         String
-  status         ReportStatus    @default(PENDING)
-  
-  resolvedById   Int?
-  resolvedBy     User?           @relation("Resolver", fields: [resolvedById], references: [id])
-  resolvedAt     DateTime?
-  resolutionNotes String?
-  
-  createdAt      DateTime        @default(now())
-
-  @@index([status])
-}
-
-model ForumAuditLog {
-  id             Int             @id @default(autoincrement())
-  actorId        Int
-  actor          User            @relation(fields: [actorId], references: [id])
-  action         String
-  targetId       String
-  details        String?
-  ipAddress      String?
-  createdAt      DateTime        @default(now())
-}
-
-model DocumentResource {
-  id                  Int      @id @default(autoincrement())
-  title               String
-  description         String?  @db.Text
-  subject             String
-  level               String
-  isFree              Boolean  @default(false)
-  driveUrl            String?
-  imageUrl            String?
-  price               Int      @default(0)
-  isActive            Boolean  @default(true)
-  isDeleted           Boolean  @default(false)
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @default(now()) @updatedAt
-  commissionPercent   Float?
-  markdownDescription String?  @db.Text
-  previewUrl          String?
-  comments            DocumentComment[]
-  ratings             DocumentRating[]
-  purchases           DocumentPurchase[]
-
-  @@map("document_resources")
-}
-
-model DocumentComment {
-  id         Int      @id @default(autoincrement())
-  documentId Int
-  userId     Int
-  content    String   @db.Text
-  createdAt  DateTime @default(now())
-
-  user       User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  document   DocumentResource @relation(fields: [documentId], references: [id], onDelete: Cascade)
-
-  @@map("document_comments")
-}
-
-model Mindmap {
-  id           Int                @id @default(autoincrement())
-  userId       Int
-  title        String
-  content      Json
-  createdAt    DateTime           @default(now())
-  updatedAt    DateTime           @updatedAt @default(now())
-
-  user         User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  nodes        MindmapNode[]
-  examAnalysis ExamPaperAnalysis? @relation("ExamMindmap")
-
-  @@map("mindmaps")
-}
-
-model Lead {
-  id             Int      @id @default(autoincrement())
-  name           String
-  phone          String
-  email          String
-  target         String
-  registeredDate DateTime @default(now())
-  status         String   @default("Chờ tư vấn")
-}
-
-model FeatureFlag {
-  id        String   @id
-  name      String
-  isEnabled Boolean  @default(true)
-  updatedAt DateTime @updatedAt
-}
-
-
-model DailyContribution {
-  id              Int      @id @default(autoincrement())
-  userId          Int
-  date            DateTime // Normalized YYYY-MM-DD
-  exerciseCount   Int      @default(0)
-  examsCompleted  Int      @default(0)
-  lessonsCompleted Int     @default(0)
-  studyMinutes    Int      @default(0)
-  xpEarned        Int      @default(0)
-  subjectsStudied Json     // Array of subject tags e.g. ["math", "physics"]
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, date])
-  @@index([userId, date])
-}
-
-model SubjectStreak {
-  id           Int      @id @default(autoincrement())
-  userId       Int
-  subject      String   // "math", "physics", etc.
-  currentStreak Int     @default(0)
-  longestStreak Int     @default(0)
-  lastActive   DateTime?
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, subject])
-}
-
-model LeaderboardSnapshot {
-  id           Int      @id @default(autoincrement())
-  dimensionKey String   // e.g. "grade_12_math_danang"
-  rank         Int
-  userId       Int
-  score        Float
-  xp           Int
-  streakDays   Int
-  updatedAt    DateTime @default(now())
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([dimensionKey, rank])
-}
-
-model MindmapNode {
-  id          Int      @id @default(autoincrement())
-  mindmapId   Int
-  nodeKey     String   // e.g. "0-1-0"
-  name        String
-  description String   @db.Text
-  createdAt   DateTime @default(now())
-
-  mindmap     Mindmap          @relation(fields: [mindmapId], references: [id], onDelete: Cascade)
-  progress    NodeProgress[]
-  attempts    NodeQuizAttempt[]
-  questions   QuizQuestion[]
-
-  @@unique([mindmapId, nodeKey])
-  @@map("mindmap_nodes")
-}
-
-model NodeProgress {
-  id            Int      @id @default(autoincrement())
-  userId        Int
-  mindmapNodeId Int
-  mastery       Float    @default(0.0) // 0.0 to 1.0
-  bestScore     Int      @default(0)   // out of 10
-  attempts      Int      @default(0)
-  lastPracticed DateTime @default(now()) @updatedAt
-
-  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  node          MindmapNode  @relation(fields: [mindmapNodeId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, mindmapNodeId])
-  @@map("node_progress")
-}
-
-model QuizQuestion {
-  id            Int      @id @default(autoincrement())
-  mindmapNodeId Int
-  questionText  String   @db.Text
-  options       Json     // array of strings
-  correctOption Int      // index 0-3
-  explanation   String   @db.Text
-  createdAt     DateTime @default(now())
-
-  node          MindmapNode  @relation(fields: [mindmapNodeId], references: [id], onDelete: Cascade)
-  userAnswers   UserAnswer[]
-
-  @@map("quiz_questions")
-}
-
-model NodeQuizAttempt {
-  id            Int      @id @default(autoincrement())
-  userId        Int
-  mindmapNodeId Int
-  score         Int
-  totalQuestions Int     @default(10)
-  completionTime Int     // in seconds
-  createdAt     DateTime @default(now())
-
-  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  node          MindmapNode  @relation(fields: [mindmapNodeId], references: [id], onDelete: Cascade)
-  answers       UserAnswer[]
-
-  @@map("node_quiz_attempts")
-}
-
-model UserAnswer {
-  id             Int      @id @default(autoincrement())
-  attemptId      Int
-  questionId     Int
-  selectedOption Int
-  isCorrect      Boolean
-  createdAt      DateTime @default(now())
-
-  attempt        NodeQuizAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
-  question       QuizQuestion    @relation(fields: [questionId], references: [id], onDelete: Cascade)
-
-  @@map("user_answers")
-}
-
-model WeaknessMindmap {
-  id        Int      @id @default(autoincrement())
-  userId    Int
-  title     String
-  content   Json
-  createdAt DateTime @default(now())
-
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("weakness_mindmaps")
-}
-
-model ExamPaperAnalysis {
-  id              Int      @id @default(autoincrement())
-  userId          Int
-  title           String
-  subject         String
-  grade           String
-  analysisResult  Json
-  mindmapId       Int?     @unique
-  createdAt       DateTime @default(now())
-
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  mindmap         Mindmap? @relation("ExamMindmap", fields: [mindmapId], references: [id], onDelete: SetNull)
-  files           UploadedExamFile[]
-
-  @@map("exam_paper_analyses")
-}
-
-model UploadedExamFile {
-  id          Int      @id @default(autoincrement())
-  userId      Int
-  filename    String
-  fileUrl     String
-  fileType    String
-  analysisId  Int?
-  createdAt   DateTime @default(now())
-
-  user        User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  analysis    ExamPaperAnalysis? @relation(fields: [analysisId], references: [id], onDelete: Cascade)
-
-  @@map("uploaded_exam_files")
-}
-
-model AuditLog {
-  id        Int      @id @default(autoincrement())
-  userId    Int
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userRole  Role
-  action    String
-  target    String
-  payload   Json?
-  ipAddress String?
-  userAgent String?
-  createdAt DateTime @default(now())
-
-  @@index([userId])
-  @@index([action])
-  @@index([createdAt])
-  @@map("audit_logs")
-}
-
 enum AffiliateTier {
   BRONZE
   SILVER
@@ -1048,141 +1506,6 @@ enum CommissionStatus {
   CANCELLED
 }
 
-model Affiliate {
-  userId           Int               @id
-  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  referralCode     String            @unique
-  commissionRate   Float             @default(0.15)
-  totalEarnings    Float             @default(0)
-  pendingEarnings  Float             @default(0)
-  paidEarnings     Float             @default(0)
-  tier             AffiliateTier     @default(BRONZE)
-  bankAccount      String?
-  bankName         String?
-  taxId            String?
-  payoutMethod     String?
-  isApproved       Boolean           @default(false)
-  approvedAt       DateTime?
-  createdAt        DateTime          @default(now())
-  referrals        Referral[]
-  commissions      Commission[]
-  payouts          Payout[]
-  materials        AffiliateMaterial[]
-}
-
-model Referral {
-  id              Int        @id @default(autoincrement())
-  affiliateId     Int
-  affiliate       Affiliate  @relation(fields: [affiliateId], references: [userId], onDelete: Cascade)
-  referredUserId  Int        @unique
-  referredUser    User       @relation("ReferredUser", fields: [referredUserId], references: [id], onDelete: Cascade)
-  source          String?
-  campaign        String?
-  clickedAt       DateTime   @default(now())
-  convertedAt     DateTime?
-  isConverted     Boolean    @default(false)
-}
-
-model Commission {
-  id            Int        @id @default(autoincrement())
-  affiliateId   Int
-  affiliate     Affiliate  @relation(fields: [affiliateId], references: [userId], onDelete: Cascade)
-  orderId       Int
-  amount        Float
-  rate          Float
-  status        CommissionStatus @default(PENDING)
-  earnedAt      DateTime   @default(now())
-  approvedAt    DateTime?
-  paidAt        DateTime?
-}
-
-model Payout {
-  id            Int       @id @default(autoincrement())
-  affiliateId   Int
-  affiliate     Affiliate @relation(fields: [affiliateId], references: [userId], onDelete: Cascade)
-  amount        Float
-  method        String
-  status        String    @default("PENDING")
-  requestedAt   DateTime  @default(now())
-  completedAt   DateTime?
-  transactionId String?
-  receiptUrl    String?
-}
-
-model AffiliateMaterial {
-  id            Int       @id @default(autoincrement())
-  affiliateId   Int
-  affiliate     Affiliate @relation(fields: [affiliateId], references: [userId], onDelete: Cascade)
-  type          String
-  targetUrl     String
-  imageUrl      String?
-  copy          String?
-  clicks        Int       @default(0)
-  conversions   Int       @default(0)
-  createdAt     DateTime  @default(now())
-}
-
-model TeacherMaterial {
-  id              Int            @id @default(autoincrement())
-  teacherId       Int
-  teacher         Teacher        @relation(fields: [teacherId], references: [userId], onDelete: Cascade)
-  title           String
-  description     String?
-  subject         String
-  grade           String?
-  fileUrl         String
-  fileType        String
-  fileSize        Int
-  thumbnailUrl    String?
-  tags            String[]
-  status          MaterialStatus @default(DRAFT)
-  previewUrl      String?
-  previewStatus   PreviewStatus?
-  pageCount       Int?
-  rejectionReason String?
-  approvedBy      Int?
-  approvedAt      DateTime?
-  rejectedBy      Int?
-  rejectedAt      DateTime?
-  hiddenBy        Int?
-  hiddenAt        DateTime?
-  downloadCount   Int            @default(0)
-  viewCount       Int            @default(0)
-  price           Float          @default(0)
-  uploadedAt      DateTime       @default(now())
-}
-
-// ── Thống kê hàng tháng (Dashboard Admin) ──
-model MonthlyStatistic {
-  id               Int      @id @default(autoincrement())
-  month            Int      // 1-12
-  year             Int      // ví dụ: 2026
-  totalUsers       Int      @default(0)
-  newUsers         Int      @default(0)
-  totalAttempts    Int      @default(0)
-  totalAiQuestions Int      @default(0)
-  revenue          Float    @default(0)
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-
-  @@unique([month, year])
-  @@map("monthly_statistics")
-}
-
-// ── Thống kê theo ngày (Chart dữ liệu chi tiết) ──
-model DailyStatistic {
-  id               Int      @id @default(autoincrement())
-  date             DateTime @unique // chuẩn hóa về 00:00:00 UTC
-  newUsers         Int      @default(0)
-  totalAttempts    Int      @default(0)
-  totalAiQuestions Int      @default(0)
-  revenue          Float    @default(0)
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-
-  @@map("daily_statistics")
-}
-
 enum CourseStatus {
   DRAFT
   PENDING
@@ -1195,60 +1518,6 @@ enum CourseVisibility {
   HIDDEN
 }
 
-model Report {
-  id             Int       @id @default(autoincrement())
-  reporterId     Int
-  reporter       User      @relation("ReportReporter", fields: [reporterId], references: [id], onDelete: Cascade)
-  targetType     String    // e.g. "COURSE", "COMMENT"
-  targetId       Int
-  reason         String
-  description    String?   @db.Text
-  status         String    @default("PENDING") // e.g. "PENDING", "APPROVED", "REJECTED", "CLOSED"
-  reviewedAt     DateTime?
-  reviewedBy     Int?
-  resolver       User?     @relation("ReportResolver", fields: [reviewedBy], references: [id], onDelete: SetNull)
-  resolutionNote String?   @db.Text
-  createdAt      DateTime  @default(now())
-  warnings       Warning[]
-
-  @@map("reports")
-}
-
-model Warning {
-  id        Int      @id @default(autoincrement())
-  userId    Int
-  user      User     @relation("UserWarnings", fields: [userId], references: [id], onDelete: Cascade)
-  reportId  Int
-  report    Report   @relation(fields: [reportId], references: [id], onDelete: Cascade)
-  message   String   @db.Text
-  createdAt DateTime @default(now())
-
-  @@map("warnings")
-}
-
-model SystemLog {
-  id              Int        @id @default(autoincrement())
-  type            LogType
-  action          String
-  module          String
-  userId          Int?
-  user            User?      @relation(fields: [userId], references: [id], onDelete: SetNull)
-  ipAddress       String?
-  device          String?
-  browser         String?
-  operatingSystem String?
-  description     String     @db.Text
-  metadata        Json?
-  level           LogLevel
-  createdAt       DateTime   @default(now())
-  syncedToGoogle  Boolean    @default(false)
-  syncedAt        DateTime?
-
-  @@map("system_logs")
-}
-
-
-
 enum LogType {
   LOGIN
   ADMIN
@@ -1260,40 +1529,6 @@ enum LogLevel {
   WARNING
   ERROR
   CRITICAL
-}
-
-model LearningAttendance {
-  id        Int      @id @default(autoincrement())
-  userId    Int
-  date      DateTime // Normalized YYYY-MM-DD
-  activity  String   // "LESSON" | "TEST" | "MINDMAP" | "FLASHCARD"
-  createdAt DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, date, activity])
-  @@map("learning_attendances")
-}
-
-model UserEffort {
-  userId      Int      @id
-  score       Int      @default(0)
-  forumPoints Int      @default(0)
-  studyPoints Int      @default(0)
-  updatedAt   DateTime @updatedAt
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("user_efforts")
-}
-
-model SystemSetting {
-  id          Int      @id @default(autoincrement())
-  key         String   @unique
-  value       String
-  type        String   // "STRING" | "NUMBER" | "BOOLEAN"
-  description String?
-  updatedAt   DateTime @updatedAt
-
-  @@map("system_settings")
 }
 
 enum VoucherStatus {
@@ -1314,86 +1549,6 @@ enum VoucherApplicableType {
   SPECIFIC_COURSES
 }
 
-model Voucher {
-  id                  Int                   @id @default(autoincrement())
-  code                String                @unique
-  name                String
-  description         String?               @db.Text
-  discountType        VoucherDiscountType
-  discountValue       Float                 // Tỉ lệ % hoặc số tiền cố định
-  minimumOrderValue   Float                 @default(0) // Giá trị đơn hàng tối thiểu
-  maximumDiscount     Float?                // Giảm tối đa (chỉ áp dụng cho PERCENT)
-  totalQuantity       Int?                  // Tổng lượt sử dụng tối đa (null = không giới hạn)
-  usedQuantity        Int                   @default(0)
-  limitPerUser        Int                   @default(1) // Số lần sử dụng tối đa của mỗi user (1, 2, 5...)
-  applicableType      VoucherApplicableType @default(ALL)
-  applicableCourseIds Int[]                 // Danh sách mã khóa học cụ thể áp dụng
-  status              VoucherStatus         @default(ACTIVE)
-  startDate           DateTime?
-  endDate             DateTime?
-  createdBy           Int
-  createdAt           DateTime              @default(now())
-  updatedAt           DateTime              @updatedAt
-  usages              VoucherUsage[]
-  reservations        VoucherReservation[]
-
-  @@map("vouchers")
-}
-
-model VoucherUsage {
-  id             Int          @id @default(autoincrement())
-  voucherId      Int
-  voucher        Voucher      @relation(fields: [voucherId], references: [id], onDelete: Cascade)
-  userId         Int
-  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  paymentId      String?      // Mã giao dịch/hóa đơn liên quan (transactionId)
-  discountAmount Float        // Số tiền thực tế đã giảm trong giao dịch
-  usedAt         DateTime     @default(now())
-
-  @@map("voucher_usages")
-}
-
-model VoucherReservation {
-  id        Int      @id @default(autoincrement())
-  userId    Int
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  voucherId Int
-  voucher   Voucher  @relation(fields: [voucherId], references: [id], onDelete: Cascade)
-  courseId  Int?     // null nếu nâng cấp Premium
-  isPremium Boolean  @default(false)
-  createdAt DateTime @default(now())
-
-  @@unique([userId, voucherId, courseId, isPremium])
-  @@map("voucher_reservations")
-}
-
-model Announcement {
-  id                Int      @id @default(autoincrement())
-  title             String
-  type              String   // EVENT, VOUCHER, PROMOTION, MAINTENANCE, NEWS
-  content           String   @db.Text // Rich Text HTML
-  bannerUrl         String?  // Optional Banner Image
-  voucherCode       String?  // Optional Voucher code
-  showCopyButton    Boolean  @default(true)
-  buttonText        String?  // Action Button Text
-  buttonUrl         String?  // Action Button Link
-  buttonTarget      String   @default("_blank") // _self or _blank
-  targetRoles       String[] // e.g. ["GUEST", "STUDENT", "TEACHER", "ADMIN"] or ["EVERYONE"]
-  targetPages       String[] // e.g. ["Home", "Courses", "Practice", "Exam", "AI Coach", "Profile", "Dashboard"] or ["All Pages"]
-  allowHide         Boolean  @default(true)
-  hideDurationHours Int      @default(24)
-  priority          Int      @default(0)
-  animation         String   @default("fade") // fade, zoom, slide, bounce
-  status            String   @default("DRAFT") // DRAFT, SCHEDULED, ACTIVE, PAUSED, EXPIRED
-  startAt           DateTime
-  endAt             DateTime
-  createdBy         Int
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-
-  @@map("announcements")
-}
-
 enum MaterialStatus {
   DRAFT
   PENDING_REVIEW
@@ -1406,40 +1561,6 @@ enum PreviewStatus {
   PROCESSING
   READY
   FAILED
-}
-
-model DocumentRating {
-  id             Int              @id @default(autoincrement())
-  documentId     Int
-  studentId      Int
-  rating         Int
-  comment        String?          @db.Text
-  isHidden       Boolean          @default(false)
-  hiddenReason   String?          @db.Text
-  hiddenBy       Int?
-  createdAt      DateTime         @default(now())
-  updatedAt      DateTime         @updatedAt @default(now())
-
-  document       DocumentResource @relation(fields: [documentId], references: [id], onDelete: Cascade)
-  student        User             @relation(fields: [studentId], references: [id], onDelete: Cascade)
-
-  @@unique([documentId, studentId])
-  @@map("document_ratings")
-}
-
-model DocumentPurchase {
-  id            Int              @id @default(autoincrement())
-  studentId     Int
-  documentId    Int
-  paidAt        DateTime         @default(now())
-  transactionId String           @unique
-  amount        Float            @default(0)
-
-  student       User             @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  document      DocumentResource @relation(fields: [documentId], references: [id], onDelete: Cascade)
-
-  @@unique([studentId, documentId])
-  @@map("document_purchases")
 }
 
 enum QuestionStatus {
@@ -1456,123 +1577,3 @@ enum ImportStatus {
   COMPLETED
   FAILED
 }
-
-model Subject {
-  id          Int      @id @default(autoincrement())
-  name        String   @unique
-  slug        String   @unique
-  description String?
-  createdAt   DateTime @default(now())
-
-  topics      Topic[]
-}
-
-model Topic {
-  id          Int         @id @default(autoincrement())
-  subjectId   Int
-  name        String
-  description String?
-  createdAt   DateTime    @default(now())
-
-  subject     Subject     @relation(fields: [subjectId], references: [id], onDelete: Cascade)
-  knowledges  Knowledge[]
-
-  @@unique([subjectId, name])
-}
-
-model Knowledge {
-  id          Int        @id @default(autoincrement())
-  topicId     Int
-  name        String
-  description String?
-  createdAt   DateTime   @default(now())
-
-  topic       Topic      @relation(fields: [topicId], references: [id], onDelete: Cascade)
-  questions   Question[]
-
-  @@unique([topicId, name])
-}
-
-model QuestionOption {
-  id          Int      @id @default(autoincrement())
-  questionId  Int
-  optionLabel String   // A, B, C, D
-  optionText  String   @db.Text
-  isCorrect   Boolean  @default(false)
-
-  question    Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
-
-  @@unique([questionId, optionLabel])
-}
-
-model QuestionMedia {
-  id          Int      @id @default(autoincrement())
-  questionId  Int
-  url         String
-  mediaType   String   // IMAGE, AUDIO, GRAPH, TABLE, etc.
-  order       Int      @default(0)
-  createdAt   DateTime @default(now())
-
-  question    Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
-}
-
-model QuestionReport {
-  id          Int          @id @default(autoincrement())
-  questionId  Int
-  reporterId  Int
-  reason      String       @db.Text
-  status      ReportStatus @default(PENDING)
-  createdAt   DateTime     @default(now())
-  resolvedAt  DateTime?
-
-  question    Question     @relation(fields: [questionId], references: [id], onDelete: Cascade)
-  reporter    User         @relation("Reporter", fields: [reporterId], references: [id], onDelete: Restrict)
-
-  @@index([questionId])
-  @@index([reporterId])
-  @@index([status])
-}
-
-model ImportSession {
-  id            Int              @id @default(autoincrement())
-  userId        Int
-  fileName      String
-  fileSize      Int
-  filePath      String?
-  status        ImportStatus     @default(PROCESSING)
-  createdAt     DateTime         @default(now())
-  updatedAt     DateTime         @updatedAt
-
-  user          User             @relation(fields: [userId], references: [id], onDelete: Restrict)
-  questions     ImportQuestion[]
-
-  @@index([userId])
-  @@index([status])
-}
-
-model ImportQuestion {
-  id              Int           @id @default(autoincrement())
-  sessionId       Int
-  content         String        @db.Text
-  options         Json          // [ { label: 'A', text: '...' }, ... ]
-  correctAnswer   String        // A, B, C, D
-  explanation     String?       @db.Text
-  difficulty      Difficulty    @default(MEDIUM)
-  knowledgeId     Int?
-  status          String        // OK, WARNING, ERROR
-  statusDetails   String?
-  similarityScore Float?
-  duplicateOfId   Int?
-  media           Json?         // [ { type: 'IMAGE', url: '...', order: 0 } ]
-  type            String        @default("MULTIPLE_CHOICE")
-  section         String        @default("PHẦN I")
-  questionOrder   Int           @default(1)
-
-  session         ImportSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-}
-
-
-
-
-
-

@@ -3,7 +3,7 @@ import type { AuthRequest } from '../middleware/auth.js';
 import { prisma } from '../lib/prisma.js';
 import { incrementBothStats } from '../lib/monthlyStats.js';
 import { logSystemEvent } from '../utils/logger.js';
-import { isGeminiKey, streamGeminiDirect } from '../utils/geminiClient.js';
+import { isGeminiKey, streamGeminiDirect, callGeminiDirect as callGeminiDirectCore } from '../utils/geminiClient.js';
 import { SystemSettingService } from '../services/systemSetting.service.js';
 import { getRAGContext, generateLocalRAGAnswer, getCachedDocumentText, getMultiDocRAGContext, generateLocalFlashcards, extractTextFromFile } from '../utils/rag.js';
 import fs from 'fs';
@@ -12,6 +12,9 @@ import { exec } from 'child_process';
 // Bộ đếm lượt hỏi AI trong ngày của học sinh (Reset hàng ngày)
 const dailyQuestionCounter = new Map<number, { count: number; date: string }>();
 import path from 'path';
+import { fileURLToPath } from 'url';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 import mammoth from 'mammoth';
 import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
@@ -48,7 +51,7 @@ function processLines(buffer: string, res: Response): string {
 }
 
 export async function streamAIChat(req: AuthRequest, res: Response) {
-  const { message, lessonId, history, imageUrl, nodeName, nodeDesc, mindmapName } = req.body;
+  const { message, lessonId, history, imageUrl, fileUrl, nodeName, nodeDesc, mindmapName } = req.body;
   const studentId = req.user?.id;
   const role = req.user?.role?.toUpperCase();
 
@@ -212,8 +215,8 @@ export async function streamAIChat(req: AuthRequest, res: Response) {
     return;
   }
 
-  // Prioritize direct Gemini API call with paid GEMINI_API_KEY for 100% accuracy
-  if (process.env.GEMINI_API_KEY) {
+  // Prioritize direct Gemini API call with paid GEMINI_API_KEY for 100% accuracy (skip for files, images, or history chat)
+  if (process.env.GEMINI_API_KEY && !fileUrl && !imageUrl && (!history || history.length === 0)) {
     try {
       let promptText = '';
       if (nodeName) {
@@ -274,30 +277,29 @@ Quy tắc ngôn ngữ và định dạng:
 
   const systemPrompt = {
     role: 'system',
-    content: `Bạn là Gia sư AI EduPath, một chuyên gia giáo dục bậc thầy và là gia sư luyện thi đại học hàng đầu Việt Nam. 
-Hãy đóng vai một người Thầy dạy giỏi đầy tâm huyết, chỉ trả lời câu hỏi của học sinh TRONG PHẠM VI LIÊN QUAN TRỰC TIẾP đến bài học: "${lessonTitle}" (thuộc khóa học: "${courseTitle}").
+    content: `Bạn là Gia sư AI EduPath, một chuyên gia giáo dục bậc thầy, trợ lý đắc lực và nhà khoa học thông thái hỗ trợ học sinh học tập toàn diện. 
+Hãy đóng vai một người Thầy dạy giỏi đầy tâm huyết, thân thiện, sẵn sàng trả lời bất kỳ câu hỏi nào từ học sinh (kể cả ngoài phạm vi bài học/khóa học hoặc kiến thức đời sống, khoa học chung) một cách chi tiết, dễ hiểu và chuyên nghiệp nhất.
 
-Yêu Cầu Về Phạm Vi Trả Lời:
-- TUYỆT ĐỐI chỉ trả lời các câu hỏi liên quan đến kiến thức, lý thuyết, bài tập hoặc các khía cạnh bổ trợ liên quan trực tiếp đến nội dung/đề tài của bài học: "${lessonTitle}".
-- Bạn được phép khai thác toàn bộ kiến thức chuyên sâu liên quan đến đề tài/bài học "${lessonTitle}" trên Internet (ví dụ: tác giả, tác phẩm, hoàn cảnh sáng tác, phân tích chi tiết văn học, công thức toán lý hóa chuyên sâu liên quan...).
-- Nếu câu hỏi của học sinh nằm ngoài phạm vi bài học "${lessonTitle}", hãy từ chối trả lời một cách lịch sự, giải thích rằng bạn chỉ hỗ trợ trong phạm vi bài học này, và hướng dẫn học sinh chuyển sang trang Hỏi đáp AI ngoài Trang chủ để trao đổi các chủ đề khác.
+Nếu học sinh đính kèm tài liệu học tập, ảnh hoặc tin nhắn thoại ghi âm:
+- Thầy hãy luôn ưu tiên đọc, nghe, phân tích và giải đáp trực tiếp dựa trên nội dung tệp đính kèm này trước (bất kể chủ đề đó có nằm ngoài khóa học hiện tại hay không). 
 
 Yêu cầu về cấu trúc câu trả lời:
-- Luôn trình bày câu trả lời theo cấu trúc 3 phần rõ ràng sau bằng các tiêu đề đẹp mắt:
-  1. 🎓 **Bản chất kiến thức**: Giải thích lý thuyết cốt lõi một cách khoa học, mạch lạc, dễ hiểu nhất cho học sinh lớp 12.
-  2. 💡 **Mẹo & Phương pháp giải nhanh**: Cung cấp các mẹo giải toán/lý/hóa nhanh, các lỗi sai cần tránh khi làm bài trắc nghiệm thi THPT Quốc Gia.
-  3. 📝 **Ví dụ minh họa**: Đưa ra ít nhất 1 bài tập trắc nghiệm tiêu biểu liên quan và hướng dẫn giải từng bước chi tiết.
+- Đối với các câu hỏi học tập lý thuyết, bài tập cần giải chi tiết: Hãy trình bày theo cấu trúc 3 phần sau:
+  1. 🎓 **Bản chất kiến thức**: Giải thích lý thuyết cốt lõi một cách khoa học, mạch lạc, dễ hiểu nhất.
+  2. 💡 **Mẹo & Phương pháp giải nhanh**: Cung cấp các mẹo học tập, phương pháp giải nhanh, hoặc các lỗi sai cần tránh.
+  3. 📝 **Ví dụ minh họa**: Đưa ra ít nhất 1 bài tập trắc nghiệm tiêu biểu và hướng dẫn giải từng bước.
+- Đối với các câu hỏi phân tích tài liệu đính kèm, câu hỏi thảo luận chung, hoặc câu hỏi ngoài phạm vi khóa học: Hãy trả lời tự nhiên, khoa học, đầy đủ và chuyên sâu như một chuyên gia tư vấn mà không bắt buộc phải áp dụng cứng nhắc cấu trúc 3 phần trên.
 
 Yêu cầu định dạng:
-- Sử dụng định dạng LaTeX cho mọi công thức toán học/vật lý/hóa học. Hãy dùng cặp dấu '$$' ở dòng riêng cho các công thức độc lập (ví dụ: $$N = 2A + 2G$$), và dấu '$' cho các công thức nội dòng (ví dụ: $x = 1$).
+- Sử dụng định dạng LaTeX cho mọi công thức toán học/vật lý/hóa học. Hãy dùng cặp dấu '$$' ở dòng riêng cho các công thức độc lập, và dấu '$' cho các công thức nội dòng.
 - Sử dụng các định dạng markdown như bảng biểu, danh sách để thông tin trực quan, dễ nhớ.
-- Hãy xưng hô thân mật là 'Thầy' và gọi học sinh là 'em'. TUYỆT ĐỐI không bắt đầu bằng các nhãn giả lập hội thoại như "Thầy:", "Em:" hoặc tự ý đóng vai. Hãy viết nội dung trực tiếp bằng tiếng Việt chuẩn.
+- Hãy xưng hô thân mật là 'Thầy' và gọi học sinh là 'em'. TUYỆT ĐỐI không bắt đầu bằng các nhãn giả lập hội thoại như "Thầy:", "Em:". Hãy viết nội dung trực tiếp bằng tiếng Việt chuẩn.
 
-${ragContext ? `Dưới đây là tài liệu tham khảo chính thống được trích xuất trực tiếp từ bài học này để hỗ trợ Thầy trả lời:
+${ragContext ? `Dưới đây là tài liệu tham khảo chính thống từ bài học hiện tại để Thầy hỗ trợ trả lời nếu câu hỏi liên quan đến bài học:
 \"\"\"
 ${ragContext}
 \"\"\"
-Hãy ưu tiên trích dẫn và sử dụng các thông tin chính xác từ tài liệu này.` : ''}`
+Nếu câu hỏi của học sinh hỏi về bài học hiện tại hoặc không đính kèm tệp khác, hãy ưu tiên sử dụng thông tin chính xác từ tài liệu tham khảo này.` : ''}`
   };
 
   const formattedHistory = Array.isArray(history)
@@ -320,7 +322,7 @@ Hãy ưu tiên trích dẫn và sử dụng các thông tin chính xác từ tà
     try {
       const filename = imageUrl.split('/').pop();
       if (filename) {
-        const uploadsDir = path.resolve(process.cwd(), 'uploads');
+        const uploadsDir = path.resolve(__dirname, '../../uploads');
         const filePath = path.join(uploadsDir, filename);
         if (fs.existsSync(filePath)) {
           const fileBuffer = fs.readFileSync(filePath);
@@ -338,12 +340,63 @@ Hãy ưu tiên trích dẫn và sử dụng các thông tin chính xác từ tà
     }
   }
 
-  const userMessageContent = finalImageUrl 
-    ? [
-        { type: 'text', text: slicedMessage || 'Hãy giải thích và giải bài tập trong bức ảnh này.' },
-        { type: 'image_url', image_url: { url: finalImageUrl } }
-      ]
-    : slicedMessage;
+  let userMessageContent: any = slicedMessage;
+  let attachedAudioUrl: string | null = null;
+  let attachedDocText = '';
+
+  if (fileUrl) {
+    try {
+      const filename = fileUrl.split('/').pop();
+      if (filename) {
+        const uploadsDir = path.resolve(__dirname, '../../uploads');
+        const filePath = path.join(uploadsDir, filename);
+        if (fs.existsSync(filePath)) {
+          const ext = path.extname(filename).toLowerCase();
+          const isAudio = ['.webm', '.wav', '.mp3', '.m4a', '.ogg', '.caf', '.3gp'].includes(ext);
+          
+          if (isAudio) {
+            const fileBuffer = fs.readFileSync(filePath);
+            const mimeType = ext === '.mp3' ? 'audio/mp3' :
+                             ext === '.wav' ? 'audio/wav' :
+                             ext === '.m4a' ? 'audio/m4a' :
+                             ext === '.ogg' ? 'audio/ogg' : 'audio/webm';
+            const base64Data = fileBuffer.toString('base64');
+            attachedAudioUrl = `data:${mimeType};base64,${base64Data}`;
+            console.log(`[AI Tutor] Local audio file converted to base64 successfully: ${filename}`);
+          } else {
+            const text = await extractTextFromFile(filePath, ext.substring(1));
+            if (text && text.trim()) {
+              attachedDocText = text;
+              console.log(`[AI Tutor] Extracted ${text.length} chars from uploaded document: ${filename}`);
+            }
+          }
+        }
+      }
+    } catch (err: any) {
+      console.error('[AI Tutor] Error processing attached file:', err.message);
+    }
+  }
+
+  if (finalImageUrl || attachedAudioUrl) {
+    const parts: any[] = [];
+    let textPrompt = slicedMessage;
+    if (attachedDocText) {
+      textPrompt = `[Nội dung tài liệu đính kèm:\n${attachedDocText.substring(0, 15000)}]\n\n${textPrompt || 'Hãy phân tích tài liệu đính kèm trên.'}`;
+    }
+    
+    parts.push({ type: 'text', text: textPrompt || (finalImageUrl ? 'Hãy giải thích và giải bài tập trong bức ảnh này.' : 'Hãy nghe và phản hồi tin nhắn thoại này.') });
+    
+    if (finalImageUrl) {
+      parts.push({ type: 'image_url', image_url: { url: finalImageUrl } });
+    }
+    if (attachedAudioUrl) {
+      parts.push({ type: 'image_url', image_url: { url: attachedAudioUrl } });
+    }
+    
+    userMessageContent = parts;
+  } else if (attachedDocText) {
+    userMessageContent = `[Nội dung tài liệu đính kèm:\n${attachedDocText.substring(0, 15000)}]\n\n${slicedMessage || 'Hãy phân tích tài liệu đính kèm trên.'}`;
+  }
 
   try {
     let response: any = null;
@@ -1477,10 +1530,20 @@ async function generateAiFlashcardsFromText(extractedText: string, customApiKey?
     extractedText.split(/\s+/).length < 40
   );
 
+  // Extract custom card count requested by the user, defaulting to 8. Max limit is 30.
+  let requestedCount = 8;
+  const numMatch = extractedText.match(/(\d+)\s*(?:thẻ|card|từ vựng|câu|từ|khái niệm)/i);
+  if (numMatch && numMatch[1]) {
+    const num = parseInt(numMatch[1], 10);
+    if (num > 0 && num <= 30) {
+      requestedCount = num;
+    }
+  }
+
   let prompt = '';
   if (isTopicRequest) {
     prompt = `Bạn là một Giáo sư/Chuyên gia giáo dục Việt Nam, chuyên soạn tài liệu luyện thi đại học THPT Quốc gia và chứng chỉ quốc tế (IELTS/SAT).
-Hãy thiết kế một bộ gồm đúng 6-8 thẻ ghi nhớ (flashcards) chất lượng cao, có độ chính xác khoa học tuyệt đối 100% (không được có bất kỳ thông tin hay công thức sai lệch nào) dựa trên yêu cầu sau:
+Hãy thiết kế một bộ gồm đúng ${requestedCount} thẻ ghi nhớ (flashcards) chất lượng cao, có độ chính xác khoa học tuyệt đối 100% (không được có bất kỳ thông tin hay công thức sai lệch nào) dựa trên yêu cầu sau:
 "${extractedText}"
 
 Yêu cầu chi tiết:
@@ -1498,7 +1561,7 @@ TUYỆT ĐỐI không đặt mặt trước là các từ chung chung như "Flas
 Hãy trả về kết quả dưới dạng một mảng JSON duy nhất chứa các đối tượng có thuộc tính "front" và "back". Ví dụ: [{"front": "khái niệm", "back": "định nghĩa"}]. Chỉ trả về chuỗi JSON thô có thể parse được trực tiếp, không kèm lời dẫn giải thích hay bọc trong markdown.`;
   } else {
     prompt = `Bạn là một Giáo sư/Chuyên gia giáo dục Việt Nam, chuyên thiết kế tài liệu ôn tập và thẻ ghi nhớ (flashcard).
-Hãy phân tích nội dung tài liệu trích xuất dưới đây và thiết kế đúng 6-8 flashcards ngắn gọn, chất lượng nhất để ôn tập. Yêu cầu độ chính xác khoa học và kiến thức trong flashcard phải đúng 100% so với tài liệu gốc, tuyệt đối không bịa đặt hoặc gây hiểu lầm.
+Hãy phân tích nội dung tài liệu trích xuất dưới đây và thiết kế đúng ${requestedCount} flashcards ngắn gọn, chất lượng nhất để ôn tập. Yêu cầu độ chính xác khoa học và kiến thức trong flashcard phải đúng 100% so với tài liệu gốc, tuyệt đối không bịa đặt hoặc gây hiểu lầm.
 
 Nội dung tài liệu trích xuất:
 """
@@ -1643,6 +1706,59 @@ Yêu cầu:
     return res.status(200).json({ success: true, mnemonic: fallback });
   }
 }
+
+export async function generateFlashcardRiddles(req: AuthRequest, res: Response) {
+  const { cards } = req.body;
+  if (!cards || !Array.isArray(cards)) {
+    return res.status(400).json({ success: false, error: 'Danh sách thẻ học không hợp lệ.' });
+  }
+
+  const userApiKey = req.headers['x-user-openrouter-key'] as string | undefined;
+  const userModel = req.headers['x-user-openrouter-model'] as string | undefined;
+
+  try {
+    const cardsPromptList = cards.map((c, i) => `${i + 1}. Từ: "${c.front}" (Nghĩa gốc: "${c.back}")`).join('\n');
+    const prompt = `Bạn là một Giáo sư/Chuyên gia giáo dục Việt Nam cực kỳ sáng tạo.
+Hãy thiết kế một câu đố hoặc định nghĩa gián tiếp (dưới 15 từ) bằng tiếng Việt cho mỗi từ dưới đây để dùng trong game ghép cặp trí tuệ.
+Câu đố phải gợi ý rõ ràng bản chất từ đó mà không dùng trực tiếp từ đó hoặc từ đồng nghĩa quá lộ liễu.
+
+Danh sách từ:
+${cardsPromptList}
+
+Yêu cầu định dạng trả về:
+Trả về duy nhất một mảng JSON chứa các chuỗi là câu đố tương ứng với các từ theo đúng thứ tự.
+Ví dụ: ["Câu đố cho từ 1", "Câu đố cho từ 2", ...]
+Chỉ trả về chuỗi JSON thô có thể parse được trực tiếp, không kèm lời dẫn giải thích hay bọc trong markdown.`;
+
+    const content = await callOpenRouter(prompt, 1000, 0.5, userApiKey, userModel);
+    if (!content) throw new Error('Không nhận được phản hồi từ AI');
+    let cleaned = content.trim();
+    if (cleaned.startsWith('```json')) {
+      cleaned = cleaned.substring(7);
+    } else if (cleaned.startsWith('```')) {
+      cleaned = cleaned.substring(3);
+    }
+    if (cleaned.endsWith('```')) {
+      cleaned = cleaned.substring(0, cleaned.length - 3);
+    }
+    const riddles = JSON.parse(cleaned.trim());
+    if (!Array.isArray(riddles)) {
+      throw new Error('Dữ liệu câu đố trả về không phải là mảng.');
+    }
+
+    const modifiedCards = cards.map((c, idx) => ({
+      ...c,
+      back: riddles[idx] || c.back
+    }));
+
+    return res.status(200).json({ success: true, data: modifiedCards });
+  } catch (err: any) {
+    console.error('[AI Flashcard Game Riddles Error]:', err.message);
+    // Fallback directly to original card pairs if API call fails
+    return res.status(200).json({ success: true, data: cards });
+  }
+}
+
 
 function generateLocalMnemonic(front: string, back: string): string {
   const frontLower = front.toLowerCase();
@@ -1822,7 +1938,7 @@ async function callOpenRouterVision(prompt: string, base64Image: string, mimeTyp
         { type: 'image_url', image_url: { url: `data:${mimeType};base64,${base64Image}` } }
       ]
     }];
-    return await callGeminiDirect(prompt, 2000, 0.2);
+    return await callGeminiDirectCore(apiKey, model, formattedMessages);
   }
 
   const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
@@ -1900,7 +2016,10 @@ async function callOpenRouter(prompt: string, maxTokens = 1500, temp = 0.5, cust
   // First try direct Gemini API if GEMINI_API_KEY is configured
   if (!customApiKey && process.env.GEMINI_API_KEY) {
     try {
-      const geminiResult = await callGeminiDirect(prompt, maxTokens, temp);
+      const activeApiKey = process.env.GEMINI_API_KEY;
+      const activeModel = customModel || process.env.GEMINI_MODEL || 'google/gemini-1.5-flash';
+      const formattedMessages = [{ role: 'user', content: prompt }];
+      const geminiResult = await callGeminiDirectCore(activeApiKey, activeModel, formattedMessages);
       if (geminiResult) return geminiResult;
     } catch (e) {
       console.warn('[Gemini Direct Error, falling back to OpenRouter]:', e);
@@ -1923,7 +2042,7 @@ async function callOpenRouter(prompt: string, maxTokens = 1500, temp = 0.5, cust
 
   if (isGeminiKey(apiKey)) {
     const formattedMessages = [{ role: 'user', content: prompt }];
-    return await callGeminiDirect(prompt, maxTokens, temp);
+    return await callGeminiDirectCore(apiKey, model, formattedMessages);
   }
 
   const candidateModels = [
@@ -2679,6 +2798,95 @@ TUYỆT ĐỐI chỉ trả về JSON thô duy nhất. Không kèm theo bất c�
   } catch (err: any) {
     console.error('[generateExamMindmap Error]', err);
     return res.status(500).json({ success: false, error: err.message });
+  }
+}
+
+export async function upgradeFlashcardsVip(req: AuthRequest, res: Response) {
+  const userId = req.user?.id;
+  if (!userId) {
+    return res.status(401).json({ success: false, error: 'Vui lòng đăng nhập để nâng cấp bộ thẻ VIP.' });
+  }
+
+  const { cards } = req.body;
+  if (!cards || !Array.isArray(cards) || cards.length === 0) {
+    return res.status(400).json({ success: false, error: 'Danh sách thẻ học nâng cấp không được để trống.' });
+  }
+
+  const userApiKey = req.headers['x-user-openrouter-key'] as string | undefined;
+  const userModel = req.headers['x-user-openrouter-model'] as string | undefined;
+
+  try {
+    // 1. Fetch user to check VIP turns count
+    const user = await prisma.user.findUnique({
+      where: { id: userId }
+    });
+
+    if (!user) {
+      return res.status(404).json({ success: false, error: 'Không tìm thấy thông tin người dùng.' });
+    }
+
+    const currentTurns = (user as any).flashcardVipTurns || 0;
+    if (currentTurns <= 0) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Tài khoản của em đã hết lượt nâng cấp VIP. Hãy nạp thêm lượt (5.000đ/lượt) để sử dụng tính năng này nhé!' 
+      });
+    }
+
+    // 2. Instruct Gemini to generate descriptions and image prompts
+    const prompt = `Bạn là một Giáo sư và họa sĩ thiết kế giáo dục hàng đầu.
+Hãy giúp tôi nâng cấp danh sách thẻ học dưới đây bằng cách:
+1. Biên soạn lại mặt sau (Back) thành định nghĩa/khái niệm chi tiết và chính xác nhất kèm ví dụ thực tế trực quan.
+2. Tạo 1 từ khóa tiếng Anh cực kỳ ngắn gọn mô tả hình ảnh minh họa cho khái niệm đó để đưa vào API Pollinations AI (ví dụ: nếu khái niệm là "gia đình", mô tả có thể là "happy family dinner 3d character style").
+
+Danh sách thẻ học:
+${JSON.stringify(cards)}
+
+Yêu cầu trả về:
+Trả về duy nhất một mảng JSON các đối tượng chứa thuộc tính:
+- "front": Giữ nguyên mặt trước của thẻ gốc.
+- "back": Định nghĩa nâng cấp mới.
+- "image": Đường dẫn ảnh sinh tự động có cấu trúc: "https://image.pollinations.ai/prompt/[từ khóa mô tả hình ảnh tiếng Anh đã url-encode]?width=512&height=512&nologo=true&seed=${Math.floor(Math.random() * 100000)}"
+
+Chỉ trả về chuỗi JSON thô có thể parse trực tiếp, không bọc markdown.`;
+
+    const content = await callOpenRouter(prompt, 1500, 0.4, userApiKey, userModel);
+    if (!content) throw new Error('Không nhận được phản hồi từ AI');
+    let cleaned = content.trim();
+    if (cleaned.startsWith('```json')) {
+      cleaned = cleaned.substring(7);
+    } else if (cleaned.startsWith('```')) {
+      cleaned = cleaned.substring(3);
+    }
+    if (cleaned.endsWith('```')) {
+      cleaned = cleaned.substring(0, cleaned.length - 3);
+    }
+    
+    const upgradedCards = JSON.parse(cleaned.trim());
+    if (!Array.isArray(upgradedCards)) {
+      throw new Error('Dữ liệu trả về từ AI không phải dạng mảng.');
+    }
+
+    // 3. Decrement 1 VIP turn
+    const updatedUser = await (prisma.user as any).update({
+      where: { id: userId },
+      data: {
+        flashcardVipTurns: {
+          decrement: 1
+        }
+      }
+    });
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        cards: upgradedCards,
+        flashcardVipTurns: (updatedUser as any).flashcardVipTurns
+      }
+    });
+  } catch (err: any) {
+    console.error('[AI Flashcards VIP Upgrade Error]:', err.message);
+    return res.status(500).json({ success: false, error: 'Quá trình nâng cấp bộ thẻ VIP thất bại. Lỗi: ' + err.message });
   }
 }
 

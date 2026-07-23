@@ -11,9 +11,9 @@ import { prisma } from './lib/prisma.js';
 import { upload } from './lib/s3.js';
 
 import { login, logout, sendOtp, resendOtp, verifyOtpRegister, googleAuth, googleCompleteOnboarding, changePassword, forgotPassword, verifyResetOtp, resetPassword, requestRoleChange, getRoleChangeRequests, reviewRoleChange, refreshToken, getMe, registerAffiliate, updateProfile } from './controllers/auth.js';
-import { getCourses, getCourseById, createCourse, getCourseStats, updateCourse, deleteCourse, updateLesson, deleteLesson, createLesson, createCourseReview, aiSearchCourses } from './controllers/course.js';
+import { getCourses, getCourseById, createCourse, getCourseStats, updateCourse, deleteCourse, updateLesson, deleteLesson, createLesson, createCourseReview, aiSearchCourses, getLessonTranscript } from './controllers/course.js';
 import { getExams, getExamById, startAttempt, saveAnswer, submitAttempt, getAttempts, getExamQuestionsPublic, getAttemptById, getAttemptResult, getExamHistory, recordViolation, recordExamEvent, getExamEvents, recordViolationDetail, generateAiCoach, createSmartRetake, importExam, generateSimilarQuestion, updateExamStatus, getWrongQuestions } from './controllers/exam.js';
-import { streamAIChat, refreshRoadmap, generateAIQuestions, generateMindmap, saveMindmap, getMindmaps, getMindmapById, deleteMindmap, generateFlashcards, generateFlashcardMnemonic, generateFlashcardsOCR, getPublicMindmapById, generateNodeQuiz, submitNodeQuiz, getNodeProgress, generateWeaknessMindmap, uploadExamFile, generateExamMindmap } from './controllers/ai.js';
+import { streamAIChat, refreshRoadmap, generateAIQuestions, generateMindmap, saveMindmap, getMindmaps, getMindmapById, deleteMindmap, generateFlashcards, generateFlashcardMnemonic, generateFlashcardsOCR, getPublicMindmapById, generateNodeQuiz, submitNodeQuiz, getNodeProgress, generateWeaknessMindmap, uploadExamFile, generateExamMindmap, generateFlashcardRiddles, upgradeFlashcardsVip } from './controllers/ai.js';
 import { getSharedMindmaps, shareMindmap, likeSharedMindmap, cloneSharedMindmap } from './controllers/sharedMindmaps.js';
 
 import { chatbotConsult, documentChatbotConsult, documentFinderChatbotConsult } from './controllers/chatbot.js';
@@ -322,6 +322,7 @@ app.delete('/courses/:id', authenticateJWT, requireRole(['TEACHER', 'ADMIN']), o
 app.put('/lessons/:id', authenticateJWT, requireRole(['TEACHER', 'ADMIN']), ownsLesson, updateLesson);
 app.delete('/lessons/:id', authenticateJWT, requireRole(['TEACHER', 'ADMIN']), ownsLesson, deleteLesson);
 app.post('/lessons', authenticateJWT, requireRole(['TEACHER', 'ADMIN']), createLesson);
+app.get('/lessons/:id/transcript', getLessonTranscript);
 
 // Document Resource Routes
 app.get('/document-resources', optionalAuthenticateJWT, getDocumentResources);
@@ -417,6 +418,14 @@ app.post('/ai/flashcards/ocr', upload.single('file'), (req, res, next) => {
   }
   next();
 }, generateFlashcardsOCR);
+app.post('/ai/flashcards/riddles', (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    return authenticateJWT(req as any, res, next);
+  }
+  next();
+}, generateFlashcardRiddles);
+app.post('/ai/flashcards/upgrade-vip', authenticateJWT, upgradeFlashcardsVip);
 app.post('/mindmaps', authenticateJWT, saveMindmap);
 app.get('/mindmaps', authenticateJWT, getMindmaps);
 app.get('/mindmaps/:id', authenticateJWT, getMindmapById);

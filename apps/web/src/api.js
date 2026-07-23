@@ -808,5 +808,11 @@ export const api = {
 
   getTeacherReports: () => request('/reports/my-questions'),
 
-  resolveTeacherReport: (id, status) => request(`/reports/${id}/status`, { method: 'PATCH', body: { status } })
+  resolveTeacherReport: (id, status) => request(`/reports/${id}/status`, { method: 'PATCH', body: { status } }),
+
+  generateFlashcardRiddles: (cards) => request('/ai/flashcards/riddles', { method: 'POST', body: { cards } }),
+
+  upgradeFlashcardsVip: (cards) => request('/ai/flashcards/upgrade-vip', { method: 'POST', body: { cards } }),
+
+  getLessonTranscript: (id) => request(`/lessons/${id}/transcript`)
 };

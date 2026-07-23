@@ -91,7 +91,12 @@ export function ImportsTab({
       }
     } catch (err) {
       console.error('[Import Upload Error]', err);
-      alert(err.message || 'Lỗi tải tệp đề thi!');
+      if (err.status === 401 || (err.message && (err.message.includes('JWT') || err.message.includes('xác thực')))) {
+        alert('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại tài khoản Giáo viên!');
+        window.dispatchEvent(new CustomEvent('edupath-auth-logout'));
+      } else {
+        alert(err.message || 'Lỗi tải tệp đề thi!');
+      }
     } finally {
       setUploading(false);
       setSelectedFile(null);

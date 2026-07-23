@@ -3,7 +3,8 @@ import fs from 'fs';
 import path from 'path';
 import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
-const pdf = require('pdf-parse');
+const pdfModule = require('pdf-parse');
+const pdf = typeof pdfModule === 'function' ? pdfModule : (pdfModule.default || pdfModule);
 
 export class MaterialService {
   /**
@@ -16,8 +17,16 @@ export class MaterialService {
         return null;
       }
       const dataBuffer = fs.readFileSync(filePath);
-      const parsed = await pdf(dataBuffer);
-      return parsed.numpages || null;
+      let pageCount: number | null = null;
+      if (typeof pdf === 'function') {
+        const parsed = await pdf(dataBuffer);
+        pageCount = parsed.numpages || null;
+      } else if (pdf && pdf.PDFParse) {
+        const parser = new pdf.PDFParse({ data: dataBuffer });
+        const parsed = await parser.getText();
+        pageCount = parsed.total || null;
+      }
+      return pageCount;
     } catch (err) {
       console.error('[MaterialService] Failed to read PDF page count:', err);
       return null;

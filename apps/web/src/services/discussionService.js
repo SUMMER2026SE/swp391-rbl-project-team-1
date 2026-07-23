@@ -19,7 +19,7 @@ export const discussionService = {
       }
     }
     
-    const discussions = getLocalData('supabase_mock_discussions');
+    const discussions = getLocalData('supabase_mock_discussions') || [];
     return discussions.filter(d => d.lesson_id === lId);
   },
 
@@ -50,7 +50,7 @@ export const discussionService = {
       }
     }
     
-    const discussions = getLocalData('supabase_mock_discussions');
+    const discussions = getLocalData('supabase_mock_discussions') || [];
     const newComment = {
       id: discussions.length + 1,
       lesson_id: lId,

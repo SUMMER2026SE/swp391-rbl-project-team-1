@@ -595,4 +595,132 @@ Output ONLY the JSON object. Do not output anything else.`;
   }
 }
 
+function extractYoutubeId(url: string): string | null {
+  if (!url) return null;
+  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+  const match = url.match(regExp);
+  return (match && match[2].length === 11) ? match[2] : null;
+}
+
+function getSubjectTranscriptFallback(title: string, courseTitle: string) {
+  const fullTitle = (title + ' ' + courseTitle).toLowerCase();
+  
+  if (fullTitle.includes('vật lý') || fullTitle.includes('vật lí') || fullTitle.includes(' lý') || fullTitle.includes(' lí')) {
+    return [
+      { timeSeconds: 0, text: "Chào mừng các em học sinh đến với khóa học: Lấy gốc Vật lý trong 10 ngày.", text_en: "Welcome students to the course: Mastering Physics in 10 Days." },
+      { timeSeconds: 15, text: `Hôm nay chúng ta sẽ bước vào: "${title || 'Bài học mới'}"`, text_en: `Today we will begin: "${title || 'New Lesson'}"` },
+      { timeSeconds: 28, text: "Các em hãy nhắn vào nhóm Zalo và mình bắt đầu buổi học ngày hôm nay nhé.", text_en: "Please connect, message in the Zalo group and let's get started with our lesson." },
+      { timeSeconds: 45, text: "Trong quá trình theo dõi bài giảng, hãy nhớ chuẩn bị một cuốn sổ tay để tự ôn tập công thức.", text_en: "Remember to take full notes of laws and important formulas in your notebook for self-study." },
+      { timeSeconds: 65, text: "Và toàn bộ nội dung kiến thức lý thuyết trọng tâm này, mình sẽ học trong buổi ngày hôm nay.", text_en: "And all of this core theoretical knowledge, we will study in today's session." },
+      { timeSeconds: 90, text: "Đầu tiên, chúng ta sẽ khảo sát chu kỳ và tần số của dao động điều hòa cơ bản.", text_en: "First, we will examine the period and frequency of basic harmonic oscillation." },
+      { timeSeconds: 115, text: "Công thức tính tần số góc omega bằng căn bậc hai của k chia m đối với con lắc lò xo.", text_en: "The formula for angular frequency omega is the square root of k over m for a spring pendulum." },
+      { timeSeconds: 140, text: "Hãy lưu ý các đại lượng như li độ x, biên độ A và pha ban đầu phi.", text_en: "Please note the quantities such as displacement x, amplitude A and initial phase phi." },
+      { timeSeconds: 165, text: "Đề thi trắc nghiệm THPT Quốc gia thường ra các câu nhận biết về pha dao động.", text_en: "National High School Exam multiple choice questions often ask about the phase of oscillation." },
+      { timeSeconds: 190, text: "Bước sang phần tiếp theo, chúng ta cùng phân tích đồ thị dao động hình sin.", text_en: "Moving on to the next part, let's analyze the sinusoidal oscillation graph together." },
+      { timeSeconds: 215, text: "Các điểm cực đại và cực tiểu trên đồ thị tương ứng với vị trí biên dương và biên âm.", text_en: "Maximum and minimum points on the graph correspond to positive and negative amplitudes." },
+      { timeSeconds: 240, text: "Tiếp theo là công thức tính vận tốc cực đại v max bằng omega nhân với biên độ A.", text_en: "Next is the formula to calculate maximum velocity v max equal to omega times amplitude A." },
+      { timeSeconds: 270, text: "Gia tốc a lệch pha pi so với li độ x và có độ lớn cực đại tại vị trí biên.", text_en: "Acceleration a is pi out of phase with displacement x and has maximum magnitude at boundaries." },
+      { timeSeconds: 300, text: "Các em cần chú ý đơn vị đo của các đại lượng: mét, radian trên giây và giây.", text_en: "You need to pay attention to the units of quantities: meters, radians per second, and seconds." }
+    ];
+  }
+
+  if (fullTitle.includes('toán') || fullTitle.includes('toan')) {
+    return [
+      { timeSeconds: 0, text: "Chào mừng các em học sinh đến với khóa học: Chinh phục điểm 9+ môn Toán.", text_en: "Welcome students to the course: Conquering 9+ score in Mathematics." },
+      { timeSeconds: 15, text: `Hôm nay chúng ta sẽ bắt đầu: "${title || 'Bài học mới'}"`, text_en: `Today we will start: "${title || 'New Lesson'}"` },
+      { timeSeconds: 30, text: "Các em hãy ghi chép cẩn thận phương pháp vẽ bảng biến thiên và các điểm cực trị.", text_en: "Please take careful notes of how to draw the variation table and find extreme points." }
+    ];
+  }
+
+  return [
+    { timeSeconds: 0, text: `Chào mừng các em đến với bài giảng: ${title}`, text_en: `Welcome to the lecture: ${title}` },
+    { timeSeconds: 30, text: "Hãy tập trung theo dõi bài giảng và ghi chép các ý chính.", text_en: "Please focus on the lecture and note down the main ideas." }
+  ];
+}
+
+export async function getLessonTranscript(req: any, res: Response) {
+  const lessonId = Number(req.params.id);
+  try {
+    const lesson = await prisma.lesson.findUnique({
+      where: { id: lessonId },
+      include: {
+        course: true
+      }
+    });
+
+    if (!lesson) {
+      return res.status(404).json({ success: false, error: 'Lesson not found' });
+    }
+
+    if (lesson.content) {
+      try {
+        const parsed = JSON.parse(lesson.content);
+        if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].timeSeconds !== undefined) {
+          return res.status(200).json({ success: true, data: parsed });
+        }
+      } catch (e) {
+        // Not JSON
+      }
+    }
+
+    const videoId = extractYoutubeId(lesson.videoUrl || '');
+    if (videoId) {
+      try {
+        console.log(`[Transcript API] Attempting to fetch transcript for video: ${videoId}`);
+        const ytRes = await fetch(`https://youtube-transcript.ai/transcript/${videoId}.txt`, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+          }
+        });
+
+        if (ytRes.ok) {
+          const rawText = await ytRes.text();
+          const lines = rawText.split('\n');
+          const items: any[] = [];
+          const timeRegex = /^\[(?:(\d+):)?(\d+):(\d+)\]\s*(.*)$/;
+
+          for (const line of lines) {
+            const trimmed = line.trim();
+            if (!trimmed) continue;
+            const match = trimmed.match(timeRegex);
+            if (match) {
+              const hrs = match[1] ? parseInt(match[1], 10) : 0;
+              const mins = parseInt(match[2], 10);
+              const secs = parseInt(match[3], 10);
+              const text = match[4].trim();
+              if (text) {
+                items.push({
+                  timeSeconds: hrs * 3600 + mins * 60 + secs,
+                  text,
+                  text_en: text
+                });
+              }
+            }
+          }
+
+          if (items.length > 0) {
+            console.log(`[Transcript API] Successfully parsed and cached ${items.length} transcript lines`);
+            await prisma.lesson.update({
+              where: { id: lessonId },
+              data: { content: JSON.stringify(items) }
+            });
+            return res.status(200).json({ success: true, data: items });
+          }
+        }
+      } catch (err: any) {
+        console.warn(`[Transcript API] Failed fetching from youtube-transcript.ai: ${err.message}`);
+      }
+    }
+
+    const title = lesson.title || '';
+    const courseTitle = lesson.course?.title || '';
+    const fallbackData = getSubjectTranscriptFallback(title, courseTitle);
+
+    return res.status(200).json({ success: true, data: fallbackData });
+
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+}
+
 

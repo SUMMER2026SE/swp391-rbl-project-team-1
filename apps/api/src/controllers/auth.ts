@@ -59,7 +59,8 @@ function buildUserPayload(user: any) {
     school: user.student?.school || null,
     targetScore: user.student?.targetScore || null,
     targetUniversity: user.student?.targetUniversity || null,
-    teacher: user.teacher || null
+    teacher: user.teacher || null,
+    flashcardVipTurns: user.flashcardVipTurns || 0
   };
 }
 

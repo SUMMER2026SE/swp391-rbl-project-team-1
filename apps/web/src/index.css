@@ -2235,7 +2235,7 @@ body {
 /* ── Responsive ── */
 @media (max-width: 1024px) {
   .lp-hero { grid-template-columns: 1fr; padding-right: 28px; }
-  .lp-hero__right { display: none; }
+  .lp-hero__right { display: flex; justify-content: center; width: 100%; margin-top: 20px; }
   .lp-hero__title { font-size: 48px; }
   .lp-cards-row { grid-template-columns: repeat(3, 1fr); }
   .lp-features-grid { grid-template-columns: repeat(2,1fr); }
@@ -9072,6 +9072,26 @@ code, pre, a[href^="http"], .breakable {
     grid-template-columns: 1fr !important;
     padding: 0 16px !important;
     gap: 20px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Mobile Overflow-X & Container Width Prevention */
+  html, body, #root {
+    overflow-x: hidden !important;
+    max-width: 100vw !important;
+    width: 100% !important;
+  }
+
+  .lp-container, section {
+    width: 100% !important;
+    max-width: 100vw !important;
+    box-sizing: border-box !important;
+    overflow-x: hidden !important;
+  }
+
+  .lp-main-content-area {
+    padding-top: 114px !important;
   }
 
   /* lp-hero Mobile Stacking & Formatting */
@@ -9079,9 +9099,12 @@ code, pre, a[href^="http"], .breakable {
     display: flex !important;
     flex-direction: column !important;
     min-height: auto !important;
-    padding: 140px 24px 60px 24px !important;
+    padding: 24px 16px 40px 16px !important;
     align-items: center !important;
     text-align: center !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
   }
 
   .lp-hero__left {
@@ -9089,10 +9112,54 @@ code, pre, a[href^="http"], .breakable {
     align-items: center !important;
     text-align: center !important;
     width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .lp-hero__right {
+    position: relative !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    width: 100% !important;
+    height: auto !important;
+    margin-top: 16px !important;
+  }
+
+  .lp-mascot-study-wrap {
+    position: relative !important;
+    right: auto !important;
+    bottom: auto !important;
+    width: 100% !important;
+    max-width: 300px !important;
+    height: 300px !important;
+    margin: 0 auto !important;
   }
 
   .lp-hero__title-row {
     justify-content: center !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+  }
+
+  .lp-hero__title-main {
+    font-size: 32px !important;
+  }
+
+  .lp-hero__title-badge {
+    font-size: 12px !important;
+    padding: 3px 8px !important;
+  }
+
+  .lp-hero__highlight-box {
+    font-size: 24px !important;
+    padding: 6px 14px !important;
+    margin: 8px auto !important;
+  }
+
+  .lp-hero__sub {
+    font-size: 14px !important;
+    line-height: 1.5 !important;
+    padding: 0 4px !important;
   }
 
   .lp-hero__actions {

@@ -13,7 +13,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const require = createRequire(import.meta.url);
-const pdfParse = require('pdf-parse');
+const pdfParseModule = require('pdf-parse');
+const pdfParse = typeof pdfParseModule === 'function' ? pdfParseModule : (pdfParseModule.default || pdfParseModule);
 
 // =========================================================================
 // OMML TO LATEX MATH PARSER
@@ -1487,8 +1488,15 @@ export class ImportEngine {
   private static async parsePdf(filePath: string): Promise<any[]> {
     const questions: any[] = [];
     const dataBuffer = fs.readFileSync(filePath);
-    const data = await pdfParse(dataBuffer);
-    const text = data.text || '';
+    let text = '';
+    if (typeof pdfParse === 'function') {
+      const data = await pdfParse(dataBuffer);
+      text = data.text || '';
+    } else if (pdfParse && pdfParse.PDFParse) {
+      const parser = new pdfParse.PDFParse({ data: dataBuffer });
+      const parsed = await parser.getText();
+      text = parsed.text || '';
+    }
 
     const lines = text.split('\n').map((l: string) => l.trim()).filter(Boolean);
     let currentLines: string[] = [];

@@ -31,7 +31,17 @@ const getYouTubeVideoId = (url) => {
   return videoId;
 };
 
-const VideoPlayer = forwardRef(({ videoUrl, title, onEnded, onTimeUpdate, lessonId, nextLessonName, chapters = [] }, ref) => {
+const VideoPlayer = forwardRef(({ 
+  videoUrl, 
+  title, 
+  onEnded, 
+  onTimeUpdate, 
+  lessonId, 
+  nextLessonName, 
+  chapters = [], 
+  transcript = [], 
+  languageMode = 'VI' 
+}, ref) => {
   const resolvedUrl = resolveUploadUrl(videoUrl);
   const videoRef = useRef(null);
   const iframeRef = useRef(null);
@@ -50,6 +60,19 @@ const VideoPlayer = forwardRef(({ videoUrl, title, onEnded, onTimeUpdate, lesson
   const [loading, setLoading] = useState(true);
   const [showUpNext, setShowUpNext] = useState(false);
   const controlsTimeoutRef = useRef(null);
+
+  const activeLine = React.useMemo(() => {
+    if (!transcript || transcript.length === 0) return null;
+    let active = null;
+    for (let i = 0; i < transcript.length; i++) {
+      if (transcript[i].timeSeconds <= currentTime) {
+        active = transcript[i];
+      } else {
+        break;
+      }
+    }
+    return active;
+  }, [transcript, currentTime]);
 
   const isYouTube = resolvedUrl && (resolvedUrl.includes('youtube.com') || resolvedUrl.includes('youtu.be') || resolvedUrl.includes('/embed/'));
 
@@ -123,7 +146,9 @@ const VideoPlayer = forwardRef(({ videoUrl, title, onEnded, onTimeUpdate, lesson
           autoplay: 1,
           enablejsapi: 1,
           rel: 0,
-          controls: 1
+          controls: 1,
+          cc_load_policy: 0,
+          iv_load_policy: 3
         },
         events: {
           onReady: (event) => {

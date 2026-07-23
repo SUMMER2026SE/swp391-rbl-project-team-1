@@ -5,10 +5,11 @@ export default function TranscriptTab({
   transcript = [],
   videoTime = 0,
   onSeek,
-  onAskAI
+  onAskAI,
+  languageMode = 'VI',
+  setLanguageMode
 }) {
   const [searchQuery, setSearchQuery] = useState('');
-  const [languageMode, setLanguageMode] = useState('VI'); // VI, EN, DUAL
   const [autoScroll, setAutoScroll] = useState(true);
   const activeLineRef = useRef(null);
   const containerRef = useRef(null);

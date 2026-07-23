@@ -24,7 +24,7 @@ const storage = multer.diskStorage({
   }
 });
 
-const ALLOWED_EXTENSIONS = ['mp4', 'mov', 'pdf', 'docx', 'png', 'jpg', 'jpeg', 'gif', 'webp', 'txt', 'md'];
+const ALLOWED_EXTENSIONS = ['mp4', 'mov', 'pdf', 'docx', 'png', 'jpg', 'jpeg', 'gif', 'webp', 'txt', 'md', 'webm', 'wav', 'mp3', 'm4a', 'ogg', 'caf', '3gp'];
 
 export const upload = multer({
   storage: storage,

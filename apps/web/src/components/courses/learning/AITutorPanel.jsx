@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { HiSparkles, HiChevronRight, HiDatabase, HiTerminal, HiTrash, HiOutlineLightBulb, HiOutlineCog, HiOutlineQuestionMarkCircle, HiOutlinePhotograph, HiX } from 'react-icons/hi';
 import { aiService } from '../../../services/aiService';
-import { API_BASE } from '../../../api';
+import { API_BASE, api } from '../../../api';
 
 export default function AITutorPanel({ lesson, onClose, initialQuery }) {
   const [messages, setMessages] = useState([]);
@@ -9,6 +9,120 @@ export default function AITutorPanel({ lesson, onClose, initialQuery }) {
   const [loading, setLoading] = useState(false);
   const [tokenCount, setTokenCount] = useState(0);
   const messagesEndRef = useRef(null);
+  
+  // File, Image, and Voice upload state
+  const [selectedFile, setSelectedFile] = useState(null); // { file, url, name, type, loading }
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingSeconds, setRecordingSeconds] = useState(0);
+  const fileInputRef = useRef(null);
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
+  const recordingTimerRef = useRef(null);
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      audioChunksRef.current = [];
+      const options = { mimeType: 'audio/webm' };
+      
+      let recorder;
+      try {
+        recorder = new MediaRecorder(stream, options);
+      } catch (e) {
+        recorder = new MediaRecorder(stream);
+      }
+
+      recorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      recorder.onstop = async () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: recorder.mimeType || 'audio/webm' });
+        const ext = recorder.mimeType.includes('wav') ? 'wav' : 'webm';
+        const file = new File([audioBlob], `voice_recording.${ext}`, { type: audioBlob.type });
+        
+        setSelectedFile({
+          file,
+          name: `Tin nhắn thoại (${recordingSeconds}s)`,
+          type: 'audio',
+          url: null,
+          loading: true
+        });
+
+        try {
+          const res = await api.uploadFile(file);
+          const fileUrl = res.url || res.fileUrl;
+          setSelectedFile(prev => ({
+            ...prev,
+            url: fileUrl,
+            loading: false
+          }));
+        } catch (err) {
+          console.error(err);
+          alert('Lỗi tải tin nhắn thoại lên máy chủ: ' + err.message);
+          setSelectedFile(null);
+        }
+      };
+
+      mediaRecorderRef.current = recorder;
+      recorder.start();
+      setIsRecording(true);
+      setRecordingSeconds(0);
+      
+      recordingTimerRef.current = setInterval(() => {
+        setRecordingSeconds(prev => prev + 1);
+      }, 1000);
+
+    } catch (err) {
+      console.error('Microphone access denied:', err);
+      alert('Không thể truy cập microphone. Vui lòng cấp quyền ghi âm.');
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
+      setIsRecording(false);
+      if (recordingTimerRef.current) {
+        clearInterval(recordingTimerRef.current);
+      }
+    }
+  };
+
+  const handleFileChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const ext = file.name.split('.').pop().toLowerCase();
+    const isImg = ['png', 'jpg', 'jpeg', 'gif', 'webp'].includes(ext);
+    const isAud = ['mp3', 'wav', 'webm', 'm4a', 'ogg'].includes(ext);
+    const fileType = isImg ? 'image' : (isAud ? 'audio' : 'file');
+
+    setSelectedFile({
+      file,
+      name: file.name,
+      type: fileType,
+      url: null,
+      loading: true
+    });
+
+    try {
+      const res = await api.uploadFile(file);
+      const fileUrl = res.url || res.fileUrl;
+      setSelectedFile(prev => ({
+        ...prev,
+        url: fileUrl,
+        loading: false
+      }));
+    } catch (err) {
+      console.error(err);
+      alert('Tải tập tin lên thất bại: ' + err.message);
+      setSelectedFile(null);
+    }
+  };
 
   const lessonId = lesson?.id || 'default';
   const lessonTitle = lesson?.title || 'Bài học';
@@ -39,9 +153,11 @@ export default function AITutorPanel({ lesson, onClose, initialQuery }) {
       setMessages([
         {
           role: 'assistant',
-          content: `Xin chào em! Thầy là **Gia sư AI EduPath**, trợ lý học tập 24/7 của em. 
+          content: `Xin chào em! Thầy là **Gia sư AI EduPath**, trợ lý học tập và chuyên gia toàn năng của em. 
+ 
+Thầy đang đồng hành cùng em trong khóa học. Em có thể hỏi thầy bất kỳ kiến thức khoa học, bài tập nào (kể cả ngoài phạm vi bài học). 
 
-Thầy đang đồng hành cùng em trong bài học: **"${lessonTitle}"**. Em hãy chọn các gợi ý ôn tập bên dưới hoặc nhập câu hỏi trực tiếp để thầy giải đáp chi tiết như một chuyên gia nhé!`,
+Đặc biệt, em có thể **gửi tập tin tài liệu, chụp ảnh bài tập** hoặc **nhấn nút 🎤 để ghi âm câu hỏi** để thầy giải đáp trực quan nhất nhé!`,
           timestamp: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
         }
       ]);
@@ -85,18 +201,34 @@ Thầy đang đồng hành cùng em trong bài học: **"${lessonTitle}"**. Em h
       .trim();
   };
 
-  const handleSendQuery = async (queryText) => {
-    if (!queryText.trim() || loading) return;
+  const handleSendQuery = async (queryText, attachedFileToSubmit = selectedFile) => {
+    if (!queryText.trim() && !attachedFileToSubmit) return;
+    if (loading) return;
+    if (attachedFileToSubmit && attachedFileToSubmit.loading) {
+      alert('Vui lòng đợi tập tin được tải lên hoàn tất.');
+      return;
+    }
+
+    const hasAttachment = !!attachedFileToSubmit;
+    const isImage = hasAttachment && attachedFileToSubmit.type === 'image';
+    const attachmentObj = hasAttachment ? {
+      url: attachedFileToSubmit.url,
+      type: attachedFileToSubmit.type,
+      name: attachedFileToSubmit.name
+    } : null;
 
     const userMessage = {
       role: 'user',
-      content: queryText,
+      content: queryText || (attachedFileToSubmit.type === 'audio' ? '🎤 Tin nhắn thoại' : `📎 File đính kèm: ${attachedFileToSubmit.name}`),
+      imageUrl: isImage ? attachedFileToSubmit.url : null,
+      attachment: attachmentObj,
       timestamp: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
     };
 
     const newMessages = [...messages, userMessage];
     setMessages(newMessages);
     setInputText('');
+    setSelectedFile(null); // Clear selection on submit
     setLoading(true);
 
     try {
@@ -111,7 +243,7 @@ Thầy đang đồng hành cùng em trong bài học: **"${lessonTitle}"**. Em h
       let hasAppendedAssistant = false;
 
       const response = await aiService.sendAiMessage(
-        queryText,
+        queryText || (attachedFileToSubmit.type === 'audio' ? 'Hãy phản hồi tin nhắn thoại này.' : 'Hãy phân tích tài liệu đính kèm này.'),
         lesson,
         historyToSend,
         (chunkText) => {
@@ -135,7 +267,9 @@ Thầy đang đồng hành cùng em trong bài học: **"${lessonTitle}"**. Em h
             }
             return updated;
           });
-        }
+        },
+        isImage ? attachedFileToSubmit.url : null,
+        !isImage && hasAttachment ? attachedFileToSubmit.url : null
       );
 
       // Finalize and calculate token consumption
@@ -159,7 +293,7 @@ Thầy đang đồng hành cùng em trong bài học: **"${lessonTitle}"**. Em h
           ];
         }
 
-        const queryTokens = Math.floor(queryText.length * 0.5) + 10;
+        const queryTokens = Math.floor((queryText || '').length * 0.5) + 10;
         const respTokens = Math.floor(response.length * 0.4) + 15;
         const nextTokens = tokenCount + queryTokens + respTokens;
         setTokenCount(nextTokens);
@@ -611,6 +745,34 @@ Thầy đang đồng hành cùng em trong bài học: **"${lessonTitle}"**. Em h
                     />
                   </div>
                 )}
+                {msg.attachment && msg.attachment.type === 'audio' && (
+                  <div style={{ width: '240px', padding: '8px', background: '#f1f5f9', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                    <audio src={msg.attachment.url} controls style={{ width: '100%', height: '32px' }} />
+                  </div>
+                )}
+                {msg.attachment && msg.attachment.type === 'file' && (
+                  <a 
+                    href={msg.attachment.url} 
+                    target="_blank" 
+                    rel="noreferrer"
+                    style={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: '8px', 
+                      padding: '10px 14px', 
+                      background: '#f8fafc', 
+                      borderRadius: '12px', 
+                      border: '1px solid #e2e8f0', 
+                      color: '#4f46e5', 
+                      textDecoration: 'none', 
+                      fontSize: '13px', 
+                      fontWeight: '600',
+                      boxShadow: '0 2px 5px rgba(0,0,0,0.02)'
+                    }}
+                  >
+                    <span>📎</span> {msg.attachment.name}
+                  </a>
+                )}
                 {msg.content && (
                   <div 
                     className="bubble-text animate-in" 
@@ -690,20 +852,158 @@ Thầy đang đồng hành cùng em trong bài học: **"${lessonTitle}"**. Em h
 
       {/* Input area */}
       <div className="ai-tutor-footer" style={{ padding: '16px 20px', borderTop: '1px solid #f1f5f9', background: '#ffffff' }}>
+        {/* Style injection for animations */}
+        <style>{`
+          @keyframes pulse-record {
+            0% { transform: scale(0.9); opacity: 0.6; }
+            50% { transform: scale(1.1); opacity: 1; }
+            100% { transform: scale(0.9); opacity: 0.6; }
+          }
+        `}</style>
+
+        {/* Selected file preview */}
+        {selectedFile && (
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'space-between', 
+            padding: '8px 12px', 
+            background: '#f8fafc', 
+            border: '1.5px solid #e2e8f0', 
+            borderRadius: '10px', 
+            marginBottom: '10px',
+            fontSize: '12px',
+            color: '#334155'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span>{selectedFile.type === 'image' ? '🖼️' : selectedFile.type === 'audio' ? '🎤' : '📎'}</span>
+              <span style={{ fontWeight: '600', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', maxWidth: '200px' }}>
+                {selectedFile.name}
+              </span>
+              {selectedFile.loading && <span style={{ color: '#6366f1' }}>(Đang tải...)</span>}
+            </div>
+            <button 
+              type="button" 
+              onClick={() => setSelectedFile(null)} 
+              style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#64748b', display: 'flex', alignItems: 'center' }}
+            >
+              <HiX style={{ fontSize: '14px' }} />
+            </button>
+          </div>
+        )}
+
+        {/* Active voice recording status */}
+        {isRecording && (
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '10px', 
+            padding: '10px 16px', 
+            background: '#fef2f2', 
+            border: '1.5px solid #fee2e2', 
+            borderRadius: '10px', 
+            marginBottom: '10px',
+            fontSize: '13px',
+            fontWeight: '600',
+            color: '#ef4444'
+          }}>
+            <span style={{ 
+              width: '10px', 
+              height: '10px', 
+              borderRadius: '50%', 
+              background: '#ef4444', 
+              display: 'inline-block',
+              animation: 'pulse-record 1.2s infinite'
+            }}></span>
+            <span>Đang ghi âm: {Math.floor(recordingSeconds / 60).toString().padStart(2, '0')}:{(recordingSeconds % 60).toString().padStart(2, '0')}</span>
+            <button 
+              type="button" 
+              onClick={stopRecording} 
+              style={{ 
+                marginLeft: 'auto', 
+                background: '#ef4444', 
+                color: '#ffffff', 
+                border: 'none', 
+                padding: '4px 10px', 
+                borderRadius: '6px', 
+                fontSize: '11px', 
+                cursor: 'pointer' 
+              }}
+            >
+              Gửi tin nhắn thoại
+            </button>
+          </div>
+        )}
+
         <form 
           onSubmit={(e) => {
             e.preventDefault();
             handleSendQuery(inputText);
           }} 
           className="ai-chat-input-form"
-          style={{ display: 'flex', gap: '10px', alignItems: 'center' }}
+          style={{ display: 'flex', gap: '8px', alignItems: 'center' }}
         >
+          {/* File input click trigger button */}
+          <button 
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={loading || isRecording}
+            style={{
+              width: '36px',
+              height: '36px',
+              borderRadius: '50%',
+              border: 'none',
+              background: '#f1f5f9',
+              color: '#475569',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              transition: 'all 0.2s',
+              flexShrink: 0
+            }}
+            title="Đính kèm tài liệu, hình ảnh"
+          >
+            <HiOutlinePhotograph style={{ fontSize: '18px' }} />
+          </button>
+          <input 
+            type="file"
+            ref={fileInputRef}
+            onChange={handleFileChange}
+            style={{ display: 'none' }}
+            accept="image/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,audio/*"
+          />
+
+          {/* Voice recording start/stop button */}
+          <button 
+            type="button"
+            onClick={isRecording ? stopRecording : startRecording}
+            disabled={loading || (selectedFile && selectedFile.loading)}
+            style={{
+              width: '36px',
+              height: '36px',
+              borderRadius: '50%',
+              border: 'none',
+              background: isRecording ? '#fef2f2' : '#f1f5f9',
+              color: isRecording ? '#ef4444' : '#475569',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              transition: 'all 0.2s',
+              flexShrink: 0
+            }}
+            title="Ghi âm câu hỏi bằng giọng nói"
+          >
+            <span style={{ fontSize: '16px' }}>🎤</span>
+          </button>
+
           <input
             type="text"
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
-            placeholder="Hỏi AI công thức hoặc mẹo giải nhanh..."
-            disabled={loading}
+            placeholder="Hỏi AI hoặc đính kèm ảnh, tài liệu..."
+            disabled={loading || isRecording}
             style={{
               flex: 1,
               padding: '12px 16px',
@@ -727,31 +1027,31 @@ Thầy đang đồng hành cùng em trong bài học: **"${lessonTitle}"**. Em h
           />
           <button 
             type="submit" 
-            disabled={loading || !inputText.trim()}
+            disabled={loading || isRecording || (!inputText.trim() && !selectedFile)}
             style={{
               width: '38px',
               height: '38px',
-              background: loading || !inputText.trim() ? '#cbd5e1' : 'linear-gradient(135deg, #818cf8, #6366f1)',
+              background: loading || isRecording || (!inputText.trim() && !selectedFile) ? '#cbd5e1' : 'linear-gradient(135deg, #818cf8, #6366f1)',
               color: '#ffffff',
               border: 'none',
               borderRadius: '12px',
-              cursor: loading || !inputText.trim() ? 'not-allowed' : 'pointer',
+              cursor: loading || isRecording || (!inputText.trim() && !selectedFile) ? 'not-allowed' : 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               fontSize: '20px',
               transition: 'all 0.2s',
-              boxShadow: loading || !inputText.trim() ? 'none' : '0 4px 10px rgba(99, 102, 241, 0.2)',
+              boxShadow: loading || isRecording || (!inputText.trim() && !selectedFile) ? 'none' : '0 4px 10px rgba(99, 102, 241, 0.2)',
               flexShrink: 0
             }}
             onMouseEnter={(e) => {
-              if (!loading && inputText.trim()) {
+              if (!loading && !isRecording && (inputText.trim() || selectedFile)) {
                 e.currentTarget.style.background = 'linear-gradient(135deg, #6366f1, #4f46e5)';
                 e.currentTarget.style.transform = 'translateY(-1px)';
               }
             }}
             onMouseLeave={(e) => {
-              if (!loading && inputText.trim()) {
+              if (!loading && !isRecording && (inputText.trim() || selectedFile)) {
                 e.currentTarget.style.background = 'linear-gradient(135deg, #818cf8, #6366f1)';
                 e.currentTarget.style.transform = 'none';
               }

@@ -165,7 +165,8 @@ export class GeminiVisionService {
     }
 
     if (isDirectGemini) {
-      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model || 'gemini-flash-latest'}:generateContent?key=${apiKey}`;
+      const cleanModel = (model || 'gemini-flash-latest').replace(/^google\//, '');
+      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${cleanModel}:generateContent?key=${apiKey}`;
       const resp = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

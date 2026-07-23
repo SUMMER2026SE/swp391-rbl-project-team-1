@@ -29,7 +29,7 @@ export class ImportV2Repository {
       where: { id },
       include: {
         questions: { orderBy: { questionOrder: 'asc' } },
-        logs: { orderBy: { createdAt: 'asc' } }
+        ImportLog: { orderBy: { createdAt: 'asc' } }
       }
     });
   }

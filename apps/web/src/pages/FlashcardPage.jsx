@@ -10,7 +10,7 @@ import {
   FaChartBar, FaStethoscope, FaGraduationCap, FaUniversity 
 } from 'react-icons/fa';
 import Tesseract from 'tesseract.js';
-import { api } from '../api';
+import { api, API_BASE } from '../api';
 import { toast } from '../utils/toast';
 import sunLogoImg from '../assets/sun_logo.png';
 
@@ -281,60 +281,131 @@ export default function FlashcardPage({ currentUser, navigateTo, addLog }) {
   const [gameTimerInterval, setGameTimerInterval] = useState(null);
   const [wrongMatchedIds, setWrongMatchedIds] = useState(new Set());
 
-  const handleLaunchGameForDeck = (deckCards, title, id) => {
-    if (!deckCards || deckCards.length === 0) {
-      toast('Bộ thẻ học rỗng, không thể chơi game!', 'warning');
+  // AI Game Mode additions
+  const [showGameModeModal, setShowGameModeModal] = useState(false);
+  const [pendingGameDeck, setPendingGameDeck] = useState(null);
+  const [isGeneratingRiddles, setIsGeneratingRiddles] = useState(false);
+  const [isAiModeActive, setIsAiModeActive] = useState(false);
+
+  // VIP Upgrade States
+  const [vipTurns, setVipTurns] = useState(() => currentUser?.flashcardVipTurns || 0);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [isUpgradingVip, setIsUpgradingVip] = useState(false);
+  const [isPollingPayment, setIsPollingPayment] = useState(false);
+
+  useEffect(() => {
+    if (currentUser) {
+      setVipTurns(currentUser.flashcardVipTurns || 0);
+    }
+  }, [currentUser]);
+
+  useEffect(() => {
+    let pollInterval = null;
+    if (showPaymentModal) {
+      setIsPollingPayment(true);
+      const initialTurns = vipTurns;
+      pollInterval = setInterval(async () => {
+        try {
+          const res = await api.getMe();
+          if (res && res.flashcardVipTurns !== undefined) {
+            const serverTurns = res.flashcardVipTurns || 0;
+            if (serverTurns > initialTurns) {
+              setVipTurns(serverTurns);
+              toast(`Thanh toán thành công! Bạn nhận được +${serverTurns - initialTurns} lượt VIP. 🎉`, 'success');
+              setShowPaymentModal(false);
+              
+              // Sync local user cache
+              const cachedUser = JSON.parse(localStorage.getItem('current_user')) || {};
+              cachedUser.flashcardVipTurns = serverTurns;
+              localStorage.setItem('current_user', JSON.stringify(cachedUser));
+            }
+          }
+        } catch (err) {
+          console.warn('Polling payment turns error:', err);
+        }
+      }, 3000);
+    } else {
+      setIsPollingPayment(false);
+    }
+
+    return () => {
+      if (pollInterval) clearInterval(pollInterval);
+    };
+  }, [showPaymentModal, vipTurns]);
+
+  const handleUpgradeVipClick = () => {
+    if (!currentUser) {
+      toast('Vui lòng đăng nhập để nâng cấp bộ thẻ VIP!', 'warning');
+      return;
+    }
+    if (activeDeckId === 'default') {
+      toast('Không thể nâng cấp VIP bộ thẻ mặc định. Vui lòng tạo bộ thẻ học của riêng bạn!', 'warning');
+      return;
+    }
+    const alreadyUpgraded = cards.every(c => c.image);
+    if (alreadyUpgraded && cards.length > 0) {
+      toast('Bộ thẻ học này đã được nâng cấp VIP thành công trước đó!', 'success');
       return;
     }
 
-    // Load deck states first
-    setCards(deckCards);
-    setDeckTitle(title);
-    setActiveDeckId(id);
-    setCurrentIdx(0);
-    setIsFlipped(false);
-    setIsFinished(false);
+    if (vipTurns > 0) {
+      handleUpgradeActiveDeckToVip();
+    } else {
+      setShowPaymentModal(true);
+    }
+  };
 
-    // Select up to 6 random cards from the deck for a quick match challenge
-    const shuffledCards = [...deckCards].sort(() => 0.5 - Math.random());
-    const selectedCards = shuffledCards.slice(0, 6); // Play with 6 pairs (12 cards total)
+  const handleUpgradeActiveDeckToVip = async () => {
+    setIsUpgradingVip(true);
+    try {
+      const resData = await api.upgradeFlashcardsVip(cards);
+      if (resData && resData.cards) {
+        const upgraded = resData.cards.map((c, index) => ({
+          ...c,
+          image: c.image || null,
+          partOfSpeech: cards[index]?.partOfSpeech || "Khái niệm",
+          hashtag: cards[index]?.hashtag || "# Học tập"
+        }));
 
-    // Build the 12 matching items (6 front, 6 back)
-    const items = [];
-    selectedCards.forEach((card, index) => {
-      // Front item
-      items.push({
-        id: `front-${index}`,
-        pairIndex: index,
-        type: 'front',
-        text: card.front,
-      });
-      // Back item
-      items.push({
-        id: `back-${index}`,
-        pairIndex: index,
-        type: 'back',
-        text: card.back,
-      });
-    });
+        setCards(upgraded);
+        setVipTurns(resData.flashcardVipTurns || 0);
 
-    // Shuffle the items for the game board grid
-    const shuffledItems = items.sort(() => 0.5 - Math.random());
+        const nextDecks = savedDecks.map(d => {
+          if (d.id === activeDeckId) {
+            return { ...d, cards: upgraded };
+          }
+          return d;
+        });
+        setSavedDecks(nextDecks);
+        localStorage.setItem('edupath_saved_flashcard_decks', JSON.stringify(nextDecks));
 
-    setGameItems(shuffledItems);
-    setSelectedGameItem(null);
-    setMatchedGameIds(new Set());
-    setWrongMatchedIds(new Set());
-    setGameTime(0);
-    setIsGameCompleted(false);
-    setCurrentView('game');
+        const cachedUser = JSON.parse(localStorage.getItem('current_user')) || {};
+        cachedUser.flashcardVipTurns = resData.flashcardVipTurns || 0;
+        localStorage.setItem('current_user', JSON.stringify(cachedUser));
 
-    // Start stopwatch
-    if (gameTimerInterval) clearInterval(gameTimerInterval);
-    const interval = setInterval(() => {
-      setGameTime(prev => prev + 1);
-    }, 100);
-    setGameTimerInterval(interval);
+        toast('Chúc mừng! Bộ thẻ của bạn đã được nâng cấp VIP với hình ảnh minh họa sinh động từ AI! 🎨✨', 'success');
+      } else {
+        toast('Nâng cấp VIP thất bại, vui lòng thử lại.', 'error');
+      }
+    } catch (err) {
+      console.error('Upgrade VIP error:', err);
+      toast('Không thể kết nối máy chủ để nâng cấp VIP.', 'error');
+    } finally {
+      setIsUpgradingVip(false);
+    }
+  };
+
+  const handleLaunchGameSelect = (cards, title, id) => {
+    if (!cards || cards.length === 0) {
+      toast('Bộ thẻ học rỗng, không thể chơi game!', 'warning');
+      return;
+    }
+    setPendingGameDeck({ cards, title, id });
+    setShowGameModeModal(true);
+  };
+
+  const handleLaunchGameForDeck = (deckCards, title, id) => {
+    handleLaunchGameSelect(deckCards, title, id);
   };
 
   const handleStartGameMode = () => {
@@ -342,14 +413,41 @@ export default function FlashcardPage({ currentUser, navigateTo, addLog }) {
       toast('Bộ thẻ học rỗng, không thể bắt đầu chơi game!', 'warning');
       return;
     }
+    handleLaunchGameSelect(cards, deckTitle, activeDeckId);
+  };
+
+  const handleStartGameWithModeSelection = async (isAiMode) => {
+    if (!pendingGameDeck) return;
+    const { cards, title, id } = pendingGameDeck;
 
     // Select up to 6 random cards from the deck for a quick match challenge
     const shuffledCards = [...cards].sort(() => 0.5 - Math.random());
     const selectedCards = shuffledCards.slice(0, 6); // Play with 6 pairs (12 cards total)
 
+    let finalCards = selectedCards;
+    setIsAiModeActive(isAiMode);
+
+    if (isAiMode) {
+      setIsGeneratingRiddles(true);
+      try {
+        const cardsData = await api.generateFlashcardRiddles(selectedCards);
+        if (cardsData && Array.isArray(cardsData)) {
+          finalCards = cardsData;
+          toast('AI đã chuyển hóa các ô nghĩa thành câu đố tư duy! 🧠✨', 'success');
+        } else {
+          toast('Không thể kết nối AI, sử dụng nghĩa gốc để chơi game.', 'warning');
+        }
+      } catch (err) {
+        console.error('AI Riddles error:', err);
+        toast('Không thể kết nối AI, sử dụng nghĩa gốc để chơi game.', 'warning');
+      } finally {
+        setIsGeneratingRiddles(false);
+      }
+    }
+
     // Build the 12 matching items (6 front, 6 back)
     const items = [];
-    selectedCards.forEach((card, index) => {
+    finalCards.forEach((card, index) => {
       // Front item
       items.push({
         id: `front-${index}`,
@@ -369,19 +467,28 @@ export default function FlashcardPage({ currentUser, navigateTo, addLog }) {
     // Shuffle the items for the game board grid
     const shuffledItems = items.sort(() => 0.5 - Math.random());
 
+    // Load states
+    setCards(cards);
+    setDeckTitle(title);
+    setActiveDeckId(id);
+    setCurrentIdx(0);
+    setIsFlipped(false);
+    setIsFinished(false);
+
     setGameItems(shuffledItems);
     setSelectedGameItem(null);
     setMatchedGameIds(new Set());
     setWrongMatchedIds(new Set());
     setGameTime(0);
     setIsGameCompleted(false);
+    setShowGameModeModal(false);
     setCurrentView('game');
 
     // Start stopwatch
     if (gameTimerInterval) clearInterval(gameTimerInterval);
     const interval = setInterval(() => {
       setGameTime(prev => prev + 1);
-    }, 100); // 100ms precision (ticks 10 times per second!)
+    }, 100); // 100ms precision
     setGameTimerInterval(interval);
   };
 
@@ -423,6 +530,28 @@ export default function FlashcardPage({ currentUser, navigateTo, addLog }) {
         setTimeout(() => {
           setWrongMatchedIds(new Set());
         }, 600);
+      }
+    }
+  };
+
+  const handleTriggerAiHint = () => {
+    // Find all unmatched items in the game
+    const unmatchedItems = gameItems.filter(item => !matchedGameIds.has(item.id));
+    if (unmatchedItems.length === 0) return;
+
+    // Pick a front item
+    const unmatchedFronts = unmatchedItems.filter(item => item.type === 'front');
+    if (unmatchedFronts.length === 0) return;
+
+    const randomFront = unmatchedFronts[Math.floor(Math.random() * unmatchedFronts.length)];
+    // Find its matching back item
+    const matchingBack = unmatchedItems.find(item => item.pairIndex === randomFront.pairIndex && item.type === 'back');
+
+    if (randomFront && matchingBack) {
+      if (isAiModeActive) {
+        toast(`Gợi ý AI: Cặp từ "${randomFront.text}" khớp với câu đố: "${matchingBack.text}"`, 'success', 8000);
+      } else {
+        toast(`Gợi ý AI: Từ "${randomFront.text}" có nghĩa gốc là: "${matchingBack.text}"`, 'success', 8000);
       }
     }
   };
@@ -691,7 +820,7 @@ export default function FlashcardPage({ currentUser, navigateTo, addLog }) {
 
         // Infer a nice deck title from the user prompt
         let extractedTitle = '';
-        const nameMatch = promptText.match(/(?:đặt\s+)?tên\s+là\s+["']?([^"'\n]+?)["']?(?:\s+cho\s+tôi|\s+nữa|\s*$)/i);
+        const nameMatch = promptText.match(/(?:đặt\s+)?tên\s+(?:là\s+)?["']?(.+?)["']?(?:\s+(?:chứa|về|gồm|chủ\s+đề|cho\s+tôi|mới|có|để|từ)|$)/i);
         if (nameMatch && nameMatch[1]) {
           extractedTitle = nameMatch[1].trim();
         } else {
@@ -755,7 +884,8 @@ export default function FlashcardPage({ currentUser, navigateTo, addLog }) {
           text: msg.text
         }));
 
-        const res = await api.chatbot(message, historyToSend);
+        const messageWithContext = `[Context: User is currently on page "Ôn tập Thẻ ghi nhớ (Flashcards)"] ${message}`;
+        const res = await api.chatbot(messageWithContext, historyToSend);
         setChatMessages(prev => [...prev, { sender: 'bot', text: res.reply }]);
       } catch (err) {
         console.error(err);
@@ -767,6 +897,180 @@ export default function FlashcardPage({ currentUser, navigateTo, addLog }) {
         setIsChatTyping(false);
       }
     }
+  };
+
+  // Rich Markdown & Image formatter for Chatbot messages
+  const renderMessageText = (text) => {
+    if (!text) return null;
+
+    const segments = text.split(/```/);
+
+    return segments.map((segment, idx) => {
+      // Code block parsing
+      if (idx % 2 === 1) {
+        const lines = segment.split('\n');
+        const firstLine = lines[0].trim();
+        const isLang = /^[a-zA-Z0-9_-]+$/.test(firstLine);
+        const codeText = isLang ? lines.slice(1).join('\n') : lines.join('\n');
+        const langName = isLang ? firstLine : 'code';
+
+        return (
+          <div key={idx} style={{
+            background: 'rgba(9, 13, 22, 0.95)',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            borderRadius: '12px',
+            margin: '12px 0',
+            overflow: 'hidden',
+            fontFamily: 'Consolas, Monaco, monospace',
+            fontSize: '11.5px',
+            boxShadow: '0 8px 24px rgba(0, 0, 0, 0.3)'
+          }}>
+            <div style={{
+              background: 'rgba(255, 255, 255, 0.03)',
+              padding: '6px 12px',
+              fontSize: '10.5px',
+              color: '#94a3b8',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              borderBottom: '1px solid rgba(255, 255, 255, 0.08)'
+            }}>
+              <span style={{ textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 'bold' }}>{langName}</span>
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  navigator.clipboard.writeText(codeText.trim());
+                  const btn = e.currentTarget;
+                  btn.innerText = 'Copied!';
+                  btn.style.color = '#10b981';
+                  setTimeout(() => { 
+                    btn.innerText = 'Copy'; 
+                  }, 2000);
+                }}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: 'var(--fc-gold, #ffb800)',
+                  cursor: 'pointer',
+                  fontSize: '11px',
+                  fontWeight: 'bold',
+                  padding: 0
+                }}
+              >
+                Copy
+              </button>
+            </div>
+            <pre style={{
+              padding: '12px',
+              margin: 0,
+              overflowX: 'auto',
+              color: '#a5b4fc',
+              whiteSpace: 'pre-wrap',
+              lineHeight: '1.5'
+            }}>{codeText.trim()}</pre>
+          </div>
+        );
+      }
+
+      // Plain text: parse list lines and image markdown tags
+      const lines = segment.split('\n');
+      let listItems = [];
+      let listType = null;
+      const elements = [];
+
+      const flushList = (key) => {
+        if (listItems.length > 0) {
+          if (listType === 'ul') {
+            elements.push(
+              <ul key={`ul-${key}`} style={{ margin: '0 0 10px 0', paddingLeft: '20px', listStyleType: 'disc' }}>
+                {listItems}
+              </ul>
+            );
+          } else if (listType === 'ol') {
+            elements.push(
+              <ol key={`ol-${key}`} style={{ margin: '0 0 10px 0', paddingLeft: '20px', listStyleType: 'decimal' }}>
+                {listItems}
+              </ol>
+            );
+          }
+          listItems = [];
+          listType = null;
+        }
+      };
+
+      const parseInline = (str) => {
+        let parsed = str
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;');
+        parsed = parsed.replace(/\*\*(.*?)\*\*/g, '<strong style="color: #ffffff; font-weight: 700;">$1</strong>');
+        parsed = parsed.replace(/\*(.*?)\*/g, '<em style="color: #cbd5e1;">$1</em>');
+        parsed = parsed.replace(/`(.*?)`/g, '<code style="background: rgba(255,255,255,0.12); padding: 2px 6px; border-radius: 4px; font-family: monospace; color: #f43f5e; font-size: 0.9em;">$1</code>');
+        return parsed;
+      };
+
+      lines.forEach((line, lineIdx) => {
+        const cleanLine = line.trim();
+
+        // Match image markdown format e.g. ![Alt](Url)
+        const imgMatch = cleanLine.match(/^!\[(.*?)\]\((.*?)\)$/i) || line.match(/!\[(.*?)\]\((.*?)\)/i);
+        if (imgMatch) {
+          flushList(lineIdx);
+          const altText = imgMatch[1];
+          const imgUrl = imgMatch[2];
+          elements.push(
+            <div key={`img-${lineIdx}`} style={{ margin: '12px 0', borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--fc-border-dark)' }}>
+              <img 
+                src={imgUrl} 
+                alt={altText} 
+                style={{ width: '100%', height: 'auto', display: 'block', maxHeight: '350px', objectFit: 'cover' }} 
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                }}
+              />
+              <div style={{ background: 'rgba(0,0,0,0.4)', padding: '6px 12px', fontSize: '11px', color: '#94a3b8', textAlign: 'center', borderTop: '1px solid var(--fc-border-dark)' }}>
+                🖼️ {altText || 'Ảnh minh họa học tập sinh bởi AI'}
+              </div>
+            </div>
+          );
+          return;
+        }
+
+        if (cleanLine.startsWith('- ') || cleanLine.startsWith('* ')) {
+          if (listType !== 'ul') {
+            flushList(lineIdx);
+            listType = 'ul';
+          }
+          listItems.push(
+            <li key={`li-${lineIdx}`} style={{ marginBottom: '6px', lineHeight: '1.6' }}
+                dangerouslySetInnerHTML={{ __html: parseInline(cleanLine.substring(2)) }} />
+          );
+        } else if (/^\d+\.\s/.test(cleanLine)) {
+          if (listType !== 'ol') {
+            flushList(lineIdx);
+            listType = 'ol';
+          }
+          const content = cleanLine.replace(/^\d+\.\s/, '');
+          listItems.push(
+            <li key={`li-${lineIdx}`} style={{ marginBottom: '6px', lineHeight: '1.6' }}
+                dangerouslySetInnerHTML={{ __html: parseInline(content) }} />
+          );
+        } else {
+          flushList(lineIdx);
+          if (cleanLine === '') {
+            elements.push(<div key={`br-${lineIdx}`} style={{ height: '8px' }} />);
+          } else {
+            elements.push(
+              <p key={`p-${lineIdx}`} style={{ margin: '0 0 10px 0', lineHeight: '1.6' }}
+                 dangerouslySetInnerHTML={{ __html: parseInline(line) }} />
+            );
+          }
+        }
+      });
+
+      flushList(lines.length);
+      return <div key={idx}>{elements}</div>;
+    });
   };
 
   const handleExplainCardWithAI = (card) => {
@@ -2059,6 +2363,24 @@ export default function FlashcardPage({ currentUser, navigateTo, addLog }) {
                     <strong style={{ fontSize: '20px', color: '#ffd234', fontFamily: 'monospace', fontWeight: '800' }}>{(gameTime / 10).toFixed(1)}s</strong>
                   </div>
                   <button 
+                    onClick={handleTriggerAiHint}
+                    style={{
+                      background: 'rgba(139, 92, 246, 0.1)',
+                      border: '1.5px solid rgba(139, 92, 246, 0.3)',
+                      color: '#c084fc',
+                      padding: '10px 20px',
+                      borderRadius: '14px',
+                      fontSize: '13px',
+                      fontWeight: '800',
+                      cursor: 'pointer',
+                      transition: 'all 0.25s ease'
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = '#8b5cf6'; e.currentTarget.style.color = '#fff'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(139, 92, 246, 0.1)'; e.currentTarget.style.color = '#c084fc'; }}
+                  >
+                    💡 Gợi ý AI
+                  </button>
+                  <button 
                     onClick={handleStopGame}
                     style={{
                       background: 'rgba(239, 68, 68, 0.1)',
@@ -2244,6 +2566,35 @@ export default function FlashcardPage({ currentUser, navigateTo, addLog }) {
                 </div>
 
                 <div className="flashcard-header-actions">
+                  {activeDeckId !== 'default' && (
+                    <button 
+                      className="flashcard-header-btn" 
+                      onClick={handleUpgradeVipClick}
+                      disabled={isUpgradingVip}
+                      style={{
+                        background: 'linear-gradient(135deg, #ffd700, #ffa500)',
+                        color: '#12120e',
+                        border: 'none',
+                        fontWeight: '900',
+                        boxShadow: '0 0 15px rgba(255, 215, 0, 0.45)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px'
+                      }}
+                      title="Nâng cấp bộ thẻ với định nghĩa nâng cao và ảnh minh họa sinh động tự động từ AI"
+                    >
+                      {isUpgradingVip ? (
+                        <>
+                          <span style={{ display: 'inline-block', width: '12px', height: '12px', border: '2px solid #12120e', borderTop: '2px solid transparent', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+                          Đang nâng cấp...
+                        </>
+                      ) : cards.every(c => c.image) && cards.length > 0 ? (
+                        '✓ Đã Đạt Chuẩn VIP ✨'
+                      ) : (
+                        `✨ Nâng cấp VIP (${vipTurns > 0 ? `${vipTurns} lượt` : '5k/lượt'})`
+                      )}
+                    </button>
+                  )}
                   <button 
                     className="flashcard-header-btn" 
                     onClick={handleStartGameMode} 
@@ -2885,7 +3236,7 @@ export default function FlashcardPage({ currentUser, navigateTo, addLog }) {
                 <span className="flashcard-chat-bubble-sender">
                   {msg.sender === 'user' ? 'Bạn' : 'EduBot'}
                 </span>
-                <div>{msg.text}</div>
+                <div style={{ wordBreak: 'break-word' }}>{renderMessageText(msg.text)}</div>
               </div>
             ))}
             
@@ -3136,6 +3487,295 @@ export default function FlashcardPage({ currentUser, navigateTo, addLog }) {
                 style={{ background: 'var(--fc-gold)', color: '#12120e', border: 'none' }}
               >
                 Tạo bộ thẻ
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Game Mode Choice Modal */}
+      {showGameModeModal && (
+        <div className="flashcard-modal-overlay" style={{ display: 'flex', zIndex: 1000, position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0, 0, 0, 0.75)', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(4px)' }}>
+          <div className="flashcard-modal" style={{ maxWidth: '500px', width: '90%', animation: 'fadeIn 0.3s ease-out', background: '#1c1c1a', border: '1.5px solid rgba(255, 255, 255, 0.08)', borderRadius: '24px', boxShadow: '0 20px 50px rgba(0,0,0,0.5)', overflow: 'hidden' }}>
+            <div className="flashcard-modal-header" style={{ padding: '20px 24px', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <span style={{ fontSize: '24px' }}>🎮</span>
+                <div style={{ textAlign: 'left' }}>
+                  <h3 style={{ fontSize: '18px', fontWeight: '950', color: '#fff', margin: 0, fontFamily: "'Outfit', sans-serif" }}>Chọn Chế Độ Trò Chơi</h3>
+                  <span style={{ fontSize: '12px', color: 'var(--fc-text-secondary)' }}>Bộ thẻ: {pendingGameDeck?.title}</span>
+                </div>
+              </div>
+              <button 
+                className="flashcard-modal-close" 
+                onClick={() => setShowGameModeModal(false)}
+                style={{ background: 'transparent', border: 'none', color: '#fff', fontSize: '24px', cursor: 'pointer', padding: 0, lineHeight: 1 }}
+              >
+                &times;
+              </button>
+            </div>
+
+            <div className="flashcard-modal-body" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '18px' }}>
+              {isGeneratingRiddles ? (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '30px 0', gap: '16px' }}>
+                  <div style={{
+                    width: '45px',
+                    height: '45px',
+                    border: '3px solid rgba(139, 92, 246, 0.2)',
+                    borderTop: '3px solid #d946ef',
+                    borderRadius: '50%',
+                    animation: 'spin 1s linear infinite'
+                  }} />
+                  <div style={{ textAlign: 'center' }}>
+                    <p style={{ color: '#fff', fontWeight: 'bold', margin: '0 0 6px 0', fontSize: '15px' }}>EduBot đang biên soạn câu đố...</p>
+                    <p style={{ color: 'var(--fc-text-secondary)', fontSize: '12.5px', margin: 0 }}>Vận dụng trí tuệ nhân tạo để thách thức tư duy của bạn!</p>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  {/* Classic Mode Option */}
+                  <div 
+                    onClick={() => handleStartGameWithModeSelection(false)}
+                    style={{
+                      padding: '18px',
+                      borderRadius: '16px',
+                      background: 'rgba(255, 255, 255, 0.02)',
+                      border: '1.5px solid rgba(255, 255, 255, 0.06)',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '16px'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)';
+                      e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.15)';
+                      e.currentTarget.style.transform = 'translateY(-2px)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = 'rgba(255, 255, 255, 0.02)';
+                      e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.06)';
+                      e.currentTarget.style.transform = 'none';
+                    }}
+                  >
+                    <div style={{ fontSize: '32px', background: 'rgba(16, 185, 129, 0.1)', padding: '12px', borderRadius: '12px', color: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>⏱️</div>
+                    <div style={{ textAlign: 'left' }}>
+                      <h4 style={{ margin: '0 0 4px 0', fontSize: '15px', fontWeight: 'bold', color: '#fff' }}>Chế độ Tốc độ Cổ điển</h4>
+                      <p style={{ margin: 0, fontSize: '12px', color: 'var(--fc-text-secondary)', lineHeight: '1.4' }}>
+                        Ghép cặp trực tiếp Từ vựng (Mặt trước) và Nghĩa gốc (Mặt sau). Rèn luyện phản xạ ghi nhớ nhanh.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* AI Riddle Challenge Option */}
+                  <div 
+                    onClick={() => handleStartGameWithModeSelection(true)}
+                    style={{
+                      padding: '18px',
+                      borderRadius: '16px',
+                      background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.05), rgba(236, 72, 153, 0.05))',
+                      border: '1.5px solid rgba(139, 92, 246, 0.3)',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '16px',
+                      position: 'relative',
+                      overflow: 'hidden'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = 'linear-gradient(135deg, rgba(139, 92, 246, 0.08), rgba(236, 72, 153, 0.08))';
+                      e.currentTarget.style.borderColor = 'rgba(139, 92, 246, 0.6)';
+                      e.currentTarget.style.transform = 'translateY(-2px)';
+                      e.currentTarget.style.boxShadow = '0 0 20px rgba(139, 92, 246, 0.15)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = 'linear-gradient(135deg, rgba(139, 92, 246, 0.05), rgba(236, 72, 153, 0.05))';
+                      e.currentTarget.style.borderColor = 'rgba(139, 92, 246, 0.3)';
+                      e.currentTarget.style.transform = 'none';
+                      e.currentTarget.style.boxShadow = 'none';
+                    }}
+                  >
+                    <div style={{ position: 'absolute', top: 0, right: 0, background: '#d946ef', color: '#fff', fontSize: '9px', fontWeight: 'bold', padding: '3px 8px', borderRadius: '0 0 0 8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Khuyên dùng</div>
+                    <div style={{ fontSize: '32px', background: 'rgba(139, 92, 246, 0.15)', padding: '12px', borderRadius: '12px', color: '#d946ef', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>🧠</div>
+                    <div style={{ textAlign: 'left' }}>
+                      <h4 style={{ margin: '0 0 4px 0', fontSize: '15px', fontWeight: 'bold', color: '#fff', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        Thách Thức Trí Tuệ AI
+                      </h4>
+                      <p style={{ margin: 0, fontSize: '12px', color: 'var(--fc-text-secondary)', lineHeight: '1.4' }}>
+                        AI sẽ chuyển đổi các ô nghĩa thành các **câu đố gợi ý ngữ nghĩa**. Bạn phải tư duy sâu sắc để tìm từ khớp!
+                      </p>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {!isGeneratingRiddles && (
+              <div className="flashcard-modal-footer" style={{ padding: '16px 24px 24px 24px', borderTop: '1px solid rgba(255,255,255,0.06)', display: 'flex', justifyContent: 'flex-end' }}>
+                <button 
+                  className="flashcard-header-btn" 
+                  onClick={() => setShowGameModeModal(false)}
+                  style={{ background: 'transparent', borderColor: 'var(--fc-border-dark)', borderRadius: '12px', padding: '10px 20px', fontSize: '13px', color: 'var(--fc-text-secondary)', fontWeight: 'bold', cursor: 'pointer' }}
+                >
+                  Đóng
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* VIP Payment Dialog */}
+      {showPaymentModal && (
+        <div 
+          className="flashcard-modal-overlay" 
+          style={{ 
+            display: 'flex', 
+            zIndex: 1000, 
+            position: 'fixed', 
+            top: 0, 
+            left: 0, 
+            right: 0, 
+            bottom: 0, 
+            background: 'rgba(0, 0, 0, 0.8)', 
+            alignItems: 'center', 
+            justifyContent: 'center', 
+            backdropFilter: 'blur(6px)' 
+          }}
+          onClick={() => setShowPaymentModal(false)}
+        >
+          <div 
+            className="flashcard-modal" 
+            style={{ 
+              maxWidth: '550px', 
+              width: '90%', 
+              animation: 'fadeIn 0.3s ease-out', 
+              background: '#1c1c1a', 
+              border: '2px solid var(--fc-gold)', 
+              borderRadius: '24px', 
+              boxShadow: '0 20px 50px rgba(255, 215, 0, 0.15)', 
+              overflow: 'hidden' 
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div 
+              className="flashcard-modal-header" 
+              style={{ 
+                padding: '20px 24px', 
+                borderBottom: '1px solid rgba(255,255,255,0.06)', 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: 'center' 
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <span style={{ fontSize: '26px' }}>✨</span>
+                <div style={{ textAlign: 'left' }}>
+                  <h3 style={{ fontSize: '18px', fontWeight: '950', color: '#fff', margin: 0, fontFamily: "'Outfit', sans-serif" }}>
+                    Nạp Lượt Nâng Cấp VIP Flashcard
+                  </h3>
+                  <span style={{ fontSize: '12.5px', color: 'var(--fc-gold)', fontWeight: 'bold' }}>
+                    Chỉ 5,000đ / Lượt Nâng Cấp Bộ Thẻ
+                  </span>
+                </div>
+              </div>
+              <button 
+                className="flashcard-modal-close" 
+                onClick={() => setShowPaymentModal(false)}
+                style={{ background: 'transparent', border: 'none', color: '#fff', fontSize: '24px', cursor: 'pointer', padding: 0, lineHeight: 1 }}
+              >
+                &times;
+              </button>
+            </div>
+
+            <div 
+              className="flashcard-modal-body" 
+              style={{ 
+                padding: '24px', 
+                display: 'flex', 
+                flexDirection: 'column', 
+                gap: '20px',
+                maxHeight: '75vh',
+                overflowY: 'auto'
+              }}
+            >
+              <div style={{ textAlign: 'center', background: 'rgba(255, 215, 0, 0.03)', padding: '16px', borderRadius: '16px', border: '1px dashed rgba(255, 215, 0, 0.2)' }}>
+                <p style={{ color: '#fff', fontSize: '14.5px', fontWeight: 'bold', margin: '0 0 6px 0' }}>
+                  Mở Khóa Định Nghĩa Chi Tiết & Ảnh Minh Họa AI 🎨
+                </p>
+                <p style={{ color: 'var(--fc-text-secondary)', fontSize: '13px', margin: 0, lineHeight: '1.5' }}>
+                  Hệ thống AI sẽ tự động sinh hình ảnh minh họa sống động và diễn giải nghĩa chuyên sâu trực quan cho từng từ vựng trong bộ thẻ để ghi nhớ siêu tốc!
+                </p>
+              </div>
+
+              <div style={{ display: 'flex', gap: '20px', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' }}>
+                <div style={{ background: '#fff', padding: '12px', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 8px 24px rgba(0,0,0,0.3)' }}>
+                  <img 
+                    src={`https://api.vietqr.io/image/ACB-18657431-compact2.png?amount=5000&addInfo=EV${currentUser?.id || 999}&accountName=THUAN VAN TRAN`} 
+                    alt="VietQR bank payment" 
+                    style={{ width: '200px', height: '200px', objectFit: 'contain' }}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: '1', minWidth: '220px', textAlign: 'left' }}>
+                  <div style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', paddingBottom: '8px' }}>
+                    <span style={{ fontSize: '11px', color: 'var(--fc-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Ngân hàng thụ hưởng</span>
+                    <p style={{ fontSize: '14.5px', fontWeight: 'bold', color: '#fff', margin: '2px 0 0 0' }}>ACB - Á Châu</p>
+                  </div>
+                  <div style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', paddingBottom: '8px' }}>
+                    <span style={{ fontSize: '11px', color: 'var(--fc-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Số tài khoản</span>
+                    <p style={{ fontSize: '14.5px', fontWeight: 'bold', color: '#fff', margin: '2px 0 0 0' }}>18657431</p>
+                  </div>
+                  <div style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', paddingBottom: '8px' }}>
+                    <span style={{ fontSize: '11px', color: 'var(--fc-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Chủ tài khoản</span>
+                    <p style={{ fontSize: '14.5px', fontWeight: 'bold', color: '#fff', margin: '2px 0 0 0' }}>THUAN VAN TRAN</p>
+                  </div>
+                  <div style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', paddingBottom: '8px' }}>
+                    <span style={{ fontSize: '11px', color: 'var(--fc-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Số tiền chuyển khoản</span>
+                    <p style={{ fontSize: '16px', fontWeight: '900', color: 'var(--fc-gold)', margin: '2px 0 0 0' }}>5,000 VND</p>
+                  </div>
+                  <div>
+                    <span style={{ fontSize: '11px', color: 'var(--fc-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Nội dung chuyển khoản (bắt buộc đúng)</span>
+                    <div style={{ background: 'rgba(255, 215, 0, 0.1)', border: '1px solid var(--fc-gold)', padding: '6px 12px', borderRadius: '8px', marginTop: '4px', display: 'inline-block' }}>
+                      <code style={{ fontSize: '15px', fontWeight: '950', color: 'var(--fc-gold)', letterSpacing: '1px' }}>
+                        EV{currentUser?.id || 999}
+                      </code>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: 'rgba(255,255,255,0.03)', padding: '12px 16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)', marginTop: '8px' }}>
+                <div style={{
+                  width: '16px',
+                  height: '16px',
+                  border: '2px solid rgba(255, 215, 0, 0.2)',
+                  borderTop: '2px solid var(--fc-gold)',
+                  borderRadius: '50%',
+                  animation: 'spin 1s linear infinite',
+                  flexShrink: 0
+                }} />
+                <span style={{ fontSize: '12px', color: 'var(--fc-text-secondary)', textAlign: 'left', lineHeight: '1.4' }}>
+                  Hệ thống đang kiểm tra tự động giao dịch ngân hàng... Sau khi chuyển khoản thành công, giao diện sẽ tự chuyển đổi ngay.
+                </span>
+              </div>
+            </div>
+
+            <div 
+              className="flashcard-modal-footer" 
+              style={{ 
+                padding: '16px 24px 24px 24px', 
+                borderTop: '1px solid rgba(255,255,255,0.06)', 
+                display: 'flex', 
+                justifyContent: 'flex-end',
+                background: '#161614' 
+              }}
+            >
+              <button 
+                className="flashcard-header-btn" 
+                onClick={() => setShowPaymentModal(false)}
+                style={{ background: 'transparent', borderColor: 'var(--fc-border-dark)', borderRadius: '12px', padding: '10px 24px', fontSize: '13px', color: 'var(--fc-text-secondary)', fontWeight: 'bold', cursor: 'pointer' }}
+              >
+                Hủy giao dịch
               </button>
             </div>
           </div>

@@ -164,7 +164,8 @@ export async function sepayWebhook(req: any, res: Response) {
       }
     }
 
-    const { transferAmount, transactionContent, id, gateway, transferType } = req.body;
+    const { transferAmount, id, gateway, transferType } = req.body;
+    const transactionContent = req.body.transactionContent || req.body.content || '';
 
     console.log(`[SePay Webhook] Nhận request POST: Giao dịch ${id}, Số tiền: ${transferAmount}, Loại: ${transferType}, Nội dung: "${transactionContent}"`);
 
@@ -310,6 +311,63 @@ export async function sepayWebhook(req: any, res: Response) {
         success: true,
         message: 'Kích hoạt mua tài liệu thành công!',
         data: { purchaseId: docPurchase.id }
+      });
+    }
+
+    // 2.5. Check if it matches the FLASHCARD VIP purchase pattern: EV[studentId]
+    const vipMatch = cleanContent.match(/EV(\d+)/i);
+    if (vipMatch) {
+      const studentId = parseInt(vipMatch[1], 10);
+      console.log(`[SePay Webhook] Phát hiện mã mua lượt nâng cấp Flashcard VIP: Học sinh ID: ${studentId}`);
+
+      const user = await prisma.user.findUnique({
+        where: { id: studentId }
+      });
+
+      if (!user) {
+        const errMsg = `Không tìm thấy học sinh mua lượt VIP có ID: ${studentId}`;
+        console.error(`[SePay Webhook] ${errMsg}`);
+        return res.status(404).json({ success: false, error: errMsg });
+      }
+
+      // Calculate turns based on amount transferred, 5000 VND = 1 turn. Min 1 turn.
+      const amount = Number(transferAmount) || 5000;
+      const turnsGranted = Math.max(1, Math.floor(amount / 5000));
+
+      const updatedUser = await (prisma.user as any).update({
+        where: { id: studentId },
+        data: {
+          flashcardVipTurns: {
+            increment: turnsGranted
+          }
+        }
+      });
+
+      // Send notification
+      try {
+        await NotificationService.send({
+          userId: studentId,
+          title: 'Kích hoạt lượt VIP thành công ✨',
+          message: `Tài khoản của em đã được cộng thêm +${turnsGranted} lượt nâng cấp bộ thẻ VIP.`,
+          category: 'PAYMENT',
+          type: 'SUCCESS'
+        });
+      } catch (notifErr) {
+        console.error('[Notification Error] Failed to send VIP turns notification:', notifErr);
+      }
+
+      // Record stats
+      try {
+        const now = new Date();
+        await addBothRevenue(amount, now);
+      } catch (e) {
+        console.error('[MonthlyStats] Lỗi cập nhật revenue (SePay VIP):', e);
+      }
+
+      return res.status(200).json({
+        success: true,
+        message: `Đã cộng thành công ${turnsGranted} lượt Flashcard VIP cho tài khoản!`,
+        data: { studentId, flashcardVipTurns: (updatedUser as any).flashcardVipTurns }
       });
     }
 

@@ -231,6 +231,10 @@ export default function ChatbotWidget({ currentPath, currentUser }) {
           .replace(/&/g, '&amp;')
           .replace(/</g, '&lt;')
           .replace(/>/g, '&gt;');
+        // replace markdown images: ![alt](url)
+        parsed = parsed.replace(/!\[(.*?)\]\((.*?)\)/g, '<div style="margin: 8px 0; overflow: hidden; border-radius: 12px; border: 1.5px solid rgba(255,255,255,0.15); box-shadow: 0 4px 12px rgba(0,0,0,0.3);"><img src="$2" alt="$1" style="max-width: 100%; height: auto; display: block; object-fit: cover;" /></div>');
+        // replace markdown links: [text](url)
+        parsed = parsed.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" style="color: #a5b4fc; text-decoration: underline; font-weight: 600; transition: color 0.2s;">$1</a>');
         // replace **bold**
         parsed = parsed.replace(/\*\*(.*?)\*\*/g, '<strong style="color: #ffffff; font-weight: 700;">$1</strong>');
         // replace *italic*
@@ -533,41 +537,56 @@ export default function ChatbotWidget({ currentPath, currentUser }) {
           </div>
 
           {/* Suggestion Chips */}
-          <div style={{
-            padding: '0 16px 8px 16px',
-            display: 'flex',
-            flexWrap: 'wrap',
-            gap: '8px',
-            background: 'transparent'
-          }}>
+          <div 
+            className="custom-scrollbar"
+            style={{
+              padding: '6px 16px 12px 16px',
+              display: 'flex',
+              gap: '8px',
+              overflowX: 'auto',
+              whiteSpace: 'nowrap',
+              background: 'transparent',
+              flexShrink: 0,
+              scrollbarWidth: 'none', /* Firefox */
+              msOverflowStyle: 'none'  /* IE 10+ */
+            }}
+          >
+            {/* Style injection to hide scrollbars for Chrome/Safari inside the scrolling row */}
+            <style>{`
+              .custom-scrollbar::-webkit-scrollbar {
+                display: none !important;
+              }
+            `}</style>
             {suggestionChips.map((chip, idx) => (
               <button
                 key={idx}
                 onClick={(e) => handleSend(e, chip.text)}
                 disabled={loading}
                 style={{
-                  background: 'rgba(108, 92, 231, 0.15)',
-                  border: '1px solid rgba(108, 92, 231, 0.35)',
+                  background: 'rgba(108, 92, 231, 0.12)',
+                  border: '1.5px solid rgba(108, 92, 231, 0.3)',
                   color: '#e2e8f0',
-                  padding: '6px 12px',
-                  borderRadius: '16px',
-                  fontSize: '11px',
+                  padding: '7px 14px',
+                  borderRadius: '18px',
+                  fontSize: '11.5px',
                   cursor: loading ? 'default' : 'pointer',
-                  fontWeight: '500',
-                  transition: 'all 0.25s ease',
-                  boxShadow: '0 2px 6px rgba(0,0,0,0.1)'
+                  fontWeight: '600',
+                  transition: 'all 0.2s ease',
+                  boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
+                  whiteSpace: 'nowrap',
+                  flexShrink: 0
                 }}
                 onMouseEnter={e => {
                   if (!loading) {
-                    e.currentTarget.style.background = 'rgba(108, 92, 231, 0.35)';
-                    e.currentTarget.style.borderColor = '#6C5CE7';
-                    e.currentTarget.style.transform = 'translateY(-2px)';
+                    e.currentTarget.style.background = 'rgba(108, 92, 231, 0.25)';
+                    e.currentTarget.style.borderColor = '#8E2DE2';
+                    e.currentTarget.style.transform = 'translateY(-1px)';
                   }
                 }}
                 onMouseLeave={e => {
                   if (!loading) {
-                    e.currentTarget.style.background = 'rgba(108, 92, 231, 0.15)';
-                    e.currentTarget.style.borderColor = 'rgba(108, 92, 231, 0.35)';
+                    e.currentTarget.style.background = 'rgba(108, 92, 231, 0.12)';
+                    e.currentTarget.style.borderColor = 'rgba(108, 92, 231, 0.3)';
                     e.currentTarget.style.transform = 'translateY(0)';
                   }
                 }}

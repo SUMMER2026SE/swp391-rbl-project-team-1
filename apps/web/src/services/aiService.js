@@ -7,7 +7,7 @@ export const aiService = {
    * @param {object} lesson - The current lesson context
    * @returns {Promise<string>} Response from AI Tutor
    */
-  async sendAiMessage(content, lesson = null, history = [], onChunk = null, imageUrl = null) {
+  async sendAiMessage(content, lesson = null, history = [], onChunk = null, imageUrl = null, fileUrl = null) {
     const token = localStorage.getItem('access_token');
     const headers = {
       'Content-Type': 'application/json'
@@ -29,11 +29,12 @@ export const aiService = {
       const response = await fetch(`${API_BASE}/ai/chat`, {
         method: 'POST',
         headers: headers,
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           message: content,
           lessonId: lesson?.id || null,
           history: history,
-          imageUrl: imageUrl
+          imageUrl: imageUrl,
+          fileUrl: fileUrl
         })
       });
 
@@ -56,7 +57,7 @@ export const aiService = {
             buffer += decoder.decode(value, { stream: true });
             const lines = buffer.split('\n');
             buffer = lines.pop() || ''; // Keep partial line in buffer
-            
+
             for (const line of lines) {
               if (line.startsWith('data: ')) {
                 const dataStr = line.slice(6).trim();
@@ -104,7 +105,7 @@ export const aiService = {
           `Chào em! Đối với phần học "${lessonTitle}" này:\n\nEm cần nhớ kỹ phần lưu ý quan trọng về các trường hợp đặc biệt và cách bấm máy Casio nhanh để tiết kiệm thời gian làm bài trắc nghiệm. \nVí dụ: Đối với dạng toán này, ta có thể quét Table (Mode 8) để nhanh chóng khoanh vùng kết quả chính xác.\n\nEm có muốn tôi lấy một ví dụ cụ thể để giải thích rõ hơn không?`,
           `EduBot AI xin chào em! Về câu hỏi liên quan đến "${lessonTitle}":\n\nĐây là câu hỏi rất hay. Phương pháp giải tối ưu nhất cho dạng này là chia nhỏ bài toán và thiết lập các biến số. Đối với kỳ thi THPT Quốc Gia, cấu trúc câu này chiếm khoảng 0.4 điểm.\n\nEm hãy thử làm và chụp ảnh kết quả gửi lên, hoặc nhắn lại đề bài để tôi cùng giải với em nhé!`
         ];
-        
+
         const randomIndex = Math.floor(Math.random() * responses.length);
         resolve(responses[randomIndex]);
       }, 1200);

@@ -58,17 +58,9 @@ export function convertMessagesToGemini(messages: any[]) {
   return body;
 }
 
-// Map general model name to direct Gemini model API name
 export function mapModelToGemini(modelName: string): string {
-  if (!modelName) return 'gemini-flash-latest';
-  const modelLower = modelName.toLowerCase();
-  if (modelLower.includes('pro')) {
-    return 'gemini-pro-latest';
-  }
-  if (modelLower.includes('2.0')) {
-    return 'gemini-2.0-flash';
-  }
-  return 'gemini-flash-latest';
+  // Always return gemini-3.1-flash-lite as the highly available stable model
+  return 'gemini-3.1-flash-lite';
 }
 
 // Call Gemini API directly (non-streaming)

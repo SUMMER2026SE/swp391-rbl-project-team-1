@@ -4,7 +4,8 @@ import mammoth from 'mammoth';
 import { createRequire } from 'module';
 
 const require = createRequire(import.meta.url);
-const pdfParse = require('pdf-parse');
+const pdfParseModule = require('pdf-parse');
+const pdfParse = typeof pdfParseModule === 'function' ? pdfParseModule : (pdfParseModule.default || pdfParseModule);
 
 /**
  * Extract text content from document file based on file extension
@@ -21,8 +22,16 @@ export async function extractTextFromFile(filePath: string, ext: string): Promis
       return fs.readFileSync(filePath, 'utf-8');
     } else if (extension === 'pdf') {
       const dataBuffer = fs.readFileSync(filePath);
-      const data = await pdfParse(dataBuffer);
-      return data.text || '';
+      let text = '';
+      if (typeof pdfParse === 'function') {
+        const data = await pdfParse(dataBuffer);
+        text = data.text || '';
+      } else if (pdfParse && pdfParse.PDFParse) {
+        const parser = new pdfParse.PDFParse({ data: dataBuffer });
+        const parsed = await parser.getText();
+        text = parsed.text || '';
+      }
+      return text;
     } else if (extension === 'docx') {
       const result = await mammoth.extractRawText({ path: filePath });
       return result.value || '';

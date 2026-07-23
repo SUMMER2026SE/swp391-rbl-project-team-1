@@ -40,6 +40,131 @@ const FileIcon = () => (
   </svg>
 );
 
+function getSubjectTranscript(title, courseTitle) {
+  const fullTitle = (title + ' ' + courseTitle).toLowerCase();
+  
+  if (fullTitle.includes('vật lý') || fullTitle.includes('vật lí') || fullTitle.includes(' lý') || fullTitle.includes(' lí')) {
+    return [
+      { timeSeconds: 0, text: "Chào mừng các em học sinh đến với khóa học: Lấy gốc Vật lý trong 10 ngày.", text_en: "Welcome students to the course: Mastering Physics in 10 Days." },
+      { timeSeconds: 15, text: `Hôm nay chúng ta sẽ bước vào: "${title || 'Bài học mới'}"`, text_en: `Today we will begin: "${title || 'New Lesson'}"` },
+      { timeSeconds: 28, text: "Các em hãy chuẩn bị kết nối, nhắn tin vào nhóm Zalo và mình bắt đầu buổi học nhé.", text_en: "Please connect, message in the Zalo group and let's get started with our lesson." },
+      { timeSeconds: 45, text: "Hãy nhớ ghi chép đầy đủ các định luật, công thức quan trọng vào sổ tay để tự ôn tập.", text_en: "Remember to take full notes of laws and important formulas in your notebook for self-study." },
+      { timeSeconds: 65, text: "Và toàn bộ nội dung kiến thức lý thuyết trọng tâm này, mình sẽ học trong buổi ngày hôm nay.", text_en: "And all of this core theoretical knowledge, we will study in today's session." },
+      { timeSeconds: 90, text: "Đầu tiên, chúng ta sẽ khảo sát chu kỳ và tần số của dao động điều hòa cơ bản.", text_en: "First, we will examine the period and frequency of basic harmonic oscillation." },
+      { timeSeconds: 115, text: "Công thức tính tần số góc omega bằng căn bậc hai của k chia m đối với con lắc lò xo.", text_en: "The formula for angular frequency omega is the square root of k over m for a spring pendulum." },
+      { timeSeconds: 140, text: "Hãy lưu ý các đại lượng như li độ x, biên độ A và pha ban đầu phi.", text_en: "Please note the quantities such as displacement x, amplitude A and initial phase phi." },
+      { timeSeconds: 165, text: "Đề thi trắc nghiệm THPT Quốc gia thường ra các câu nhận biết về pha dao động.", text_en: "National High School Exam multiple choice questions often ask about the phase of oscillation." },
+      { timeSeconds: 190, text: "Bước sang phần tiếp theo, chúng ta cùng phân tích đồ thị dao động hình sin.", text_en: "Moving on to the next part, let's analyze the sinusoidal oscillation graph together." },
+      { timeSeconds: 215, text: "Các điểm cực đại và cực tiểu trên đồ thị tương ứng với vị trí biên dương và biên âm.", text_en: "Maximum and minimum points on the graph correspond to positive and negative amplitudes." },
+      { timeSeconds: 240, text: "Tiếp theo là công thức tính vận tốc cực đại v max bằng omega nhân với biên độ A.", text_en: "Next is the formula to calculate maximum velocity v max equal to omega times amplitude A." },
+      { timeSeconds: 270, text: "Gia tốc a lệch pha pi so với li độ x và có độ lớn cực đại tại vị trí biên.", text_en: "Acceleration a is pi out of phase with displacement x and has maximum magnitude at boundaries." },
+      { timeSeconds: 300, text: "Các em cần chú ý đơn vị đo của các đại lượng: mét, radian trên giây và giây.", text_en: "You need to pay attention to the units of quantities: meters, radians per second, and seconds." },
+      { timeSeconds: 330, text: "Bây giờ chúng ta sẽ chuyển sang một số ví dụ minh họa thực tế để áp dụng công thức.", text_en: "Now we will move on to some practical illustrative examples to apply the formulas." },
+      { timeSeconds: 360, text: "Ví dụ một: Một con lắc lò xo dao động với biên độ bốn cm và tần số hai Hz.", text_en: "Example one: A spring pendulum oscillates with amplitude of 4 cm and frequency of 2 Hz." },
+      { timeSeconds: 390, text: "Hãy tính chu kỳ dao động và tốc độ cực đại của vật nhỏ trong quá trình dao động.", text_en: "Calculate the oscillation period and maximum speed of the small object during oscillation." },
+      { timeSeconds: 420, text: "Chu kỳ T bằng một chia f, tức là một phần hai bằng không phẩy năm giây.", text_en: "The period T is 1 over f, which is one half, equal to 0.5 seconds." },
+      { timeSeconds: 450, text: "Tốc độ cực đại v max bằng omega nhân A, bằng hai pi nhân f nhân A, tức là mười sáu pi.", text_en: "Maximum speed v max equals omega times A, which is 2 pi times f times A, or 16 pi." },
+      { timeSeconds: 480, text: "Các bài tập ở mức độ thông hiểu này chỉ cần áp dụng trực tiếp công thức là ra đáp án.", text_en: "These comprehensive level exercises only require direct application of formulas to get results." },
+      { timeSeconds: 510, text: "Hãy chú ý không để bị nhầm lẫn giữa đơn vị cm và mét khi tính toán năng lượng.", text_en: "Be careful not to confuse cm and meter units when calculating energy." },
+      { timeSeconds: 540, text: "Tiếp theo, chúng ta sẽ bàn về phương pháp loại trừ đáp án nhiễu trong đề thi tốt nghiệp.", text_en: "Next, we will discuss methods to eliminate distractor options in final exam papers." },
+      { timeSeconds: 570, text: "Các đáp án sai thường có dấu âm hoặc sai lệch về hệ số pi.", text_en: "Incorrect answers often have negative signs or errors in the pi coefficient." },
+      { timeSeconds: 600, text: "Bài học hôm nay đến đây là kết thúc, các em hãy tải file bài tập tự luyện bên dưới nhé.", text_en: "Today's lesson ends here, please download the self-practice file below." },
+      { timeSeconds: 630, text: "Chúc các em học tốt và hẹn gặp lại các em trong bài học tiếp theo.", text_en: "Wish you all good study results and see you in the next lesson." }
+    ];
+  }
+  
+  if (fullTitle.includes('toán') || fullTitle.includes('toan')) {
+    return [
+      { timeSeconds: 0, text: "Chào mừng các em học sinh đến với khóa học: Chinh phục điểm 9+ môn Toán.", text_en: "Welcome students to the course: Conquering 9+ score in Mathematics." },
+      { timeSeconds: 15, text: `Hôm nay chúng ta sẽ bắt đầu: "${title || 'Bài học mới'}"`, text_en: `Today we will start: "${title || 'New Lesson'}"` },
+      { timeSeconds: 30, text: "Các em hãy ghi chép cẩn thận phương pháp vẽ bảng biến thiên và các điểm cực trị.", text_en: "Please take careful notes of how to draw the variation table and find extreme points." },
+      { timeSeconds: 50, text: "Chú ý điều kiện xác định của hàm số phân thức và hàm số chứa căn.", text_en: "Pay attention to the domain conditions of fractional functions and radical functions." },
+      { timeSeconds: 75, text: "Bây giờ chúng ta sẽ cùng áp dụng định lý Fermat về điều kiện cần của cực trị.", text_en: "Now we will apply Fermat's theorem on the necessary conditions for local extrema." },
+      { timeSeconds: 100, text: "Đạo hàm f phẩy x triệt tiêu hoặc không xác định tại các điểm nghi ngờ.", text_en: "The derivative f prime x vanishes or is undefined at suspected points." },
+      { timeSeconds: 130, text: "Tiếp theo, ta lập bảng biến thiên để xét dấu đạo hàm và kết luận điểm cực đại, cực tiểu.", text_en: "Next, we construct the sign chart of the derivative to conclude local maximum and minimum." },
+      { timeSeconds: 160, text: "Đối với hàm đa thức bậc ba, đồ thị luôn có tâm đối xứng nằm ở điểm uốn.", text_en: "For cubic polynomial functions, the graph always has a point of inflection as symmetry center." },
+      { timeSeconds: 190, text: "Hãy lưu ý kỹ công thức tính nhanh khoảng cách giữa hai điểm cực trị của đồ thị hàm số.", text_en: "Please note the shortcut formula to compute the distance between two extreme points." },
+      { timeSeconds: 220, text: "Bây giờ chúng ta sẽ giải quyết câu hỏi tích phân bằng phương pháp đổi biến số.", text_en: "Now we will solve the integration question using the substitution method." },
+      { timeSeconds: 250, text: "Đặt t bằng biểu thức chứa căn hoặc nằm trong dấu ngoặc đơn của hàm số.", text_en: "Set t equal to the radical expression or expression inside parentheses." },
+      { timeSeconds: 280, text: "Nhớ thực hiện bước đổi cận tích phân, nếu không kết quả tính toán sẽ bị sai.", text_en: "Remember to change the integration limits, otherwise the result will be incorrect." },
+      { timeSeconds: 310, text: "Đạo hàm dt tương ứng với biểu thức ngoài dấu tích phân ban đầu.", text_en: "The derivative dt corresponds to the expression outside the original integral." },
+      { timeSeconds: 340, text: "Phương pháp Casio có thể giúp chúng ta kiểm tra nhanh đáp án trắc nghiệm.", text_en: "The Casio calculator method can help us quickly double check multiple-choice answers." },
+      { timeSeconds: 370, text: "Gán giá trị tích phân cho biến A trong máy tính và so sánh với các lựa chọn.", text_en: "Assign the integral value to variable A in calculator and compare with options." },
+      { timeSeconds: 400, text: "Tiếp theo là phần hình học tọa độ không gian Oxyz cực kỳ quan trọng.", text_en: "Next is the extremely important space coordinate geometry Oxyz section." },
+      { timeSeconds: 430, text: "Cách viết phương trình mặt phẳng đi qua một điểm và vuông góc với một đường thẳng.", text_en: "How to write the equation of a plane passing through a point and perpendicular to a line." },
+      { timeSeconds: 460, text: "Vectơ chỉ phương của đường thẳng chính là vectơ pháp tuyến của mặt phẳng cần tìm.", text_en: "The direction vector of the line is the normal vector of the target plane." },
+      { timeSeconds: 490, text: "Hãy chú ý hệ số tự do D khi viết phương trình tổng quát của mặt phẳng.", text_en: "Please pay attention to the constant D when writing the general plane equation." },
+      { timeSeconds: 520, text: "Chúng ta cùng giải quyết một số câu hỏi vận dụng cao về cực trị hình học Oxyz.", text_en: "Let's solve some high-application questions about Oxyz geometric extrema." },
+      { timeSeconds: 550, text: "Áp dụng bất đẳng thức tam giác hoặc hình chiếu vuông góc để tìm giá trị nhỏ nhất.", text_en: "Apply triangle inequalities or orthogonal projections to find the minimum value." },
+      { timeSeconds: 580, text: "Chúc các em ôn tập thật tốt và làm chủ các chuyên đề toán thi đại học.", text_en: "Wish you all good review and master the university exam math topics." }
+    ];
+  }
+  
+  if (fullTitle.includes('lịch sử') || fullTitle.includes('lich su') || fullTitle.includes(' sử') || fullTitle.includes(' su')) {
+    return [
+      { timeSeconds: 0, text: "Chào mừng các em học sinh đến với khóa học: Ôn thi THPT Quốc gia môn Lịch sử.", text_en: "Welcome students to the course: National Exam Prep for History." },
+      { timeSeconds: 15, text: `Hôm nay chúng ta sẽ bắt đầu ôn tập chuyên đề: "${title || 'Bài học mới'}"`, text_en: `Today we will review the topic: "${title || 'New Lesson'}"` },
+      { timeSeconds: 30, text: "Các em hãy nắm chắc dòng thời gian và các sự kiện lịch sử cốt lõi trong sách giáo khoa.", text_en: "Please master the timeline and core historical events in your textbook." },
+      { timeSeconds: 50, text: "Lưu ý bối cảnh quốc tế sau Chiến tranh thế giới thứ hai và sự hình thành trật tự hai cực Ialta.", text_en: "Note the post-WWII international context and the formation of Yalta bipolar order." },
+      { timeSeconds: 75, text: "Hội nghị Ialta diễn ra từ ngày mùng 4 đến ngày 11 tháng 2 năm 1945.", text_en: "The Yalta Conference took place from February 4 to 11, 1945." },
+      { timeSeconds: 100, text: "Ba cường quốc Liên Xô, Mỹ, Anh đã thông qua nhiều quyết định quan trọng về phân chia khu vực ảnh hưởng.", text_en: "The three powers USSR, USA, UK passed key decisions on dividing spheres of influence." },
+      { timeSeconds: 130, text: "Sự thành lập Tổ chức Liên Hợp Quốc nhằm duy trì hòa bình và an ninh thế giới.", text_en: "The establishment of the United Nations to maintain world peace and security." },
+      { timeSeconds: 160, text: "Năm nguyên tắc hoạt động cơ bản của Liên Hợp Quốc là nền tảng cho quan hệ quốc tế.", text_en: "The five basic principles of UN are the foundation for international relations." },
+      { timeSeconds: 190, text: "Chiến tranh lạnh kéo dài từ năm 1947 đến năm 1989 đã chi phối sâu sắc quan hệ thế giới.", text_en: "The Cold War spanning 1947-1989 deeply dominated global relations." },
+      { timeSeconds: 220, text: "Sự đối đầu căng thẳng giữa hai khối quân sự NATO do Mỹ đứng đầu và Tổ chức Hiệp ước Vác-sa-va.", text_en: "Tense confrontation between NATO led by USA and the Warsaw Pact organization." },
+      { timeSeconds: 250, text: "Chuyển sang lịch sử Việt Nam giai đoạn từ năm 1919 đến năm 1930.", text_en: "Moving on to Vietnam History during the period from 1919 to 1930." },
+      { timeSeconds: 280, text: "Cuộc khai thác thuộc địa lần thứ hai của thực dân Pháp đã làm biến đổi sâu sắc cơ cấu xã hội.", text_en: "The second colonial exploitation by French colonizers deeply changed social structure." },
+      { timeSeconds: 310, text: "Giai cấp công nhân Việt Nam lớn mạnh nhanh chóng và vươn lên giành quyền lãnh đạo cách mạng.", text_en: "Vietnamese working class grew rapidly and rose to lead the revolution." },
+      { timeSeconds: 340, text: "Hoạt động tìm đường cứu nước của Nguyễn Ái Quốc từ năm 1911 đến năm 1920.", text_en: "Nguyen Ai Quoc's journey to find path for national salvation from 1911 to 1920." },
+      { timeSeconds: 370, text: "Người đã tìm ra con đường cứu nước đúng đắn cho dân tộc: con đường cách mạng vô sản.", text_en: "He found the correct path of salvation for the nation: proletarian revolution." },
+      { timeSeconds: 400, text: "Sự thành lập Đảng Cộng sản Việt Nam vào đầu năm 1930 là bước ngoặt vĩ đại.", text_en: "The establishment of Communist Party of Vietnam in early 1930 was a great turning point." },
+      { timeSeconds: 430, text: "Hội nghị thành lập Đảng diễn ra tại Hương Cảng dưới sự chủ trì của Nguyễn Ái Quốc.", text_en: "The Party unification conference took place in Hong Kong presided by Nguyen Ai Quoc." },
+      { timeSeconds: 460, text: "Cương lĩnh chính trị đầu tiên do Nguyễn Ái Quốc soạn thảo là một cương lĩnh giải phóng dân tộc đúng đắn.", text_en: "The first Political Platform by Nguyen Ai Quoc was a correct national liberation platform." },
+      { timeSeconds: 490, text: "Tiếp theo, ta nghiên cứu phong trào cách mạng 1930-1931 với đỉnh cao Xô viết Nghệ - Tĩnh.", text_en: "Next, we study the 1930-1931 revolutionary movement peaking with Nghe-Tinh Soviets." },
+      { timeSeconds: 520, text: "Đây là cuộc tổng diễn tập đầu tiên chuẩn bị cho Cách mạng tháng Tám năm 1945.", text_en: "This was the first general rehearsal preparing for the August Revolution in 1945." },
+      { timeSeconds: 550, text: "Hãy lưu ý so sánh Luận cương chính trị tháng 10 năm 1930 với Cương lĩnh tháng 2.", text_en: "Please compare the October 1930 Political Thesis with the February Platform." },
+      { timeSeconds: 580, text: "Bài ôn tập hôm nay kết thúc, các em nhớ làm bài trắc nghiệm luyện tập nhé.", text_en: "Today's review ends, remember to do the practice multiple-choice test." }
+    ];
+  }
+  
+  if (fullTitle.includes('tiếng anh') || fullTitle.includes('tieng anh') || fullTitle.includes(' anh') || fullTitle.includes('english')) {
+    return [
+      { timeSeconds: 0, text: "Welcome students to our English prep class for the High School graduation exam.", text_en: "Welcome students to our English prep class for the High School graduation exam." },
+      { timeSeconds: 15, text: `Today we are going to study the topic: "${title || 'New Lesson'}"`, text_en: `Today we are going to study the topic: "${title || 'New Lesson'}"` },
+      { timeSeconds: 30, text: "Please pay close attention to grammar structures and vocabulary keywords.", text_en: "Please pay close attention to grammar structures and vocabulary keywords." },
+      { timeSeconds: 50, text: "First, let us review the twelve English verb tenses, starting with Present Perfect.", text_en: "First, let us review the twelve English verb tenses, starting with Present Perfect." },
+      { timeSeconds: 75, text: "Remember the formula: subject plus have or has plus past participle verb.", text_en: "Remember the formula: subject plus have or has plus past participle verb." },
+      { timeSeconds: 100, text: "This tense describes actions that started in the past and continue to the present.", text_en: "This tense describes actions that started in the past and continue to the present." },
+      { timeSeconds: 130, text: "Common signal words include: since, for, already, yet, ever, and never.", text_en: "Common signal words include: since, for, already, yet, ever, and never." },
+      { timeSeconds: 160, text: "Next, we will focus on relative clauses and relative pronouns.", text_en: "Next, we will focus on relative clauses and relative pronouns." },
+      { timeSeconds: 190, text: "Use 'who' for people as subjects, and 'whom' for people as objects.", text_en: "Use 'who' for people as subjects, and 'whom' for people as objects." },
+      { timeSeconds: 220, text: "Use 'which' for things, and 'that' can replace both in defining clauses.", text_en: "Use 'which' for things, and 'that' can replace both in defining clauses." },
+      { timeSeconds: 250, text: "Be careful with non-defining relative clauses: you must use commas and cannot use 'that'.", text_en: "Be careful with non-defining relative clauses: you must use commas and cannot use 'that'." },
+      { timeSeconds: 280, text: "Now let's practice active and passive voice transformations.", text_en: "Now let's practice active and passive voice transformations." },
+      { timeSeconds: 310, text: "Move the object of the active sentence to become the subject of the passive sentence.", text_en: "Move the object of the active sentence to become the subject of the passive sentence." },
+      { timeSeconds: 340, text: "Add the verb 'to be' conjugated in the same tense, followed by past participle.", text_en: "Add the verb 'to be' conjugated in the same tense, followed by past participle." },
+      { timeSeconds: 370, text: "Let us examine some common multiple-choice questions from official exam papers.", text_en: "Let us examine some common multiple-choice questions from official exam papers." },
+      { timeSeconds: 400, text: "Look at the sentence completion questions on vocabulary and collocations.", text_en: "Look at the sentence completion questions on vocabulary and collocations." },
+      { timeSeconds: 430, text: "You need to memorize phrasal verbs like 'take off', 'look after', 'put out'.", text_en: "You need to memorize phrasal verbs like 'take off', 'look after', 'put out'." },
+      { timeSeconds: 460, text: "Finally, the reading comprehension section requires skimming and scanning skills.", text_en: "Finally, the reading comprehension section requires skimming and scanning skills." },
+      { timeSeconds: 490, text: "Read the questions first, highlight key terms, then search for them in the text.", text_en: "Read the questions first, highlight key terms, then search for them in the text." },
+      { timeSeconds: 520, text: "Practice daily to build speed and accuracy for your final exam.", text_en: "Practice daily to build speed and accuracy for your final exam." },
+      { timeSeconds: 550, text: "Thank you for joining, please download the vocabulary list below.", text_en: "Thank you for joining, please download the vocabulary list below." },
+      { timeSeconds: 580, text: "Good luck with your study and see you in our next video lesson.", text_en: "Good luck with your study and see you in our next video lesson." }
+    ];
+  }
+
+  // General Fallback
+  return [
+    { timeSeconds: 0, text: `Chào mừng các em học sinh đến với bài giảng: "${title}" ngày hôm nay.`, text_en: `Welcome students to today's lecture: "${title}".` },
+    { timeSeconds: 15, text: "Chúng ta sẽ đi vào phân tích sâu và làm quen với các khái niệm cốt lõi của chuyên đề này.", text_en: "We will go into deep analysis and get familiar with the core concepts of this topic." },
+    { timeSeconds: 30, text: "Các em hãy nhắn vào nhóm học tập để nhận tài liệu rồi chúng ta cùng bắt đầu bài học nhé.", text_en: "Please message in the study group to get documents, then let's start the lesson." },
+    { timeSeconds: 45, text: "Hãy ghi chép đầy đủ công thức và ví dụ minh họa đặc biệt này vào sổ tay để tự ôn tập.", text_en: "Take complete notes of formulas and this special example in your notebook for self-review." },
+    { timeSeconds: 70, text: "Nội dung bài học tiếp theo sẽ đi sâu vào thực hành giải các dạng bài tập thực chiến.", text_en: "The next lesson content will go deep into practicing combat-ready exercises." },
+    { timeSeconds: 100, text: "Chúc các em tập trung học tốt và hẹn gặp lại các em trong các video sau.", text_en: "Wish you a focused study session and see you in the following videos." }
+  ];
+}
+
 export default function LearningPage({ 
   courseId, 
   lessonId, 
@@ -50,6 +175,7 @@ export default function LearningPage({
 }) {
   const [course, setCourse] = useState(null);
   const [currentLesson, setCurrentLesson] = useState(null);
+  const [dynamicTranscript, setDynamicTranscript] = useState(null);
   const [materials, setMaterials] = useState([]);
   const [discussions, setDiscussions] = useState([]);
   const [activeTab, setActiveTab] = useState('transcript'); // transcript = Tóm tắt video, exercise = Flashcard ôn tập
@@ -79,6 +205,7 @@ export default function LearningPage({
   // Modal displays
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [completionOpen, setCompletionOpen] = useState(false);
+  const [languageMode, setLanguageMode] = useState('VI');
 
   // 1. Fetch Course details from API
   useEffect(() => {
@@ -132,6 +259,38 @@ export default function LearningPage({
       setShowManualAdd(false);
     }
   }, [currentLesson]);
+
+  // Load dynamic transcript from API
+  useEffect(() => {
+    if (!currentLesson?.id) return;
+    
+    if (currentLesson.content) {
+      try {
+        const parsed = JSON.parse(currentLesson.content);
+        if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].timeSeconds !== undefined) {
+          setDynamicTranscript(parsed);
+          return;
+        }
+      } catch (e) {
+        // Not JSON
+      }
+    }
+
+    const loadDynamicTranscript = async () => {
+      try {
+        const response = await api.getLessonTranscript(currentLesson.id);
+        if (response && response.success && response.data) {
+          setDynamicTranscript(response.data);
+        } else {
+          setDynamicTranscript(null);
+        }
+      } catch (err) {
+        console.warn('Failed to load dynamic transcript:', err);
+        setDynamicTranscript(null);
+      }
+    };
+    loadDynamicTranscript();
+  }, [currentLesson?.id]);
 
   const totalLessonsCount = allLessons.length;
 
@@ -378,13 +537,31 @@ Nội dung bài học: "${currentLesson.content || 'Khái niệm và cách giả
   };
 
 
-  // Mock transcripts and quizzes for complete demonstration
-  const mockTranscript = [
-    { timeSeconds: 0, text: "Chào mừng các em học sinh đến với bài giảng luyện thi ngày hôm nay.", text_en: "Welcome students to today's prep lecture." },
-    { timeSeconds: 12, text: "Chúng ta sẽ phân tích sâu các dạng toán trắc nghiệm trọng tâm thi THPT Quốc Gia.", text_en: "We will deeply analyze core multiple-choice math formats in the high school graduation exam." },
-    { timeSeconds: 28, text: "Hãy lưu ý kỹ phương pháp giải nhanh và cách loại trừ đáp án nhiễu cực nhanh.", text_en: "Please carefully note the fast-solving method and how to eliminate distractors very quickly." },
-    { timeSeconds: 45, text: "Ghi chép công thức đặc biệt này vào sổ tay để tự tin làm bài nhé.", text_en: "Write this special formula in your notebook to solve papers confidently." }
-  ];
+  // Dynamic transcripts and quizzes for complete demonstration
+  const currentTranscript = useMemo(() => {
+    if (dynamicTranscript && dynamicTranscript.length > 0) {
+      return dynamicTranscript;
+    }
+    if (currentLesson?.transcript && currentLesson.transcript.length > 0) {
+      return currentLesson.transcript;
+    }
+    
+    // Parse JSON if stored in content
+    if (currentLesson?.content) {
+      try {
+        const parsed = JSON.parse(currentLesson.content);
+        if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].timeSeconds !== undefined) {
+          return parsed;
+        }
+      } catch (e) {
+        // Not JSON
+      }
+    }
+    
+    const title = currentLesson?.title || 'Bài học mới';
+    const courseTitle = course?.title || '';
+    return getSubjectTranscript(title, courseTitle);
+  }, [currentLesson, course, dynamicTranscript]);
 
   const mockQuizzes = [
     {
@@ -584,6 +761,8 @@ Nội dung bài học: "${currentLesson.content || 'Khái niệm và cách giả
                 nextLessonName={nextLessonName}
                 onEnded={handleVideoEnded}
                 onTimeUpdate={(t) => setVideoTime(t)}
+                transcript={currentTranscript}
+                languageMode={languageMode}
                 chapters={[
                   { title: "Phần 1: Giới thiệu chuyên đề", timeSeconds: 0 },
                   { title: "Phần 2: Phương pháp giải nhanh", timeSeconds: 28 }
@@ -656,7 +835,7 @@ Nội dung bài học: "${currentLesson.content || 'Khái niệm và cách giả
                   transition: 'all 0.2s'
                 }}
               >
-                📄 Tóm tắt video
+                📝 Ghi chú bài học
               </button>
               <button
                 type="button"
@@ -683,29 +862,11 @@ Nội dung bài học: "${currentLesson.content || 'Khái niệm và cách giả
             <div className="interactive-tabs-content" style={{ padding: '24px' }}>
               {activeTab === 'transcript' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                  {/* Split Layout: Transcript Left, Notes & Download Right */}
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: '24px' }} className="transcript-split-layout">
-                    <div style={{ borderRight: '1px solid #e2e8f0', paddingRight: '20px' }} className="transcript-left-pane">
-                      <h4 style={{ fontSize: '14.5px', fontWeight: '800', marginBottom: '16px', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <span>📄</span> Phụ đề & Nội dung bài học đồng bộ
-                      </h4>
-                      <TranscriptTab 
-                        transcript={currentLesson.transcript || mockTranscript} 
-                        videoTime={videoTime} 
-                        onSeek={handleSeek}
-                        onAskAI={handleAskAIFromTranscript}
-                      />
-                    </div>
-                    
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }} className="transcript-right-pane">
-                      {/* Real timestamped notes form and cards */}
-                      <NotePanel 
-                        lesson={currentLesson} 
-                        videoTime={videoTime} 
-                        onSeek={handleSeek} 
-                      />
-                    </div>
-                  </div>
+                  <NotePanel 
+                    lesson={currentLesson} 
+                    videoTime={videoTime} 
+                    onSeek={handleSeek} 
+                  />
                 </div>
               )}
 
