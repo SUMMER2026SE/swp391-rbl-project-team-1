@@ -842,16 +842,41 @@ export default function LandingPage({
 
   const handleLeadSubmit = async (e) => {
     e.preventDefault();
-    if (!leadName.trim()) {
+
+    const cleanName = leadName.trim();
+    const cleanEmail = leadEmail.trim();
+    const cleanPhone = leadPhone.trim().replace(/\s+/g, '');
+
+    // 1. Validate Họ và tên (Tối thiểu 2 ký tự, chỉ chứa chữ cái và khoảng trắng, không chứa số/ký tự đặc biệt)
+    if (!cleanName) {
       toast('Vui lòng nhập họ và tên!', 'warning');
       return;
     }
-    if (!leadEmail.trim()) {
+    const nameRegex = /^[a-zA-ZÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚĂĐĨŨƠàáâãèéêìíòóôõùúăđĩũơƯĂẠẢẤẦẨẪẬẮẰẲẴẶẸẺẼỀỀỂưăạảấầẩẫậắằẳẵặẹẻẽềềểỄỆỈỊỌỎỐỒỔỖỘỚỜỞỠỢỤỦỨỪễệỉịọỏốồổỗộớờởỡợụủứừỬỮỰỲỴÝỶỸửữựỳỵỷỹ\s']+$/;
+    if (cleanName.length < 2 || !nameRegex.test(cleanName)) {
+      toast('Họ và tên không hợp lệ! Vui lòng nhập tên đầy đủ không chứa chữ số hoặc ký tự đặc biệt.', 'warning');
+      return;
+    }
+
+    // 2. Validate Email (Đúng định dạng chuẩn email)
+    if (!cleanEmail) {
       toast('Vui lòng nhập email!', 'warning');
       return;
     }
-    if (!leadPhone.trim()) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+    if (!emailRegex.test(cleanEmail)) {
+      toast('Địa chỉ Email không hợp lệ! (Ví dụ chuẩn: nguyen@gmail.com)', 'warning');
+      return;
+    }
+
+    // 3. Validate Số điện thoại (Định dạng số điện thoại Việt Nam gồm 10 chữ số)
+    if (!cleanPhone) {
       toast('Vui lòng nhập số điện thoại!', 'warning');
+      return;
+    }
+    const phoneRegex = /^(0|\+?84)[35789][0-9]{8}$/;
+    if (!phoneRegex.test(cleanPhone)) {
+      toast('Số điện thoại không hợp lệ! Vui lòng nhập số điện thoại Việt Nam 10 chữ số (Ví dụ: 0912345678).', 'warning');
       return;
     }
 
