@@ -111,7 +111,8 @@ import {
   getPosts, getPostById, createPost, deletePost, togglePinPost, reactPost, updatePost,
   getComments, createComment, acceptCommentSolution, reactComment,
   getStudyGroups, createStudyGroup, joinStudyGroup, leaveStudyGroup, deleteStudyGroup,
-  getGroupAnnouncements, createGroupAnnouncement,
+  getGroupAnnouncements, createGroupAnnouncement, getStudyGroupMessages, sendStudyGroupMessage,
+  getStudyGroupMembers, approveJoinRequest, rejectJoinRequest,
   getLeaderboard as getForumLeaderboard, getUserGamificationProfile,
   downloadResource, createReport, getReports, resolveReport, toggleSavePost
 } from './controllers/forum.js';
@@ -491,6 +492,11 @@ app.post('/forum/study-groups/:id/leave', authenticateJWT, leaveStudyGroup);
 app.delete('/forum/study-groups/:id', authenticateJWT, deleteStudyGroup);
 app.get('/forum/study-groups/:id/announcements', authenticateJWT, getGroupAnnouncements);
 app.post('/forum/study-groups/:id/announcements', authenticateJWT, createGroupAnnouncement);
+app.get('/forum/study-groups/:id/messages', optionalAuthenticateJWT, getStudyGroupMessages);
+app.post('/forum/study-groups/:id/messages', authenticateJWT, sendStudyGroupMessage);
+app.get('/forum/study-groups/:id/members', optionalAuthenticateJWT, getStudyGroupMembers);
+app.post('/forum/study-groups/:id/requests/:userId/approve', authenticateJWT, approveJoinRequest);
+app.post('/forum/study-groups/:id/requests/:userId/reject', authenticateJWT, rejectJoinRequest);
 
 app.get('/forum/leaderboard', getForumLeaderboard);
 app.get('/forum/gamification/profile', authenticateJWT, getUserGamificationProfile);

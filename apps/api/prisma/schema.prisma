@@ -79,6 +79,7 @@ model User {
   warningsReceived     Warning[]             @relation("UserWarnings")
   weaknessMindmaps     WeaknessMindmap[]
   moderatedCategories  ForumCategory[]       @relation("CategoryModerators")
+  studyGroupChatMessages StudyGroupChatMessage[]
 }
 
 model Student {
@@ -535,14 +536,16 @@ model StudyGroup {
   announcements GroupAnnouncement[]
   creator       User                @relation("GroupCreator", fields: [creatorId], references: [id])
   members       StudyGroupMember[]
+  chatMessages  StudyGroupChatMessage[]
 }
 
 model StudyGroupMember {
-  id       Int        @id @default(autoincrement())
+  id       Int          @id @default(autoincrement())
   groupId  Int
   userId   Int
-  role     GroupRole  @default(MEMBER)
-  joinedAt DateTime   @default(now())
+  role     GroupRole    @default(MEMBER)
+  status   MemberStatus @default(ACCEPTED)
+  joinedAt DateTime     @default(now())
   group    StudyGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
   user     User       @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -1462,6 +1465,12 @@ enum GroupRole {
   MEMBER
 }
 
+enum MemberStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
 enum ResourceStatus {
   PENDING
   APPROVED
@@ -1577,3 +1586,18 @@ enum ImportStatus {
   COMPLETED
   FAILED
 }
+
+model StudyGroupChatMessage {
+  id        Int        @id @default(autoincrement())
+  groupId   Int
+  userId    Int
+  role      String
+  content   String
+  createdAt DateTime   @default(now())
+  
+  group     StudyGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("study_group_chat_messages")
+}
+

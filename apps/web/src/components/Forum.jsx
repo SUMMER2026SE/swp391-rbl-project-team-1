@@ -6,7 +6,7 @@ import {
   HiChat, HiHeart, HiSearch, HiPlus, HiArrowLeft, HiUser, HiTag,
   HiCheckCircle, HiDownload, HiUserGroup, HiStar, HiTrendingUp,
   HiSparkles, HiShieldCheck, HiFlag, HiRefresh, HiHome,
-  HiChatAlt, HiBookmark, HiShare
+  HiChatAlt, HiBookmark, HiOutlineBookmark, HiShare
 } from 'react-icons/hi';
 import { HiTrophy } from 'react-icons/hi2';
 import { io } from 'socket.io-client';
@@ -62,7 +62,6 @@ export default function Forum({ currentUser }) {
   const [selectedGroup, setSelectedGroup] = useState(() => {
     const saved = localStorage.getItem('forum_active_group');
     if (saved) {
-      localStorage.removeItem('forum_active_group');
       try {
         return JSON.parse(saved);
       } catch (e) {
@@ -71,7 +70,9 @@ export default function Forum({ currentUser }) {
     }
     return null;
   });
-  const [groupTab, setGroupTab] = useState('announcements'); // announcements, discussion, chat, members
+  const [groupTab, setGroupTab] = useState(() => {
+    return localStorage.getItem('forum_active_group_tab') || 'announcements';
+  });
   
   // API State data
   const [posts, setPosts] = useState([]);
@@ -83,9 +84,28 @@ export default function Forum({ currentUser }) {
   const [groupAnnouncements, setGroupAnnouncements] = useState([]);
   const [groupPosts, setGroupPosts] = useState([]);
   const [groupChatMessages, setGroupChatMessages] = useState([]);
+  const [groupMembers, setGroupMembers] = useState({ accepted: [], pending: [] });
+  const [joiningGroupId, setJoiningGroupId] = useState(null);
   const [sidebarOverlapOffset, setSidebarOverlapOffset] = useState(0);
   const [profileSubTab, setProfileSubTab] = useState('my_posts'); // my_posts, saved_posts
   const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' ? window.innerWidth < 768 : false);
+
+  // Sync selectedGroup to localStorage
+  useEffect(() => {
+    if (selectedGroup) {
+      localStorage.setItem('forum_active_group', JSON.stringify(selectedGroup));
+    } else {
+      localStorage.removeItem('forum_active_group');
+      localStorage.removeItem('forum_active_group_tab');
+    }
+  }, [selectedGroup]);
+
+  // Sync groupTab to localStorage
+  useEffect(() => {
+    if (groupTab) {
+      localStorage.setItem('forum_active_group_tab', groupTab);
+    }
+  }, [groupTab]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -181,6 +201,8 @@ export default function Forum({ currentUser }) {
 
   // Socket setup
   const socketRef = useRef(null);
+  const selectedGroupIdRef = useRef(null);
+  const activeRoomRef = useRef(null);
 
   useEffect(() => {
     // Connect to WebSocket Server
@@ -188,6 +210,11 @@ export default function Forum({ currentUser }) {
 
     socketRef.current.on('connect', () => {
       console.log('[Socket] Connected to server from Forum view');
+      if (selectedGroupIdRef.current) {
+        const room = `group_${selectedGroupIdRef.current}`;
+        socketRef.current.emit('join_room', room);
+        activeRoomRef.current = room;
+      }
     });
 
     // Listen to real-time incoming comments on active thread
@@ -210,14 +237,16 @@ export default function Forum({ currentUser }) {
     });
 
     socketRef.current.on('receive_message', (msg) => {
-      setGroupChatMessages(prev => {
-        if (prev.some(m => m.id === msg.id)) return prev;
-        const mappedMsg = {
-          ...msg,
-          authorName: msg.role === 'ADMIN' ? 'Quản trị viên' : (msg.role === 'TEACHER' ? 'Giáo viên' : 'Học sinh')
-        };
-        return [...prev, mappedMsg];
-      });
+      if (msg.roomId === `group_${selectedGroupIdRef.current}`) {
+        setGroupChatMessages(prev => {
+          if (prev.some(m => m.id === msg.id)) return prev;
+          const mappedMsg = {
+            ...msg,
+            authorName: msg.authorName || (msg.role === 'ADMIN' ? 'Quản trị viên' : (msg.role === 'TEACHER' ? 'Giáo viên' : 'Học sinh'))
+          };
+          return [...prev, mappedMsg];
+        });
+      }
     });
 
     socketRef.current.on('study_group_created', () => {
@@ -228,6 +257,14 @@ export default function Forum({ currentUser }) {
     socketRef.current.on('study_group_deleted', () => {
       console.log('[Socket] Study group deleted, refreshing...');
       fetchStudyGroups();
+    });
+
+    socketRef.current.on('study_group_join_request', (data) => {
+      console.log('[Socket] New study group join request received:', data);
+      fetchStudyGroups();
+      if (selectedGroupIdRef.current === data.groupId) {
+        fetchGroupMembers(data.groupId);
+      }
     });
 
     // Fetch initial categories and study groups
@@ -268,22 +305,36 @@ export default function Forum({ currentUser }) {
 
   // Monitor room join / leave on group selection
   useEffect(() => {
-    if (socketRef.current && selectedGroup) {
-      const room = `group_${selectedGroup.id}`;
-      socketRef.current.emit('join_room', room);
+    selectedGroupIdRef.current = selectedGroup ? selectedGroup.id : null;
+    if (selectedGroup) {
+      if (socketRef.current) {
+        const room = `group_${selectedGroup.id}`;
+        if (activeRoomRef.current && activeRoomRef.current !== room) {
+          socketRef.current.emit('leave_room', activeRoomRef.current);
+        }
+        socketRef.current.emit('join_room', room);
+        activeRoomRef.current = room;
+      }
       fetchGroupAnnouncements(selectedGroup.id);
       fetchGroupPosts(selectedGroup.id);
-      setGroupChatMessages([
-        {
-          id: 'welcome',
-          roomId: room,
-          role: 'SYSTEM',
-          content: `Chào mừng bạn đến với kênh trò chuyện của nhóm "${selectedGroup.name}". Hãy thảo luận lịch học và ôn thi tại đây!`,
-          createdAt: new Date().toISOString()
-        }
-      ]);
+      fetchGroupMessages(selectedGroup.id);
+      fetchGroupMembers(selectedGroup.id);
+    } else {
+      if (socketRef.current && activeRoomRef.current) {
+        socketRef.current.emit('leave_room', activeRoomRef.current);
+        activeRoomRef.current = null;
+      }
+      setGroupChatMessages([]);
     }
   }, [selectedGroup]);
+
+  // Re-fetch group messages & members as soon as currentUser finishes authenticating/loading
+  useEffect(() => {
+    if (currentUser && selectedGroup) {
+      fetchGroupMessages(selectedGroup.id);
+      fetchGroupMembers(selectedGroup.id);
+    }
+  }, [currentUser]);
 
   // =========================================================================
   // API CLIENT CALLS
@@ -343,6 +394,81 @@ export default function Forum({ currentUser }) {
     }
   };
 
+  const fetchGroupMessages = async (groupId) => {
+    if (!groupId) return;
+    try {
+      const res = await api.getStudyGroupMessages(groupId);
+      const messagesList = Array.isArray(res) ? res : (res?.data || res?.messages || []);
+      const welcome = {
+        id: 'welcome',
+        roomId: `group_${groupId}`,
+        role: 'SYSTEM',
+        content: `Chào mừng bạn đến với kênh trò chuyện của nhóm "${selectedGroup?.name || ''}". Hãy thảo luận lịch học và ôn thi tại đây!`,
+        createdAt: new Date().toISOString()
+      };
+      setGroupChatMessages([welcome, ...messagesList]);
+    } catch (err) {
+      console.error('Lỗi tải tin nhắn nhóm:', err);
+    }
+  };
+
+  const fetchGroupMembers = async (groupId) => {
+    if (!groupId) return;
+    try {
+      const res = await api.getStudyGroupMembers(groupId);
+      const membersData = res?.accepted ? res : (res?.data || { accepted: [], pending: [] });
+      setGroupMembers(membersData);
+    } catch (err) {
+      console.error('Lỗi tải thành viên nhóm:', err);
+    }
+  };
+
+  const handleApproveRequest = async (groupId, targetUserId) => {
+    try {
+      const res = await api.approveJoinRequest(groupId, targetUserId);
+      if (res && res.success) {
+        toast('Đã duyệt thành viên gia nhập nhóm thành công!', 'success');
+        fetchGroupMembers(groupId);
+        fetchStudyGroups();
+      }
+    } catch (err) {
+      toast(err.message || 'Lỗi duyệt yêu cầu gia nhập!', 'error');
+    }
+  };
+
+  const handleRejectRequest = async (groupId, targetUserId) => {
+    try {
+      const res = await api.rejectJoinRequest(groupId, targetUserId);
+      if (res && res.success) {
+        toast('Đã từ chối yêu cầu gia nhập nhóm!', 'info');
+        fetchGroupMembers(groupId);
+        fetchStudyGroups();
+      }
+    } catch (err) {
+      toast(err.message || 'Lỗi từ chối yêu cầu gia nhập!', 'error');
+    }
+  };
+
+  const handleJoinStudyGroup = async (groupId, isPrivate) => {
+    setJoiningGroupId(groupId);
+    try {
+      const res = await api.joinStudyGroup(groupId);
+      if (res && res.success) {
+        await fetchStudyGroups();
+        if (isPrivate) {
+          toast('Yêu cầu gia nhập nhóm riêng tư đã được gửi. Vui lòng chờ quản trị viên duyệt!', 'info');
+          alert('Yêu cầu gia nhập nhóm của bạn đã được gửi. Vui lòng chờ quản trị viên duyệt!');
+        } else {
+          toast('Gia nhập nhóm học tập thành công!', 'success');
+        }
+      }
+    } catch (err) {
+      toast(err.message || err.error || 'Lỗi gia nhập nhóm!', 'error');
+    } finally {
+      setJoiningGroupId(null);
+    }
+  };
+
   const handleCreateGroupAnnouncement = async (e) => {
     e.preventDefault();
     if (!newAnnTitle.trim() || !newAnnContent.trim() || submitting) return;
@@ -387,29 +513,37 @@ export default function Forum({ currentUser }) {
     }
   };
 
-  const handleSendChatMessage = (e) => {
+  const handleSendChatMessage = async (e) => {
     e.preventDefault();
-    if (!chatInput.trim()) return;
-    if (socketRef.current && selectedGroup) {
-      const room = `group_${selectedGroup.id}`;
-      socketRef.current.emit('send_message', {
-        roomId: room,
-        studentId: currentUser.id,
-        role: currentUser.role,
-        content: chatInput
-      });
-      // Append locally for immediate feedback
-      const localMsg = {
-        id: Date.now(),
-        roomId: room,
-        studentId: currentUser.id,
-        role: currentUser.role,
-        content: chatInput,
-        authorName: currentUser.fullName || currentUser.name || 'Học sinh',
-        createdAt: new Date().toISOString()
-      };
-      setGroupChatMessages(prev => [...prev, localMsg]);
-      setChatInput('');
+    if (!chatInput.trim() || !selectedGroup) return;
+
+    const textToSend = chatInput.trim();
+    setChatInput('');
+
+    try {
+      // 1. Send via HTTP POST API (saves to DB synchronously and broadcasts via socket)
+      const res = await api.sendStudyGroupMessage(selectedGroup.id, textToSend);
+      if (res && res.success && res.data) {
+        setGroupChatMessages(prev => {
+          if (prev.some(m => m.id === res.data.id)) return prev;
+          return [...prev, res.data];
+        });
+      }
+    } catch (err) {
+      console.error('Lỗi gửi tin nhắn chat:', err);
+      // 2. Fallback emit via socket if HTTP fails
+      if (socketRef.current) {
+        const messageId = `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        const senderName = currentUser?.fullName || currentUser?.name || 'Học sinh';
+        socketRef.current.emit('send_message', {
+          id: messageId,
+          roomId: `group_${selectedGroup.id}`,
+          studentId: currentUser?.id,
+          role: currentUser?.role || 'STUDENT',
+          content: textToSend,
+          authorName: senderName
+        });
+      }
     }
   };
 
@@ -836,11 +970,11 @@ export default function Forum({ currentUser }) {
 
     const applyOptimisticLike = (postObj) => {
       if (!postObj) return null;
-      const isLiked = postObj.userReaction === 'UPVOTE' || postObj.likedBy?.includes(currentUser.id);
+      const isLiked = postObj.userReaction === 'UPVOTE' || postObj.likedBy?.includes(currentUser?.id);
       const newReaction = isLiked ? null : 'UPVOTE';
       const updatedLikedBy = isLiked
-        ? (postObj.likedBy || []).filter(id => id !== currentUser.id)
-        : [...(postObj.likedBy || []), currentUser.id];
+        ? (postObj.likedBy || []).filter(id => id !== currentUser?.id)
+        : [...(postObj.likedBy || []), currentUser?.id];
       const delta = isLiked ? -1 : 1;
       const newLikes = Math.max(0, (postObj.likes || 0) + delta);
       const newReactionCounts = { ...(postObj.reactionCounts || {}) };
@@ -1000,15 +1134,7 @@ export default function Forum({ currentUser }) {
     }
   };
 
-  const handleJoinStudyGroup = async (groupId) => {
-    try {
-      await api.joinStudyGroup(groupId);
-      fetchStudyGroups();
-      toast('Đã tham gia nhóm học tập thành công!', 'success');
-    } catch (err) {
-      toast(err.message || 'Không thể tham gia nhóm!', 'error');
-    }
-  };
+
 
   const handleDownloadFile = async (resourceId, fileUrl) => {
     try {
@@ -1289,7 +1415,7 @@ export default function Forum({ currentUser }) {
                 style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '16px', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '16px', cursor: 'pointer', boxShadow: 'var(--shadow-sm)' }}
               >
                 <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'var(--primary-bg)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', fontWeight: 'bold' }}>
-                  {currentUser.fullName?.substring(0, 2).toUpperCase() || 'EP'}
+                  {currentUser?.fullName?.substring(0, 2).toUpperCase() || 'EP'}
                 </div>
                 <div style={{ flex: 1, background: 'var(--bg-main)', border: '1px solid var(--border)', borderRadius: '24px', padding: '10px 16px', fontSize: '13px', color: 'var(--text-muted)' }}>
                   Bạn có câu hỏi gì cần thảo luận hôm nay? Đăng bài ✍️
@@ -1468,10 +1594,23 @@ export default function Forum({ currentUser }) {
                           <button
                             type="button"
                             onClick={(e) => handleToggleSavePost(e, post.id)}
-                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: post.isSaved ? '#fdcb6e' : 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '4px' }}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              padding: '6px',
+                              transition: 'transform 0.15s ease'
+                            }}
                             title={post.isSaved ? "Bỏ lưu bài viết" : "Lưu bài viết"}
                           >
-                            <HiBookmark style={{ fontSize: '17px', fill: post.isSaved ? '#fdcb6e' : 'none' }} />
+                            {post.isSaved ? (
+                              <HiBookmark style={{ fontSize: '22px', color: '#e67e22' }} />
+                            ) : (
+                              <HiOutlineBookmark style={{ fontSize: '22px', color: '#000000', strokeWidth: 2 }} />
+                            )}
                           </button>
                         </div>
                       </div>
@@ -1898,7 +2037,7 @@ export default function Forum({ currentUser }) {
                       <span style={{ fontSize: '12.5px', fontWeight: 'bold' }}>Mã nhóm: <code style={{ background: 'rgba(0,0,0,0.2)', padding: '2px 6px', borderRadius: '4px' }}>{selectedGroup.id}</code></span>
                       
                       <div style={{ display: 'flex', gap: '8px' }}>
-                        {selectedGroup.creatorId === currentUser.id ? (
+                        {currentUser && selectedGroup.creatorId === currentUser.id ? (
                           <button
                             onClick={() => handleDeleteGroup(selectedGroup.id)}
                             style={{ background: '#ff7675', border: 'none', borderRadius: '8px', color: '#fff', padding: '6px 12px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer' }}
@@ -1931,12 +2070,8 @@ export default function Forum({ currentUser }) {
                           setGroupTab(tab.id);
                           if (tab.id === 'announcements') fetchGroupAnnouncements(selectedGroup.id);
                           if (tab.id === 'discussion') fetchGroupPosts(selectedGroup.id);
-                          if (tab.id === 'chat') {
-                            setGroupChatMessages([]);
-                            if (socketRef.current) {
-                              socketRef.current.emit('join_group_chat', `group_${selectedGroup.id}`);
-                            }
-                          }
+                          if (tab.id === 'chat') fetchGroupMessages(selectedGroup.id);
+                          if (tab.id === 'members') fetchGroupMembers(selectedGroup.id);
                         }}
                         style={{
                           background: groupTab === tab.id ? 'var(--primary-bg)' : 'transparent',
@@ -1959,7 +2094,7 @@ export default function Forum({ currentUser }) {
                     {/* tab: announcements */}
                     {groupTab === 'announcements' && (
                       <div className="animate-in" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                        {selectedGroup.creatorId === currentUser.id && (
+                        {currentUser && selectedGroup.creatorId === currentUser.id && (
                           <form 
                             onSubmit={async (e) => {
                               e.preventDefault();
@@ -2100,7 +2235,7 @@ export default function Forum({ currentUser }) {
                         {/* Messages display */}
                         <div style={{ flex: 1, overflowY: 'auto', padding: '10px', display: 'flex', flexDirection: 'column', gap: '10px', background: 'var(--bg-main)', borderRadius: '12px', border: '1px solid var(--border)', marginBottom: '10px' }}>
                           {groupChatMessages.map(msg => {
-                            const isMe = msg.studentId === currentUser.id;
+                            const isMe = currentUser?.id && msg.studentId === currentUser.id;
                             return (
                               <div key={msg.id} style={{ alignSelf: isMe ? 'flex-end' : 'flex-start', maxWidth: '70%', background: isMe ? 'var(--primary)' : 'var(--bg-card)', color: isMe ? '#fff' : 'var(--text-primary)', padding: '10px 14px', borderRadius: '12px', border: isMe ? 'none' : '1px solid var(--border)' }}>
                                 <div style={{ fontSize: '10.5px', opacity: isMe ? 0.9 : 0.7, fontWeight: 'bold', marginBottom: '2px' }}>
@@ -2132,23 +2267,79 @@ export default function Forum({ currentUser }) {
 
                     {/* tab: members */}
                     {groupTab === 'members' && (
-                      <div className="animate-in" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                        <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 'bold', color: 'var(--text-primary)' }}>Thành viên của nhóm</h4>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px', background: 'var(--bg-main)', borderRadius: '10px', border: '1px solid var(--border)' }}>
-                            <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'linear-gradient(135deg, #fd9644 0%, #fa8231 100%)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 'bold' }}>AD</div>
-                            <div>
-                              <span style={{ fontSize: '13px', fontWeight: 'bold', display: 'block' }}>Quản trị nhóm (Creator)</span>
-                              <span style={{ fontSize: '10.5px', color: 'var(--text-muted)' }}>Người sáng lập nhóm</span>
+                      <div className="animate-in" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                        
+                        {/* Pending Requests Section for Admin/Creator */}
+                        {currentUser && (Number(selectedGroup?.creatorId) === Number(currentUser?.id) || String(currentUser?.role).toUpperCase() === 'ADMIN') && groupMembers.pending && groupMembers.pending.length > 0 && (
+                          <div style={{ background: 'rgba(245, 158, 11, 0.08)', border: '1.5px solid #f59e0b', borderRadius: '14px', padding: '16px' }}>
+                            <h4 style={{ margin: '0 0 12px 0', fontSize: '14px', fontWeight: 'bold', color: '#b45309', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <span>⏳ Danh sách chờ duyệt gia nhập ({groupMembers.pending.length})</span>
+                            </h4>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                              {groupMembers.pending.map(m => (
+                                <div key={m.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', background: 'var(--bg-card)', borderRadius: '10px', border: '1px solid var(--border)' }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                    {m.avatarUrl ? (
+                                      <img src={resolveImageUrl(m.avatarUrl)} alt="" style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover' }} />
+                                    ) : (
+                                      <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 'bold' }}>
+                                        {m.fullName?.substring(0, 2).toUpperCase() || 'HS'}
+                                      </div>
+                                    )}
+                                    <div>
+                                      <span style={{ fontSize: '13.5px', fontWeight: 'bold', display: 'block', color: 'var(--text-primary)' }}>{m.fullName}</span>
+                                      <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Muốn gia nhập nhóm • {new Date(m.joinedAt).toLocaleDateString()}</span>
+                                    </div>
+                                  </div>
+                                  <div style={{ display: 'flex', gap: '8px' }}>
+                                    <button
+                                      onClick={() => handleApproveRequest(selectedGroup.id, m.userId)}
+                                      style={{ background: '#22c55e', color: '#fff', border: 'none', borderRadius: '8px', padding: '6px 14px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                                    >
+                                      ✓ Đồng ý
+                                    </button>
+                                    <button
+                                      onClick={() => handleRejectRequest(selectedGroup.id, m.userId)}
+                                      style={{ background: '#ef4444', color: '#fff', border: 'none', borderRadius: '8px', padding: '6px 14px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                                    >
+                                      ✕ Từ chối
+                                    </button>
+                                  </div>
+                                </div>
+                              ))}
                             </div>
                           </div>
-                          
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px', background: 'var(--bg-main)', borderRadius: '10px', border: '1px solid var(--border)' }}>
-                            <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 'bold' }}>{currentUser.fullName?.substring(0, 2).toUpperCase() || 'EP'}</div>
-                            <div>
-                              <span style={{ fontSize: '13px', fontWeight: 'bold', display: 'block' }}>{currentUser.fullName} (Bạn)</span>
-                              <span style={{ fontSize: '10.5px', color: 'var(--text-muted)' }}>Thành viên học tập</span>
-                            </div>
+                        )}
+
+                        {/* Accepted Members List */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                          <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 'bold', color: 'var(--text-primary)' }}>
+                            Thành viên chính thức ({groupMembers.accepted ? groupMembers.accepted.length : 0})
+                          </h4>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '10px' }}>
+                            {groupMembers.accepted && groupMembers.accepted.map(m => {
+                              const isCreator = m.role === 'CREATOR' || Number(m.userId) === Number(selectedGroup?.creatorId);
+                              const isMe = Number(currentUser?.id) === Number(m.userId);
+                              return (
+                                <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px', background: 'var(--bg-main)', borderRadius: '10px', border: isCreator ? '1.5px solid #f59e0b' : '1px solid var(--border)' }}>
+                                  {m.avatarUrl ? (
+                                    <img src={resolveImageUrl(m.avatarUrl)} alt="" style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover' }} />
+                                  ) : (
+                                    <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: isCreator ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' : 'linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 'bold' }}>
+                                      {m.fullName?.substring(0, 2).toUpperCase() || 'HS'}
+                                    </div>
+                                  )}
+                                  <div>
+                                    <span style={{ fontSize: '13px', fontWeight: 'bold', display: 'block', color: 'var(--text-primary)' }}>
+                                      {m.fullName} {isMe ? '(Bạn)' : ''}
+                                    </span>
+                                    <span style={{ fontSize: '11px', color: isCreator ? '#b45309' : 'var(--text-muted)', fontWeight: isCreator ? 'bold' : 'normal' }}>
+                                      {isCreator ? 'Quản trị viên (Creator)' : 'Thành viên học tập'}
+                                    </span>
+                                  </div>
+                                </div>
+                              );
+                            })}
                           </div>
                         </div>
                       </div>
@@ -2250,22 +2441,35 @@ export default function Forum({ currentUser }) {
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px', marginBottom: '28px' }}>
                       {studyGroups.filter(g => !g.isMember && g.name.toLowerCase().includes(groupSearchQuery.toLowerCase())).map(group => (
                         <div key={group.id} style={{ display: 'flex', flexDirection: 'column', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '16px', padding: '16px', boxShadow: 'var(--shadow-sm)', transition: 'border 0.2s' }} onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--primary)'} onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}>
-                          <h4 style={{ margin: '0 0 8px 0', fontSize: '14.5px', fontWeight: '900', color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>👥 {group.name}</h4>
+                          <h4 style={{ margin: '0 0 8px 0', fontSize: '14.5px', fontWeight: '900', color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            👥 {group.name} {group.isPrivate ? '🔒' : '🌐'}
+                          </h4>
                           <p style={{ margin: '0 0 16px 0', fontSize: '12.5px', color: 'var(--text-secondary)', lineHeight: 1.4, flexGrow: 1, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{group.description}</p>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 'bold' }}>1 thành viên</span>
-                            <button 
-                              onClick={() => handleJoinStudyGroup(group.id)}
-                              style={{ background: 'var(--primary)', color: '#fff', border: 'none', borderRadius: '8px', padding: '6px 12px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer' }}
-                            >
-                              Tham gia
-                            </button>
+                            <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 'bold' }}>
+                              {group.memberCount || 1} thành viên {group.isPrivate ? '• Riêng tư' : '• Công khai'}
+                            </span>
+                            {group.memberStatus === 'PENDING' ? (
+                              <button 
+                                disabled 
+                                style={{ background: '#f59e0b', color: '#fff', border: 'none', borderRadius: '8px', padding: '6px 12px', fontSize: '12px', fontWeight: 'bold', cursor: 'not-allowed' }}
+                              >
+                                ⏳ Đang chờ phê duyệt
+                              </button>
+                            ) : (
+                              <button 
+                                onClick={() => handleJoinStudyGroup(group.id, group.isPrivate)}
+                                style={{ background: 'var(--primary)', color: '#fff', border: 'none', borderRadius: '8px', padding: '6px 12px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer' }}
+                              >
+                                {group.isPrivate ? 'Xin gia nhập' : 'Tham gia'}
+                              </button>
+                            )}
                           </div>
                         </div>
                       ))}
                       {studyGroups.filter(g => !g.isMember && g.name.toLowerCase().includes(groupSearchQuery.toLowerCase())).length === 0 && (
                         <div style={{ gridColumn: 'span 3', padding: '20px', textAlign: 'center', background: 'var(--bg-card)', border: '1px dashed var(--border)', borderRadius: '12px', fontSize: '12.5px', color: 'var(--text-muted)' }}>
-                          Không có nhóm gợi ý nào phù hợp.
+                          Không có gợi ý nhóm học tập mới nào.
                         </div>
                       )}
                     </div>
@@ -2295,7 +2499,7 @@ export default function Forum({ currentUser }) {
                   </thead>
                   <tbody>
                     {leaderboard.map((user, index) => (
-                      <tr key={user.id} style={{ borderBottom: '1px solid var(--border)', fontWeight: user.id === currentUser.id ? 'bold' : 'normal', background: user.id === currentUser.id ? 'var(--primary-bg)' : 'transparent' }}>
+                      <tr key={user.id} style={{ borderBottom: '1px solid var(--border)', fontWeight: (currentUser?.id && user.id === currentUser.id) ? 'bold' : 'normal', background: (currentUser?.id && user.id === currentUser.id) ? 'var(--primary-bg)' : 'transparent' }}>
                         <td style={{ padding: '14px 10px', fontSize: '14px' }}>
                           {index === 0 && <span style={{ fontSize: '18px' }}>🥇</span>}
                           {index === 1 && <span style={{ fontSize: '18px' }}>🥈</span>}
@@ -2464,10 +2668,26 @@ export default function Forum({ currentUser }) {
 
               <button
                 onClick={(e) => handleToggleSavePost(e, selectedPost.id)}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: selectedPost.isSaved ? '#fdcb6e' : 'var(--text-secondary)', fontWeight: '700' }}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  fontSize: '13px',
+                  color: selectedPost.isSaved ? '#e67e22' : '#000000',
+                  fontWeight: '700',
+                  padding: '6px 8px',
+                  transition: 'all 0.15s ease'
+                }}
               >
-                <HiBookmark style={{ fontSize: '18px', fill: selectedPost.isSaved ? '#fdcb6e' : 'none' }} />
-                <span>{selectedPost.isSaved ? 'Đã lưu thư mục' : 'Lưu trữ bài'}</span>
+                {selectedPost.isSaved ? (
+                  <HiBookmark style={{ fontSize: '22px', color: '#e67e22' }} />
+                ) : (
+                  <HiOutlineBookmark style={{ fontSize: '22px', color: '#000000', strokeWidth: 2 }} />
+                )}
+                <span>{selectedPost.isSaved ? 'Đã lưu bài viết' : 'Lưu bài viết'}</span>
               </button>
             </div>
 
@@ -3093,6 +3313,10 @@ export default function Forum({ currentUser }) {
           </div>
         </div>,
         document.body
+      )}
+      {/* Global Loading Overlay on Join Request */}
+      {joiningGroupId && (
+        <LoadingOverlay message="Đang gửi yêu cầu gia nhập nhóm học tập EduPath..." />
       )}
     </div>
   );

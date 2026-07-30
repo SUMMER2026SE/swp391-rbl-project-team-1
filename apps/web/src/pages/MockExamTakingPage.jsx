@@ -7,6 +7,7 @@ import ExamSubmitModal from '../components/mock-exams/ExamSubmitModal';
 import DraggableFloatingWidget from '../components/mock-exams/DraggableFloatingWidget';
 import { mockExamService } from '../services/mockExamService';
 import { resolveUploadUrl } from '../utils/courseMapper';
+import LoadingOverlay from '../components/LoadingOverlay';
 import { 
   HiShieldCheck, 
   HiOutlineExclamation, 

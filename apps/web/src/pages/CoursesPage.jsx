@@ -6,6 +6,7 @@ import { mapDbCourseToMockFormat } from '../utils/courseMapper';
 import CourseTabBar from '../components/courses/catalog/CourseTabBar';
 import FilterSidebar from '../components/courses/catalog/FilterSidebar';
 import CourseCard from '../components/courses/shared/CourseCard';
+import LoadingOverlay from '../components/LoadingOverlay';
 
 function SkeletonCard() {
   return (

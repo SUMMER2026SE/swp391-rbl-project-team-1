@@ -1067,11 +1067,17 @@ export async function getStudyGroups(req: AuthRequest, res: Response) {
 
     // Map flag checking if current user is active member
     const mapped = list.map(g => {
-      const isMember = g.members.some(m => m.userId === userId);
+      const userMember = g.members.find(m => m.userId === userId);
+      const isMember = userMember ? userMember.status === 'ACCEPTED' : false;
+      const memberStatus = userMember ? userMember.status : 'NONE';
+      const acceptedMembersCount = g.members.filter(m => m.status === 'ACCEPTED').length;
+      const pendingMembersCount = g.members.filter(m => m.status === 'PENDING').length;
       return {
         ...g,
         isMember,
-        memberCount: g.members.length
+        memberStatus,
+        memberCount: acceptedMembersCount,
+        pendingCount: pendingMembersCount
       };
     });
 
@@ -1098,7 +1104,8 @@ export async function createStudyGroup(req: AuthRequest, res: Response) {
         members: {
           create: {
             userId: creatorId,
-            role: 'CREATOR'
+            role: 'CREATOR',
+            status: 'ACCEPTED'
           }
         }
       }
@@ -1109,8 +1116,10 @@ export async function createStudyGroup(req: AuthRequest, res: Response) {
     if (io) {
       io.emit('study_group_created', {
         ...group,
-        isMember: false,
-        memberCount: 1
+        isMember: true,
+        memberStatus: 'ACCEPTED',
+        memberCount: 1,
+        pendingCount: 0
       });
     }
 
@@ -1127,23 +1136,65 @@ export async function joinStudyGroup(req: AuthRequest, res: Response) {
   if (!userId) return res.status(401).json({ success: false, error: 'Chưa xác thực!' });
 
   try {
+    const group = await prisma.studyGroup.findUnique({ where: { id: Number(id) } });
+    if (!group) return res.status(404).json({ success: false, error: 'Không tìm thấy nhóm học tập!' });
+
     const existing = await prisma.studyGroupMember.findFirst({
       where: { groupId: Number(id), userId }
     });
 
     if (existing) {
-      return res.status(400).json({ success: false, error: 'Bạn đã là thành viên của nhóm học tập này!' });
+      if (existing.status === 'PENDING') {
+        return res.status(400).json({ success: false, error: 'Yêu cầu gia nhập nhóm của bạn đang chờ quản trị viên duyệt!', memberStatus: 'PENDING' });
+      }
+      if (existing.status === 'ACCEPTED') {
+        return res.status(400).json({ success: false, error: 'Bạn đã là thành viên của nhóm học tập này!', memberStatus: 'ACCEPTED' });
+      }
     }
+
+    const memberStatus = group.isPrivate ? 'PENDING' : 'ACCEPTED';
 
     const membership = await prisma.studyGroupMember.create({
       data: {
         groupId: Number(id),
         userId,
-        role: 'MEMBER'
+        role: 'MEMBER',
+        status: memberStatus
       }
     });
 
-    return res.status(201).json({ success: true, data: membership });
+    // Send notification to group creator if it's a private group join request
+    if (group.isPrivate && group.creatorId !== userId) {
+      const applicantName = req.user?.fullName || 'Một học sinh';
+      const notif = await prisma.notification.create({
+        data: {
+          userId: group.creatorId,
+          type: 'SYSTEM',
+          title: 'Yêu cầu gia nhập nhóm học tập',
+          content: `${applicantName} đã gửi yêu cầu gia nhập nhóm riêng tư "${group.name}" của bạn.`,
+          isRead: false
+        }
+      }).catch(err => console.error('Lỗi tạo thông báo xin gia nhập:', err));
+
+      if (notif) {
+        const io = getIO();
+        if (io) {
+          io.to(`user_${group.creatorId}`).emit('notification_received', notif);
+          io.to(`user_${group.creatorId}`).emit('study_group_join_request', {
+            groupId: group.id,
+            groupName: group.name,
+            applicantId: userId,
+            applicantName
+          });
+        }
+      }
+    }
+
+    const message = group.isPrivate
+      ? 'Yêu cầu gia nhập nhóm của bạn đã được gửi. Vui lòng chờ quản trị viên duyệt!'
+      : 'Gia nhập nhóm học tập thành công!';
+
+    return res.status(201).json({ success: true, data: { ...membership, memberStatus, message } });
   } catch (err: any) {
     return res.status(500).json({ success: false, error: err.message });
   }
@@ -1166,6 +1217,262 @@ export async function leaveStudyGroup(req: AuthRequest, res: Response) {
 
     await prisma.studyGroupMember.delete({ where: { id: membership.id } });
     return res.status(200).json({ success: true, data: 'Rời nhóm học tập thành công!' });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+}
+
+export async function getStudyGroupMembers(req: AuthRequest, res: Response) {
+  const { id } = req.params;
+
+  try {
+    const group = await prisma.studyGroup.findUnique({
+      where: { id: Number(id) }
+    });
+
+    if (!group) {
+      return res.status(404).json({ success: false, error: 'Không tìm thấy nhóm học tập!' });
+    }
+
+    // Auto-heal creator membership if missing from StudyGroupMember table
+    const creatorMember = await prisma.studyGroupMember.findFirst({
+      where: { groupId: Number(id), userId: group.creatorId }
+    });
+
+    if (!creatorMember && group.creatorId) {
+      await prisma.studyGroupMember.create({
+        data: {
+          groupId: Number(id),
+          userId: group.creatorId,
+          role: 'CREATOR',
+          status: 'ACCEPTED'
+        }
+      }).catch(err => console.error('Lỗi tự tạo bản ghi Creator:', err));
+    }
+
+    const members = await prisma.studyGroupMember.findMany({
+      where: { groupId: Number(id) },
+      include: {
+        user: {
+          select: {
+            id: true,
+            fullName: true,
+            avatarUrl: true,
+            role: true
+          }
+        }
+      },
+      orderBy: { joinedAt: 'asc' }
+    });
+
+    const accepted = members.filter(m => m.status === 'ACCEPTED' || !m.status);
+    const pending = members.filter(m => m.status === 'PENDING');
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        accepted: accepted.map(m => ({
+          id: m.id,
+          userId: m.userId,
+          role: m.role || (m.userId === group.creatorId ? 'CREATOR' : 'MEMBER'),
+          status: m.status || 'ACCEPTED',
+          joinedAt: m.joinedAt,
+          fullName: m.user?.fullName || (m.userId === group.creatorId ? 'Quản trị nhóm' : 'Học sinh'),
+          avatarUrl: m.user?.avatarUrl || null,
+          userRole: m.user?.role || 'STUDENT'
+        })),
+        pending: pending.map(m => ({
+          id: m.id,
+          userId: m.userId,
+          role: m.role || 'MEMBER',
+          status: m.status || 'PENDING',
+          joinedAt: m.joinedAt,
+          fullName: m.user?.fullName || 'Học sinh',
+          avatarUrl: m.user?.avatarUrl || null,
+          userRole: m.user?.role || 'STUDENT'
+        }))
+      }
+    });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+}
+
+export async function approveJoinRequest(req: AuthRequest, res: Response) {
+  const { id, userId: targetUserId } = req.params;
+  const adminId = req.user?.id;
+
+  if (!adminId) return res.status(401).json({ success: false, error: 'Chưa xác thực!' });
+
+  try {
+    const group = await prisma.studyGroup.findUnique({ where: { id: Number(id) } });
+    if (!group) return res.status(404).json({ success: false, error: 'Không tìm thấy nhóm học tập!' });
+
+    if (group.creatorId !== adminId && req.user?.role !== 'ADMIN') {
+      return res.status(403).json({ success: false, error: 'Bạn không có quyền duyệt thành viên của nhóm này!' });
+    }
+
+    const membership = await prisma.studyGroupMember.findFirst({
+      where: { groupId: Number(id), userId: Number(targetUserId) }
+    });
+
+    if (!membership) {
+      return res.status(404).json({ success: false, error: 'Không tìm thấy yêu cầu gia nhập!' });
+    }
+
+    await prisma.studyGroupMember.update({
+      where: { id: membership.id },
+      data: { status: 'ACCEPTED', joinedAt: new Date() }
+    });
+
+    // Send notification to approved applicant
+    await prisma.notification.create({
+      data: {
+        userId: Number(targetUserId),
+        type: 'SYSTEM',
+        title: 'Gia nhập nhóm thành công',
+        content: `Quản trị viên đã đồng ý cho bạn gia nhập nhóm học tập "${group.name}".`,
+        isRead: false
+      }
+    }).catch(err => console.error('Lỗi tạo thông báo phê duyệt:', err));
+
+    return res.status(200).json({ success: true, data: 'Đã duyệt thành viên tham gia nhóm!' });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+}
+
+export async function rejectJoinRequest(req: AuthRequest, res: Response) {
+  const { id, userId: targetUserId } = req.params;
+  const adminId = req.user?.id;
+
+  if (!adminId) return res.status(401).json({ success: false, error: 'Chưa xác thực!' });
+
+  try {
+    const group = await prisma.studyGroup.findUnique({ where: { id: Number(id) } });
+    if (!group) return res.status(404).json({ success: false, error: 'Không tìm thấy nhóm học tập!' });
+
+    if (group.creatorId !== adminId && req.user?.role !== 'ADMIN') {
+      return res.status(403).json({ success: false, error: 'Bạn không có quyền từ chối thành viên của nhóm này!' });
+    }
+
+    const membership = await prisma.studyGroupMember.findFirst({
+      where: { groupId: Number(id), userId: Number(targetUserId) }
+    });
+
+    if (membership) {
+      await prisma.studyGroupMember.delete({ where: { id: membership.id } });
+    }
+
+    return res.status(200).json({ success: true, data: 'Đã từ chối yêu cầu gia nhập nhóm!' });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+}
+
+export async function getStudyGroupMessages(req: AuthRequest, res: Response) {
+  const { id } = req.params;
+  const userId = req.user?.id;
+
+  try {
+    const group = await prisma.studyGroup.findUnique({
+      where: { id: Number(id) }
+    });
+
+    if (!group) {
+      return res.status(404).json({ success: false, error: 'Không tìm thấy nhóm học tập!' });
+    }
+
+    if (group.isPrivate) {
+      if (!userId) {
+        return res.status(401).json({ success: false, error: 'Vui lòng đăng nhập để xem nhóm riêng tư!' });
+      }
+      const isMember = await prisma.studyGroupMember.findFirst({
+        where: { groupId: Number(id), userId }
+      });
+      if (!isMember && req.user?.role !== 'ADMIN' && group.creatorId !== userId) {
+        return res.status(403).json({ success: false, error: 'Bạn không có quyền truy cập nhóm riêng tư này!' });
+      }
+    }
+
+    const messages = await prisma.studyGroupChatMessage.findMany({
+      where: { groupId: Number(id) },
+      orderBy: { createdAt: 'asc' },
+      include: {
+        user: {
+          select: {
+            fullName: true,
+            avatarUrl: true
+          }
+        }
+      }
+    });
+
+    // Map messages to match frontend format
+    const formattedMessages = messages.map(msg => ({
+      id: msg.id,
+      roomId: `group_${msg.groupId}`,
+      studentId: msg.userId,
+      role: msg.role,
+      content: msg.content,
+      authorName: msg.user?.fullName || (msg.role === 'ADMIN' ? 'Quản trị viên' : (msg.role === 'TEACHER' ? 'Giáo viên' : 'Học sinh')),
+      avatarUrl: msg.user?.avatarUrl || null,
+      createdAt: msg.createdAt.toISOString()
+    }));
+
+    return res.status(200).json({ success: true, data: formattedMessages });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+}
+
+export async function sendStudyGroupMessage(req: AuthRequest, res: Response) {
+  const { id } = req.params;
+  const userId = req.user?.id;
+  const { content } = req.body;
+
+  if (!userId) return res.status(401).json({ success: false, error: 'Chưa xác thực!' });
+  if (!content || !content.trim()) return res.status(400).json({ success: false, error: 'Nội dung tin nhắn không được để trống!' });
+
+  try {
+    const group = await prisma.studyGroup.findUnique({ where: { id: Number(id) } });
+    if (!group) return res.status(404).json({ success: false, error: 'Không tìm thấy nhóm học tập!' });
+
+    const message = await prisma.studyGroupChatMessage.create({
+      data: {
+        groupId: Number(id),
+        userId,
+        role: req.user?.role || 'STUDENT',
+        content: content.trim()
+      },
+      include: {
+        user: {
+          select: {
+            fullName: true,
+            avatarUrl: true
+          }
+        }
+      }
+    });
+
+    const formattedMsg = {
+      id: message.id,
+      roomId: `group_${message.groupId}`,
+      studentId: message.userId,
+      role: message.role,
+      content: message.content,
+      authorName: message.user?.fullName || (message.role === 'ADMIN' ? 'Quản trị viên' : (message.role === 'TEACHER' ? 'Giáo viên' : 'Học sinh')),
+      avatarUrl: message.user?.avatarUrl || null,
+      createdAt: message.createdAt.toISOString()
+    };
+
+    // Broadcast via socket to all clients in room
+    const io = getIO();
+    if (io) {
+      io.to(`group_${id}`).emit('receive_message', formattedMsg);
+    }
+
+    return res.status(201).json({ success: true, data: formattedMsg });
   } catch (err: any) {
     return res.status(500).json({ success: false, error: err.message });
   }

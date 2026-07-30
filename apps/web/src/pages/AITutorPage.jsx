@@ -9,6 +9,7 @@ import Tesseract from 'tesseract.js';
 import { api, API_BASE } from '../api';
 import { toast } from '../utils/toast';
 import sunLogoImg from '../assets/sun_logo.png';
+import LoadingOverlay from '../components/LoadingOverlay';
 
 // Default welcome mindmap to show on first load
 const WELCOME_MINDMAP = {

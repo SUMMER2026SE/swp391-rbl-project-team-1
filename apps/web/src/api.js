@@ -350,6 +350,21 @@ export const api = {
   leaveStudyGroup: (id) =>
     request(`/forum/study-groups/${id}/leave`, { method: 'POST' }),
 
+  getStudyGroupMessages: (id) =>
+    request(`/forum/study-groups/${id}/messages`, { method: 'GET' }),
+
+  sendStudyGroupMessage: (id, content) =>
+    request(`/forum/study-groups/${id}/messages`, { method: 'POST', body: { content } }),
+
+  getStudyGroupMembers: (id) =>
+    request(`/forum/study-groups/${id}/members`, { method: 'GET' }),
+
+  approveJoinRequest: (id, userId) =>
+    request(`/forum/study-groups/${id}/requests/${userId}/approve`, { method: 'POST' }),
+
+  rejectJoinRequest: (id, userId) =>
+    request(`/forum/study-groups/${id}/requests/${userId}/reject`, { method: 'POST' }),
+
   deleteStudyGroup: (id) =>
     request(`/forum/study-groups/${id}`, { method: 'DELETE' }),
 

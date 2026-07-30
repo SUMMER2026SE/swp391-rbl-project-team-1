@@ -6,6 +6,7 @@ import { supabase } from '../lib/supabaseClient';
 import { getLocalData } from '../services/mockDb';
 import { api } from '../api';
 import AnalyticsTab from '../components/mock-exams/analytics/AnalyticsTab';
+import LoadingOverlay from '../components/LoadingOverlay';
 import { 
   HiBookOpen, 
   HiClipboardList, 
