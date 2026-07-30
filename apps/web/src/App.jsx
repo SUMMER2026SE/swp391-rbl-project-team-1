@@ -3197,7 +3197,7 @@ export default function App() {
           )}
 
           {/* ================= STUDENT LEARNING WORKSPACE ================= */}
-          {(effectiveRole === 'student' || effectiveRole === 'admin' || window.location.search.includes('demo=true')) && parsedRoute.route === 'learn' && (
+          {parsedRoute.route === 'learn' && (
             <div style={{ padding: '0' }}>
               <LearningPage
                 courseId={parsedRoute.courseId}

@@ -376,10 +376,10 @@ export default function LearningPage({
   };
 
   // Navigations (Linear next / prev)
-  const currentIdx = allLessons.findIndex(l => currentLesson && l.id.toString() === currentLesson.id.toString());
+  const currentIdx = allLessons.findIndex(l => l && l.id && currentLesson && currentLesson.id && l.id.toString() === currentLesson.id.toString());
   const hasPrev = currentIdx > 0;
-  const hasNext = currentIdx < allLessons.length - 1;
-  const nextLessonName = hasNext ? allLessons[currentIdx + 1].title : null;
+  const hasNext = currentIdx >= 0 && currentIdx < allLessons.length - 1;
+  const nextLessonName = (hasNext && allLessons[currentIdx + 1]) ? allLessons[currentIdx + 1].title : null;
 
   const handleSelectLessonFromSidebar = useCallback((lessonItem) => {
     if (!lessonItem) return;
