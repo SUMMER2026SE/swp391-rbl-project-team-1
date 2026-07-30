@@ -58,11 +58,14 @@ const VideoPlayer = forwardRef(({
     return EXAM_PREP_FALLBACKS[num % EXAM_PREP_FALLBACKS.length];
   };
 
-  const isVerified = EXAM_PREP_FALLBACKS.some(v => videoUrl && typeof videoUrl === 'string' && videoUrl.includes(v.split('/embed/')[1]));
+  const getEmbedUrl = (url, id) => {
+    if (url && typeof url === 'string' && url.trim() !== '') {
+      return getYouTubeEmbedUrl(url);
+    }
+    return getFallbackVideo(id);
+  };
 
-  const rawUrl = (isVerified && videoUrl && typeof videoUrl === 'string' && videoUrl.trim() !== '')
-    ? videoUrl
-    : getFallbackVideo(lessonId);
+  const rawUrl = getEmbedUrl(videoUrl, lessonId);
 
   const isYouTube = true;
   const resolvedUrl = resolveUploadUrl(rawUrl);

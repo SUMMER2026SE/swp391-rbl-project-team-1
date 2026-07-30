@@ -3209,7 +3209,7 @@ export default function App() {
                   onSelectLesson={(cId, lId) => {
                     const newPath = `/learn/${cId}/lesson/${lId}${window.location.search || ''}`;
                     if (window.location.pathname !== `/learn/${cId}/lesson/${lId}`) {
-                      window.history.pushState({}, '', newPath);
+                      navigateTo(newPath);
                     }
                   }}
                   onBackToCourse={(targetPath) => navigateTo(targetPath || `/courses/${parsedRoute.courseId}`)}

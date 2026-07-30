@@ -16,6 +16,14 @@
   ],
   "rewrites": [
     {
+      "source": "/api/:path*",
+      "destination": "https://api.edupath.id.vn/api/:path*"
+    },
+    {
+      "source": "/uploads/:path*",
+      "destination": "https://api.edupath.id.vn/uploads/:path*"
+    },
+    {
       "source": "/((?!assets|.*\\.[^/]+$).*)",
       "destination": "/index.html"
     }
