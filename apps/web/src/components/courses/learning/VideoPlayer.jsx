@@ -58,7 +58,10 @@ const VideoPlayer = forwardRef(({
     return EXAM_PREP_FALLBACKS[num % EXAM_PREP_FALLBACKS.length];
   };
 
-  const rawUrl = (videoUrl && typeof videoUrl === 'string' && videoUrl.trim() !== '' && !videoUrl.includes('mov_bbb.mp4'))
+  const BLOCKED_YOUTUBE_IDS = ['QqQ7e1pZkqQ', 'xJUqq-RsJUw', 'EhyZZTNexlM', 'J1nP7v2WJ7g', '5vWg2H5vKfY'];
+  const isBlocked = BLOCKED_YOUTUBE_IDS.some(id => videoUrl && typeof videoUrl === 'string' && videoUrl.includes(id));
+
+  const rawUrl = (videoUrl && typeof videoUrl === 'string' && videoUrl.trim() !== '' && !isBlocked && !videoUrl.includes('mov_bbb.mp4'))
     ? videoUrl
     : getFallbackVideo(lessonId);
 

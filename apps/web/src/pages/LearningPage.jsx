@@ -228,16 +228,18 @@ export default function LearningPage({
 
   // Flattened list of lessons for linear navigation
   const allLessons = useMemo(() => {
-    if (!course) return [];
-    return course.curriculum.flatMap(chapter => chapter.lessons) || [];
+    if (!course || !course.curriculum || !Array.isArray(course.curriculum)) return [];
+    return course.curriculum.flatMap(chapter => chapter?.lessons || []) || [];
   }, [course]);
 
   // Determine active current lesson
   useEffect(() => {
     if (allLessons.length === 0) return;
-    const activeId = lessonId ? lessonId.toString() : allLessons[0].id.toString();
-    const active = allLessons.find(l => l.id.toString() === activeId) || allLessons[0];
-    setCurrentLesson(active);
+    const activeId = lessonId ? lessonId.toString() : (allLessons[0]?.id ? allLessons[0].id.toString() : '');
+    const active = allLessons.find(l => l && l.id && l.id.toString() === activeId) || allLessons[0];
+    if (active) {
+      setCurrentLesson(active);
+    }
   }, [lessonId, allLessons]);
 
   // Load lesson flashcards from localStorage

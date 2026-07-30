@@ -17,17 +17,14 @@ export const getDefaultVideoUrl = (indexOrId = 0) => {
 export function mapDbCourseToMockFormat(c) {
   if (!c) return null;
 
-  if (c.priceOriginal !== undefined && c.priceSale !== undefined) {
-    if (c.priceOriginal <= c.priceSale) {
-      const saleVal = Number(c.priceSale);
-      if (saleVal === 0) {
-        c.priceOriginal = 199000 + (Number(c.id || 0) % 3) * 50000;
-      } else {
-        const markupOriginal = Math.round((saleVal * 1.4) / 10000) * 10000;
-        c.priceOriginal = markupOriginal > saleVal ? markupOriginal : saleVal + 150000;
-      }
+  if (c.priceOriginal !== undefined && c.priceSale !== undefined && c.priceOriginal <= c.priceSale) {
+    const saleVal = Number(c.priceSale);
+    if (saleVal === 0) {
+      c.priceOriginal = 199000 + (Number(c.id || 0) % 3) * 50000;
+    } else {
+      const markupOriginal = Math.round((saleVal * 1.4) / 10000) * 10000;
+      c.priceOriginal = markupOriginal > saleVal ? markupOriginal : saleVal + 150000;
     }
-    return c;
   }
 
   // Calculate rating
