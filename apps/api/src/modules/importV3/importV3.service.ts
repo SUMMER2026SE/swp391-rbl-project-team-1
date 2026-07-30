@@ -58,10 +58,10 @@ export class ImportV3Service {
     return session;
   }
 
-  static async getSessionByIdV3(id: number, userId: number) {
+  static async getSessionByIdV3(id: number, userId: number, userRole?: string) {
     const session = await ImportV2Repository.getSessionById(id);
     if (!session) throw new Error('NOT_FOUND: Phiên nhập đề Import V3 không tồn tại!');
-    if (session.userId !== userId) throw new Error('FORBIDDEN: Bạn không có quyền truy cập phiên này!');
+    if (userRole !== 'ADMIN' && session.userId !== userId) throw new Error('FORBIDDEN: Bạn không có quyền truy cập phiên này!');
 
     const cachedArtifacts = this.loadArtifactsFromDisk(id);
     const mediaObj = typeof (session as any).media === 'object' && (session as any).media !== null ? (session as any).media : {};

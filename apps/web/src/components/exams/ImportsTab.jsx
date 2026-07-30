@@ -43,6 +43,7 @@ export function ImportsTab({
   const [selectedFile, setSelectedFile] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [isV3Pipeline, setIsV3Pipeline] = useState(true);
+  const [loadingSessionId, setLoadingSessionId] = useState(null);
 
   // Auto-refresh sessions when processing silently in background
   useEffect(() => {
@@ -267,20 +268,31 @@ export function ImportsTab({
                       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', paddingTop: '8px', borderTop: '1px solid #f1f5f9' }}>
                         {(session.status === 'REVIEWING' || session.status === 'COMPLETED') && (
                           <button
-                            onClick={() => onViewDetail(session.id)}
+                            disabled={loadingSessionId === session.id}
+                            onClick={async () => {
+                              try {
+                                setLoadingSessionId(session.id);
+                                await onViewDetail(session.id, true);
+                              } finally {
+                                setLoadingSessionId(null);
+                              }
+                            }}
                             style={{
                               padding: '7px 16px',
-                              background: '#4f46e5',
+                              background: loadingSessionId === session.id ? '#818cf8' : '#4f46e5',
                               color: '#ffffff',
                               border: 'none',
                               borderRadius: '10px',
                               fontSize: '12px',
                               fontWeight: '800',
-                              cursor: 'pointer',
-                              boxShadow: '0 2px 6px rgba(79, 70, 229, 0.25)'
+                              cursor: loadingSessionId === session.id ? 'wait' : 'pointer',
+                              boxShadow: '0 2px 6px rgba(79, 70, 229, 0.25)',
+                              opacity: loadingSessionId === session.id ? 0.7 : 1
                             }}
                           >
-                            {session.status === 'COMPLETED' ? '🔍 Xem đề thi' : '✏️ Kiểm duyệt & chỉnh sửa'}
+                            {loadingSessionId === session.id 
+                              ? '⏳ Đang mở...' 
+                              : (session.status === 'COMPLETED' ? '🔍 Xem đề thi' : '✏️ Kiểm duyệt & chỉnh sửa')}
                           </button>
                         )}
                         <button

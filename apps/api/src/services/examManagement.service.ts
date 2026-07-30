@@ -28,6 +28,7 @@ export class ExamManagementService {
         subject: ex.subject,
         duration: ex.duration,
         year: ex.year,
+        source: ex.source,
         status: ex.status,
         grade: ex.grade,
         questionCount: ex.examQuestions?.length || 0,

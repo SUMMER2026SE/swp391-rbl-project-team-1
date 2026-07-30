@@ -102,7 +102,7 @@ export function useExamManagement() {
     }
   };
 
-  const fetchImportSessionDetail = async (id, showLoading = false) => {
+  const fetchImportSessionDetail = async (id, showLoading = true) => {
     try {
       if (showLoading) setLoading(true);
       let res;
@@ -110,6 +110,9 @@ export function useExamManagement() {
         res = await api.getImportSessionByIdV3(id);
       } catch (e) {
         res = await api.getImportSessionById(id);
+      }
+      if (!res) {
+        throw new Error('Không thể tải dữ liệu phiên nhập đề.');
       }
       setActiveImportSession(res);
 
@@ -119,7 +122,9 @@ export function useExamManagement() {
       });
       setImportDecisions(initialDecisions);
     } catch (err) {
+      console.error('[fetchImportSessionDetail Error]', err);
       setError(err.message);
+      alert('Không thể xem chi tiết đề thi: ' + (err.message || 'Lỗi kết nối'));
     } finally {
       if (showLoading) setLoading(false);
     }

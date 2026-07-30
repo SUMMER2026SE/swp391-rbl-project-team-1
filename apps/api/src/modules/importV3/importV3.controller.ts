@@ -46,8 +46,9 @@ export class ImportV3Controller {
   static async getSessionV3(req: Request, res: Response) {
     try {
       const userId = (req as any).user?.id || 1;
+      const userRole = (req as any).user?.role;
       const id = parseInt(req.params.id, 10);
-      const session = await ImportV3Service.getSessionByIdV3(id, userId);
+      const session = await ImportV3Service.getSessionByIdV3(id, userId, userRole);
 
       return res.status(200).json({
         success: true,
