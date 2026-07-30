@@ -64,53 +64,53 @@ export function mapDbCourseToMockFormat(c) {
   if (c.lessons && c.lessons.length > 0) {
     const sortedLessons = [...c.lessons].sort((a, b) => a.order - b.order);
     
-    if (sortedLessons.length >= 3) {
-      curriculumVal.push({
-        title: "Phần 0",
-        lessons: sortedLessons.slice(0, 1).map((l, idx) => ({
-          id: l.id.toString(),
-          title: l.title,
-          type: 'video',
-          durationMin: parseInt(l.duration?.split(':')[0], 10) || 15,
-          isPreview: true,
-          videoUrl: l.videoUrl || getDefaultVideoUrl(l.id || idx)
-        }))
-      });
-      curriculumVal.push({
-        title: "Phần 1",
-        lessons: sortedLessons.slice(1, sortedLessons.length - 1).map((l, idx) => ({
-          id: l.id.toString(),
-          title: l.title,
-          type: 'video',
-          durationMin: parseInt(l.duration?.split(':')[0], 10) || 15,
-          isPreview: false,
-          videoUrl: l.videoUrl || getDefaultVideoUrl(l.id || (idx + 1))
-        }))
-      });
-      curriculumVal.push({
-        title: "Phần 2",
-        lessons: sortedLessons.slice(sortedLessons.length - 1).map((l, idx) => ({
-          id: l.id.toString(),
-          title: l.title,
-          type: 'video',
-          durationMin: parseInt(l.duration?.split(':')[0], 10) || 15,
-          isPreview: false,
-          videoUrl: l.videoUrl || getDefaultVideoUrl(l.id || (idx + sortedLessons.length))
-        }))
-      });
-    } else {
-      curriculumVal.push({
-        title: "Phần 0",
-        lessons: sortedLessons.map((l, idx) => ({
-          id: l.id.toString(),
-          title: l.title,
-          type: 'video',
-          durationMin: parseInt(l.duration?.split(':')[0], 10) || 15,
-          isPreview: l.order === 1,
-          videoUrl: l.videoUrl || getDefaultVideoUrl(l.id || idx)
-        }))
-      });
-    }
+      if (sortedLessons.length >= 3) {
+        curriculumVal.push({
+          title: "Phần 0",
+          lessons: sortedLessons.slice(0, 1).map((l, idx) => ({
+            id: l.id.toString(),
+            title: l.title,
+            type: 'video',
+            durationMin: parseInt(l.duration?.split(':')[0], 10) || 15,
+            isPreview: true,
+            videoUrl: getDefaultVideoUrl(l.id || idx)
+          }))
+        });
+        curriculumVal.push({
+          title: "Phần 1",
+          lessons: sortedLessons.slice(1, sortedLessons.length - 1).map((l, idx) => ({
+            id: l.id.toString(),
+            title: l.title,
+            type: 'video',
+            durationMin: parseInt(l.duration?.split(':')[0], 10) || 15,
+            isPreview: false,
+            videoUrl: getDefaultVideoUrl(l.id || (idx + 1))
+          }))
+        });
+        curriculumVal.push({
+          title: "Phần 2",
+          lessons: sortedLessons.slice(sortedLessons.length - 1).map((l, idx) => ({
+            id: l.id.toString(),
+            title: l.title,
+            type: 'video',
+            durationMin: parseInt(l.duration?.split(':')[0], 10) || 15,
+            isPreview: false,
+            videoUrl: getDefaultVideoUrl(l.id || (idx + sortedLessons.length))
+          }))
+        });
+      } else {
+        curriculumVal.push({
+          title: "Phần 0",
+          lessons: sortedLessons.map((l, idx) => ({
+            id: l.id.toString(),
+            title: l.title,
+            type: 'video',
+            durationMin: parseInt(l.duration?.split(':')[0], 10) || 15,
+            isPreview: l.order === 1,
+            videoUrl: getDefaultVideoUrl(l.id || idx)
+          }))
+        });
+      }
   } else {
     curriculumVal.push({
       title: "Danh sách bài học",
