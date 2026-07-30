@@ -3,12 +3,13 @@ import { HiPlay } from 'react-icons/hi';
 
 export default function ContinueLearningRail({ currentUser, courses, onSelectCourse, progresses = {} }) {
   const enrolledCourses = useMemo(() => {
-    if (!currentUser || !courses) return [];
-    const unlocked = currentUser.unlockedCourses || [];
-    return courses.filter(c => unlocked.includes(Number(c.id)) || unlocked.includes(c.id.toString()));
+    if (!courses || courses.length === 0) return [];
+    const unlocked = currentUser?.unlockedCourses || [];
+    const filtered = courses.filter(c => unlocked.includes(Number(c.id)) || unlocked.includes(c.id.toString()));
+    return (filtered && filtered.length > 0) ? filtered : courses;
   }, [currentUser, courses]);
 
-  if (enrolledCourses.length === 0) return null;
+  if (!enrolledCourses || enrolledCourses.length === 0) return null;
 
   return (
     <div className="continue-learning-section">

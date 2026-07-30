@@ -1,3 +1,19 @@
+const DEFAULT_YOUTUBE_VIDEOS = [
+  'https://www.youtube.com/embed/dQw4w9WgXcQ',
+  'https://www.youtube.com/embed/kJQP7kiw5Fk',
+  'https://www.youtube.com/embed/L_LUpnjgPso',
+  'https://www.youtube.com/embed/fJ9rUzIMcZQ',
+  'https://www.youtube.com/embed/3JZ_D3ELwOQ',
+  'https://www.youtube.com/embed/gCYcAct4020',
+  'https://www.youtube.com/embed/2lAe1cqCOXo',
+  'https://www.youtube.com/embed/CevxZvSJLk8'
+];
+
+export const getDefaultVideoUrl = (indexOrId = 0) => {
+  const numericId = typeof indexOrId === 'number' ? indexOrId : (parseInt(String(indexOrId).replace(/\D/g, ''), 10) || 0);
+  return DEFAULT_YOUTUBE_VIDEOS[Math.abs(numericId) % DEFAULT_YOUTUBE_VIDEOS.length];
+};
+
 export function mapDbCourseToMockFormat(c) {
   if (!c) return null;
 
@@ -52,47 +68,47 @@ export function mapDbCourseToMockFormat(c) {
     if (sortedLessons.length >= 3) {
       curriculumVal.push({
         title: "Phần 0",
-        lessons: sortedLessons.slice(0, 1).map(l => ({
+        lessons: sortedLessons.slice(0, 1).map((l, idx) => ({
           id: l.id.toString(),
           title: l.title,
-          type: l.videoUrl ? 'video' : 'document',
+          type: 'video',
           durationMin: parseInt(l.duration?.split(':')[0], 10) || 15,
           isPreview: true,
-          videoUrl: l.videoUrl
+          videoUrl: l.videoUrl || getDefaultVideoUrl(l.id || idx)
         }))
       });
       curriculumVal.push({
         title: "Phần 1",
-        lessons: sortedLessons.slice(1, sortedLessons.length - 1).map(l => ({
+        lessons: sortedLessons.slice(1, sortedLessons.length - 1).map((l, idx) => ({
           id: l.id.toString(),
           title: l.title,
-          type: l.videoUrl ? 'video' : 'document',
+          type: 'video',
           durationMin: parseInt(l.duration?.split(':')[0], 10) || 15,
           isPreview: false,
-          videoUrl: l.videoUrl
+          videoUrl: l.videoUrl || getDefaultVideoUrl(l.id || (idx + 1))
         }))
       });
       curriculumVal.push({
         title: "Phần 2",
-        lessons: sortedLessons.slice(sortedLessons.length - 1).map(l => ({
+        lessons: sortedLessons.slice(sortedLessons.length - 1).map((l, idx) => ({
           id: l.id.toString(),
           title: l.title,
-          type: l.videoUrl ? 'video' : 'document',
+          type: 'video',
           durationMin: parseInt(l.duration?.split(':')[0], 10) || 15,
           isPreview: false,
-          videoUrl: l.videoUrl
+          videoUrl: l.videoUrl || getDefaultVideoUrl(l.id || (idx + sortedLessons.length))
         }))
       });
     } else {
       curriculumVal.push({
         title: "Phần 0",
-        lessons: sortedLessons.map(l => ({
+        lessons: sortedLessons.map((l, idx) => ({
           id: l.id.toString(),
           title: l.title,
-          type: l.videoUrl ? 'video' : 'document',
+          type: 'video',
           durationMin: parseInt(l.duration?.split(':')[0], 10) || 15,
           isPreview: l.order === 1,
-          videoUrl: l.videoUrl
+          videoUrl: l.videoUrl || getDefaultVideoUrl(l.id || idx)
         }))
       });
     }
@@ -100,8 +116,8 @@ export function mapDbCourseToMockFormat(c) {
     curriculumVal.push({
       title: "Danh sách bài học",
       lessons: [
-        { id: `${c.id}01`, title: "Bài 1: Khái niệm và phương pháp mở đầu", type: "video", durationMin: 15, isPreview: true },
-        { id: `${c.id}02`, title: "Bài 2: Các dạng bài tập trắc nghiệm cơ bản", type: "video", durationMin: 20, isPreview: false }
+        { id: `${c.id}01`, title: "Bài 1: Khái niệm và phương pháp mở đầu", type: "video", durationMin: 15, isPreview: true, videoUrl: getDefaultVideoUrl(1) },
+        { id: `${c.id}02`, title: "Bài 2: Các dạng bài tập trắc nghiệm cơ bản", type: "video", durationMin: 20, isPreview: false, videoUrl: getDefaultVideoUrl(2) }
       ]
     });
   }
@@ -153,24 +169,43 @@ export function mapDbCourseToMockFormat(c) {
   };
 }
 
+export const getApiBaseUrl = () => {
+  if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL.replace(/\/+$/, '');
+  if (typeof window !== 'undefined') {
+    const host = window.location.hostname;
+    const protocol = window.location.protocol;
+    if (host === 'localhost' || host === '127.0.0.1') {
+      return `${protocol}//${host}:4000`;
+    }
+    return window.location.origin;
+  }
+  return 'http://localhost:4000';
+};
+
 export const resolveUploadUrl = (url) => {
   if (!url) return '';
-  if (url.includes('youtube.com') || url.includes('youtu.be') || url.includes('/embed/')) {
-    return url;
+  const urlStr = String(url).trim();
+  if (urlStr.includes('youtube.com') || urlStr.includes('youtu.be') || urlStr.includes('/embed/')) {
+    return urlStr;
   }
-  if (url.startsWith('/uploads')) {
-    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-      return `http://localhost:4000${url}`;
+
+  const apiBase = getApiBaseUrl();
+  let cleanUrl = urlStr;
+
+  // Replace hardcoded localhost:4000 or 127.0.0.1:4000 if running on a deployed host (not localhost)
+  if (cleanUrl.includes('localhost:4000') || cleanUrl.includes('127.0.0.1:4000')) {
+    const isLocal = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+    if (!isLocal) {
+      cleanUrl = cleanUrl.replace(/https?:\/\/(localhost|127\.0\.0\.1):4000/g, apiBase);
     }
-    return `/api${url}`;
   }
-  if (url.includes('/uploads/')) {
-    const relativePath = '/uploads/' + url.split('/uploads/')[1];
-    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-      return `http://localhost:4000${relativePath}`;
-    }
-    return `/api${relativePath}`;
+
+  if (cleanUrl.startsWith('http://') || cleanUrl.startsWith('https://') || cleanUrl.startsWith('data:')) {
+    return cleanUrl;
   }
-  return url;
+
+  const relativePath = cleanUrl.startsWith('/') ? cleanUrl : `/${cleanUrl}`;
+  return `${apiBase}${relativePath}`;
 };
+
 

@@ -6,6 +6,7 @@ import QuestionNavigator from '../components/mock-exams/QuestionNavigator';
 import ExamSubmitModal from '../components/mock-exams/ExamSubmitModal';
 import DraggableFloatingWidget from '../components/mock-exams/DraggableFloatingWidget';
 import { mockExamService } from '../services/mockExamService';
+import { resolveUploadUrl } from '../utils/courseMapper';
 import { 
   HiShieldCheck, 
   HiOutlineExclamation, 
@@ -149,7 +150,7 @@ export default function MockExamTakingPage({ examId, currentUser, onFinished, na
           else if (q.difficulty === 'HARD') diffLabel = 'Khó';
 
           const rawImg = q.imageUrl || q.question_image_url || null;
-          const formattedImg = rawImg ? (rawImg.startsWith('http') ? rawImg : `http://localhost:4000/${rawImg.replace(/^\/+/, '')}`) : null;
+          const formattedImg = resolveUploadUrl(rawImg);
 
           return {
             id: String(q.id),

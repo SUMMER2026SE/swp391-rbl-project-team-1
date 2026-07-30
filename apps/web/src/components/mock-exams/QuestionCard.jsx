@@ -2,12 +2,10 @@ import React, { useState, useEffect, useRef } from 'react';
 import { HiBookmark } from 'react-icons/hi';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
+import { resolveUploadUrl } from '../../utils/courseMapper';
 
 const getFullImageUrl = (url) => {
-  if (!url) return null;
-  if (url.startsWith('http://') || url.startsWith('https://')) return url;
-  const cleanPath = url.replace(/^\/+/, '');
-  return `http://localhost:4000/${cleanPath}`;
+  return resolveUploadUrl(url);
 };
 
 export function renderLatexToHtml(text) {

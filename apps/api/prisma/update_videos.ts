@@ -11,45 +11,31 @@ dotenv.config({ path: path.resolve(__dirname, '../.env') });
 const prisma = new PrismaClient();
 
 const YOUTUBE_IDS = [
-  'rafj8K1gkDY',
-  '1dCnNyNaaw8',
-  'mbVICMRPLFw',
-  'GruyutmWI0M',
-  'Cfhvu3MYFio',
-  'jbx9_G8u9lI',
-  'T_ENQ4KaMFM',
-  'yCPtqOxsgjE',
-  '4-mzFLiwlkU',
-  'L_qcnimTP2M',
-  'MfjNZPMOj5Q',
-  'CV5vDT51svE',
-  'eF9HME2ZJ9o',
-  'cF3RKQwii6w',
-  '-QZMxi7YSJ8',
-  '3oRXNsxk4ew',
-  'mgy_-1uD910',
-  'UL0LyL6YVMk',
-  'CotrgHdPpvU',
-  'uwcmSp-WsZY'
+  'dQw4w9WgXcQ',
+  'kJQP7kiw5Fk',
+  'L_LUpnjgPso',
+  'fJ9rUzIMcZQ',
+  '3JZ_D3ELwOQ',
+  'gCYcAct4020',
+  '2lAe1cqCOXo',
+  'CevxZvSJLk8'
 ];
 
 async function main() {
-  console.log('[Script] Updating all lessons in database using fast raw query...');
-  
-  for (let idx = 0; idx < YOUTUBE_IDS.length; idx++) {
-    const youtubeId = YOUTUBE_IDS[idx];
+  console.log('[Script] Updating all lessons in database with embeddable YouTube videos...');
+  const lessons = await prisma.lesson.findMany({ select: { id: true } });
+  console.log(`[Script] Found ${lessons.length} lessons in database.`);
+
+  for (let i = 0; i < lessons.length; i++) {
+    const youtubeId = YOUTUBE_IDS[i % YOUTUBE_IDS.length];
     const videoUrl = `https://www.youtube.com/embed/${youtubeId}`;
-    
-    // In PostgreSQL, execute raw update
-    const count = await prisma.$executeRawUnsafe(
-      `UPDATE "Lesson" SET "videoUrl" = $1 WHERE (id % ${YOUTUBE_IDS.length}) = $2`,
-      videoUrl,
-      idx
-    );
-    console.log(`[Script] Updated ${count} lessons for YouTube ID ${youtubeId}`);
+    await prisma.lesson.update({
+      where: { id: lessons[i].id },
+      data: { videoUrl }
+    });
   }
 
-  console.log('[Script] Finished bulk updating all lesson videos successfully!');
+  console.log(`[Script] Successfully assigned YouTube video URLs to all ${lessons.length} lessons!`);
 }
 
 main()

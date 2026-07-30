@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../api';
+import { resolveUploadUrl } from '../utils/courseMapper';
 import { 
   HiSearch, 
   HiAdjustments, 
@@ -847,7 +848,7 @@ export default function AdminExamManager() {
                           </div>
                           {q.imageUrl && (
                             <div style={{ border: '2px solid #000', borderRadius: '6px', overflow: 'hidden', maxWidth: '300px', margin: '4px 0' }}>
-                              <img src={q.imageUrl} alt="Câu hỏi" style={{ width: '100%', objectFit: 'contain' }} />
+                              <img src={resolveUploadUrl(q.imageUrl)} alt="Câu hỏi" style={{ width: '100%', objectFit: 'contain' }} />
                             </div>
                           )}
 
@@ -1070,7 +1071,7 @@ export default function AdminExamManager() {
 
                     {q.imageUrl && (
                       <div style={{ border: '2.5px solid #000', borderRadius: '8px', overflow: 'hidden', maxWidth: '400px', margin: '8px 0' }}>
-                        <img src={q.imageUrl} alt="Minh họa" style={{ width: '100%', objectFit: 'contain' }} />
+                        <img src={resolveUploadUrl(q.imageUrl)} alt="Minh họa" style={{ width: '100%', objectFit: 'contain' }} />
                       </div>
                     )}
 

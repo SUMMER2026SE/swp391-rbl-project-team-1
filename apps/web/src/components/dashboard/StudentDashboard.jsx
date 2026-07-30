@@ -1500,7 +1500,7 @@ export default function StudentDashboard({ currentUser, setActiveTab, navigateTo
                     Nâng cấp
                   </button>
                 </div>
-                            </div>
+              </div>
             </div>
           </>
         )}
@@ -1532,43 +1532,7 @@ export default function StudentDashboard({ currentUser, setActiveTab, navigateTo
               progresses={progresses}
             />
 
-            {coursesToRender.length === 0 && (
-              <div style={{
-                background: '#fff',
-                border: '1px solid #e2e8f0',
-                borderRadius: '20px',
-                padding: '48px 32px',
-                textAlign: 'center',
-                boxShadow: '0 10px 25px -5px rgba(0,0,0,0.03)',
-                maxWidth: '600px',
-                margin: '40px auto'
-              }}>
-                <span style={{ fontSize: '48px' }}>📚</span>
-                <h3 style={{ fontSize: '18px', fontWeight: '700', margin: '16px 0 8px 0', color: '#0f172a' }}>
-                  Bạn chưa sở hữu khóa học thực tế nào
-                </h3>
-                <p style={{ fontSize: '13.5px', color: '#64748b', margin: '0 0 24px 0', fontWeight: '500', lineHeight: '1.5' }}>
-                  Hãy đăng ký các khóa học chất lượng cao từ EduPath AI để bắt đầu bài học, luyện đề, và chinh phục kỳ thi của mình nhé!
-                </p>
-                <button
-                  onClick={() => navigateTo('/courses')}
-                  style={{
-                    background: '#FFE259',
-                    color: '#000',
-                    border: '2.5px solid #000',
-                    borderRadius: '8px',
-                    padding: '10px 24px',
-                    fontWeight: '900',
-                    fontSize: '14px',
-                    cursor: 'pointer',
-                    boxShadow: '3px 3px 0px #000',
-                    transition: 'all 0.1s'
-                  }}
-                >
-                  Khám phá kho khóa học
-                </button>
-              </div>
-            )}
+
           </div>
         )}
 

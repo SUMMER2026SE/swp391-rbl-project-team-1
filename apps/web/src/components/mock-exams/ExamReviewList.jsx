@@ -14,6 +14,7 @@ import {
 import { renderLatexToHtml } from './QuestionCard';
 import { mockExamService } from '../../services/mockExamService';
 import { toast } from '../../utils/toast';
+import { resolveUploadUrl } from '../../utils/courseMapper';
 
 export default function ExamReviewList({ questions = [], userAnswers = {}, subject = 'Toán học', navigateTo }) {
   const [showIncorrectOnly, setShowIncorrectOnly] = useState(false);
@@ -196,7 +197,7 @@ export default function ExamReviewList({ questions = [], userAnswers = {}, subje
               {(q.imageUrl || q.question_image_url) && (
                 <div style={{ margin: '12px 0 16px', textAlign: 'center', display: 'flex', justifyContent: 'center' }}>
                   <img 
-                    src={q.imageUrl || q.question_image_url} 
+                    src={resolveUploadUrl(q.imageUrl || q.question_image_url)} 
                     alt={`Crop câu hỏi ${q.question_number}`} 
                     style={{ maxWidth: '100%', maxHeight: '420px', borderRadius: '8px', border: '1px solid var(--border)', boxShadow: '0 4px 12px rgba(0,0,0,0.06)' }} 
                   />

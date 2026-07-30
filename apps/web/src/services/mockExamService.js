@@ -2,6 +2,7 @@
 import { api } from '../api';
 import { getLocalData, setLocalData } from './mockDb';
 import { mockExamAiService } from './mockExamAiService';
+import { resolveUploadUrl } from '../utils/courseMapper';
 
 import toanDemo from '../data/mockExams/toan-2024-demo.json';
 import anhDemo from '../data/mockExams/tienganh-2024-demo.json';
@@ -93,7 +94,7 @@ const mapQuestion = (q, idx, examId) => {
   else if (q.difficulty === 'HARD') diffLabel = 'Khó';
 
   const rawImg = q.imageUrl || q.question_image_url || null;
-  const formattedImg = rawImg ? (rawImg.startsWith('http') ? rawImg : `http://localhost:4000/${rawImg.replace(/^\/+/, '')}`) : null;
+  const formattedImg = resolveUploadUrl(rawImg);
 
   // Cache options for separate queries
   const mappedOptions = (options || []).map((opt, optIdx) => ({
@@ -632,7 +633,7 @@ export const mockExamService = {
             exam_id: String(attempt.examId),
             question_number: eq.order,
             question_text: q.content,
-            question_image_url: q.imageUrl ? (q.imageUrl.startsWith('http') ? q.imageUrl : `http://localhost:4000/${q.imageUrl.replace(/^\/+/, '')}`) : null,
+            question_image_url: resolveUploadUrl(q.imageUrl || q.question_image_url),
             audio_url: q.audioUrl || null,
             question_type: 'multiple_choice_single',
             difficulty: q.difficulty === 'EASY' ? 'Dễ' : (q.difficulty === 'HARD' ? 'Khó' : 'Trung bình'),
@@ -1121,7 +1122,7 @@ export const mockExamService = {
         else if (q.difficulty === 'HARD' || q.difficulty === 'Khó') diffLabel = 'Khó';
 
         const rawImg = q.imageUrl || q.question_image_url || null;
-        const formattedImg = rawImg ? (rawImg.startsWith('http') ? rawImg : `http://localhost:4000/${rawImg.replace(/^\/+/, '')}`) : null;
+        const formattedImg = resolveUploadUrl(rawImg);
 
         return {
           id: Number(q.id) || idx + 1,

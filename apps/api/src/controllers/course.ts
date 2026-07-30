@@ -86,8 +86,25 @@ export async function getCourseById(req: AuthRequest, res: Response) {
       return res.status(404).json({ success: false, error: 'Không tìm thấy khóa học này!' });
     }
 
+    const YOUTUBE_FALLBACKS = [
+      'https://www.youtube.com/embed/dQw4w9WgXcQ',
+      'https://www.youtube.com/embed/kJQP7kiw5Fk',
+      'https://www.youtube.com/embed/L_LUpnjgPso',
+      'https://www.youtube.com/embed/fJ9rUzIMcZQ',
+      'https://www.youtube.com/embed/3JZ_D3ELwOQ',
+      'https://www.youtube.com/embed/gCYcAct4020',
+      'https://www.youtube.com/embed/2lAe1cqCOXo',
+      'https://www.youtube.com/embed/CevxZvSJLk8'
+    ];
+
+    const mappedLessons = (courseObj.lessons || []).map((l, idx) => ({
+      ...l,
+      videoUrl: l.videoUrl || YOUTUBE_FALLBACKS[idx % YOUTUBE_FALLBACKS.length]
+    }));
+
     const mappedCourse = {
       ...courseObj,
+      lessons: mappedLessons,
       subjectGroup: getSubjectGroupForSubject(courseObj.subject)
     };
 

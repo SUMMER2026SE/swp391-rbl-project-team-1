@@ -8,9 +8,16 @@ import { ExamManagementService } from '../services/examManagement.service.js';
 
 function formatQuestionImageUrl(url: string | null): string | null {
   if (!url) return null;
-  if (url.startsWith('http://') || url.startsWith('https://')) return url;
+  const publicUrl = process.env.APP_URL || process.env.PUBLIC_URL || process.env.VITE_API_URL || process.env.BACKEND_URL;
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    if (publicUrl && (url.includes('localhost:4000') || url.includes('127.0.0.1:4000'))) {
+      return url.replace(/https?:\/\/(localhost|127\.0\.0\.1):4000/g, publicUrl.replace(/\/+$/, ''));
+    }
+    return url;
+  }
   const clean = url.replace(/^\/+/, '');
-  return `http://localhost:4000/${clean}`;
+  const baseUrl = publicUrl ? publicUrl.replace(/\/+$/, '') : 'http://localhost:4000';
+  return `${baseUrl}/${clean}`;
 }
 
 export async function getExams(req: AuthRequest, res: Response) {

@@ -10,6 +10,7 @@ import SmartRetakeOptions from '../components/mock-exams/SmartRetakeOptions';
 import ExamReplayTimeline from '../components/mock-exams/ExamReplayTimeline';
 import { mockExamService } from '../services/mockExamService';
 import { toast } from '../utils/toast';
+import { resolveUploadUrl } from '../utils/courseMapper';
 import { 
   HiCheck, 
   HiX, 
@@ -206,7 +207,7 @@ export default function MockExamResultPage({ examId, attemptId, currentUser, nav
           subject: result?.mock_exams?.subject || '',
           topic: q.topic,
           difficulty: dbDifficulty,
-          imageUrl: q.question_image_url || null,
+          imageUrl: resolveUploadUrl(q.question_image_url || q.imageUrl || null),
           explanation: q.explanation
         };
       });
