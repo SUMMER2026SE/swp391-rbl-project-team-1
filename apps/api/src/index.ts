@@ -143,7 +143,15 @@ app.use('/scratch', express.static(scratchDir));
 
 if (fs.existsSync(webDistDir)) {
   console.log(`[Static] Serving web frontend from: ${webDistDir}`);
-  app.use(express.static(webDistDir));
+  app.use(express.static(webDistDir, {
+    setHeaders: (res, filePath) => {
+      if (filePath.endsWith('index.html')) {
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      } else {
+        res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+      }
+    }
+  }));
 }
 
 // Strip /api prefix for Vercel routing
@@ -676,9 +684,14 @@ app.get('*', (req, res, next) => {
   if (req.path.startsWith('/api') || req.path.startsWith('/uploads') || req.path.startsWith('/extracted_images') || req.path.startsWith('/scratch') || req.path.startsWith('/socket.io')) {
     return next();
   }
+  // DO NOT serve index.html for missing static assets (.js, .css, .png, etc.) to prevent SyntaxError
+  if (/\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot|map|json)$/i.test(req.path)) {
+    return res.status(404).send('Asset not found');
+  }
   const webDistDir = path.resolve(process.cwd(), '../web/dist');
   const indexPath = path.join(webDistDir, 'index.html');
   if (fs.existsSync(indexPath)) {
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     return res.sendFile(indexPath);
   }
   next();
