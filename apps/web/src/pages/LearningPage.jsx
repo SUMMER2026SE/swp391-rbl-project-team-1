@@ -381,17 +381,35 @@ export default function LearningPage({
   const hasNext = currentIdx < allLessons.length - 1;
   const nextLessonName = hasNext ? allLessons[currentIdx + 1].title : null;
 
+  const handleSelectLessonFromSidebar = useCallback((lessonItem) => {
+    if (!lessonItem) return;
+    const targetId = (typeof lessonItem === 'object' && lessonItem !== null && lessonItem.id !== undefined)
+      ? lessonItem.id
+      : lessonItem;
+
+    if (!targetId) return;
+
+    const found = allLessons.find(l => l && l.id && l.id.toString() === targetId.toString());
+    if (found) {
+      setCurrentLesson(found);
+    }
+
+    if (onSelectLesson) {
+      onSelectLesson(courseId, targetId);
+    }
+  }, [allLessons, courseId, onSelectLesson]);
+
   const handlePrevLesson = useCallback(() => {
     if (hasPrev) {
-      onSelectLesson(courseId, allLessons[currentIdx - 1].id);
+      handleSelectLessonFromSidebar(allLessons[currentIdx - 1]);
     }
-  }, [hasPrev, currentIdx, allLessons, courseId, onSelectLesson]);
+  }, [hasPrev, currentIdx, allLessons, handleSelectLessonFromSidebar]);
 
   const handleNextLesson = useCallback(() => {
     if (hasNext) {
-      onSelectLesson(courseId, allLessons[currentIdx + 1].id);
+      handleSelectLessonFromSidebar(allLessons[currentIdx + 1]);
     }
-  }, [hasNext, currentIdx, allLessons, courseId, onSelectLesson]);
+  }, [hasNext, currentIdx, allLessons, handleSelectLessonFromSidebar]);
 
   const handleVideoEnded = () => {
     // Automatically mark lesson as completed
@@ -1319,7 +1337,7 @@ Nội dung bài học: "${currentLesson.content || 'Khái niệm và cách giả
                       <LessonSidebar
                         curriculum={course.curriculum}
                         currentLessonId={currentLesson.id}
-                        onSelectLesson={(lesson) => onSelectLesson(courseId, lesson.id)}
+                        onSelectLesson={handleSelectLessonFromSidebar}
                         completedLessons={completedLessons}
                         isOwned={isOwned}
                         courseTitle={course.title}

@@ -90,27 +90,31 @@ const VideoPlayer = forwardRef(({
   // Expose a custom handle that mimics the HTML5 Video Element properties & methods
   useImperativeHandle(ref, () => ({
     get currentTime() {
-      if (isYouTube && ytPlayerRef.current) {
+      if (isYouTube && ytPlayerRef.current && typeof ytPlayerRef.current.getCurrentTime === 'function') {
         return ytPlayerRef.current.getCurrentTime();
       }
-      return videoRef.current ? videoRef.current.currentTime : 0;
+      return videoRef.current ? videoRef.current.currentTime : currentTime;
     },
     set currentTime(val) {
-      if (isYouTube && ytPlayerRef.current) {
+      setCurrentTime(val);
+      if (isYouTube && ytPlayerRef.current && typeof ytPlayerRef.current.seekTo === 'function') {
         ytPlayerRef.current.seekTo(val, true);
       } else if (videoRef.current) {
         videoRef.current.currentTime = val;
       }
     },
     play() {
-      if (isYouTube && ytPlayerRef.current) {
+      setIsPlaying(true);
+      if (isYouTube && ytPlayerRef.current && typeof ytPlayerRef.current.playVideo === 'function') {
         ytPlayerRef.current.playVideo();
-        return Promise.resolve();
+      } else if (videoRef.current) {
+        return videoRef.current.play();
       }
-      return videoRef.current ? videoRef.current.play() : Promise.resolve();
+      return Promise.resolve();
     },
     pause() {
-      if (isYouTube && ytPlayerRef.current) {
+      setIsPlaying(false);
+      if (isYouTube && ytPlayerRef.current && typeof ytPlayerRef.current.pauseVideo === 'function') {
         ytPlayerRef.current.pauseVideo();
       } else if (videoRef.current) {
         videoRef.current.pause();
