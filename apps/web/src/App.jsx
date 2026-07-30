@@ -27,6 +27,7 @@ import CourseMall from './components/CourseMall';
 import ChatbotWidget from './components/ChatbotWidget.jsx';
 import OCRScanner from './components/OCRScanner.jsx';
 import StudentDashboard from './components/dashboard/StudentDashboard';
+import ErrorBoundary from './components/ErrorBoundary';
 import ContributionHeatmap from './components/ContributionHeatmap';
 import LeaderboardTab from './components/LeaderboardTab';
 import LoadingOverlay from './components/LoadingOverlay';
@@ -3199,14 +3200,16 @@ export default function App() {
           {/* ================= STUDENT LEARNING WORKSPACE ================= */}
           {parsedRoute.route === 'learn' && (
             <div style={{ padding: '0' }}>
-              <LearningPage
-                courseId={parsedRoute.courseId}
-                lessonId={parsedRoute.lessonId}
-                currentUser={currentUser}
-                onSelectLesson={(courseId, lessonId) => navigateTo(`/learn/${courseId}/lesson/${lessonId}${window.location.search}`)}
-                onBackToCourse={(targetPath) => navigateTo(targetPath || `/courses/${parsedRoute.courseId}`)}
-                navigateTo={navigateTo}
-              />
+              <ErrorBoundary>
+                <LearningPage
+                  courseId={parsedRoute.courseId}
+                  lessonId={parsedRoute.lessonId}
+                  currentUser={currentUser}
+                  onSelectLesson={(courseId, lessonId) => navigateTo(`/learn/${courseId}/lesson/${lessonId}${window.location.search}`)}
+                  onBackToCourse={(targetPath) => navigateTo(targetPath || `/courses/${parsedRoute.courseId}`)}
+                  navigateTo={navigateTo}
+                />
+              </ErrorBoundary>
             </div>
           )}
 

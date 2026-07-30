@@ -20,6 +20,7 @@ import AITutorPanel from '../components/courses/learning/AITutorPanel';
 import NotePanel from '../components/courses/learning/NotePanel';
 import KeyboardShortcutsOverlay from '../components/courses/learning/KeyboardShortcutsOverlay';
 import CompletionModal from '../components/courses/learning/CompletionModal';
+import ErrorBoundary from '../components/ErrorBoundary';
 
 const EduPathLogo = ({ onClick }) => (
   <div onClick={onClick} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', marginRight: '8px' }}>
@@ -773,21 +774,23 @@ Nội dung bài học: "${currentLesson.content || 'Khái niệm và cách giả
                 </button>
               </div>
             ) : (
-              <VideoPlayer
-                ref={videoRef}
-                videoUrl={currentLesson.videoUrl || "https://www.w3schools.com/html/mov_bbb.mp4"}
-                title={currentLesson.title}
-                lessonId={currentLesson.id}
-                nextLessonName={nextLessonName}
-                onEnded={handleVideoEnded}
-                onTimeUpdate={(t) => setVideoTime(t)}
-                transcript={currentTranscript}
-                languageMode={languageMode}
-                chapters={[
-                  { title: "Phần 1: Giới thiệu chuyên đề", timeSeconds: 0 },
-                  { title: "Phần 2: Phương pháp giải nhanh", timeSeconds: 28 }
-                ]}
-              />
+              <ErrorBoundary title="Đang tải trình phát video...">
+                <VideoPlayer
+                  ref={videoRef}
+                  videoUrl={currentLesson?.videoUrl || "https://www.w3schools.com/html/mov_bbb.mp4"}
+                  title={currentLesson?.title || "Bài học"}
+                  lessonId={currentLesson?.id || "1"}
+                  nextLessonName={nextLessonName}
+                  onEnded={handleVideoEnded}
+                  onTimeUpdate={(t) => setVideoTime(t)}
+                  transcript={currentTranscript}
+                  languageMode={languageMode}
+                  chapters={[
+                    { title: "Phần 1: Giới thiệu chuyên đề", timeSeconds: 0 },
+                    { title: "Phần 2: Phương pháp giải nhanh", timeSeconds: 28 }
+                  ]}
+                />
+              </ErrorBoundary>
             )}
 
             {/* Video navigation controller footer */}
