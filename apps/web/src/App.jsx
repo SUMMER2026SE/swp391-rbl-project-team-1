@@ -1509,7 +1509,8 @@ export default function App() {
       return { route: 'dashboard', tab: tab };
     }
 
-    const learnMatch = currentPath.match(/^\/learn\/(\d+)(?:\/lesson\/(\d+))?$/);
+    const pathWithoutQuery = currentPath.split('?')[0].replace(/\/$/, '');
+    const learnMatch = pathWithoutQuery.match(/^\/learn\/([^/]+)(?:\/lesson\/([^/]+))?$/);
     if (learnMatch) {
       return { route: 'learn', courseId: learnMatch[1], lessonId: learnMatch[2] || null };
     }

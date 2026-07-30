@@ -20,7 +20,8 @@ export default function LessonSidebar({
   };
 
   const allLessons = useMemo(() => {
-    return curriculum.flatMap(chapter => chapter.lessons) || [];
+    if (!curriculum || !Array.isArray(curriculum)) return [];
+    return curriculum.flatMap(chapter => chapter?.lessons || []) || [];
   }, [curriculum]);
 
   const totalCount = allLessons.length;
