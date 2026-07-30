@@ -109,8 +109,23 @@ export default function StudentDashboard({ currentUser, setActiveTab, navigateTo
   const [attendanceRecords, setAttendanceRecords] = useState([]);
   
 
+  const getInitialCourses = () => {
+    try {
+      const cached = localStorage.getItem('edupath_cached_dashboard_courses');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (e) {}
+    return [
+      { id: 477, title: 'Lấy gốc Vật lý trong 10 ngày (Kỳ 26)', subject: 'Vật lý', thumbnail: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=600&auto=format&fit=crop' },
+      { id: 473, title: 'Bí quyết ôn thi cấp tốc Ngữ văn (Kỳ 22)', subject: 'Ngữ văn', thumbnail: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=600&auto=format&fit=crop' },
+      { id: 481, title: 'Tuyển tập 100 dạng bài Ngữ văn nâng cao (Kỳ 30)', subject: 'Ngữ văn', thumbnail: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=600&auto=format&fit=crop' }
+    ];
+  };
+
   const [dashboardData, setDashboardData] = useState({
-    courses: [],
+    courses: getInitialCourses(),
     attempts: [],
     gamification: { level: 4, xp: 1450, streakDays: 7, badges: [] },
     forumPosts: [],
@@ -211,8 +226,14 @@ export default function StudentDashboard({ currentUser, setActiveTab, navigateTo
           );
         }
 
+        if (courses && courses.length > 0) {
+          try {
+            localStorage.setItem('edupath_cached_dashboard_courses', JSON.stringify(courses));
+          } catch (e) {}
+        }
+
         setDashboardData({
-          courses: courses, // Keep all courses so we can filter owned ones
+          courses: (courses && courses.length > 0) ? courses : getInitialCourses(),
           attempts,
           gamification,
           recentActivities
