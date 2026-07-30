@@ -1,14 +1,12 @@
 const EXAM_PREP_THPT_VIDEOS = [
-  'https://www.youtube.com/embed/V1y3_Tz1Gf4', // Toán THPT QG
-  'https://www.youtube.com/embed/3Q90uJdSpXo', // Toán THPT QG
-  'https://www.youtube.com/embed/537bNfX-i64', // Vật lý THPT QG
-  'https://www.youtube.com/embed/F91V6c_yO50', // Vật lý THPT QG
-  'https://www.youtube.com/embed/bM7SZ5SZbyY', // Hóa học THPT QG
-  'https://www.youtube.com/embed/HGeUpeCjSbg', // Hóa học THPT QG
-  'https://www.youtube.com/embed/01GzX1S6_sM', // Sinh học THPT QG
-  'https://www.youtube.com/embed/7X83wS0K_mU', // Sinh học THPT QG
-  'https://www.youtube.com/embed/l592D_V6v6U', // Tiếng Anh THPT QG
-  'https://www.youtube.com/embed/z1ZqQ1J8W1M'  // Ngữ văn THPT QG
+  'https://www.youtube.com/embed/PkZNo7MFNFg',
+  'https://www.youtube.com/embed/M7lc1UVf-VE',
+  'https://www.youtube.com/embed/bHQqvYy5KYo',
+  'https://www.youtube.com/embed/aqz-KE-bpKQ',
+  'https://www.youtube.com/embed/LXb3EKWsInQ',
+  'https://www.youtube.com/embed/5qap5aO4i9A',
+  'https://www.youtube.com/embed/tgbNymZ7vqY',
+  'https://www.youtube.com/embed/L_LUpnjgPso'
 ];
 
 export const getDefaultVideoUrl = (indexOrId = 0) => {
