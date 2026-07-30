@@ -127,10 +127,11 @@ initSocket(server);
 app.use(cors({ origin: '*' }));
 app.use(express.json());
 
-const workspaceRoot = path.resolve(process.cwd(), '..', '..');
-const resolvedUploadsDir = path.join(workspaceRoot, 'apps', 'api', 'uploads');
-const mineruImagesDir = path.join(workspaceRoot, 'tools', 'mineru', 'output', 'extracted_images');
-const scratchDir = path.join(workspaceRoot, 'scratch');
+const apiDir = process.cwd();
+const resolvedUploadsDir = path.join(apiDir, 'uploads');
+const mineruImagesDir = path.resolve(apiDir, '../../tools/mineru/output/extracted_images');
+const scratchDir = path.resolve(apiDir, '../../scratch');
+const webDistDir = path.resolve(apiDir, '../web/dist');
 
 if (!fs.existsSync(resolvedUploadsDir)) fs.mkdirSync(resolvedUploadsDir, { recursive: true });
 if (!fs.existsSync(mineruImagesDir)) fs.mkdirSync(mineruImagesDir, { recursive: true });
@@ -139,6 +140,11 @@ if (!fs.existsSync(scratchDir)) fs.mkdirSync(scratchDir, { recursive: true });
 app.use('/uploads', express.static(resolvedUploadsDir));
 app.use('/extracted_images', express.static(mineruImagesDir));
 app.use('/scratch', express.static(scratchDir));
+
+if (fs.existsSync(webDistDir)) {
+  console.log(`[Static] Serving web frontend from: ${webDistDir}`);
+  app.use(express.static(webDistDir));
+}
 
 // Strip /api prefix for Vercel routing
 app.use((req, res, next) => {
@@ -664,6 +670,19 @@ NotificationTemplateService.seedDefaultTemplates().catch(err => console.warn('[S
 VoucherService.seedDefaultVouchers().catch(err => console.warn('[Startup] Vouchers seed notice:', err.message || err));
 ImportV2Service.cleanupOrphanImportFiles().catch(err => console.warn('[Startup] Orphan cleanup notice:', err.message || err));
 
+
+// SPA Fallback Route for HTML5 History Mode Frontend Navigation
+app.get('*', (req, res, next) => {
+  if (req.path.startsWith('/api') || req.path.startsWith('/uploads') || req.path.startsWith('/extracted_images') || req.path.startsWith('/scratch') || req.path.startsWith('/socket.io')) {
+    return next();
+  }
+  const webDistDir = path.resolve(process.cwd(), '../web/dist');
+  const indexPath = path.join(webDistDir, 'index.html');
+  if (fs.existsSync(indexPath)) {
+    return res.sendFile(indexPath);
+  }
+  next();
+});
 
 // Global Error Handler Middleware to catch exceptions and log them
 app.use((err: any, req: any, res: any, next: any) => {
