@@ -3202,6 +3202,7 @@ export default function App() {
             <div style={{ padding: '0' }}>
               <ErrorBoundary>
                 <LearningPage
+                  key={`${parsedRoute.courseId}-${parsedRoute.lessonId || 'default'}`}
                   courseId={parsedRoute.courseId}
                   lessonId={parsedRoute.lessonId}
                   currentUser={currentUser}

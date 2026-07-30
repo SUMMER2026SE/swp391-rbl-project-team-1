@@ -366,8 +366,8 @@ const VideoPlayer = forwardRef(({
 
       {isYouTube ? (
         <iframe
-          key={resolvedUrl}
-          src={`https://www.youtube.com/embed/${getYouTubeVideoId(resolvedUrl) || 'QqQ7e1pZkqQ'}?autoplay=1&rel=0`}
+          key={`${lessonId}-${resolvedUrl}`}
+          src={`https://www.youtube.com/embed/${getYouTubeVideoId(resolvedUrl) || 'PkZNo7MFNFg'}?autoplay=1&rel=0`}
           title={title || "EduPath AI Bài giảng"}
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
           allowFullScreen
@@ -377,7 +377,7 @@ const VideoPlayer = forwardRef(({
       ) : (
         <video
           ref={videoRef}
-          key={resolvedUrl}
+          key={`${lessonId}-${resolvedUrl}`}
           src={resolvedUrl}
           onPlay={() => setIsPlaying(true)}
           onPause={() => setIsPlaying(false)}
