@@ -43,14 +43,16 @@ const VideoPlayer = forwardRef(({
   languageMode = 'VI'
 }, ref) => {
   const EXAM_PREP_FALLBACKS = [
-    'https://www.youtube.com/embed/dQw4w9WgXcQ',
-    'https://www.youtube.com/embed/kJQP7kiw5Fk',
-    'https://www.youtube.com/embed/L_LUpnjgPso',
-    'https://www.youtube.com/embed/fJ9rUzIMcZQ',
-    'https://www.youtube.com/embed/3JZ_D3ELwOQ',
-    'https://www.youtube.com/embed/gCYcAct4020',
-    'https://www.youtube.com/embed/2lAe1cqCOXo',
-    'https://www.youtube.com/embed/CevxZvSJLk8'
+    'https://www.youtube.com/embed/V1y3_Tz1Gf4', // Toán THPT QG
+    'https://www.youtube.com/embed/3Q90uJdSpXo', // Toán THPT QG
+    'https://www.youtube.com/embed/537bNfX-i64', // Vật lý THPT QG
+    'https://www.youtube.com/embed/F91V6c_yO50', // Vật lý THPT QG
+    'https://www.youtube.com/embed/bM7SZ5SZbyY', // Hóa học THPT QG
+    'https://www.youtube.com/embed/HGeUpeCjSbg', // Hóa học THPT QG
+    'https://www.youtube.com/embed/01GzX1S6_sM', // Sinh học THPT QG
+    'https://www.youtube.com/embed/7X83wS0K_mU', // Sinh học THPT QG
+    'https://www.youtube.com/embed/l592D_V6v6U', // Tiếng Anh THPT QG
+    'https://www.youtube.com/embed/z1ZqQ1J8W1M'  // Ngữ văn THPT QG
   ];
 
   const getFallbackVideo = (id) => {

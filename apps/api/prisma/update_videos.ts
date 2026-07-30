@@ -11,14 +11,16 @@ dotenv.config({ path: path.resolve(__dirname, '../.env') });
 const prisma = new PrismaClient();
 
 const YOUTUBE_IDS = [
-  'dQw4w9WgXcQ',
-  'kJQP7kiw5Fk',
-  'L_LUpnjgPso',
-  'fJ9rUzIMcZQ',
-  '3JZ_D3ELwOQ',
-  'gCYcAct4020',
-  '2lAe1cqCOXo',
-  'CevxZvSJLk8'
+  'V1y3_Tz1Gf4',
+  '3Q90uJdSpXo',
+  '537bNfX-i64',
+  'F91V6c_yO50',
+  'bM7SZ5SZbyY',
+  'HGeUpeCjSbg',
+  '01GzX1S6_sM',
+  '7X83wS0K_mU',
+  'l592D_V6v6U',
+  'z1ZqQ1J8W1M'
 ];
 
 async function main() {
