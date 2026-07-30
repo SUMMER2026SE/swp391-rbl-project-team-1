@@ -1310,7 +1310,7 @@ model ImportSession {
   updatedAt DateTime         @updatedAt
   filePath  String?
   status    String           @default("PROCESSING")
-  ImportLog ImportLog[]
+  logs      ImportLog[]
   questions ImportQuestion[]
   user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
