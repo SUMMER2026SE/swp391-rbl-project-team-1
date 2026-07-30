@@ -395,6 +395,11 @@ export default function LearningPage({
       setCurrentLesson(found);
     }
 
+    const newPath = `/learn/${courseId}/lesson/${targetId}${window.location.search || ''}`;
+    if (window.location.pathname !== `/learn/${courseId}/lesson/${targetId}`) {
+      window.history.pushState({}, '', newPath);
+    }
+
     if (onSelectLesson) {
       onSelectLesson(courseId, targetId);
     }

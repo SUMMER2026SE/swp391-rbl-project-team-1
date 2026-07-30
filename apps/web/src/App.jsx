@@ -3206,7 +3206,12 @@ export default function App() {
                   courseId={parsedRoute.courseId}
                   lessonId={parsedRoute.lessonId}
                   currentUser={currentUser}
-                  onSelectLesson={(courseId, lessonId) => navigateTo(`/learn/${courseId}/lesson/${lessonId}${window.location.search}`)}
+                  onSelectLesson={(cId, lId) => {
+                    const newPath = `/learn/${cId}/lesson/${lId}${window.location.search || ''}`;
+                    if (window.location.pathname !== `/learn/${cId}/lesson/${lId}`) {
+                      window.history.pushState({}, '', newPath);
+                    }
+                  }}
                   onBackToCourse={(targetPath) => navigateTo(targetPath || `/courses/${parsedRoute.courseId}`)}
                   navigateTo={navigateTo}
                 />
