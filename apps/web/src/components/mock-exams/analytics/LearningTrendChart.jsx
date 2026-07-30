@@ -75,7 +75,7 @@ export default function LearningTrendChart({ trendData }) {
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
             <XAxis dataKey="date" stroke="var(--text-secondary)" fontSize={12} tickLine={false} />
-            <YAxis stroke="var(--text-secondary)" fontSize={12} domain={[50, 100]} tickLine={false} />
+            <YAxis stroke="var(--text-secondary)" fontSize={12} domain={[0, 100]} tickLine={false} />
             <Tooltip content={<CustomTooltip />} />
             <Area type="monotone" dataKey="accuracy" name="Tỷ lệ đúng (%)" stroke="#6c5ce7" strokeWidth={3} fillOpacity={1} fill="url(#colorAccuracy)" />
           </AreaChart>

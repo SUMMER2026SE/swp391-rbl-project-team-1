@@ -39,13 +39,23 @@ export default function GenerateExamCard({ onGenerate, externalConfig }) {
   }, [externalConfig]);
 
   const handleGenerateClick = () => {
-    const isSingle = form.topic === 'single_topic' && form.singleTopicName;
-    const msg = isSingle
-      ? `⚡ AI đang gom tất cả câu hỏi có sẵn thuộc chủ đề "${form.singleTopicName}" (Tối đa 20 câu hoặc toàn bộ trong kho)...`
-      : `⚡ AI đang tổng hợp bộ đề ${form.questionCount} câu cho bạn...`;
+    const isSingle = form.topic !== 'all' && Boolean(form.singleTopicName || (form.topic !== 'single_topic' && form.topic));
+    const activeTopic = form.topic === 'all' ? null : (form.topic === 'single_topic' ? form.singleTopicName : form.topic);
+    const qCount = Number(form.questionCount) || 10;
+    const calcDuration = qCount === 10 ? 15 : (qCount === 15 ? 25 : (qCount === 20 ? 35 : 50));
+
+    const msg = isSingle && activeTopic
+      ? `⚡ AI đang gom tất cả câu hỏi có sẵn thuộc chủ đề "${activeTopic}"...`
+      : `⚡ AI đang tổng hợp bộ đề ${qCount} câu cho bạn...`;
 
     toast(msg, 'info');
-    if (onGenerate) onGenerate({ ...form, isSingleTopic: isSingle });
+    if (onGenerate) onGenerate({ 
+      ...form, 
+      singleTopicName: activeTopic,
+      topic: activeTopic || 'all',
+      duration: calcDuration,
+      isSingleTopic: isSingle 
+    });
   };
 
   return (
@@ -82,7 +92,7 @@ export default function GenerateExamCard({ onGenerate, externalConfig }) {
           </div>
         </div>
 
-        {form.singleTopicName && (
+        {form.topic !== 'all' && form.singleTopicName && (
           <span style={{
             fontSize: '11px',
             fontWeight: '800',
@@ -127,11 +137,11 @@ export default function GenerateExamCard({ onGenerate, externalConfig }) {
             value={form.topic}
             onChange={(e) => {
               const val = e.target.value;
-              setForm({ 
-                ...form, 
+              setForm(prev => ({ 
+                ...prev, 
                 topic: val, 
-                singleTopicName: val !== 'all' && val !== 'single_topic' ? val : form.singleTopicName 
-              });
+                singleTopicName: val === 'all' ? null : (val !== 'single_topic' ? val : prev.singleTopicName)
+              }));
             }}
             style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border)', fontSize: '13px', fontWeight: '700', outline: 'none' }}
           >

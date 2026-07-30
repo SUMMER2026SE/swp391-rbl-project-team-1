@@ -94,10 +94,77 @@ export default function MockExamsPage({ currentUser, onSelectExam, navigateTo, e
   const loadHistory = async () => {
     setHistoryLoading(true);
     try {
-      const list = await api.getAttempts();
-      const submitted = (list || []).filter(a => a.status === 'SUBMITTED');
-      submitted.sort((a, b) => new Date(b.submittedAt || b.startedAt) - new Date(a.submittedAt || a.startedAt));
-      setHistoryAttempts(submitted);
+      let apiAttempts = [];
+      try {
+        const list = await api.getAttempts();
+        if (Array.isArray(list)) {
+          apiAttempts = list
+            .filter(a => a.status === 'SUBMITTED')
+            .map(a => ({
+              id: String(a.id),
+              examId: String(a.examId || a.exam_id || ''),
+              status: 'SUBMITTED',
+              score: Number(a.score) || 0,
+              submittedAt: a.submittedAt || a.submitted_at || a.startedAt,
+              correctCount: Number(a.correctCount || a.correct_count) || 0,
+              wrongCount: Number(a.wrongCount || a.wrong_count) || 0,
+              skippedCount: Number(a.skippedCount || a.skipped_count || a.blank_count) || 0,
+              durationUsed: Number(a.durationUsed || a.duration_used || a.duration_seconds) || 0,
+              exam: {
+                title: a.exam?.title || a.exam_title || 'Đề thi thử',
+                subject: a.exam?.subject || a.subject || null
+              }
+            }));
+        }
+      } catch (e) {
+        console.warn('API getAttempts error:', e);
+      }
+
+      // Merge with LocalStorage attempts
+      const localAttempts = getLocalData('supabase_mock_exam_attempts') || [];
+      const localExams = getLocalData('supabase_mock_exams') || [];
+
+      const formattedLocal = localAttempts
+        .filter(a => a.status === 'completed' || a.status === 'SUBMITTED')
+        .map(a => {
+          const ex = localExams.find(e => String(e.id) === String(a.exam_id)) || {};
+          const derivedSubject = ex.exam_subjects?.name || a.subject
+            || (() => {
+                const t = (ex.title || a.exam_title || '').toLowerCase();
+                if (t.includes('vật lý') || t.includes('vật lí') || t.includes('physics') || t.includes('ly')) return 'Vật lý';
+                if (t.includes('hóa') || t.includes('chemistry') || t.includes('hoa')) return 'Hóa học';
+                if (t.includes('tiếng anh') || t.includes('english') || t.includes('anh')) return 'Tiếng Anh';
+                if (t.includes('toán') || t.includes('math') || t.includes('toan')) return 'Toán học';
+                return null;
+              })();
+          return {
+            id: String(a.id),
+            examId: String(a.exam_id),
+            status: 'SUBMITTED',
+            score: a.score || 0,
+            submittedAt: a.submitted_at || a.started_at,
+            correctCount: a.correct_count || a.correctCount || 0,
+            wrongCount: a.wrong_count || a.wrongCount || 0,
+            skippedCount: a.blank_count || a.skippedCount || 0,
+            durationUsed: a.duration_seconds || a.durationUsed || 0,
+            exam: {
+              title: ex.title || a.exam_title || 'Đề thi thử',
+              subject: derivedSubject
+            }
+          };
+        });
+
+      const attemptsMap = new Map();
+      apiAttempts.filter(a => a.status === 'SUBMITTED').forEach(a => attemptsMap.set(String(a.id), a));
+      formattedLocal.forEach(a => {
+        if (!attemptsMap.has(String(a.id))) {
+          attemptsMap.set(String(a.id), a);
+        }
+      });
+
+      const merged = Array.from(attemptsMap.values());
+      merged.sort((a, b) => new Date(b.submittedAt || b.startedAt || 0) - new Date(a.submittedAt || a.startedAt || 0));
+      setHistoryAttempts(merged);
     } catch (err) {
       console.error('Lỗi tải lịch sử thi:', err);
     } finally {

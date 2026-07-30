@@ -26,6 +26,12 @@ async function request(path, options = {}) {
 
   // Handle expired/invalid JWT token by automatically refreshing it
   if ((res.status === 401 || res.status === 403) && token) {
+    if (token === 'demo_bypass_token') {
+      const err = new Error('Demo bypass token active - endpoint requires real authentication');
+      err.status = res.status;
+      throw err;
+    }
+
     const refreshToken = localStorage.getItem('refresh_token');
     if (refreshToken) {
       try {
@@ -66,7 +72,9 @@ async function request(path, options = {}) {
         if (res.status === 401 || res.status === 403) {
           localStorage.removeItem('access_token');
           localStorage.removeItem('refresh_token');
-          window.dispatchEvent(new CustomEvent('edupath-auth-logout'));
+          if (!window.location.pathname.includes('/mock-exams/')) {
+            window.dispatchEvent(new CustomEvent('edupath-auth-logout'));
+          }
           const err = new Error('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!');
           err.status = res.status;
           throw err;
@@ -75,14 +83,17 @@ async function request(path, options = {}) {
         console.error('[api] Silent refresh failed:', refreshErr.message);
         localStorage.removeItem('access_token');
         localStorage.removeItem('refresh_token');
-        // Notify application components to clear state and visually logout the user
-        window.dispatchEvent(new CustomEvent('edupath-auth-logout'));
+        if (!window.location.pathname.includes('/mock-exams/')) {
+          window.dispatchEvent(new CustomEvent('edupath-auth-logout'));
+        }
       }
     } else {
-      // No refresh token available, logout user immediately
+      // No refresh token available
       localStorage.removeItem('access_token');
       localStorage.removeItem('refresh_token');
-      window.dispatchEvent(new CustomEvent('edupath-auth-logout'));
+      if (!window.location.pathname.includes('/mock-exams/')) {
+        window.dispatchEvent(new CustomEvent('edupath-auth-logout'));
+      }
     }
   }
 

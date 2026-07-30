@@ -28,7 +28,13 @@ export default function ExamReviewList({ questions = [], userAnswers = {}, subje
       ? userAnswers[q.id] 
       : (userAnswers[q.question_id] !== undefined 
           ? userAnswers[q.question_id] 
-          : (userAnswers[q.questionId] !== undefined ? userAnswers[q.questionId] : (q.selectedAnswer || q.userAnswer)));
+          : (userAnswers[q.questionId] !== undefined 
+              ? userAnswers[q.questionId] 
+              : (userAnswers[q.question_number] !== undefined 
+                  ? userAnswers[q.question_number] 
+                  : (userAnswers[String(q.question_number)] !== undefined 
+                      ? userAnswers[String(q.question_number)] 
+                      : (q.selectedAnswer || q.userAnswer)))));
 
     let rawCorrect = q.correct_answer || q.correctAnswer;
     if (!rawCorrect && qOptions.length > 0) {

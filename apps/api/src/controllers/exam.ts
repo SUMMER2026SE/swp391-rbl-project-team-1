@@ -794,7 +794,7 @@ export async function generateAiCoach(req: AuthRequest, res: Response) {
   if (!studentId) return res.status(401).json({ success: false, error: 'Chưa xác thực!' });
 
   try {
-    const isLocal = isNaN(Number(attemptId)) || String(attemptId).startsWith('attempt-');
+    const isLocal = isNaN(Number(attemptId)) || String(attemptId).startsWith('attempt-') || Number(attemptId) > 1_000_000_000_000;
     let attempt: any = null;
     let topicStats: any = {};
     let difficultyStats: any = {};

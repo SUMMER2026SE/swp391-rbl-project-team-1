@@ -78,10 +78,13 @@ export async function ownsAttempt(req: AuthRequest, res: Response, next: NextFun
     return next();
   }
 
-  const attemptId = Number(req.params.attemptId);
-  if (isNaN(attemptId)) {
-    return res.status(400).json({ success: false, error: 'ID lượt thi không hợp lệ!' });
+  const rawAttemptId = req.params.attemptId;
+  const isLocal = !rawAttemptId || isNaN(Number(rawAttemptId)) || String(rawAttemptId).startsWith('attempt-') || Number(rawAttemptId) > 1_000_000_000_000;
+  if (isLocal) {
+    return next();
   }
+
+  const attemptId = Number(rawAttemptId);
 
   try {
     const attempt = await prisma.testAttempt.findUnique({

@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MOCK_ANALYTICS_DATA } from '../../../mock/mockAnalyticsData';
-import { fetchRealAnalyticsData } from '../../../services/analyticsService';
+import { fetchRealAnalyticsData, ZERO_ANALYTICS_DATA } from '../../../services/analyticsService';
 import LearningFilters from './LearningFilters';
 import OverviewCards from './OverviewCards';
 import SubjectPerformance from './SubjectPerformance';
@@ -13,6 +12,8 @@ import StudyHeatmap from './StudyHeatmap';
 import RadarSkillChart from './RadarSkillChart';
 import RecentInsights from './RecentInsights';
 import { HiCheckCircle, HiDatabase, HiRefresh } from 'react-icons/hi';
+import { mockExamService } from '../../../services/mockExamService';
+import { toast } from '../../../utils/toast';
 
 export default function AnalyticsTab({ navigateTo, currentUser }) {
   const [filters, setFilters] = useState({
@@ -21,7 +22,7 @@ export default function AnalyticsTab({ navigateTo, currentUser }) {
     source: 'all'
   });
 
-  const [analyticsData, setAnalyticsData] = useState(MOCK_ANALYTICS_DATA);
+  const [analyticsData, setAnalyticsData] = useState(ZERO_ANALYTICS_DATA);
   const [loading, setLoading] = useState(true);
   const [isRealDb, setIsRealDb] = useState(false);
   const [selectedSubjectId, setSelectedSubjectId] = useState(null);
@@ -54,7 +55,7 @@ export default function AnalyticsTab({ navigateTo, currentUser }) {
     loadData();
   }, [currentUser]);
 
-  const subjectsList = analyticsData.subjects || MOCK_ANALYTICS_DATA.subjects;
+  const subjectsList = analyticsData.subjects || ZERO_ANALYTICS_DATA.subjects;
   const filteredSubjects = subjectsList ? (filters.subject === 'all' ? subjectsList : subjectsList.filter(s => s.id === filters.subject)) : [];
 
   return (
@@ -75,8 +76,8 @@ export default function AnalyticsTab({ navigateTo, currentUser }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: '800', color: 'var(--text-primary)' }}>
           <HiDatabase style={{ color: 'var(--exams-green)', fontSize: '18px' }} />
           <span>Hệ thống phân tích AI:</span>
-          <span style={{ color: isRealDb ? 'var(--exams-green)' : 'var(--exams-purple)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-            <HiCheckCircle /> {isRealDb ? `Số bài thi đã nộp: ${analyticsData.attemptsCount || 0}` : 'Đang đồng bộ dữ liệu thời gian thực từ CSDL'}
+          <span style={{ color: (analyticsData.attemptsCount || 0) > 0 ? 'var(--exams-green)' : 'var(--text-secondary)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+            <HiCheckCircle /> {(analyticsData.attemptsCount || 0) > 0 ? `Số bài thi đã nộp trong CSDL: ${analyticsData.attemptsCount}` : 'Chưa có dữ liệu bài thi trong CSDL (Các thông số hiển thị 0)'}
           </span>
         </div>
 
@@ -102,7 +103,7 @@ export default function AnalyticsTab({ navigateTo, currentUser }) {
       {/* SECTION 2: Overview Cards */}
       <OverviewCards
         data={{
-          ...(analyticsData.overview || MOCK_ANALYTICS_DATA.overview),
+          ...(analyticsData.overview || ZERO_ANALYTICS_DATA.overview),
           attemptsCount: analyticsData.attemptsCount || 0
         }}
       />
@@ -116,12 +117,12 @@ export default function AnalyticsTab({ navigateTo, currentUser }) {
       }}>
         {/* SECTION 8: Learning Trend Line/Area Chart */}
         <LearningTrendChart
-          trendData={analyticsData.learningTrend || MOCK_ANALYTICS_DATA.learningTrend}
+          trendData={analyticsData.learningTrend || ZERO_ANALYTICS_DATA.learningTrend}
         />
 
         {/* SECTION 10: Radar Skill Chart */}
         <RadarSkillChart
-          skillData={analyticsData.radarSkills || MOCK_ANALYTICS_DATA.radarSkills}
+          skillData={analyticsData.radarSkills || ZERO_ANALYTICS_DATA.radarSkills}
         />
       </div>
 
@@ -164,23 +165,48 @@ export default function AnalyticsTab({ navigateTo, currentUser }) {
         {/* Left Column: Tạo đề luyện tập theo yêu cầu */}
         <GenerateExamCard
           externalConfig={externalPracticeConfig}
-          onGenerate={(config) => {
+          onGenerate={async (config) => {
             if (navigateTo) {
-              const targetId = getExamIdForSubject(config.subject);
-              navigateTo(`/mock-exams/${targetId}/start`, { practiceConfig: config });
+              toast('⚡ AI đang quét Ngân hàng câu hỏi & tổng hợp bộ đề mới cho bạn...', 'info');
+              const subjectName = config.subject === 'physics' ? 'Vật lý' : config.subject === 'chemistry' ? 'Hóa học' : config.subject === 'english' ? 'Tiếng Anh' : 'Toán học';
+              const topicName = config.singleTopicName || config.topic;
+
+              const bankQuestions = await mockExamService.getQuestionBankQuestions(
+                subjectName,
+                topicName,
+                config.difficulty,
+                config.questionCount || 20
+              );
+
+              if (!bankQuestions || bankQuestions.length < 5) {
+                const topicLabel = (topicName && topicName !== 'all' && topicName !== 'single_topic') ? `"${topicName}"` : 'cấu hình đã chọn';
+                toast(`⚠️ Không đủ dữ liệu câu hỏi (< 5 câu) thuộc ${topicLabel} của môn ${subjectName} để tạo bài thi!`, 'warning');
+                return;
+              }
+
+              const generated = await mockExamService.createAiGeneratedExam({
+                ...config,
+                topicTitle: topicName !== 'all' ? topicName : 'Tổng hợp'
+              }, bankQuestions, currentUser);
+
+              navigateTo(`/mock-exams/${generated.exam.id}/start`, {
+                practiceConfig: config,
+                aiExam: generated.exam,
+                aiQuestions: generated.questions
+              });
             }
           }}
         />
 
         {/* Right Column: Tần suất học tập (Study Heatmap) */}
         <StudyHeatmap
-          heatmapData={analyticsData.heatmapData || MOCK_ANALYTICS_DATA.heatmapData}
+          heatmapData={analyticsData.heatmapData || ZERO_ANALYTICS_DATA.heatmapData}
         />
       </div>
 
       {/* SECTION 5: Weak Knowledge Detection */}
       <WeakKnowledgeCard
-        weakKnowledgeList={analyticsData.weakKnowledgeList || MOCK_ANALYTICS_DATA.weakKnowledgeList}
+        weakKnowledgeList={analyticsData.weakKnowledgeList || ZERO_ANALYTICS_DATA.weakKnowledgeList}
         onStartPractice={(item) => {
           if (navigateTo) {
             const targetId = getExamIdForSubject(item.subject);
@@ -191,8 +217,9 @@ export default function AnalyticsTab({ navigateTo, currentUser }) {
 
       {/* SECTION 6: AI Coach */}
       <AiCoachCard
-        insights={analyticsData.aiCoachInsights || MOCK_ANALYTICS_DATA.aiCoachInsights}
+        insights={analyticsData.aiCoachInsights || ZERO_ANALYTICS_DATA.aiCoachInsights}
       />
     </div>
   );
 }
+

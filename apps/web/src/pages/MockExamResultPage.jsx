@@ -125,7 +125,9 @@ export default function MockExamResultPage({ examId, attemptId, currentUser, nav
       const answersList = await mockExamService.getAttemptAnswers(attemptId);
       const answersMap = {};
       answersList.forEach(ans => {
-        answersMap[ans.question_id] = ans.selected_option_label;
+        if (ans.question_id) answersMap[ans.question_id] = ans.selected_option_label;
+        if (ans.question_number) answersMap[ans.question_number] = ans.selected_option_label;
+        if (ans.question_number) answersMap[String(ans.question_number)] = ans.selected_option_label;
       });
       setUserAnswers(answersMap);
 
@@ -171,6 +173,8 @@ export default function MockExamResultPage({ examId, attemptId, currentUser, nav
       if (plan) {
         setCoachPlan(plan);
         toast('AI Coach đã tạo kế hoạch học 7 ngày cho bạn!', 'success');
+      } else {
+        toast('Không thể tạo kế hoạch AI Coach. Vui lòng thử lại.', 'error');
       }
     } catch (_) {
       toast('Không thể tạo kế hoạch AI Coach. Vui lòng thử lại.', 'error');

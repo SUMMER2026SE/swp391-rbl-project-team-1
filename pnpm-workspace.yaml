@@ -1,12 +1,22 @@
 packages:
   - 'apps/*'
   - 'packages/*'
+onlyBuiltDependencies:
+  - '@prisma/client'
+  - '@prisma/engines'
+  - bcrypt
+  - cpu-features
+  - esbuild
+  - prisma
+  - ssh2
+  - tesseract.js
 allowBuilds:
   '@prisma/client': true
   '@prisma/engines': true
   bcrypt: true
-  cpu-features: set this to true or false
+  cpu-features: true
   esbuild: true
   prisma: true
-  ssh2: set this to true or false
+  ssh2: true
   tesseract.js: true
+

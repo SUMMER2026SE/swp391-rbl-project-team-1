@@ -181,8 +181,9 @@ export default function MockExamTakingPage({ examId, currentUser, onFinished, na
         } else if (currentUser) {
           const qIds = mappedQuestions.map(mq => Number(mq.id));
           const att = await mockExamService.startMockExam(currentUser.id, examId, retakeMode || retakeData.exam.retakeMode, qIds);
-          setAttemptId(att.id);
-          localStorage.setItem(`exam_taking_attempt_id_${examId}`, att.id);
+          const finalAttId = att?.id || `attempt-${Date.now()}`;
+          setAttemptId(finalAttId);
+          localStorage.setItem(`exam_taking_attempt_id_${examId}`, finalAttId);
         } else {
           const guestAttId = `guest-attempt-${Date.now()}`;
           setAttemptId(guestAttId);
@@ -209,20 +210,55 @@ export default function MockExamTakingPage({ examId, currentUser, onFinished, na
           attPromise
         ]);
 
-        let finalQs = qs;
+        const aiExam = historyState?.aiExam || historyState?.usr?.aiExam;
+        const aiQuestions = historyState?.aiQuestions || historyState?.usr?.aiQuestions;
+
+        let activeExamData = (aiExam && aiExam.questions?.length > 0) ? aiExam : examData;
+        let finalQs = (aiQuestions && aiQuestions.length > 0) ? aiQuestions : (qs && qs.length > 0 ? qs : []);
         const targetTopic = historyState?.targetTopic || historyState?.usr?.targetTopic;
         const practiceConfig = historyState?.practiceConfig || historyState?.usr?.practiceConfig;
 
-        let customTitle = examData?.title;
+        let customTitle = activeExamData?.title;
         let activeTopicName = null;
-        if (targetTopic) {
+        let selectedDifficulty = null;
+        let requestedCount = 20;
+
+        if (practiceConfig) {
+          if (practiceConfig.singleTopicName) {
+            activeTopicName = practiceConfig.singleTopicName;
+          } else if (practiceConfig.topic && practiceConfig.topic !== 'all' && practiceConfig.topic !== 'single_topic') {
+            activeTopicName = practiceConfig.topic;
+          }
+          if (practiceConfig.difficulty && practiceConfig.difficulty !== 'mixed') {
+            selectedDifficulty = practiceConfig.difficulty;
+          }
+          if (practiceConfig.questionCount) {
+            requestedCount = Number(practiceConfig.questionCount);
+          }
+        } else if (targetTopic) {
           activeTopicName = targetTopic.subTopic || targetTopic.topic || targetTopic.name;
-        } else if (practiceConfig && practiceConfig.singleTopicName) {
-          activeTopicName = practiceConfig.singleTopicName;
         }
 
+        const isDifficultyMatch = (qDiff, targetDiff) => {
+          if (!targetDiff || targetDiff === 'mixed' || targetDiff === 'All') return true;
+          if (!qDiff) return true;
+          const d = qDiff.toString().toLowerCase();
+          const target = targetDiff.toLowerCase();
+
+          if (target === 'easy') {
+            return d.includes('easy') || d.includes('nhận biết') || d.includes('dễ') || d === '1';
+          }
+          if (target === 'medium') {
+            return d.includes('medium') || d.includes('thông hiểu') || d.includes('trung bình') || d === '2';
+          }
+          if (target === 'hard') {
+            return d.includes('hard') || d.includes('vận dụng') || d.includes('khó') || d === '3';
+          }
+          return true;
+        };
+
         const isTopicMatch = (qTopic, qText, searchTopic) => {
-          if (!searchTopic) return true;
+          if (!searchTopic || searchTopic === 'all' || searchTopic === 'All') return true;
           const s = searchTopic.toLowerCase();
           const t = (qTopic || '').toLowerCase();
           const txt = (qText || '').toLowerCase();
@@ -240,39 +276,67 @@ export default function MockExamTakingPage({ examId, currentUser, onFinished, na
             return t.includes('hàm số') || t.includes('đồ thị') || txt.includes('hàm số') || txt.includes('đồ thị');
           }
           if (s.includes('oxyz') || s.includes('tọa độ')) {
-            return t.includes('oxyz') || t.includes('tọa độ');
+            return t.includes('oxyz') || t.includes('tọa độ') || txt.includes('oxyz');
           }
           if (s.includes('dao động') || s.includes('sóng')) {
-            return t.includes('dao động') || t.includes('sóng');
+            return t.includes('dao động') || t.includes('sóng') || txt.includes('dao động');
           }
           if (s.includes('dòng điện') || s.includes('xoay chiều')) {
-            return t.includes('dòng điện') || t.includes('xoay chiều');
+            return t.includes('dòng điện') || t.includes('xoay chiều') || txt.includes('xoay chiều');
           }
           if (s.includes('hạt nhân')) {
-            return t.includes('hạt nhân');
+            return t.includes('hạt nhân') || txt.includes('hạt nhân');
+          }
+          if (s.includes('este') || s.includes('lipit')) {
+            return t.includes('este') || t.includes('lipit') || txt.includes('este');
+          }
+          if (s.includes('ngữ pháp') || s.includes('grammar')) {
+            return t.includes('ngữ pháp') || t.includes('grammar') || txt.includes('grammar');
+          }
+          if (s.includes('di truyền') || s.includes('biến dị')) {
+            return t.includes('di truyền') || t.includes('biến dị') || txt.includes('di truyền');
           }
 
           return t.includes(s) || s.includes(t) || txt.includes(s);
         };
 
-        if (activeTopicName) {
-          customTitle = `⚡ Đề luyện tập AI: ${activeTopicName} (Chuyên đề trọng tâm)`;
-          setTargetTopicTitle(activeTopicName);
-          const matching = qs.filter(q => isTopicMatch(q.topic, q.question_text || q.content, activeTopicName));
-          if (matching.length > 0) {
-            finalQs = matching.slice(0, 20);
-            setIsPreExam(true); // Có câu hỏi -> Mở trang xác nhận làm bài!
-          } else {
-            setIsPreExam(false);
-            setShowNoQuestionsModal(true); // Không có câu hỏi -> Bật popup thông báo, KHÔNG chuyển vào trang làm bài!
-            finalQs = [];
+        if (activeTopicName || selectedDifficulty || practiceConfig) {
+          const subjectName = practiceConfig?.subject === 'physics' ? 'Vật lý' : practiceConfig?.subject === 'chemistry' ? 'Hóa học' : practiceConfig?.subject === 'english' ? 'Tiếng Anh' : 'Toán học';
+          if (!aiQuestions || aiQuestions.length === 0) {
+            const bankQuestions = await mockExamService.getQuestionBankQuestions(subjectName, activeTopicName, selectedDifficulty, requestedCount);
+            if (bankQuestions && bankQuestions.length > 0) {
+              finalQs = bankQuestions;
+            }
           }
+          setIsPreExam(true);
+
+          const diffName = selectedDifficulty === 'easy' ? 'Dễ' : selectedDifficulty === 'medium' ? 'Trung bình' : selectedDifficulty === 'hard' ? 'Khá/Khó' : 'Tổng hợp';
+          customTitle = activeExamData?.title || `⚡ Đề luyện tập AI (Ngân hàng câu hỏi): ${activeTopicName || 'Tổng hợp'} (${finalQs.length} câu - ${diffName})`;
+          if (activeTopicName) setTargetTopicTitle(activeTopicName);
         } else {
-          setIsPreExam(true); // Đề thi thông thường -> Mở trang xác nhận làm bài!
+          setIsPreExam(true);
         }
 
-        setExam({ ...examData, title: customTitle, total_questions: finalQs.length });
-        setQuestions(finalQs);
+        const rawMins = (activeExamData && (activeExamData.duration_minutes || activeExamData.duration)) || (practiceConfig && practiceConfig.duration);
+        const durationMins = rawMins || (finalQs.length <= 10 ? 15 : (finalQs.length <= 15 ? 25 : (finalQs.length <= 20 ? 35 : 50)));
+
+        const builtExam = {
+          ...(activeExamData || {}),
+          id: String(examId),
+          title: customTitle || '⚡ Đề luyện tập AI THPTQG',
+          duration_minutes: durationMins,
+          total_questions: finalQs.length
+        };
+        const uniqueQuestions = finalQs.map((q, idx) => ({
+          ...q,
+          id: (q.id && String(q.id) !== 'undefined') ? String(q.id) : `q_${examId}_${idx + 1}`,
+          question_number: idx + 1
+        }));
+        setQuestions(uniqueQuestions);
+
+        if (practiceConfig || targetTopic) {
+          toast(`⚡ AI đã tạo thành công bộ đề gồm ${uniqueQuestions.length} câu cho bạn!`, 'success');
+        }
 
         const savedAnswers = localStorage.getItem(`exam_taking_answers_${examId}`);
         if (savedAnswers) setAnswers(JSON.parse(savedAnswers));
@@ -533,12 +597,7 @@ export default function MockExamTakingPage({ examId, currentUser, onFinished, na
     document.removeEventListener('visibilitychange', handleVisibilityChange);
 
     if (!currentUser && !forceSubmit) {
-      toast('Bạn chưa đăng nhập. Vui lòng đăng nhập để nộp bài và nhận phân tích từ AI!', 'warning');
-      localStorage.setItem('redirect_post_auth', window.location.pathname);
-      window.history.pushState({}, '', '/');
-      window.dispatchEvent(new PopStateEvent('popstate'));
-      setIsSubmitting(false);
-      return;
+      toast('Bạn đang nộp bài dưới dạng Khách (Chưa đăng nhập). Kết quả vẫn được lưu tạm để bạn xem lại!', 'info');
     }
 
     try {
@@ -555,7 +614,8 @@ export default function MockExamTakingPage({ examId, currentUser, onFinished, na
         answersRef.current,
         durationSeconds,
         activeRetakeMode,
-        qIds
+        qIds,
+        questions
       );
 
       // Clean local storage states
@@ -622,9 +682,17 @@ export default function MockExamTakingPage({ examId, currentUser, onFinished, na
           <div style={{ background: 'var(--bg-main)', padding: '16px', borderRadius: '12px', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '13px', marginBottom: '24px' }}>
             <div>👤 <strong>Họ tên thí sinh:</strong> {currentUser?.name || 'Thí sinh tự do'}</div>
             <div>📧 <strong>Tài khoản thi:</strong> {currentUser?.email || 'Chưa đăng nhập'}</div>
-            <div>📝 <strong>Đề thi ôn luyện:</strong> {exam?.title}</div>
-            <div>⏱️ <strong>Thời gian làm bài:</strong> {exam?.duration_minutes} phút</div>
-            <div>❓ <strong>Số lượng câu hỏi:</strong> {exam?.total_questions} câu trắc nghiệm</div>
+            <div>📝 <strong>Đề thi ôn luyện:</strong> {exam?.title || targetTopicTitle || '⚡ Đề luyện tập AI THPTQG'}</div>
+            <div>⏱️ <strong>Thời gian làm bài:</strong> {(() => {
+              const qCount = questions?.length || exam?.total_questions || 0;
+              const rawMins = exam?.duration_minutes || exam?.duration;
+              if (rawMins && rawMins !== 50) return rawMins;
+              if (qCount <= 10) return 15;
+              if (qCount <= 15) return 25;
+              if (qCount <= 20) return 35;
+              return 50;
+            })()} phút</div>
+            <div>❓ <strong>Số lượng câu hỏi:</strong> {questions?.length || exam?.total_questions || 0} câu trắc nghiệm</div>
           </div>
 
           <h3 style={{ fontSize: '13.5px', fontWeight: '800', color: 'var(--exams-red)', marginBottom: '12px' }}>

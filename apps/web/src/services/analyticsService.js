@@ -1,6 +1,62 @@
 import { api } from '../api';
 import { supabase } from '../lib/supabaseClient';
-import { MOCK_ANALYTICS_DATA } from '../mock/mockAnalyticsData';
+import { getLocalData } from './mockDb';
+
+export const ZERO_ANALYTICS_DATA = {
+  isRealData: true,
+  attemptsCount: 0,
+  overview: {
+    predictedScore: 0,
+    scoreChange: '0',
+    accuracy: 0,
+    accuracyChange: '0%',
+    solvedQuestions: 0,
+    solvedChange: '0 bài thi đã nộp',
+    avgTimePerQuestion: '0 phút 0 giây',
+    timeChange: '0s / câu',
+    streakDays: 0,
+    totalStudyHours: 0,
+    weeklyStudyHours: '0h tuần này'
+  },
+  subjects: [
+    { id: 'math', name: 'Toán học', icon: '📐', accuracy: 0, solvedQuestions: 0, avgScore: 0, color: '#6c5ce7', topics: [] },
+    { id: 'physics', name: 'Vật lý', icon: '⚡', accuracy: 0, solvedQuestions: 0, avgScore: 0, color: '#0984e3', topics: [] },
+    { id: 'chemistry', name: 'Hóa học', icon: '🧪', accuracy: 0, solvedQuestions: 0, avgScore: 0, color: '#00b894', topics: [] },
+    { id: 'biology', name: 'Sinh học', icon: '🧬', accuracy: 0, solvedQuestions: 0, avgScore: 0, color: '#fdcb6e', topics: [] },
+    { id: 'english', name: 'Tiếng Anh', icon: '🇬🇧', accuracy: 0, solvedQuestions: 0, avgScore: 0, color: '#e17055', topics: [] },
+    { id: 'literature', name: 'Ngữ văn', icon: '📚', accuracy: 0, solvedQuestions: 0, avgScore: 0, color: '#a29bfe', topics: [] }
+  ],
+  weakKnowledgeList: [],
+  aiCoachInsights: [
+    {
+      id: 'ac_zero_1',
+      type: 'info',
+      icon: '💡',
+      title: 'Chưa có dữ liệu bài thi',
+      description: 'Chưa tìm thấy dữ liệu thi thử trong CSDL. Hãy làm và nộp bài thi thử đầu tiên để AI tính toán và phân tích các chỉ số năng lực của bạn!'
+    }
+  ],
+  learningTrend: [
+    { date: 'Hôm nay', accuracy: 0, score: 0, questions: 0 }
+  ],
+  heatmapData: Array.from({ length: 60 }, (_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() - (59 - i));
+    return {
+      date: d.toISOString().split('T')[0],
+      count: 0,
+      level: 0
+    };
+  }),
+  radarSkills: [
+    { skill: 'Giải quyết vấn đề', score: 0, fullMark: 100 },
+    { skill: 'Tính toán', score: 0, fullMark: 100 },
+    { skill: 'Tư duy logic', score: 0, fullMark: 100 },
+    { skill: 'Đọc hiểu đề', score: 0, fullMark: 100 },
+    { skill: 'Tốc độ làm bài', score: 0, fullMark: 100 },
+    { skill: 'Độ chính xác', score: 0, fullMark: 100 }
+  ]
+};
 
 export async function fetchRealAnalyticsData(currentUser) {
   try {
@@ -10,7 +66,22 @@ export async function fetchRealAnalyticsData(currentUser) {
     try {
       const list = await api.getAttempts();
       if (Array.isArray(list)) {
-        attempts = list.filter(a => a.status === 'SUBMITTED');
+        attempts = list
+          .filter(a => a.status === 'SUBMITTED')
+          .map(a => ({
+            id: String(a.id),
+            examId: String(a.examId || a.exam_id || ''),
+            score: Number(a.score) || 0,
+            submittedAt: a.submittedAt || a.submitted_at || a.startedAt,
+            correctCount: Number(a.correctCount || a.correct_count) || 0,
+            wrongCount: Number(a.wrongCount || a.wrong_count) || 0,
+            skippedCount: Number(a.skippedCount || a.skipped_count || a.blank_count) || 0,
+            durationUsed: Number(a.durationUsed || a.duration_used || a.duration_seconds) || 0,
+            exam: {
+              title: a.exam?.title || a.exam_title || 'Đề thi thử',
+              subject: a.exam?.subject || a.subject || null
+            }
+          }));
       }
     } catch (e) {
       console.warn('Backend API attempts endpoint warning:', e.message);
@@ -47,12 +118,52 @@ export async function fetchRealAnalyticsData(currentUser) {
       }
     }
 
-    // If 0 real attempts in DB, return structured fallback mock data
+    // 3. Fallback or merge with LocalStorage attempts
+    const localAttempts = getLocalData('supabase_mock_exam_attempts') || [];
+    const localExams = getLocalData('supabase_mock_exams') || [];
+    if (localAttempts.length > 0) {
+      const formattedLocal = localAttempts
+        .filter(a => a.status === 'completed' || a.status === 'SUBMITTED')
+        .map(a => {
+          const ex = localExams.find(e => String(e.id) === String(a.exam_id)) || {};
+          const derivedSubject = ex.exam_subjects?.name || a.subject
+            || (() => {
+                const t = (ex.title || a.exam_title || '').toLowerCase();
+                if (t.includes('vật lý') || t.includes('vật lí') || t.includes('physics') || t.includes('ly')) return 'Vật lý';
+                if (t.includes('hóa') || t.includes('chemistry') || t.includes('hoa')) return 'Hóa học';
+                if (t.includes('tiếng anh') || t.includes('english') || t.includes('anh')) return 'Tiếng Anh';
+                if (t.includes('toán') || t.includes('math') || t.includes('toan')) return 'Toán học';
+                return null;
+              })();
+          return {
+            id: String(a.id),
+            examId: String(a.exam_id),
+            score: a.score || 0,
+            submittedAt: a.submitted_at || a.started_at,
+            correctCount: a.correct_count || 0,
+            wrongCount: a.wrong_count || 0,
+            skippedCount: a.blank_count || 0,
+            durationUsed: a.duration_seconds || 0,
+            exam: {
+              title: ex.title || a.exam_title || 'Đề thi thử',
+              subject: derivedSubject
+            }
+          };
+        });
+
+      const attemptsMap = new Map();
+      attempts.forEach(a => attemptsMap.set(String(a.id), a));
+      formattedLocal.forEach(a => {
+        if (!attemptsMap.has(String(a.id))) {
+          attemptsMap.set(String(a.id), a);
+        }
+      });
+      attempts = Array.from(attemptsMap.values());
+    }
+
+    // If 0 real attempts in DB or LocalStorage, return ZERO_ANALYTICS_DATA
     if (attempts.length === 0) {
-      return {
-        isRealData: false,
-        ...MOCK_ANALYTICS_DATA
-      };
+      return ZERO_ANALYTICS_DATA;
     }
 
     // 3. Process REAL Database Data
@@ -119,12 +230,12 @@ export async function fetchRealAnalyticsData(currentUser) {
       }
     });
 
-    // Overview Calculations
-    const avgScore = scores.reduce((a, b) => a + b, 0) / (scores.length || 1);
-    const predictedScore = Math.min(10, Math.max(1, (avgScore * 1.05))).toFixed(2);
-    const overallAccuracy = totalQuestions > 0 ? ((totalCorrect / totalQuestions) * 100).toFixed(1) : 84.2;
-    const avgSecPerQ = totalQuestions > 0 ? Math.round(totalDuration / totalQuestions) : 72;
-    const totalHours = (totalDuration / 3600).toFixed(1);
+    // Overview Calculations based strictly on REAL data
+    const avgScore = scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : 0;
+    const predictedScore = totalQuestions > 0 ? Math.min(10, Math.max(0, (avgScore * 1.05))).toFixed(2) : 0;
+    const overallAccuracy = totalQuestions > 0 ? ((totalCorrect / totalQuestions) * 100).toFixed(1) : 0;
+    const avgSecPerQ = totalQuestions > 0 ? Math.round(totalDuration / totalQuestions) : 0;
+    const totalHours = totalDuration > 0 ? (totalDuration / 3600).toFixed(1) : 0;
 
     // Heatmap data array (last 60 days)
     const heatmapData = Array.from({ length: 60 }, (_, i) => {
@@ -144,8 +255,8 @@ export async function fetchRealAnalyticsData(currentUser) {
     const sortedDates = Object.keys(dateMap).sort();
     const learningTrend = sortedDates.slice(-8).map(k => {
       const item = dateMap[k];
-      const acc = item.total > 0 ? Math.round((item.correct / item.total) * 100) : 80;
-      const sc = (item.scoreSum / item.count).toFixed(1);
+      const acc = item.total > 0 ? Math.round((item.correct / item.total) * 100) : 0;
+      const sc = item.count > 0 ? (item.scoreSum / item.count).toFixed(1) : 0;
       return {
         date: item.date,
         accuracy: acc,
@@ -155,40 +266,73 @@ export async function fetchRealAnalyticsData(currentUser) {
     });
 
     if (learningTrend.length === 0) {
-      learningTrend.push(...MOCK_ANALYTICS_DATA.learningTrend);
+      learningTrend.push({ date: 'Hôm nay', accuracy: 0, score: 0, questions: 0 });
     }
 
-    // Process Subjects
+    // Process Subjects with derived topics per exam
     const processedSubjects = Object.values(subjectStats).map(s => {
-      const accuracy = s.count > 0 ? (s.accuracySum / s.count).toFixed(1) : (s.id === 'math' ? 86.5 : 80.0);
-      const avgS = s.count > 0 ? (s.scoreSum / s.count).toFixed(1) : 8.0;
-      
-      // Default fallback topics if none in DB
-      const defaultTopics = MOCK_ANALYTICS_DATA.subjects.find(m => m.id === s.id)?.topics || [];
+      const accuracy = s.count > 0 ? (s.accuracySum / s.count).toFixed(1) : 0;
+      const avgS = s.count > 0 ? (s.scoreSum / s.count).toFixed(1) : 0;
+
+      // Helper: map mastery string to TopicBreakdown status field
+      const toStatus = (correctRatio) => {
+        if (correctRatio >= 0.8) return 'good';
+        if (correctRatio >= 0.5) return 'warning';
+        return 'weak';
+      };
+
+      // Build topic entries from each exam attempt for this subject
+      const topicList = Object.entries(s.topicsMap || {}).map(([topicName, topicData]) => {
+        const correctPct = topicData.total > 0 ? Math.round((topicData.correct / topicData.total) * 100) : 0;
+        const mistakes = topicData.total > 0 ? (topicData.total - topicData.correct) : 0;
+        return {
+          id: `topic_${topicName.replace(/\s+/g, '_')}`,
+          name: topicName,
+          solved: topicData.total || 0,
+          mistakes,
+          correctPct,
+          status: toStatus(topicData.total > 0 ? topicData.correct / topicData.total : 0),
+          avgScore: topicData.count > 0 ? Math.round((topicData.scoreSum / topicData.count) * 10) / 10 : 0
+        };
+      });
+
+      // If no topic breakdown available, create one generic topic from exam-level data
+      const totalSolved = s.solved || 0;
+      const correctPct = Number(accuracy);
+      const mistakes = totalSolved > 0 ? Math.round(totalSolved * (1 - correctPct / 100)) : 0;
+      const topics = topicList.length > 0 ? topicList : (s.count > 0 ? [{
+        id: `topic_${s.id}_general`,
+        name: `Tổng hợp ${s.name}`,
+        solved: totalSolved,
+        mistakes,
+        correctPct,
+        status: toStatus(correctPct / 100),
+        avgScore: Number(avgS)
+      }] : []);
 
       return {
         id: s.id,
         name: s.name,
         icon: s.icon,
         accuracy: Number(accuracy),
-        solvedQuestions: s.solved || (s.id === 'math' ? 420 : 150),
+        solvedQuestions: s.solved || 0,
         avgScore: Number(avgS),
         color: s.color,
-        topics: defaultTopics
+        topics
       };
     });
 
     // AI Coach & Radar
-    const calcSkill = Math.min(100, Math.round(overallAccuracy * 1.05));
-    const speedSkill = Math.max(50, Math.min(100, Math.round(100 - (avgSecPerQ / 120) * 40)));
+    const calcSkill = totalQuestions > 0 ? Math.min(100, Math.round(Number(overallAccuracy) * 1.05)) : 0;
+    const speedSkill = totalQuestions > 0 ? Math.max(0, Math.min(100, Math.round(100 - (avgSecPerQ / 120) * 40))) : 0;
 
     const radarSkills = [
-      { skill: 'Giải quyết vấn đề', score: Math.min(95, Math.round(avgScore * 10)), fullMark: 100 },
+      { skill: 'Giải quyết vấn đề', score: totalQuestions > 0 ? Math.min(95, Math.round(avgScore * 10)) : 0, fullMark: 100 },
       { skill: 'Tính toán', score: calcSkill, fullMark: 100 },
-      { skill: 'Tư duy logic', score: Math.min(96, Math.round(avgScore * 10.2)), fullMark: 100 },
-      { skill: 'Đọc hiểu đề', score: Math.min(92, Math.round(overallAccuracy * 0.95)), fullMark: 100 },
+      { skill: 'Tư duy logic', score: totalQuestions > 0 ? Math.min(96, Math.round(avgScore * 10.2)) : 0, fullMark: 100 },
+      { skill: 'Đọc hiểu đề', score: totalQuestions > 0 ? Math.min(92, Math.round(Number(overallAccuracy) * 0.95)) : 0, fullMark: 100 },
       { skill: 'Tốc độ làm bài', score: speedSkill, fullMark: 100 },
-      { skill: 'Độ chính xác', score: Number(overallAccuracy), fullMark: 100 }
+      { skill: 'Độ chính xác', score: Number(overallAccuracy) || 0, fullMark: 100 }
     ];
 
     const aiCoachInsights = [
@@ -215,24 +359,28 @@ export async function fetchRealAnalyticsData(currentUser) {
       }
     ];
 
+    const mins = Math.floor(avgSecPerQ / 60);
+    const secs = avgSecPerQ % 60;
+    const timeStr = `${mins > 0 ? mins + ' phút ' : ''}${secs} giây`;
+
     return {
       isRealData: true,
       attemptsCount: attempts.length,
       overview: {
         predictedScore: Number(predictedScore),
-        scoreChange: '+0.45',
+        scoreChange: '+0.00',
         accuracy: Number(overallAccuracy),
-        accuracyChange: '+2.1%',
-        solvedQuestions: totalQuestions || 1280,
+        accuracyChange: '0%',
+        solvedQuestions: totalQuestions,
         solvedChange: `${attempts.length} bài thi đã nộp`,
-        avgTimePerQuestion: `${Math.floor(avgSecPerQ / 60)}m ${avgSecPerQ % 60}s`,
-        timeChange: '-5s / câu',
-        streakDays: Math.min(30, Math.max(1, attempts.length * 2)),
-        totalStudyHours: Number(totalHours) > 0 ? Number(totalHours) : 48.5,
+        avgTimePerQuestion: timeStr,
+        timeChange: 'Thời gian TB',
+        streakDays: Math.min(30, attempts.length),
+        totalStudyHours: Number(totalHours),
         weeklyStudyHours: `${(Number(totalHours) * 0.3).toFixed(1)}h tuần này`
       },
       subjects: processedSubjects,
-      weakKnowledgeList: MOCK_ANALYTICS_DATA.weakKnowledgeList,
+      weakKnowledgeList: [],
       aiCoachInsights,
       learningTrend,
       heatmapData,
@@ -241,9 +389,7 @@ export async function fetchRealAnalyticsData(currentUser) {
 
   } catch (error) {
     console.error('Lỗi khi tải dữ liệu phân tích từ CSDL:', error);
-    return {
-      isRealData: false,
-      ...MOCK_ANALYTICS_DATA
-    };
+    return ZERO_ANALYTICS_DATA;
   }
 }
+
